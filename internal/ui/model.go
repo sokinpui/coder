@@ -23,6 +23,7 @@ func NewModel() Model {
 	ta.Focus()
 	ta.CharLimit = 0 // No character limit
 	ta.SetWidth(80)  // Default width
+	ta.SetHeight(10) // Default height
 	ta.Prompt = "> "
 	ta.ShowLineNumbers = false // No line numbers for now, can be configured
 
@@ -104,7 +105,7 @@ func (m Model) View() string {
 }
 
 var (
-	inputStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
-	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86")) // Green
+	inputStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
+	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
 	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
 )
