@@ -4,29 +4,30 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 // Model holds the state of the Bubble Tea application.
 type Model struct {
-	textInput textinput.Model // The input box for user code.
-	outputLog []string        // Stores previous inputs and generated outputs.
-	quitting  bool            // Indicates if the application is in the process of quitting.
+	textArea  textarea.Model // The multi-line input box for user code.
+	outputLog []string       // Stores previous inputs and generated outputs.
+	quitting  bool           // Indicates if the application is in the process of quitting.
 }
 
 // NewModel creates a new instance of the Model.
 func NewModel() Model {
-	ti := textinput.New()
-	ti.Placeholder = "Enter your code..."
-	ti.Focus()
-	ti.CharLimit = 0 // No character limit
-	ti.Width = 80   // Default width
-	ti.Prompt = "> "
+	ta := textarea.New()
+	ta.Placeholder = "Enter your code..."
+	ta.Focus()
+	ta.CharLimit = 0 // No character limit
+	ta.SetWidth(80)  // Default width
+	ta.Prompt = "> "
+	ta.ShowLineNumbers = false // No line numbers for now, can be configured
 
 	return Model{
-		textInput: ti,
+		textArea:  ta,
 		outputLog: []string{},
 	}
 }
@@ -34,7 +35,7 @@ func NewModel() Model {
 // Init initializes the Bubble Tea program.
 // It returns a command to start the text input blinking.
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return textarea.Blink
 }
 
 // Update handles messages and updates the model's state.
@@ -45,13 +46,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
+			// Ctrl+C or Esc to quit the application.
 			m.quitting = true
 			return m, tea.Quit
-		case tea.KeyEnter: // Ctrl-J sends a line feed, which Bubble Tea interprets as KeyEnter
-			input := m.textInput.Value()
+		case tea.KeyCtrlJ: // Ctrl+J to submit the current input.
+			input := m.textArea.Value()
 			if strings.TrimSpace(input) == "" {
 				// Don't process empty input, just clear the field.
-				m.textInput.SetValue("")
+				m.textArea.SetValue("")
 				return m, nil
 			}
 
@@ -63,17 +65,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.outputLog = append(m.outputLog, outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)))
 			m.outputLog = append(m.outputLog, "") // Add a blank line for readability
 
-			m.textInput.SetValue("") // Clear the input field after submission
-			return m, nil            // No further command needed, just update the model
+			m.textArea.SetValue("") // Clear the input field after submission.
+			return m, nil           // No further command needed, just update the model.
 		}
 
 	case tea.WindowSizeMsg:
-		// Adjust text input width based on terminal size.
-		m.textInput.Width = msg.Width - len(m.textInput.Prompt) - 2 // Account for prompt and padding
+		// Adjust textarea width based on terminal size.
+		// Textarea automatically handles its height and soft-wrapping based on width.
+		m.textArea.SetWidth(msg.Width - len(m.textArea.Prompt) - 2) // Account for prompt and padding.
 	}
 
 	// Always update the text input component with any other messages.
-	m.textInput, cmd = m.textInput.Update(msg)
+	m.textArea, cmd = m.textArea.Update(msg)
 	return m, cmd
 }
 
@@ -93,7 +96,7 @@ func (m Model) View() string {
 
 	// Add the prompt for the next input.
 	s.WriteString("\n")
-	s.WriteString(m.textInput.View())
+	s.WriteString(m.textArea.View())
 	s.WriteString("\n")
 	s.WriteString(helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"))
 
