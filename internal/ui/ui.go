@@ -9,7 +9,11 @@ import (
 
 // Start initializes and runs the Bubble Tea program for the coder application.
 func Start() {
-	p := tea.NewProgram(NewModel())
+	p := tea.NewProgram(
+		NewModel(),
+		tea.WithAltScreen(),
+		tea.WithMouseAllMotion(),
+	)
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error starting program: %v\n", err)
