@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	fixedTextareaHeight = 0
-	maxLines            = 10
+	// fixedTextareaHeight = 0
+	maxLines = 10
 )
 
 var (
@@ -23,35 +23,32 @@ var (
 			BorderForeground(lipgloss.Color("240"))
 )
 
-// Model holds the state of the Bubble Tea application.
 type Model struct {
-	textArea  textarea.Model // The multi-line input box for user code.
-	quitting  bool     // Indicates if the application is in the process of quitting.
+	textArea textarea.Model
+	quitting bool
 }
 
-// NewModel creates a new instance of the Model.
 func NewModel() Model {
 	ta := textarea.New()
 	ta.Placeholder = "Enter your code..."
 	ta.Focus()
-	ta.CharLimit = 0 // No character limit
+	ta.CharLimit = 0
 	ta.SetWidth(80 - textAreaStyle.GetHorizontalPadding())
-	ta.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
+	// ta.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
+	ta.SetHeight(1)
+	ta.MaxHeight = 0
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
 
 	return Model{
-		textArea:  ta,
+		textArea: ta,
 	}
 }
 
-// Init initializes the Bubble Tea program.
-// It returns a command to start the text input blinking.
 func (m Model) Init() tea.Cmd {
 	return textarea.Blink
 }
 
-// Update handles messages and updates the model's state.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -62,13 +59,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			// Ctrl+C or Esc to quit the application.
 			m.quitting = true
 			return m, tea.Quit
 		case tea.KeyCtrlJ: // Ctrl+J to submit the current input.
 			input := m.textArea.Value()
 			if strings.TrimSpace(input) == "" {
-				// Don't process empty input, just clear the field.
 				m.textArea.Reset()
 				return m, nil
 			}
@@ -80,7 +75,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)),
 			)
 
-			m.textArea.Reset() // Clear the input field after submission.
+			m.textArea.Reset()
 			return m, tea.Printf(output)
 		}
 
@@ -88,7 +83,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
 	}
 
-	// Always update the text input component with any other messages.
 	m.textArea, cmd = m.textArea.Update(msg)
 	cmds = append(cmds, cmd)
 
@@ -96,7 +90,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if lineCount < maxLines {
 		m.textArea.SetHeight(lineCount + 1)
 	} else {
-		m.textArea.SetHeight(maxLines)
+		m.textArea.SetHeight(maxLines + 1)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -105,9 +99,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the program's UI.
 func (m Model) View() string {
 	if m.quitting {
-		// Why: On exit, we don't need to render anything. The history has already
-		// been printed to the console, and we want to leave the user's
-		// terminal clean.
 		return ""
 	}
 

@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Start initializes and runs the Bubble Tea program for the coder application.
 func Start() {
 	p := tea.NewProgram(
 		NewModel(),
