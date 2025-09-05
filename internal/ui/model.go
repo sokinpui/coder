@@ -10,6 +10,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	fixedTextareaHeight = 5
+)
+
+var (
+	inputStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
+	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
+	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
+	textAreaStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240"))
+)
+
 // Model holds the state of the Bubble Tea application.
 type Model struct {
 	textArea  textarea.Model // The multi-line input box for user code.
@@ -24,10 +37,10 @@ func NewModel() Model {
 	ta.Placeholder = "Enter your code..."
 	ta.Focus()
 	ta.CharLimit = 0 // No character limit
-	ta.SetWidth(80)
-	ta.SetHeight(5)
-	ta.Prompt = "> "
-	ta.ShowLineNumbers = false // No line numbers for now, can be configured
+	ta.SetWidth(80 - textAreaStyle.GetHorizontalPadding())
+	ta.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
+	ta.Prompt = ""
+	ta.ShowLineNumbers = false
 
 	vp := viewport.New(80, 20)
 
@@ -82,14 +95,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		const fixedTextareaHeight = 5
 		const helpHeight = 1
 		const verticalMargin = 2 // One newline between each component
 
 		m.viewport.Width = msg.Width
 		m.viewport.Height = msg.Height - fixedTextareaHeight - helpHeight - verticalMargin
-		m.textArea.SetWidth(msg.Width)
-		m.textArea.SetHeight(fixedTextareaHeight)
+		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
+		m.textArea.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
 	}
 
 	// Always update the text input component with any other messages.
@@ -110,13 +122,7 @@ func (m Model) View() string {
 
 	return fmt.Sprintf("%s\n%s\n%s",
 		m.viewport.View(),
-		m.textArea.View(),
+		textAreaStyle.Render(m.textArea.View()),
 		helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"),
 	)
 }
-
-var (
-	inputStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
-	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
-	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
-)
