@@ -66,6 +66,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit
+		case tea.KeyCtrlL:
+			return m, tea.ClearScreen
 		case tea.KeyCtrlJ: // Ctrl+J to submit the current input.
 			input := m.textArea.Value()
 			if strings.TrimSpace(input) == "" {
