@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -27,7 +26,6 @@ var (
 // Model holds the state of the Bubble Tea application.
 type Model struct {
 	textArea  textarea.Model // The multi-line input box for user code.
-	viewport  viewport.Model
 	outputLog []string // Stores previous inputs and generated outputs.
 	quitting  bool     // Indicates if the application is in the process of quitting.
 }
@@ -43,11 +41,8 @@ func NewModel() Model {
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
 
-	vp := viewport.New(80, 20)
-
 	return Model{
 		textArea:  ta,
-		viewport:  vp,
 		outputLog: []string{},
 	}
 }
@@ -88,21 +83,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.outputLog = append(m.outputLog, outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)))
 			m.outputLog = append(m.outputLog, "") // Add a blank line for readability
 
-			m.viewport.SetContent(strings.Join(m.outputLog, "\n"))
-			m.viewport.GotoBottom()
-
 			m.textArea.Reset() // Clear the input field after submission.
 			return m, nil      // No further command needed, just update the model.
 		}
 
 	case tea.WindowSizeMsg:
-		const helpHeight = 1
-		const verticalMargin = 2 // One newline between each component
-
-		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height - fixedTextareaHeight - helpHeight - verticalMargin
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
-		m.textArea.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
 	}
 
 	// Always update the text input component with any other messages.
@@ -116,9 +102,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textArea.SetHeight(maxLines)
 	}
 
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -131,9 +114,18 @@ func (m Model) View() string {
 		return strings.Join(m.outputLog, "\n") + "\n"
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s",
-		m.viewport.View(),
-		textAreaStyle.Render(m.textArea.View()),
-		helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"),
-	)
+	// Why: We want to create a fluid, terminal-like experience where the output
+	// flows above the input box. A strings.Builder is efficient for this.
+	var view strings.Builder
+
+	// Only write the output log if it's not empty, to avoid a leading newline
+	// at the beginning of the session.
+	if len(m.outputLog) > 0 {
+		view.WriteString(strings.Join(m.outputLog, "\n") + "\n")
+	}
+
+	view.WriteString(textAreaStyle.Render(m.textArea.View()))
+	view.WriteString("\n" + helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"))
+
+	return view.String()
 }
