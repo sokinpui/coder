@@ -1,9 +1,9 @@
 package ui
 
 import (
+	"coder/internal/generation"
 	"fmt"
 	"strings"
-	"coder/internal/generation"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,12 +45,12 @@ func waitForStreamActivity(sub chan string) tea.Cmd {
 }
 
 type Model struct {
-	textArea      textarea.Model
-	quitting      bool
-	screenHeight  int
-	generator     *generation.Generator
-	generating    bool
-	streamSub     chan string
+	textArea     textarea.Model
+	quitting     bool
+	screenHeight int
+	generator    *generation.Generator
+	generating   bool
+	streamSub    chan string
 }
 
 func NewModel() Model {
@@ -110,7 +110,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			go m.generator.GenerateTask(input, m.streamSub)
 
-			output := submittedInputStyle.Render(fmt.Sprintf("You\n%s", input))
+			output := submittedInputStyle.Render(fmt.Sprintf("You\n%s\n", input))
 			aiHeader := outputStyle.Render("✦")
 
 			return m, tea.Batch(
@@ -128,7 +128,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.streamSub = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
-		return m, tea.Printf("\n")
+		return m, cmd
 
 	case tea.WindowSizeMsg:
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
