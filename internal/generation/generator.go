@@ -1,11 +1,11 @@
 package generation
 
 import (
-	"coder/grpc"
 	"context"
 	"io"
 	"log"
 
+	pb "coder/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -16,7 +16,7 @@ const (
 )
 
 type Generator struct {
-	client grpc.GenerateClient
+	client pb.GenerateClient
 }
 
 func New() *Generator {
@@ -25,14 +25,14 @@ func New() *Generator {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	client := grpc.NewGenerateClient(conn)
+	client := pb.NewGenerateClient(conn)
 	return &Generator{client: client}
 }
 
 func (g *Generator) GenerateTask(prompt string, streamChan chan<- string) {
 	defer close(streamChan)
 
-	req := &grpc.Request{
+	req := &pb.Request{
 		Prompt:    prompt,
 		ModelCode: modelCode,
 		Stream:    true,
