@@ -26,7 +26,6 @@ var (
 // Model holds the state of the Bubble Tea application.
 type Model struct {
 	textArea  textarea.Model // The multi-line input box for user code.
-	outputLog []string // Stores previous inputs and generated outputs.
 	quitting  bool     // Indicates if the application is in the process of quitting.
 }
 
@@ -43,7 +42,6 @@ func NewModel() Model {
 
 	return Model{
 		textArea:  ta,
-		outputLog: []string{},
 	}
 }
 
@@ -75,16 +73,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			// Add the user's input to the log.
-			m.outputLog = append(m.outputLog, inputStyle.Render(fmt.Sprintf("You entered: %s", input)))
-
 			// Placeholder for AI response.
 			charCount := len(input)
-			m.outputLog = append(m.outputLog, outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)))
-			m.outputLog = append(m.outputLog, "") // Add a blank line for readability
+			output := fmt.Sprintf("%s\n%s\n",
+				inputStyle.Render(fmt.Sprintf("You entered: %s", input)),
+				outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)),
+			)
 
 			m.textArea.Reset() // Clear the input field after submission.
-			return m, nil      // No further command needed, just update the model.
+			return m, tea.Printf(output)
 		}
 
 	case tea.WindowSizeMsg:
@@ -108,24 +105,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the program's UI.
 func (m Model) View() string {
 	if m.quitting {
-		// Why: On exit, we want to display the final output log.
-		// This is particularly useful when not using an alternate screen,
-		// as it leaves the conversation history in the terminal.
-		return strings.Join(m.outputLog, "\n") + "\n"
+		// Why: On exit, we don't need to render anything. The history has already
+		// been printed to the console, and we want to leave the user's
+		// terminal clean.
+		return ""
 	}
 
-	// Why: We want to create a fluid, terminal-like experience where the output
-	// flows above the input box. A strings.Builder is efficient for this.
-	var view strings.Builder
-
-	// Only write the output log if it's not empty, to avoid a leading newline
-	// at the beginning of the session.
-	if len(m.outputLog) > 0 {
-		view.WriteString(strings.Join(m.outputLog, "\n") + "\n")
-	}
-
-	view.WriteString(textAreaStyle.Render(m.textArea.View()))
-	view.WriteString("\n" + helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"))
-
-	return view.String()
+	return fmt.Sprintf("%s\n%s",
+		textAreaStyle.Render(m.textArea.View()),
+		helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"),
+	)
 }
