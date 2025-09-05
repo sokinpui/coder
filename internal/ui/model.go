@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	fixedTextareaHeight = 5
+	fixedTextareaHeight = 0
+	maxLines            = 10
 )
 
 var (
-	inputStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
-	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
-	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
+	inputStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
+	outputStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
+	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
 	textAreaStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240"))
@@ -27,8 +28,8 @@ var (
 type Model struct {
 	textArea  textarea.Model // The multi-line input box for user code.
 	viewport  viewport.Model
-	outputLog []string       // Stores previous inputs and generated outputs.
-	quitting  bool           // Indicates if the application is in the process of quitting.
+	outputLog []string // Stores previous inputs and generated outputs.
+	quitting  bool     // Indicates if the application is in the process of quitting.
 }
 
 // NewModel creates a new instance of the Model.
@@ -67,7 +68,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
 			// Ctrl+C or Esc to quit the application.
 			m.quitting = true
 			return m, tea.Quit
@@ -107,6 +108,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Always update the text input component with any other messages.
 	m.textArea, cmd = m.textArea.Update(msg)
 	cmds = append(cmds, cmd)
+
+	lineCount := m.textArea.LineCount()
+	if lineCount < maxLines {
+		m.textArea.SetHeight(lineCount + 1)
+	} else {
+		m.textArea.SetHeight(maxLines)
+	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
