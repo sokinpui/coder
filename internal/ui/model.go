@@ -78,8 +78,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Placeholder for AI response.
 			charCount := len(input)
 			output := fmt.Sprintf("%s\n%s\n",
-				inputStyle.Render(fmt.Sprintf("You entered: %s", input)),
-				outputStyle.Render(fmt.Sprintf("output: You input %d char", charCount)),
+				inputStyle.Render(fmt.Sprintf("You\n%s\n", input)),
+				outputStyle.Render(fmt.Sprintf("✦\nYou input %d char", charCount)),
 			)
 
 			m.textArea.Reset()
