@@ -39,9 +39,9 @@ func NewModel() Model {
 	ta.Focus()
 	ta.CharLimit = 0
 	ta.SetWidth(80 - textAreaStyle.GetHorizontalPadding())
-	// ta.SetHeight(fixedTextareaHeight - textAreaStyle.GetVerticalPadding())
 	ta.SetHeight(1)
 	ta.MaxHeight = 0
+	ta.MaxWidth = 0
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
 
