@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"coder/internal/generation"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,6 +19,7 @@ var (
 	textAreaStyle       = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("240"))
+	generatingHelpStyle = helpStyle.Copy().Italic(true)
 )
 
 func min(a, b int) int {
@@ -27,10 +29,28 @@ func min(a, b int) int {
 	return b
 }
 
+type (
+	streamResultMsg   string
+	streamFinishedMsg struct{}
+)
+
+func waitForStreamActivity(sub chan string) tea.Cmd {
+	return func() tea.Msg {
+		content, ok := <-sub
+		if !ok {
+			return streamFinishedMsg{}
+		}
+		return streamResultMsg(content)
+	}
+}
+
 type Model struct {
-	textArea     textarea.Model
-	quitting     bool
-	screenHeight int
+	textArea      textarea.Model
+	quitting      bool
+	screenHeight  int
+	generator     *generation.Generator
+	generating    bool
+	streamSub     chan string
 }
 
 func NewModel() Model {
@@ -46,7 +66,8 @@ func NewModel() Model {
 	ta.ShowLineNumbers = false
 
 	return Model{
-		textArea: ta,
+		textArea:  ta,
+		generator: generation.New(),
 	}
 }
 
@@ -62,29 +83,52 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.generating {
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				m.quitting = true
+				return m, tea.Quit
+			}
+			return m, nil
+		}
+
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			m.quitting = true
 			return m, tea.Quit
 		case tea.KeyCtrlL:
 			return m, tea.ClearScreen
-		case tea.KeyCtrlJ: // Ctrl+J to submit the current input.
+		case tea.KeyCtrlJ:
 			input := m.textArea.Value()
 			if strings.TrimSpace(input) == "" {
-				m.textArea.Reset()
 				return m, nil
 			}
 
-			// Placeholder for AI response.
-			charCount := len(input)
-			output := fmt.Sprintf("%s\n%s\n",
-				submittedInputStyle.Render(fmt.Sprintf("You\n%s\n", input)),
-				outputStyle.Render(fmt.Sprintf("✦\nYou input %d char", charCount)),
-			)
+			m.generating = true
+			m.streamSub = make(chan string)
+			m.textArea.Blur()
 
-			m.textArea.Reset()
-			return m, tea.Printf(output)
+			go m.generator.GenerateTask(input, m.streamSub)
+
+			output := submittedInputStyle.Render(fmt.Sprintf("You\n%s", input))
+			aiHeader := outputStyle.Render("✦")
+
+			return m, tea.Batch(
+				tea.Printf("\n%s\n%s", output, aiHeader),
+				waitForStreamActivity(m.streamSub),
+			)
 		}
+
+	case streamResultMsg:
+		cmd := tea.Printf(outputStyle.Render(string(msg)))
+		return m, tea.Batch(cmd, waitForStreamActivity(m.streamSub))
+
+	case streamFinishedMsg:
+		m.generating = false
+		m.streamSub = nil
+		m.textArea.Reset()
+		m.textArea.Focus()
+		return m, tea.Printf("\n")
 
 	case tea.WindowSizeMsg:
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
@@ -106,8 +150,13 @@ func (m Model) View() string {
 		return ""
 	}
 
+	help := helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit")
+	if m.generating {
+		help = generatingHelpStyle.Render("Generating... Press Ctrl+C to quit")
+	}
+
 	return fmt.Sprintf("%s\n%s",
 		textAreaStyle.Render(m.textArea.View()),
-		helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit"),
+		help,
 	)
 }
