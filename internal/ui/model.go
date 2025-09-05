@@ -9,10 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const (
-	// fixedTextareaHeight = 0
-	maxLines = 10
-)
+const ()
 
 var (
 	inputStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
@@ -23,9 +20,17 @@ var (
 			BorderForeground(lipgloss.Color("240"))
 )
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 type Model struct {
-	textArea textarea.Model
-	quitting bool
+	textArea     textarea.Model
+	quitting     bool
+	screenHeight int
 }
 
 func NewModel() Model {
@@ -81,17 +86,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
+		m.screenHeight = msg.Height
 	}
 
 	m.textArea, cmd = m.textArea.Update(msg)
 	cmds = append(cmds, cmd)
 
-	lineCount := m.textArea.LineCount()
-	if lineCount < maxLines {
-		m.textArea.SetHeight(lineCount + 1)
-	} else {
-		m.textArea.SetHeight(maxLines + 1)
-	}
+	inputHeight := min(m.textArea.LineCount(), m.screenHeight/4) + 1
+	m.textArea.SetHeight(inputHeight)
 
 	return m, tea.Batch(cmds...)
 }
