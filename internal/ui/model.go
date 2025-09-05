@@ -12,12 +12,12 @@ import (
 const ()
 
 var (
-	inputStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
-	outputStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
-	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
-	textAreaStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("240"))
+	submittedInputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243")) // Gray
+	outputStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
+	helpStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
+	textAreaStyle       = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240"))
 )
 
 func min(a, b int) int {
@@ -78,7 +78,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Placeholder for AI response.
 			charCount := len(input)
 			output := fmt.Sprintf("%s\n%s\n",
-				inputStyle.Render(fmt.Sprintf("You\n%s\n", input)),
+				submittedInputStyle.Render(fmt.Sprintf("You\n%s\n", input)),
 				outputStyle.Render(fmt.Sprintf("✦\nYou input %d char", charCount)),
 			)
 
