@@ -11,8 +11,6 @@ import (
 func Start() {
 	p := tea.NewProgram(
 		NewModel(),
-		tea.WithAltScreen(),
-		tea.WithMouseAllMotion(),
 	)
 
 	if _, err := p.Run(); err != nil {

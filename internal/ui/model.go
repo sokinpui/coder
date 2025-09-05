@@ -125,7 +125,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the program's UI.
 func (m Model) View() string {
 	if m.quitting {
-		return "Exiting coder...\n"
+		// Why: On exit, we want to display the final output log.
+		// This is particularly useful when not using an alternate screen,
+		// as it leaves the conversation history in the terminal.
+		return strings.Join(m.outputLog, "\n") + "\n"
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s",
