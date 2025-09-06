@@ -24,27 +24,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if msg.Type != tea.KeyCtrlC {
+			m.ctrlCPressed = false
+		}
+
 		switch m.state {
-		case stateThinking, stateGenerating:
+		case stateThinking, stateGenerating, stateCancelling:
 			switch msg.Type {
 			case tea.KeyCtrlC:
-				if m.cancelGeneration != nil {
+				if m.state != stateCancelling && m.cancelGeneration != nil {
 					m.cancelGeneration()
+					m.state = stateCancelling
 				}
-				m.quitting = true
-				return m, tea.Quit
 			}
 			return m, nil
+
 		case stateIdle:
 			switch msg.Type {
 			case tea.KeyCtrlC:
-				m.quitting = true
-				return m, tea.Quit
+				if m.textArea.Value() != "" {
+					m.textArea.Reset()
+					m.ctrlCPressed = false
+					return m, nil
+				}
+				if m.ctrlCPressed {
+					m.quitting = true
+					return m, tea.Quit
+				}
+				m.ctrlCPressed = true
+				return m, nil
+
 			case tea.KeyCtrlJ:
 				input := m.textArea.Value()
 				if strings.TrimSpace(input) == "" {
 					return m, nil
 				}
+
 				m.state = stateThinking
 				m.isStreaming = true
 				m.streamSub = make(chan string)
@@ -69,15 +84,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state != stateThinking {
+		if m.state != stateThinking && m.state != stateCancelling {
 			return m, nil
 		}
 
 		var spinnerCmd tea.Cmd
 		m.spinner, spinnerCmd = m.spinner.Update(msg)
 
-		renderedOutput := m.renderConversation()
-		m.viewport.SetContent(renderedOutput + m.spinner.View() + " Thinking...")
+		var statusText string
+		if m.state == stateThinking {
+			statusText = " Thinking..."
+		} else {
+			statusText = " Cancelling..."
+		}
+		m.viewport.SetContent(m.renderConversation() + m.spinner.View() + statusText)
 		m.viewport.GotoBottom()
 
 		return m, spinnerCmd

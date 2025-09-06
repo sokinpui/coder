@@ -6,6 +6,7 @@ const (
 	stateIdle state = iota
 	stateThinking
 	stateGenerating
+	stateCancelling
 )
 
 type message struct {

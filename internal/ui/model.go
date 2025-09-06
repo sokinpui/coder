@@ -35,6 +35,7 @@ type Model struct {
 	glamourRenderer    *glamour.TermRenderer
 	isStreaming        bool
 	lastRenderedAIPart string
+	ctrlCPressed       bool
 }
 
 // NewModel creates a new UI model.
@@ -78,5 +79,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		isStreaming:        false,
 		messages:           []message{},
 		lastRenderedAIPart: "",
+		ctrlCPressed:       false,
 	}, nil
 }

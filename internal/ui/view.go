@@ -30,13 +30,22 @@ func (m Model) renderConversation() string {
 
 // helpView renders the help text.
 func (m Model) helpView() string {
-	help := helpStyle.Render("Ctrl+J to submit, Ctrl+C to quit")
-	switch m.state {
-	case stateGenerating:
-		help = generatingHelpStyle.Render("Generating... Ctrl+C to quit")
+	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
+		return helpStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	return help
+	switch m.state {
+	case stateThinking:
+		return generatingHelpStyle.Render("Thinking... Ctrl+C to cancel")
+	case stateGenerating:
+		return generatingHelpStyle.Render("Generating... Ctrl+C to cancel")
+	case stateCancelling:
+		return generatingHelpStyle.Render("Cancelling...")
+	case stateIdle:
+		return helpStyle.Render("Ctrl+J to submit, Ctrl+C to clear/quit")
+	}
+
+	return "" // Should not be reached
 }
 
 // View renders the program's UI.
