@@ -35,10 +35,10 @@ func (m Model) helpView() string {
 	}
 
 	switch m.state {
-	case stateGenerating, stateThinking:
-		return generatingHelpStyle.Render("Ctrl+U/D to scroll • Ctrl+C to cancel")
+	case stateThinking, stateGenerating:
+		return generatingHelpStyle.Render(fmt.Sprintf("%s Generating... • Ctrl+U/D to scroll • Ctrl+C to cancel", m.spinner.View()))
 	case stateCancelling:
-		return generatingHelpStyle.Render("Cancelling...")
+		return generatingHelpStyle.Render(fmt.Sprintf("%s Cancelling...", m.spinner.View()))
 	}
 
 	return helpStyle.Render("Ctrl+J to send • Ctrl+U/D to scroll • Ctrl+C to clear/quit")

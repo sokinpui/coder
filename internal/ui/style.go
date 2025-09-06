@@ -11,5 +11,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
 			Padding(0, 1)
-	generatingHelpStyle = helpStyle.Copy().Italic(true)
+	generatingHelpStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("39")). // Blue
+				Italic(true)
 )

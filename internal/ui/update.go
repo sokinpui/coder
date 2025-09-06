@@ -94,25 +94,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state != stateThinking && m.state != stateCancelling {
+		// Tick the spinner during all generation phases.
+		if m.state != stateThinking && m.state != stateGenerating && m.state != stateCancelling {
 			return m, nil
 		}
 
 		var spinnerCmd tea.Cmd
 		m.spinner, spinnerCmd = m.spinner.Update(msg)
-
-		var statusText string
-		if m.state == stateThinking {
-			statusText = " Thinking..."
-		} else {
-			statusText = " Cancelling..."
-		}
-		wasAtBottom := m.viewport.AtBottom()
-		m.viewport.SetContent(m.renderConversation() + m.spinner.View() + statusText)
-		if wasAtBottom {
-			m.viewport.GotoBottom()
-		}
-
 		return m, spinnerCmd
 
 	case streamResultMsg:
