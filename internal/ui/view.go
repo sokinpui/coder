@@ -32,8 +32,6 @@ func (m Model) renderConversation() string {
 func (m Model) helpView() string {
 	help := helpStyle.Render("Ctrl+J to submit, Ctrl+C to quit")
 	switch m.state {
-	case stateThinking:
-		help = generatingHelpStyle.Render("Thinking... Ctrl+C to quit")
 	case stateGenerating:
 		help = generatingHelpStyle.Render("Generating... Ctrl+C to quit")
 	}
