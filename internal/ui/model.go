@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -61,14 +62,14 @@ func listenForStream(sub chan string) tea.Cmd {
 // Model defines the state of the application's UI.
 type Model struct {
 	textArea         textarea.Model
+	viewport         viewport.Model
 	generator        *generation.Generator
 	streamSub        chan string
 	cancelGeneration context.CancelFunc
 	conversation     string
-	err              error
 	state            state
 	quitting         bool
-	screenHeight     int
+	height           int
 }
 
 // NewModel creates a new UI model.
@@ -82,15 +83,17 @@ func NewModel(cfg *config.Config) (Model, error) {
 	ta.Placeholder = "Enter your prompt..."
 	ta.Focus()
 	ta.CharLimit = 0
-	ta.SetWidth(80 - textAreaStyle.GetHorizontalPadding())
 	ta.SetHeight(1)
 	ta.MaxHeight = 0
 	ta.MaxWidth = 0
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
 
+	vp := viewport.New(80, 20) // Initial size, will be updated
+
 	return Model{
 		textArea:  ta,
+		viewport:  vp,
 		generator: gen,
 		state:     stateIdle,
 	}, nil
@@ -126,16 +129,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			case tea.KeyCtrlL:
 				m.conversation = ""
-				m.err = nil
+				m.viewport.SetContent("Conversation cleared.")
 				return m, nil
 			case tea.KeyCtrlJ:
 				input := m.textArea.Value()
 				if strings.TrimSpace(input) == "" {
 					return m, nil
 				}
-
 				m.state = stateGenerating
-				m.err = nil
 				m.streamSub = make(chan string)
 				m.textArea.Blur()
 
@@ -146,6 +147,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.conversation += submittedInputStyle.Render(fmt.Sprintf("\nYou\n%s\n\n", input))
 				m.conversation += outputStyle.Render("AI\n")
+				m.viewport.SetContent(m.conversation)
+				m.viewport.GotoBottom()
 
 				return m, listenForStream(m.streamSub)
 			}
@@ -153,10 +156,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamResultMsg:
 		m.conversation += outputStyle.Render(string(msg))
+		m.viewport.SetContent(m.conversation)
+		m.viewport.GotoBottom()
 		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
 		m.conversation += "\n"
+		m.viewport.SetContent(m.conversation)
+		m.viewport.GotoBottom()
 		m.state = stateIdle
 		m.streamSub = nil
 		m.cancelGeneration = nil
@@ -165,25 +172,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case errorMsg:
-		m.err = msg.error
+		m.conversation += errorStyle.Render(fmt.Sprintf("\nError: %v\n", msg.error))
+		m.viewport.SetContent(m.conversation)
+		m.viewport.GotoBottom()
 		m.state = stateIdle
 		m.streamSub = nil
 		m.cancelGeneration = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
 		return m, nil
+
 	case tea.WindowSizeMsg:
+		m.height = msg.Height
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
-		m.screenHeight = msg.Height
+		m.viewport.Width = msg.Width
 	}
 
-	m.textArea, cmd = m.textArea.Update(msg)
+	if m.state == stateIdle {
+		m.textArea, cmd = m.textArea.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
-	inputHeight := min(m.textArea.LineCount(), m.screenHeight/4) + 1
+	inputHeight := min(m.textArea.LineCount(), m.height/4) + 1
 	m.textArea.SetHeight(inputHeight)
 
+	helpViewHeight := lipgloss.Height(m.helpView())
+	viewportHeight := m.height - m.textArea.Height() - helpViewHeight - textAreaStyle.GetVerticalPadding() - 2
+	if viewportHeight < 0 {
+		viewportHeight = 0
+	}
+	m.viewport.Height = viewportHeight
+
 	return m, tea.Batch(cmds...)
+}
+
+// helpView renders the help text.
+func (m Model) helpView() string {
+	help := helpStyle.Render("Ctrl+J to submit, Ctrl+L to clear, Ctrl+C to quit")
+	if m.state == stateGenerating {
+		help = generatingHelpStyle.Render("Generating... Ctrl+C to quit")
+	}
+	return help
 }
 
 // View renders the program's UI.
@@ -192,22 +224,9 @@ func (m Model) View() string {
 		return ""
 	}
 
-	var ui strings.Builder
-
-	ui.WriteString(m.conversation)
-
-	if m.err != nil {
-		ui.WriteString(errorStyle.Render(fmt.Sprintf("\nError: %v\n", m.err)))
-	}
-
-	help := helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit")
-	if m.state == stateGenerating {
-		help = generatingHelpStyle.Render("Generating... Press Ctrl+C to quit")
-	}
-
-	ui.WriteString(fmt.Sprintf("\n%s\n%s",
+	return fmt.Sprintf("%s\n%s\n%s",
+		m.viewport.View(),
 		textAreaStyle.Render(m.textArea.View()),
-		help))
-
-	return ui.String()
+		m.helpView(),
+	)
 }
