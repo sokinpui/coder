@@ -52,7 +52,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Quit
 				}
 				m.ctrlCPressed = true
-				return m, nil
+				return m, ctrlCTimeout()
 
 			case tea.KeyCtrlJ:
 				input := m.textArea.Value()
@@ -136,6 +136,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, renderTick()
+
+	case ctrlCTimeoutMsg:
+		m.ctrlCPressed = false
+		return m, nil
 
 	case errorMsg:
 		m.isStreaming = false

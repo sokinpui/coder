@@ -29,3 +29,10 @@ func renderTick() tea.Cmd {
 		return renderTickMsg{}
 	})
 }
+
+// ctrlCTimeout is a command that sends a ctrlCTimeoutMsg after a delay.
+func ctrlCTimeout() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return ctrlCTimeoutMsg{}
+	})
+}

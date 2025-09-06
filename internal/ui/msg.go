@@ -19,4 +19,5 @@ type (
 	streamFinishedMsg struct{}
 	renderTickMsg     struct{}
 	errorMsg          struct{ error }
+	ctrlCTimeoutMsg   struct{}
 )
