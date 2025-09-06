@@ -1,15 +1,24 @@
 package ui
 
 import (
+	"coder/internal/config"
 	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// Start initializes and runs the TUI.
 func Start() {
+	cfg := config.Default()
+	model, err := NewModel(cfg)
+	if err != nil {
+		fmt.Printf("Error creating model: %v\n", err)
+		os.Exit(1)
+	}
+
 	p := tea.NewProgram(
-		NewModel(),
+		model,
 	)
 
 	if _, err := p.Run(); err != nil {

@@ -1,7 +1,10 @@
 package ui
 
 import (
+	"coder/internal/config"
 	"coder/internal/generation"
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,11 +13,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const ()
-
 var (
 	submittedInputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243")) // Gray
 	outputStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
+	errorStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red
 	helpStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
 	textAreaStyle       = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
@@ -29,33 +31,55 @@ func min(a, b int) int {
 	return b
 }
 
+type state int
+
+const (
+	stateIdle state = iota
+	stateGenerating
+)
+
 type (
 	streamResultMsg   string
 	streamFinishedMsg struct{}
+	errorMsg          struct{ error }
 )
 
-func waitForStreamActivity(sub chan string) tea.Cmd {
+// listenForStream waits for the next message from the generation stream.
+func listenForStream(sub chan string) tea.Cmd {
 	return func() tea.Msg {
 		content, ok := <-sub
 		if !ok {
 			return streamFinishedMsg{}
 		}
+		if strings.HasPrefix(content, "Error:") {
+			return errorMsg{errors.New(strings.TrimSpace(strings.TrimPrefix(content, "Error:")))}
+		}
 		return streamResultMsg(content)
 	}
 }
 
+// Model defines the state of the application's UI.
 type Model struct {
-	textArea     textarea.Model
-	quitting     bool
-	screenHeight int
-	generator    *generation.Generator
-	generating   bool
-	streamSub    chan string
+	textArea         textarea.Model
+	generator        *generation.Generator
+	streamSub        chan string
+	cancelGeneration context.CancelFunc
+	conversation     string
+	err              error
+	state            state
+	quitting         bool
+	screenHeight     int
 }
 
-func NewModel() Model {
+// NewModel creates a new UI model.
+func NewModel(cfg *config.Config) (Model, error) {
+	gen, err := generation.New(cfg)
+	if err != nil {
+		return Model{}, err
+	}
+
 	ta := textarea.New()
-	ta.Placeholder = "Enter your code..."
+	ta.Placeholder = "Enter your prompt..."
 	ta.Focus()
 	ta.CharLimit = 0
 	ta.SetWidth(80 - textAreaStyle.GetHorizontalPadding())
@@ -67,8 +91,9 @@ func NewModel() Model {
 
 	return Model{
 		textArea:  ta,
-		generator: generation.New(),
-	}
+		generator: gen,
+		state:     stateIdle,
+	}, nil
 }
 
 func (m Model) Init() tea.Cmd {
@@ -83,53 +108,70 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.generating {
+		switch m.state {
+		case stateGenerating:
 			switch msg.Type {
 			case tea.KeyCtrlC:
+				if m.cancelGeneration != nil {
+					m.cancelGeneration()
+				}
 				m.quitting = true
 				return m, tea.Quit
 			}
 			return m, nil
-		}
-
-		switch msg.Type {
-		case tea.KeyCtrlC:
-			m.quitting = true
-			return m, tea.Quit
-		case tea.KeyCtrlL:
-			return m, tea.ClearScreen
-		case tea.KeyCtrlJ:
-			input := m.textArea.Value()
-			if strings.TrimSpace(input) == "" {
+		case stateIdle:
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				m.quitting = true
+				return m, tea.Quit
+			case tea.KeyCtrlL:
+				m.conversation = ""
+				m.err = nil
 				return m, nil
+			case tea.KeyCtrlJ:
+				input := m.textArea.Value()
+				if strings.TrimSpace(input) == "" {
+					return m, nil
+				}
+
+				m.state = stateGenerating
+				m.err = nil
+				m.streamSub = make(chan string)
+				m.textArea.Blur()
+
+				ctx, cancel := context.WithCancel(context.Background())
+				m.cancelGeneration = cancel
+
+				go m.generator.GenerateTask(ctx, input, m.streamSub)
+
+				m.conversation += submittedInputStyle.Render(fmt.Sprintf("\nYou\n%s\n\n", input))
+				m.conversation += outputStyle.Render("AI\n")
+
+				return m, listenForStream(m.streamSub)
 			}
-
-			m.generating = true
-			m.streamSub = make(chan string)
-			m.textArea.Blur()
-
-			go m.generator.GenerateTask(input, m.streamSub)
-
-			output := submittedInputStyle.Render(fmt.Sprintf("You\n%s\n", input))
-			aiHeader := outputStyle.Render("✦")
-
-			return m, tea.Batch(
-				tea.Printf("\n%s\n%s", output, aiHeader),
-				waitForStreamActivity(m.streamSub),
-			)
 		}
 
 	case streamResultMsg:
-		cmd := tea.Printf(outputStyle.Render(string(msg)))
-		return m, tea.Batch(cmd, waitForStreamActivity(m.streamSub))
+		m.conversation += outputStyle.Render(string(msg))
+		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
-		m.generating = false
+		m.conversation += "\n"
+		m.state = stateIdle
 		m.streamSub = nil
+		m.cancelGeneration = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
-		return m, cmd
+		return m, nil
 
+	case errorMsg:
+		m.err = msg.error
+		m.state = stateIdle
+		m.streamSub = nil
+		m.cancelGeneration = nil
+		m.textArea.Reset()
+		m.textArea.Focus()
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
 		m.screenHeight = msg.Height
@@ -150,13 +192,22 @@ func (m Model) View() string {
 		return ""
 	}
 
+	var ui strings.Builder
+
+	ui.WriteString(m.conversation)
+
+	if m.err != nil {
+		ui.WriteString(errorStyle.Render(fmt.Sprintf("\nError: %v\n", m.err)))
+	}
+
 	help := helpStyle.Render("Press Ctrl+J to submit, Ctrl+C to quit")
-	if m.generating {
+	if m.state == stateGenerating {
 		help = generatingHelpStyle.Render("Generating... Press Ctrl+C to quit")
 	}
 
-	return fmt.Sprintf("%s\n%s",
+	ui.WriteString(fmt.Sprintf("\n%s\n%s",
 		textAreaStyle.Render(m.textArea.View()),
-		help,
-	)
+		help))
+
+	return ui.String()
 }
