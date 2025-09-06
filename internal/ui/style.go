@@ -12,6 +12,6 @@ var (
 			BorderForeground(lipgloss.Color("240")).
 			Padding(0, 1)
 	generatingHelpStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("39")). // Blue
+				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
 )
