@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,10 +18,10 @@ import (
 )
 
 var (
-	helpStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
-	textAreaStyle       = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240"))
+	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
+	textAreaStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240"))
 	generatingHelpStyle = helpStyle.Copy().Italic(true)
 )
 
@@ -34,12 +36,14 @@ type state int
 
 const (
 	stateIdle state = iota
+	stateThinking
 	stateGenerating
 )
 
 type (
 	streamResultMsg   string
 	streamFinishedMsg struct{}
+	renderTickMsg     struct{}
 	errorMsg          struct{ error }
 )
 
@@ -57,19 +61,29 @@ func listenForStream(sub chan string) tea.Cmd {
 	}
 }
 
+// renderTick is a command that sends a renderTickMsg.
+func renderTick() tea.Cmd {
+	return tea.Tick(250*time.Millisecond, func(t time.Time) tea.Msg {
+		return renderTickMsg{}
+	})
+}
+
 // Model defines the state of the application's UI.
 type Model struct {
-	textArea         textarea.Model
-	viewport         viewport.Model
-	generator        *generation.Generator
-	streamSub        chan string
-	cancelGeneration context.CancelFunc
-	conversation     string
-	state            state
-	quitting         bool
-	height           int
-	width            int
-	glamourRenderer  *glamour.TermRenderer
+	textArea                 textarea.Model
+	viewport                 viewport.Model
+	spinner                  spinner.Model
+	generator                *generation.Generator
+	streamSub                chan string
+	cancelGeneration         context.CancelFunc
+	conversation             string
+	state                    state
+	quitting                 bool
+	height                   int
+	width                    int
+	glamourRenderer          *glamour.TermRenderer
+	isStreaming              bool
+	lastRenderedConversation string
 }
 
 // NewModel creates a new UI model.
@@ -78,6 +92,10 @@ func NewModel(cfg *config.Config) (Model, error) {
 	if err != nil {
 		return Model{}, err
 	}
+
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt..."
@@ -100,11 +118,14 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 
 	return Model{
-		textArea:        ta,
-		viewport:        vp,
-		generator:       gen,
-		state:           stateIdle,
-		glamourRenderer: renderer,
+		textArea:                 ta,
+		viewport:                 vp,
+		spinner:                  s,
+		generator:                gen,
+		state:                    stateIdle,
+		glamourRenderer:          renderer,
+		isStreaming:              false,
+		lastRenderedConversation: "",
 	}, nil
 }
 
@@ -121,7 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch m.state {
-		case stateGenerating:
+		case stateThinking, stateGenerating:
 			switch msg.Type {
 			case tea.KeyCtrlC:
 				if m.cancelGeneration != nil {
@@ -141,7 +162,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if strings.TrimSpace(input) == "" {
 					return m, nil
 				}
-				m.state = stateGenerating
+				m.state = stateThinking
+				m.isStreaming = true
 				m.streamSub = make(chan string)
 				m.textArea.Blur()
 
@@ -157,30 +179,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.viewport.SetContent(renderedOutput)
 				m.viewport.GotoBottom()
+				m.lastRenderedConversation = m.conversation
 
 				m.textArea.Reset()
 
-				return m, listenForStream(m.streamSub)
+				return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick)
 			}
 		}
 
-	case streamResultMsg:
-		m.conversation += string(msg)
+	case spinner.TickMsg:
+		if m.state != stateThinking {
+			return m, nil
+		}
+
+		var spinnerCmd tea.Cmd
+		m.spinner, spinnerCmd = m.spinner.Update(msg)
+
 		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
 		if err != nil {
 			renderedOutput = m.conversation
 		}
-		m.viewport.SetContent(renderedOutput)
+		m.viewport.SetContent(renderedOutput + m.spinner.View() + " Thinking...")
 		m.viewport.GotoBottom()
+
+		return m, spinnerCmd
+
+	case streamResultMsg:
+		if m.state == stateThinking {
+			m.state = stateGenerating
+			m.conversation += string(msg)
+			return m, tea.Batch(listenForStream(m.streamSub), renderTick())
+		}
+		m.conversation += string(msg)
 		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
+		m.isStreaming = false
 		m.conversation += "\n"
 		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
 		if err != nil {
 			renderedOutput = m.conversation
 		}
 		m.viewport.SetContent(renderedOutput)
+		m.lastRenderedConversation = m.conversation
 
 		m.state = stateIdle
 		m.streamSub = nil
@@ -189,13 +230,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textArea.Focus()
 		return m, nil
 
+	case renderTickMsg:
+		if m.state != stateGenerating || !m.isStreaming {
+			return m, nil
+		}
+
+		if m.conversation != m.lastRenderedConversation {
+			renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+			if err != nil {
+				renderedOutput = m.conversation
+			}
+			m.viewport.SetContent(renderedOutput)
+			m.viewport.GotoBottom()
+			m.lastRenderedConversation = m.conversation
+		}
+
+		return m, renderTick()
+
 	case errorMsg:
+		m.isStreaming = false
 		m.conversation += fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
 		if err != nil {
 			renderedOutput = m.conversation
 		}
 		m.viewport.SetContent(renderedOutput)
+		m.lastRenderedConversation = m.conversation
 		m.viewport.GotoBottom()
 		m.state = stateIdle
 		m.streamSub = nil
@@ -219,6 +279,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			renderedOutput, err := m.glamourRenderer.Render(m.conversation)
 			if err == nil {
 				m.viewport.SetContent(renderedOutput)
+				m.lastRenderedConversation = m.conversation
 			}
 		}
 	}
@@ -262,9 +323,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // helpView renders the help text.
 func (m Model) helpView() string {
 	help := helpStyle.Render("Ctrl+J to submit, Ctrl+C to quit")
-	if m.state == stateGenerating {
+	switch m.state {
+	case stateThinking:
+		help = generatingHelpStyle.Render("Thinking... Ctrl+C to quit")
+	case stateGenerating:
 		help = generatingHelpStyle.Render("Generating... Ctrl+C to quit")
 	}
+
 	return help
 }
 
