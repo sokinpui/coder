@@ -11,13 +11,11 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	submittedInputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243")) // Gray
-	outputStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))  // Green
-	errorStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red
 	helpStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("240")) // Gray
 	textAreaStyle       = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
@@ -70,6 +68,8 @@ type Model struct {
 	state            state
 	quitting         bool
 	height           int
+	width            int
+	glamourRenderer  *glamour.TermRenderer
 }
 
 // NewModel creates a new UI model.
@@ -91,11 +91,20 @@ func NewModel(cfg *config.Config) (Model, error) {
 
 	vp := viewport.New(80, 20) // Initial size, will be updated
 
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(vp.Width),
+	)
+	if err != nil {
+		return Model{}, err
+	}
+
 	return Model{
-		textArea:  ta,
-		viewport:  vp,
-		generator: gen,
-		state:     stateIdle,
+		textArea:        ta,
+		viewport:        vp,
+		generator:       gen,
+		state:           stateIdle,
+		glamourRenderer: renderer,
 	}, nil
 }
 
@@ -141,9 +150,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				go m.generator.GenerateTask(ctx, input, m.streamSub)
 
-				m.conversation += submittedInputStyle.Render(fmt.Sprintf("\nYou\n%s\n\n", input))
-				m.conversation += outputStyle.Render("AI\n")
-				m.viewport.SetContent(m.conversation)
+				m.conversation += fmt.Sprintf("\n**You**\n\n%s\n\n**AI**\n\n", input)
+				renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+				if err != nil {
+					renderedOutput = m.conversation
+				}
+				m.viewport.SetContent(renderedOutput)
 				m.viewport.GotoBottom()
 
 				m.textArea.Reset()
@@ -153,15 +165,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case streamResultMsg:
-		m.conversation += outputStyle.Render(string(msg))
-		m.viewport.SetContent(m.conversation)
+		m.conversation += string(msg)
+		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+		if err != nil {
+			renderedOutput = m.conversation
+		}
+		m.viewport.SetContent(renderedOutput)
 		m.viewport.GotoBottom()
 		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
 		m.conversation += "\n"
-		m.viewport.SetContent(m.conversation)
-		m.viewport.GotoBottom()
+		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+		if err != nil {
+			renderedOutput = m.conversation
+		}
+		m.viewport.SetContent(renderedOutput)
+
 		m.state = stateIdle
 		m.streamSub = nil
 		m.cancelGeneration = nil
@@ -170,8 +190,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case errorMsg:
-		m.conversation += errorStyle.Render(fmt.Sprintf("\nError: %v\n", msg.error))
-		m.viewport.SetContent(m.conversation)
+		m.conversation += fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
+		renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+		if err != nil {
+			renderedOutput = m.conversation
+		}
+		m.viewport.SetContent(renderedOutput)
 		m.viewport.GotoBottom()
 		m.state = stateIdle
 		m.streamSub = nil
@@ -182,8 +206,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
+		m.width = msg.Width
 		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
 		m.viewport.Width = msg.Width
+
+		renderer, err := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(m.viewport.Width),
+		)
+		if err == nil {
+			m.glamourRenderer = renderer
+			renderedOutput, err := m.glamourRenderer.Render(m.conversation)
+			if err == nil {
+				m.viewport.SetContent(renderedOutput)
+			}
+		}
 	}
 
 	if m.state == stateIdle {
