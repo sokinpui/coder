@@ -28,6 +28,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ctrlCPressed = false
 		}
 
+		// Handle scrolling regardless of state.
+		switch msg.Type {
+		case tea.KeyCtrlU:
+			m.viewport.HalfViewUp()
+			return m, nil
+		case tea.KeyCtrlD:
+			m.viewport.HalfViewDown()
+			return m, nil
+		}
+
 		switch m.state {
 		case stateThinking, stateGenerating, stateCancelling:
 			switch msg.Type {

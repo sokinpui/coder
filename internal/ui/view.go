@@ -34,11 +34,14 @@ func (m Model) helpView() string {
 		return helpStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	if m.state == stateCancelling {
+	switch m.state {
+	case stateGenerating, stateThinking:
+		return generatingHelpStyle.Render("Ctrl+U/D to scroll • Ctrl+C to cancel")
+	case stateCancelling:
 		return generatingHelpStyle.Render("Cancelling...")
 	}
 
-	return ""
+	return helpStyle.Render("Ctrl+J to send • Ctrl+U/D to scroll • Ctrl+C to clear/quit")
 }
 
 // View renders the program's UI.
