@@ -67,6 +67,8 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 			}
 			break
 		}
-		streamChan <- resp.GetOutputString()
+		chunk := resp.GetOutputString()
+		log.Printf("Received raw chunk from server: %q", chunk)
+		streamChan <- chunk
 	}
 }
