@@ -223,13 +223,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.state == stateIdle {
-		m.textArea, cmd = m.textArea.Update(msg)
-		cmds = append(cmds, cmd)
+	// Handle updates for textarea and viewport based on focus.
+	isRuneKey := false
+	if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyRunes {
+		isRuneKey = true
 	}
 
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	// When the textarea is focused, it gets all messages.
+	// The viewport only gets messages that are not character runes.
+	if m.textArea.Focused() {
+		m.textArea, cmd = m.textArea.Update(msg)
+		cmds = append(cmds, cmd)
+
+		if !isRuneKey {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+	} else {
+		// When the textarea is not focused (e.g., during generation),
+		// the viewport gets all messages.
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	inputHeight := min(m.textArea.LineCount(), m.height/4) + 1
 	m.textArea.SetHeight(inputHeight)
