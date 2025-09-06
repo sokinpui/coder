@@ -107,8 +107,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			statusText = " Cancelling..."
 		}
+		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation() + m.spinner.View() + statusText)
-		m.viewport.GotoBottom()
+		if wasAtBottom {
+			m.viewport.GotoBottom()
+		}
 
 		return m, spinnerCmd
 
@@ -124,7 +127,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamFinishedMsg:
 		m.isStreaming = false
+		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())
+		if wasAtBottom {
+			m.viewport.GotoBottom()
+		}
 
 		m.state = stateIdle
 		m.streamSub = nil
@@ -140,8 +147,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		lastMsg := m.messages[len(m.messages)-1]
 		if lastMsg.content != m.lastRenderedAIPart {
+			wasAtBottom := m.viewport.AtBottom()
 			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
+			if wasAtBottom {
+				m.viewport.GotoBottom()
+			}
 			m.lastRenderedAIPart = lastMsg.content
 		}
 
@@ -157,9 +167,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		m.messages[len(m.messages)-1].content = errorContent
 
+		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())
-
-		m.viewport.GotoBottom()
+		if wasAtBottom {
+			m.viewport.GotoBottom()
+		}
 		m.state = stateIdle
 		m.streamSub = nil
 		m.cancelGeneration = nil
