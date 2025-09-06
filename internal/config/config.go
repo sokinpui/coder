@@ -32,7 +32,8 @@ func Default() *Config {
 			Addr: "localhost:50051",
 		},
 		Generation: Generation{
-			ModelCode:    "gemini-2.0-flash-lite",
+			ModelCode: "gemini-2.0-flash",
+			// ModelCode:    "gemini-2.0-flash-lite",
 			Temperature:  temp,
 			TopP:         topP,
 			TopK:         topK,

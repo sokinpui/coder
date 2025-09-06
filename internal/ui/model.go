@@ -127,10 +127,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyCtrlC:
 				m.quitting = true
 				return m, tea.Quit
-			case tea.KeyCtrlL:
-				m.conversation = ""
-				m.viewport.SetContent("Conversation cleared.")
-				return m, nil
 			case tea.KeyCtrlJ:
 				input := m.textArea.Value()
 				if strings.TrimSpace(input) == "" {
@@ -149,6 +145,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.conversation += outputStyle.Render("AI\n")
 				m.viewport.SetContent(m.conversation)
 				m.viewport.GotoBottom()
+
+				m.textArea.Reset()
 
 				return m, listenForStream(m.streamSub)
 			}
@@ -211,7 +209,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // helpView renders the help text.
 func (m Model) helpView() string {
-	help := helpStyle.Render("Ctrl+J to submit, Ctrl+L to clear, Ctrl+C to quit")
+	help := helpStyle.Render("Ctrl+J to submit, Ctrl+C to quit")
 	if m.state == stateGenerating {
 		help = generatingHelpStyle.Render("Generating... Ctrl+C to quit")
 	}
