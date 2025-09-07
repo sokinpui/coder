@@ -70,6 +70,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.messages = append(m.messages, message{isUser: true, content: input})
+				prompt := m.buildPrompt()
+
 				m.state = stateThinking
 				m.isStreaming = true
 				m.streamSub = make(chan string)
@@ -78,9 +81,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				ctx, cancel := context.WithCancel(context.Background())
 				m.cancelGeneration = cancel
 
-				go m.generator.GenerateTask(ctx, input, m.streamSub)
-
-				m.messages = append(m.messages, message{isUser: true, content: input})
+				go m.generator.GenerateTask(ctx, prompt, m.streamSub)
 				m.messages = append(m.messages, message{isUser: false, content: ""}) // Placeholder for AI
 				m.lastRenderedAIPart = ""
 
