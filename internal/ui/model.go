@@ -2,8 +2,10 @@ package ui
 
 import (
 	"coder/internal/config"
+	"coder/internal/contextdir"
 	"coder/internal/generation"
 	"context"
+	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -36,6 +38,7 @@ type Model struct {
 	isStreaming        bool
 	lastRenderedAIPart string
 	ctrlCPressed       bool
+	providedDocuments  string
 }
 
 // NewModel creates a new UI model.
@@ -69,6 +72,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, err
 	}
 
+	docs, err := contextdir.LoadDocuments()
+	if err != nil {
+		return Model{}, fmt.Errorf("failed to load context documents: %w", err)
+	}
+
 	return Model{
 		textArea:           ta,
 		viewport:           vp,
@@ -80,5 +88,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		messages:           []message{},
 		lastRenderedAIPart: "",
 		ctrlCPressed:       false,
+		providedDocuments:  docs,
 	}, nil
 }
