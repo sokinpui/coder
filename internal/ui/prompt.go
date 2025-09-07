@@ -15,9 +15,8 @@ const (
 func (m Model) buildPrompt() string {
 	var sb strings.Builder
 
-	// For now, system instructions and documents are empty.
 	// The headers are omitted if the content is empty.
-	systemInstructions := ""
+	systemInstructions := m.systemInstructions
 	providedDocuments := m.providedDocuments
 
 	if systemInstructions != "" {

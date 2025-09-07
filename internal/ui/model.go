@@ -38,6 +38,7 @@ type Model struct {
 	isStreaming        bool
 	lastRenderedAIPart string
 	ctrlCPressed       bool
+	systemInstructions string
 	providedDocuments  string
 }
 
@@ -72,9 +73,9 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, err
 	}
 
-	docs, err := contextdir.LoadDocuments()
+	sysInstructions, docs, err := contextdir.LoadContext()
 	if err != nil {
-		return Model{}, fmt.Errorf("failed to load context documents: %w", err)
+		return Model{}, fmt.Errorf("failed to load context: %w", err)
 	}
 
 	return Model{
@@ -88,6 +89,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		messages:           []message{},
 		lastRenderedAIPart: "",
 		ctrlCPressed:       false,
+		systemInstructions: sysInstructions,
 		providedDocuments:  docs,
 	}, nil
 }
