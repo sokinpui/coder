@@ -46,7 +46,7 @@ func LoadContext() (systemInstructions string, providedDocuments string, err err
 				content += "\n"
 			}
 
-			docString := fmt.Sprintf("%s\n```\n%s```", displayPath, content)
+			docString := fmt.Sprintf("`%s`\n```\n%s```", displayPath, content)
 			documents = append(documents, docString)
 		}
 		return nil
