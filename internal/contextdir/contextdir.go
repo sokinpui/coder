@@ -9,7 +9,7 @@ import (
 )
 
 const contextDirName = "Context"
-const systemInstructionsFile = "SystemInstructions.md"
+const systemInstructionsFile = "sysI.md"
 
 // LoadContext finds and reads all files from the context directory.
 // It separates the content of `SystemInstructions.md` from other documents.
