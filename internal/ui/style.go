@@ -3,6 +3,10 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
+	initMessageStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244")).
+				Italic(true).
+				Padding(0, 1)
 	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
 	textAreaStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -36,7 +40,4 @@ var (
 			BorderTop(false).
 			BorderBottom(false).
 			BorderRight(false)
-	initMessageStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244")). // A muted gray
-				Padding(0, 1)
 )

@@ -16,11 +16,11 @@ import (
 
 const welcomeMessage = `Welcome to Coder!
 
-- Chat with the AI to generate or modify code.
+- Chat with the AI
 - Press Enter for a new line in your prompt.
 - Press Ctrl+J to send your message to the AI.
 - Use /<command> to execute commands. Press Enter to run a command.
-- Place files in the 'Context' directory to provide context to the AI.`
+- Place files in the 'Context' directory.`
 
 func min(a, b int) int {
 	if a < b {
