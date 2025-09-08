@@ -36,7 +36,7 @@ var (
 			BorderTop(false).
 			BorderBottom(false).
 			BorderRight(false)
-	appMessageStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("244")). // A muted gray
-			Padding(0, 1)
+	initMessageStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244")). // A muted gray
+				Padding(0, 1)
 )

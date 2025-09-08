@@ -10,9 +10,9 @@ func (m Model) renderConversation() string {
 	var parts []string
 	for _, msg := range m.messages {
 		switch msg.mType {
-		case appMessage:
-			blockWidth := m.viewport.Width - appMessageStyle.GetHorizontalPadding()
-			block := appMessageStyle.Width(blockWidth).Render(msg.content)
+		case initMessage:
+			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
+			block := initMessageStyle.Width(blockWidth).Render(msg.content)
 			parts = append(parts, block)
 		case userMessage:
 			var block string

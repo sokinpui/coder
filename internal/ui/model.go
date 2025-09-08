@@ -87,7 +87,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 
 	initialMessages := []message{
-		{mType: appMessage, content: welcomeMessage},
+		{mType: initMessage, content: welcomeMessage},
 	}
 
 	return Model{
