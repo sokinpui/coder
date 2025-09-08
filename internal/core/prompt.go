@@ -51,14 +51,15 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 			case ActionMessage:
-				sb.WriteString("Action Execute:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-
 				// Look ahead for the action result
 				if i+1 < len(messages) {
 					nextMsg := messages[i+1]
 					if nextMsg.Type == ActionResultMessage {
+						// only save action that was executed successfully
+						sb.WriteString("Action Execute:\n")
+						sb.WriteString(msg.Content)
+						sb.WriteString("\n")
+
 						sb.WriteString("Action Execute Result:\n")
 						sb.WriteString(nextMsg.Content)
 						sb.WriteString("\n")
