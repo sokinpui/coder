@@ -11,9 +11,15 @@ func (m Model) renderConversation() string {
 	for _, msg := range m.messages {
 		switch msg.mType {
 		case userMessage:
-			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
-			userInputBlock := userInputStyle.Width(blockWidth).Render(msg.content)
-			parts = append(parts, userInputBlock)
+			var block string
+			if strings.HasPrefix(msg.content, "/") {
+				blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
+				block = commandInputStyle.Width(blockWidth).Render(msg.content)
+			} else {
+				blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
+				block = userInputStyle.Width(blockWidth).Render(msg.content)
+			}
+			parts = append(parts, block)
 		case aiMessage:
 			var content string
 			if msg.content != "" {
