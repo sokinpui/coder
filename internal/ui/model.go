@@ -3,6 +3,7 @@ package ui
 import (
 	"coder/internal/config"
 	"coder/internal/core"
+	"coder/internal/history"
 	"coder/internal/contextdir"
 	"coder/internal/generation"
 	"context"
@@ -35,6 +36,7 @@ type Model struct {
 	viewport           viewport.Model
 	spinner            spinner.Model
 	generator          *generation.Generator
+	historyManager     *history.Manager
 	streamSub          chan string
 	cancelGeneration   context.CancelFunc
 	messages           []core.Message
@@ -54,6 +56,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return Model{}, err
+	}
+
+	hist, err := history.NewManager()
+	if err != nil {
+		return Model{}, fmt.Errorf("failed to initialize history manager: %w", err)
 	}
 
 	s := spinner.New()
@@ -94,6 +101,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		viewport:           vp,
 		spinner:            s,
 		generator:          gen,
+		historyManager:     hist,
 		state:              stateIdle,
 		glamourRenderer:    renderer,
 		isStreaming:        false,

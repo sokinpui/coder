@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"log"
 	"coder/internal/config"
 	"fmt"
 	"os"
@@ -21,8 +22,18 @@ func Start() {
 		tea.WithAltScreen(),
 	)
 
-	if _, err := p.Run(); err != nil {
+	finalModel, err := p.Run()
+	if err != nil {
 		fmt.Printf("Error starting program: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Save conversation on exit
+	if m, ok := finalModel.(Model); ok {
+		if m.historyManager != nil {
+			if err := m.historyManager.SaveConversation(m.messages, m.systemInstructions, m.providedDocuments); err != nil {
+				log.Printf("Error saving conversation history: %v", err)
+			}
+		}
 	}
 }
