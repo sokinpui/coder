@@ -28,6 +28,10 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - cmdResultStyle.GetHorizontalPadding()
 			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.content)
 			parts = append(parts, cmdResultBlock)
+		case commandErrorResultMessage:
+			blockWidth := m.viewport.Width - cmdErrorStyle.GetHorizontalPadding()
+			cmdErrorBlock := cmdErrorStyle.Width(blockWidth).Render(msg.content)
+			parts = append(parts, cmdErrorBlock)
 		}
 	}
 	return strings.Join(parts, "\n")

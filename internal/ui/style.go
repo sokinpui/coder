@@ -19,4 +19,9 @@ var (
 			BorderForeground(lipgloss.Color("51")). // Cyan
 			Foreground(lipgloss.Color("255")). // White
 			Padding(0, 1)
+	cmdErrorStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("9")). // Red
+			Foreground(lipgloss.Color("9")).   // Red
+			Padding(0, 1)
 )

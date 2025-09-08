@@ -15,6 +15,7 @@ const (
 	userMessage messageType = iota
 	aiMessage
 	commandResultMessage
+	commandErrorResultMessage
 )
 
 type message struct {

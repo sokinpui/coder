@@ -22,10 +22,14 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	result, isCmd := processCommand(input)
+	result, isCmd, success := processCommand(input)
 	if isCmd {
 		m.messages = append(m.messages, message{mType: userMessage, content: input})
-		m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
+		if success {
+			m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
+		} else {
+			m.messages = append(m.messages, message{mType: commandErrorResultMessage, content: result})
+		}
 		m.viewport.SetContent(m.renderConversation())
 		m.viewport.GotoBottom()
 		m.textArea.Reset()
