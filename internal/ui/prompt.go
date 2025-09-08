@@ -34,12 +34,31 @@ func (m Model) buildPrompt() string {
 	if len(m.messages) > 0 {
 		sb.WriteString(conversationHistoryHeader)
 
-		for _, msg := range m.messages {
+		for i := 0; i < len(m.messages); i++ {
+			msg := m.messages[i]
+
 			switch msg.mType {
 			case userMessage:
-				sb.WriteString("User:\n")
-				sb.WriteString(msg.content)
-				sb.WriteString("\n")
+				if strings.HasPrefix(msg.content, "/") {
+					sb.WriteString("Command Execute:\n")
+					sb.WriteString(msg.content)
+					sb.WriteString("\n")
+
+					// Look ahead for the command result
+					if i+1 < len(m.messages) {
+						nextMsg := m.messages[i+1]
+						if nextMsg.mType == commandResultMessage {
+							sb.WriteString("Command Execute Result:\n")
+							sb.WriteString(nextMsg.content)
+							sb.WriteString("\n")
+							i++ // Skip the result message in the next iteration
+						}
+					}
+				} else {
+					sb.WriteString("User:\n")
+					sb.WriteString(msg.content)
+					sb.WriteString("\n")
+				}
 			case aiMessage:
 				if msg.content != "" {
 					sb.WriteString("AI Assistant:\n")
