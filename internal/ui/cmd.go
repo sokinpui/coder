@@ -23,14 +23,12 @@ func listenForStream(sub chan string) tea.Cmd {
 	}
 }
 
-// renderTick is a command that sends a renderTickMsg.
 func renderTick() tea.Cmd {
 	return tea.Tick(250*time.Millisecond, func(t time.Time) tea.Msg {
 		return renderTickMsg{}
 	})
 }
 
-// ctrlCTimeout is a command that sends a ctrlCTimeoutMsg after a delay.
 func ctrlCTimeout() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return ctrlCTimeoutMsg{}

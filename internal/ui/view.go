@@ -47,7 +47,6 @@ func (m Model) renderConversation() string {
 	return strings.Join(parts, "\n")
 }
 
-// helpView renders the help text.
 func (m Model) helpView() string {
 	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
 		return helpStyle.Render("Press Ctrl+C again to quit.")
@@ -65,7 +64,6 @@ func (m Model) helpView() string {
 	return helpStyle.Render("Ctrl+J to send • Enter for newline (or /cmd) • Ctrl+U/D to scroll • Ctrl+C to clear/quit")
 }
 
-// View renders the program's UI.
 func (m Model) View() string {
 	if m.quitting {
 		return ""

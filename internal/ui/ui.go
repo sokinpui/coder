@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Start initializes and runs the TUI.
 func Start() {
 	cfg := config.Default()
 	model, err := NewModel(cfg)

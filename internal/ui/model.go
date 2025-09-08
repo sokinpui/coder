@@ -29,7 +29,6 @@ func min(a, b int) int {
 	return b
 }
 
-// Model defines the state of the application's UI.
 type Model struct {
 	textArea           textarea.Model
 	viewport           viewport.Model
@@ -50,7 +49,6 @@ type Model struct {
 	providedDocuments  string
 }
 
-// NewModel creates a new UI model.
 func NewModel(cfg *config.Config) (Model, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
