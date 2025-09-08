@@ -34,12 +34,12 @@ func (m Model) renderConversation() string {
 			}
 			parts = append(parts, content)
 		case core.ActionResultMessage, core.CommandResultMessage:
-			blockWidth := m.viewport.Width - cmdResultStyle.GetHorizontalPadding()
-			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.Content)
+			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
+			cmdResultBlock := commandResultStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdResultBlock)
 		case core.ActionErrorResultMessage, core.CommandErrorResultMessage:
-			blockWidth := m.viewport.Width - cmdErrorStyle.GetHorizontalPadding()
-			cmdErrorBlock := cmdErrorStyle.Width(blockWidth).Render(msg.Content)
+			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalPadding()
+			cmdErrorBlock := commandErrorStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdErrorBlock)
 		}
 	}

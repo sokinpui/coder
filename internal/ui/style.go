@@ -23,19 +23,19 @@ var (
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
 				Padding(0, 1)
-	cmdResultStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("99")).
-			Padding(0, 1).
-			BorderTop(false).
-			BorderBottom(false).
-			BorderRight(false)
-	cmdErrorStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("9")). // Red
-			Foreground(lipgloss.Color("9")).       // Red
-			Padding(0, 1).
-			BorderTop(false).
-			BorderBottom(false).
-			BorderRight(false)
+	commandResultStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("99")).
+				Padding(0, 1).
+				BorderTop(false).
+				BorderBottom(false).
+				BorderRight(false)
+	commandErrorStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("9")). // Red
+				Foreground(lipgloss.Color("9")).       // Red
+				Padding(0, 1).
+				BorderTop(false).
+				BorderBottom(false).
+				BorderRight(false)
 )
