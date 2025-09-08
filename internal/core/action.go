@@ -15,12 +15,23 @@ func pcatAction(args string) (string, bool) {
 	return string(output), true
 }
 
+func itfAction(args string) (string, bool) {
+	argSlice := strings.Fields(args)
+	cmd := exec.Command("itf", argSlice...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "Error executing pcat: " + err.Error() + "\n" + string(output), false
+	}
+	return string(output), true
+}
+
 // actionFunc defines the signature for an action.
 // It returns the output string and a boolean indicating success.
 type actionFunc func(args string) (string, bool)
 
 var actions = map[string]actionFunc{
 	"pcat": pcatAction,
+	"itf":  itfAction,
 }
 
 // ProcessAction tries to execute an action from the input string.
