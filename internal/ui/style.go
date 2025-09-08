@@ -6,6 +6,7 @@ var (
 	initMessageStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244")).
 				Italic(true).
+				Bold(true).
 				Padding(0, 1)
 	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
 	textAreaStyle = lipgloss.NewStyle().
