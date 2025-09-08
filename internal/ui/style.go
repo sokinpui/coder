@@ -24,7 +24,6 @@ var (
 	cmdResultStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("99")).
-			Foreground(lipgloss.Color("255")). // White
 			Padding(0, 1).
 			BorderTop(false).
 			BorderBottom(false).
