@@ -21,11 +21,8 @@ var (
 				Italic(true)
 	commandInputStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240")).
-				Padding(0, 1).
-				BorderTop(false).
-				BorderBottom(false).
-				BorderRight(false)
+				BorderForeground(lipgloss.Color("99")).
+				Padding(0, 1)
 	cmdResultStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("99")).
