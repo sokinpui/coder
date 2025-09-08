@@ -1,12 +1,27 @@
 package core
 
 import (
+	"os/exec"
 	"strings"
 )
 
-type actionFunc func(args string) string
+func pcatAction(args string) (string, bool) {
+	argSlice := strings.Fields(args)
+	cmd := exec.Command("pcat", argSlice...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "Error executing pcat: " + err.Error() + "\n" + string(output), false
+	}
+	return string(output), true
+}
 
-var actions = map[string]actionFunc{}
+// actionFunc defines the signature for an action.
+// It returns the output string and a boolean indicating success.
+type actionFunc func(args string) (string, bool)
+
+var actions = map[string]actionFunc{
+	"pcat": pcatAction,
+}
 
 // ProcessAction tries to execute an action from the input string.
 // It returns the result and a boolean indicating if it was an action.
@@ -31,5 +46,6 @@ func ProcessAction(input string) (result string, isAction bool, success bool) {
 	}
 
 	// It is a known action.
-	return action(args), true, true
+	result, success = action(args)
+	return result, true, success
 }
