@@ -33,6 +33,7 @@ func Default() *Config {
 		},
 		Generation: Generation{
 			ModelCode: "gemini-2.0-flash",
+			// ModelCode: "gemini-2.5-pro",
 			// ModelCode:    "gemini-2.0-flash-lite",
 			Temperature:  temp,
 			TopP:         topP,
