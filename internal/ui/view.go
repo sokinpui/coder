@@ -9,11 +9,12 @@ import (
 func (m Model) renderConversation() string {
 	var parts []string
 	for _, msg := range m.messages {
-		if msg.isUser {
+		switch msg.mType {
+		case userMessage:
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
 			userInputBlock := userInputStyle.Width(blockWidth).Render(msg.content)
 			parts = append(parts, userInputBlock)
-		} else {
+		case aiMessage:
 			var content string
 			if msg.content != "" {
 				renderedAI, err := m.glamourRenderer.Render(msg.content)
@@ -23,6 +24,10 @@ func (m Model) renderConversation() string {
 				content = renderedAI
 			}
 			parts = append(parts, content)
+		case commandResultMessage:
+			blockWidth := m.viewport.Width - cmdResultStyle.GetHorizontalPadding()
+			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.content)
+			parts = append(parts, cmdResultBlock)
 		}
 	}
 	return strings.Join(parts, "\n")

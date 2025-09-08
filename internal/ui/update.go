@@ -70,7 +70,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				m.messages = append(m.messages, message{isUser: true, content: input})
+				result, isCmd := processCommand(input)
+				if isCmd {
+					m.messages = append(m.messages, message{mType: userMessage, content: input})
+					m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
+					m.viewport.SetContent(m.renderConversation())
+					m.viewport.GotoBottom()
+					m.textArea.Reset()
+					m.textArea.SetHeight(1)
+					return m, nil
+				}
+
+				m.messages = append(m.messages, message{mType: userMessage, content: input})
 				prompt := m.buildPrompt()
 
 				m.state = stateThinking
@@ -82,7 +93,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cancelGeneration = cancel
 
 				go m.generator.GenerateTask(ctx, prompt, m.streamSub)
-				m.messages = append(m.messages, message{isUser: false, content: ""}) // Placeholder for AI
+				m.messages = append(m.messages, message{mType: aiMessage, content: ""}) // Placeholder for AI
 				m.lastRenderedAIPart = ""
 
 				m.viewport.SetContent(m.renderConversation())

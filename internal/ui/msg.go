@@ -9,8 +9,16 @@ const (
 	stateCancelling
 )
 
+type messageType int
+
+const (
+	userMessage messageType = iota
+	aiMessage
+	commandResultMessage
+)
+
 type message struct {
-	isUser  bool
+	mType   messageType
 	content string
 }
 

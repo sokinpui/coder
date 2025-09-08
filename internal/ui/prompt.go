@@ -35,12 +35,12 @@ func (m Model) buildPrompt() string {
 		sb.WriteString(conversationHistoryHeader)
 
 		for _, msg := range m.messages {
-			if msg.isUser {
+			switch msg.mType {
+			case userMessage:
 				sb.WriteString("User:\n")
 				sb.WriteString(msg.content)
 				sb.WriteString("\n")
-			} else {
-				// Don't include empty AI messages (placeholders) in the prompt
+			case aiMessage:
 				if msg.content != "" {
 					sb.WriteString("AI Assistant:\n")
 					sb.WriteString(msg.content)
