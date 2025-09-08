@@ -16,6 +16,7 @@ const (
 	aiMessage
 	commandResultMessage
 	commandErrorResultMessage
+	appMessage
 )
 
 type message struct {

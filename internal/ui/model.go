@@ -14,6 +14,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const welcomeMessage = `Welcome to Coder!
+
+- Chat with the AI to generate or modify code.
+- Press Enter for a new line in your prompt.
+- Press Ctrl+J to send your message to the AI.
+- Use /<command> to execute commands. Press Enter to run a command.
+- Place files in the 'Context' directory to provide context to the AI.`
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -78,6 +86,10 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, fmt.Errorf("failed to load context: %w", err)
 	}
 
+	initialMessages := []message{
+		{mType: appMessage, content: welcomeMessage},
+	}
+
 	return Model{
 		textArea:           ta,
 		viewport:           vp,
@@ -86,7 +98,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		state:              stateIdle,
 		glamourRenderer:    renderer,
 		isStreaming:        false,
-		messages:           []message{},
+		messages:           initialMessages,
 		lastRenderedAIPart: "",
 		ctrlCPressed:       false,
 		systemInstructions: sysInstructions,
