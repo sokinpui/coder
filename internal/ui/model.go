@@ -2,6 +2,7 @@ package ui
 
 import (
 	"coder/internal/config"
+	"coder/internal/core"
 	"coder/internal/contextdir"
 	"coder/internal/generation"
 	"context"
@@ -36,7 +37,7 @@ type Model struct {
 	generator          *generation.Generator
 	streamSub          chan string
 	cancelGeneration   context.CancelFunc
-	messages           []message
+	messages           []core.Message
 	state              state
 	quitting           bool
 	height             int
@@ -84,8 +85,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, fmt.Errorf("failed to load context: %w", err)
 	}
 
-	initialMessages := []message{
-		{mType: initMessage, content: welcomeMessage},
+	initialMessages := []core.Message{
+		{Type: core.InitMessage, Content: welcomeMessage},
 	}
 
 	return Model{

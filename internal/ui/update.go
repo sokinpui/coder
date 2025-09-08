@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"coder/internal/core"
 	"context"
 	"fmt"
 	"strings"
@@ -22,13 +23,13 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	result, isCmd, success := processCommand(input)
+	result, isCmd, success := core.ProcessCommand(input)
 	if isCmd {
-		m.messages = append(m.messages, message{mType: userMessage, content: input})
+		m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
 		if success {
-			m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
+			m.messages = append(m.messages, core.Message{Type: core.CommandResultMessage, Content: result})
 		} else {
-			m.messages = append(m.messages, message{mType: commandErrorResultMessage, content: result})
+			m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: result})
 		}
 		m.viewport.SetContent(m.renderConversation())
 		m.viewport.GotoBottom()
@@ -37,8 +38,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.messages = append(m.messages, message{mType: userMessage, content: input})
-	prompt := m.buildPrompt()
+	m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
+	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.messages)
 
 	m.state = stateThinking
 	m.isStreaming = true
@@ -49,7 +50,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	m.cancelGeneration = cancel
 
 	go m.generator.GenerateTask(ctx, prompt, m.streamSub)
-	m.messages = append(m.messages, message{mType: aiMessage, content: ""}) // Placeholder for AI
+	m.messages = append(m.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
 	m.lastRenderedAIPart = ""
 
 	m.viewport.SetContent(m.renderConversation())
@@ -134,10 +135,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		lastMsg := &m.messages[len(m.messages)-1]
 		if m.state == stateThinking {
 			m.state = stateGenerating
-			lastMsg.content += string(msg)
+			lastMsg.Content += string(msg)
 			return m, tea.Batch(listenForStream(m.streamSub), renderTick())
 		}
-		lastMsg.content += string(msg)
+		lastMsg.Content += string(msg)
 		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
@@ -161,13 +162,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		lastMsg := m.messages[len(m.messages)-1]
-		if lastMsg.content != m.lastRenderedAIPart {
+		if lastMsg.Content != m.lastRenderedAIPart {
 			wasAtBottom := m.viewport.AtBottom()
 			m.viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
 				m.viewport.GotoBottom()
 			}
-			m.lastRenderedAIPart = lastMsg.content
+			m.lastRenderedAIPart = lastMsg.Content
 		}
 
 		return m, renderTick()
@@ -180,7 +181,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isStreaming = false
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
-		m.messages[len(m.messages)-1].content = errorContent
+		m.messages[len(m.messages)-1].Content = errorContent
 
 		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())

@@ -9,21 +9,6 @@ const (
 	stateCancelling
 )
 
-type messageType int
-
-const (
-	userMessage messageType = iota
-	aiMessage
-	commandResultMessage
-	commandErrorResultMessage
-	initMessage
-)
-
-type message struct {
-	mType   messageType
-	content string
-}
-
 type (
 	streamResultMsg   string
 	streamFinishedMsg struct{}

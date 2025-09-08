@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"coder/internal/core"
 	"fmt"
 	"strings"
 )
@@ -9,38 +10,38 @@ import (
 func (m Model) renderConversation() string {
 	var parts []string
 	for _, msg := range m.messages {
-		switch msg.mType {
-		case initMessage:
+		switch msg.Type {
+		case core.InitMessage:
 			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
-			block := initMessageStyle.Width(blockWidth).Render(msg.content)
+			block := initMessageStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
-		case userMessage:
+		case core.UserMessage:
 			var block string
-			if strings.HasPrefix(msg.content, "/") {
+			if strings.HasPrefix(msg.Content, "/") {
 				blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
-				block = commandInputStyle.Width(blockWidth).Render(msg.content)
+				block = commandInputStyle.Width(blockWidth).Render(msg.Content)
 			} else {
 				blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
-				block = userInputStyle.Width(blockWidth).Render(msg.content)
+				block = userInputStyle.Width(blockWidth).Render(msg.Content)
 			}
 			parts = append(parts, block)
-		case aiMessage:
+		case core.AIMessage:
 			var content string
-			if msg.content != "" {
-				renderedAI, err := m.glamourRenderer.Render(msg.content)
+			if msg.Content != "" {
+				renderedAI, err := m.glamourRenderer.Render(msg.Content)
 				if err != nil {
-					renderedAI = msg.content
+					renderedAI = msg.Content
 				}
 				content = renderedAI
 			}
 			parts = append(parts, content)
-		case commandResultMessage:
+		case core.CommandResultMessage:
 			blockWidth := m.viewport.Width - cmdResultStyle.GetHorizontalPadding()
-			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.content)
+			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdResultBlock)
-		case commandErrorResultMessage:
+		case core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - cmdErrorStyle.GetHorizontalPadding()
-			cmdErrorBlock := cmdErrorStyle.Width(blockWidth).Render(msg.content)
+			cmdErrorBlock := cmdErrorStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdErrorBlock)
 		}
 	}
