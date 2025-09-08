@@ -16,6 +16,46 @@ func (m Model) Init() tea.Cmd {
 	return textarea.Blink
 }
 
+func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
+	input := m.textArea.Value()
+	if strings.TrimSpace(input) == "" {
+		return m, nil
+	}
+
+	result, isCmd := processCommand(input)
+	if isCmd {
+		m.messages = append(m.messages, message{mType: userMessage, content: input})
+		m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.GotoBottom()
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		return m, nil
+	}
+
+	m.messages = append(m.messages, message{mType: userMessage, content: input})
+	prompt := m.buildPrompt()
+
+	m.state = stateThinking
+	m.isStreaming = true
+	m.streamSub = make(chan string)
+	m.textArea.Blur()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cancelGeneration = cancel
+
+	go m.generator.GenerateTask(ctx, prompt, m.streamSub)
+	m.messages = append(m.messages, message{mType: aiMessage, content: ""}) // Placeholder for AI
+	m.lastRenderedAIPart = ""
+
+	m.viewport.SetContent(m.renderConversation())
+	m.viewport.GotoBottom()
+	m.textArea.Reset()
+	m.textArea.SetHeight(1)
+
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick)
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -64,44 +104,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ctrlCPressed = true
 				return m, ctrlCTimeout()
 
+			case tea.KeyEnter:
+				// Smart enter: submit if it's a command.
+				if strings.HasPrefix(m.textArea.Value(), "/") {
+					return m.handleSubmit()
+				}
+				// Otherwise, fall through to let the textarea handle the newline.
+
 			case tea.KeyCtrlJ:
-				input := m.textArea.Value()
-				if strings.TrimSpace(input) == "" {
-					return m, nil
-				}
-
-				result, isCmd := processCommand(input)
-				if isCmd {
-					m.messages = append(m.messages, message{mType: userMessage, content: input})
-					m.messages = append(m.messages, message{mType: commandResultMessage, content: result})
-					m.viewport.SetContent(m.renderConversation())
-					m.viewport.GotoBottom()
-					m.textArea.Reset()
-					m.textArea.SetHeight(1)
-					return m, nil
-				}
-
-				m.messages = append(m.messages, message{mType: userMessage, content: input})
-				prompt := m.buildPrompt()
-
-				m.state = stateThinking
-				m.isStreaming = true
-				m.streamSub = make(chan string)
-				m.textArea.Blur()
-
-				ctx, cancel := context.WithCancel(context.Background())
-				m.cancelGeneration = cancel
-
-				go m.generator.GenerateTask(ctx, prompt, m.streamSub)
-				m.messages = append(m.messages, message{mType: aiMessage, content: ""}) // Placeholder for AI
-				m.lastRenderedAIPart = ""
-
-				m.viewport.SetContent(m.renderConversation())
-				m.viewport.GotoBottom()
-				m.textArea.Reset()
-				m.textArea.SetHeight(1)
-
-				return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick)
+				return m.handleSubmit()
 			}
 		}
 

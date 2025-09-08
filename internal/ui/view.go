@@ -48,7 +48,7 @@ func (m Model) helpView() string {
 		return fmt.Sprintf("%s%s", m.spinner.View(), statusText)
 	}
 
-	return helpStyle.Render("Ctrl+J to send • Ctrl+U/D to scroll • Ctrl+C to clear/quit")
+	return helpStyle.Render("Ctrl+J to send • Enter for newline (or /cmd) • Ctrl+U/D to scroll • Ctrl+C to clear/quit")
 }
 
 // View renders the program's UI.
