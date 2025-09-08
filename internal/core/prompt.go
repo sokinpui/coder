@@ -51,7 +51,7 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 			case ActionMessage:
-				sb.WriteString("Command Execute:\n")
+				sb.WriteString("Action Execute:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 
@@ -59,7 +59,7 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 				if i+1 < len(messages) {
 					nextMsg := messages[i+1]
 					if nextMsg.Type == ActionResultMessage {
-						sb.WriteString("Command Execute Result:\n")
+						sb.WriteString("Action Execute Result:\n")
 						sb.WriteString(nextMsg.Content)
 						sb.WriteString("\n")
 						i++ // Skip the result message in the next iteration
