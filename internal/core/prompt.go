@@ -16,19 +16,19 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 	var sb strings.Builder
 
 	// Predefined system instructions (without header)
-	if PredefinedSystemInstructions != "" {
-		sb.WriteString(PredefinedSystemInstructions)
+	if CoderSystemInstructions != "" {
+		sb.WriteString(CoderSystemInstructions)
 	}
 
 	// User-defined system instructions (with header)
 	if systemInstructions != "" {
-		if PredefinedSystemInstructions != "" {
+		if CoderSystemInstructions != "" {
 			sb.WriteString(separator)
 		}
 		sb.WriteString(systemInstructionsHeader)
 		sb.WriteString(systemInstructions)
 		sb.WriteString(separator)
-	} else if PredefinedSystemInstructions != "" {
+	} else if CoderSystemInstructions != "" {
 		// If there are only predefined instructions, we still need a separator
 		sb.WriteString(separator)
 	}
