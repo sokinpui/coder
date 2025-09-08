@@ -39,7 +39,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input)
+		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, m.messages)
 		if isCmd {
 			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
 			if cmdSuccess {
