@@ -8,17 +8,28 @@ const (
 	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
 	providedDocumentsHeader   = "# PROVIDED DOCUMENTS\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
-	separator                 = "---\n\n"
+	separator                 = "\n\n---\n\n"
 )
 
 // BuildPrompt constructs the full prompt with conversation history.
 func BuildPrompt(systemInstructions, providedDocuments string, messages []Message) string {
 	var sb strings.Builder
 
-	// The headers are omitted if the content is empty.
+	// Predefined system instructions (without header)
+	if PredefinedSystemInstructions != "" {
+		sb.WriteString(PredefinedSystemInstructions)
+	}
+
+	// User-defined system instructions (with header)
 	if systemInstructions != "" {
+		if PredefinedSystemInstructions != "" {
+			sb.WriteString(separator)
+		}
 		sb.WriteString(systemInstructionsHeader)
 		sb.WriteString(systemInstructions)
+		sb.WriteString(separator)
+	} else if PredefinedSystemInstructions != "" {
+		// If there are only predefined instructions, we still need a separator
 		sb.WriteString(separator)
 	}
 
