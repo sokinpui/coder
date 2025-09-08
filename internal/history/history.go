@@ -49,8 +49,8 @@ func (m *Manager) SaveConversation(messages []core.Message, systemInstructions, 
 		return nil
 	}
 
-	timestamp := time.Now().Format("15-04-02-01-2006") // hour-minutes-day-month-year
-	fileName := fmt.Sprintf("%s.md", timestamp)
+	timestamp := time.Now().Unix()
+	fileName := fmt.Sprintf("%d.md", timestamp)
 	filePath := filepath.Join(m.historyPath, fileName)
 
 	return os.WriteFile(filePath, []byte(content), 0644)
