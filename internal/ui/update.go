@@ -23,19 +23,36 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	result, isCmd, success := core.ProcessCommand(input)
-	if isCmd {
-		m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
-		if success {
-			m.messages = append(m.messages, core.Message{Type: core.CommandResultMessage, Content: result})
-		} else {
-			m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: result})
+	if strings.HasPrefix(input, "/") {
+		actionResult, isAction, actionSuccess := core.ProcessAction(input)
+		if isAction {
+			m.messages = append(m.messages, core.Message{Type: core.ActionMessage, Content: input})
+			if actionSuccess {
+				m.messages = append(m.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
+			} else {
+				m.messages = append(m.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
+			}
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
+			m.textArea.Reset()
+			m.textArea.SetHeight(1)
+			return m, nil
 		}
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.GotoBottom()
-		m.textArea.Reset()
-		m.textArea.SetHeight(1)
-		return m, nil
+
+		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input)
+		if isCmd {
+			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
+			if cmdSuccess {
+				m.messages = append(m.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
+			} else {
+				m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
+			}
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
+			m.textArea.Reset()
+			m.textArea.SetHeight(1)
+			return m, nil
+		}
 	}
 
 	m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})

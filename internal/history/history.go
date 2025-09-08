@@ -39,17 +39,20 @@ func (m *Manager) filterMessages(messages []core.Message) []core.Message {
 	var filteredMessages []core.Message
 	for i := 0; i < len(messages); i++ {
 		msg := messages[i]
-
-		// Check for command that resulted in an error
-		if msg.Type == core.UserMessage && strings.HasPrefix(msg.Content, "/") {
-			if i+1 < len(messages) {
-				nextMsg := messages[i+1]
-				if nextMsg.Type == core.CommandErrorResultMessage {
-					i++ // Skip both the command and the error message
-					continue
-				}
+		// Rule 1: Skip failed actions. A failed action is an ActionMessage
+		// followed by an ActionErrorResultMessage.
+		if msg.Type == core.ActionMessage {
+			if i+1 < len(messages) && messages[i+1].Type == core.ActionErrorResultMessage {
+				i++ // Skip both the action and the error message
+				continue
 			}
 		}
+
+		// Rule 2: Skip all command-related messages.
+		if msg.Type == core.CommandMessage || msg.Type == core.CommandResultMessage || msg.Type == core.CommandErrorResultMessage {
+			continue
+		}
+
 		filteredMessages = append(filteredMessages, msg)
 	}
 	return filteredMessages

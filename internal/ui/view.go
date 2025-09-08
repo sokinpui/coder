@@ -16,14 +16,12 @@ func (m Model) renderConversation() string {
 			block := initMessageStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
 		case core.UserMessage:
-			var block string
-			if strings.HasPrefix(msg.Content, "/") {
-				blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
-				block = commandInputStyle.Width(blockWidth).Render(msg.Content)
-			} else {
-				blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
-				block = userInputStyle.Width(blockWidth).Render(msg.Content)
-			}
+			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
+			block := userInputStyle.Width(blockWidth).Render(msg.Content)
+			parts = append(parts, block)
+		case core.ActionMessage, core.CommandMessage:
+			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
+			block := commandInputStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
 		case core.AIMessage:
 			var content string
@@ -35,11 +33,11 @@ func (m Model) renderConversation() string {
 				content = renderedAI
 			}
 			parts = append(parts, content)
-		case core.CommandResultMessage:
+		case core.ActionResultMessage, core.CommandResultMessage:
 			blockWidth := m.viewport.Width - cmdResultStyle.GetHorizontalPadding()
 			cmdResultBlock := cmdResultStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdResultBlock)
-		case core.CommandErrorResultMessage:
+		case core.ActionErrorResultMessage, core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - cmdErrorStyle.GetHorizontalPadding()
 			cmdErrorBlock := cmdErrorStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdErrorBlock)

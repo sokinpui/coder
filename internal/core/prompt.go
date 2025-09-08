@@ -47,25 +47,23 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 
 			switch msg.Type {
 			case UserMessage:
-				if strings.HasPrefix(msg.Content, "/") {
-					sb.WriteString("Command Execute:\n")
-					sb.WriteString(msg.Content)
-					sb.WriteString("\n")
+				sb.WriteString("User:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
+			case ActionMessage:
+				sb.WriteString("Command Execute:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
 
-					// Look ahead for the command result
-					if i+1 < len(messages) {
-						nextMsg := messages[i+1]
-						if nextMsg.Type == CommandResultMessage {
-							sb.WriteString("Command Execute Result:\n")
-							sb.WriteString(nextMsg.Content)
-							sb.WriteString("\n")
-							i++ // Skip the result message in the next iteration
-						}
+				// Look ahead for the action result
+				if i+1 < len(messages) {
+					nextMsg := messages[i+1]
+					if nextMsg.Type == ActionResultMessage {
+						sb.WriteString("Command Execute Result:\n")
+						sb.WriteString(nextMsg.Content)
+						sb.WriteString("\n")
+						i++ // Skip the result message in the next iteration
 					}
-				} else {
-					sb.WriteString("User:\n")
-					sb.WriteString(msg.Content)
-					sb.WriteString("\n")
 				}
 			case AIMessage:
 				if msg.Content != "" {
