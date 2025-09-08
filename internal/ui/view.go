@@ -19,7 +19,11 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
 			block := userInputStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
-		case core.ActionMessage, core.CommandMessage:
+		case core.ActionMessage:
+			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalPadding()
+			block := actionInputStyle.Width(blockWidth).Render(msg.Content)
+			parts = append(parts, block)
+		case core.CommandMessage:
 			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
 			block := commandInputStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
@@ -33,11 +37,19 @@ func (m Model) renderConversation() string {
 				content = renderedAI
 			}
 			parts = append(parts, content)
-		case core.ActionResultMessage, core.CommandResultMessage:
+		case core.ActionResultMessage:
+			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
+			cmdResultBlock := actionResultStyle.Width(blockWidth).Render(msg.Content)
+			parts = append(parts, cmdResultBlock)
+		case core.CommandResultMessage:
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
 			cmdResultBlock := commandResultStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdResultBlock)
-		case core.ActionErrorResultMessage, core.CommandErrorResultMessage:
+		case core.ActionErrorResultMessage:
+			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalPadding()
+			cmdErrorBlock := actionErrorStyle.Width(blockWidth).Render(msg.Content)
+			parts = append(parts, cmdErrorBlock)
+		case core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalPadding()
 			cmdErrorBlock := commandErrorStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, cmdErrorBlock)
