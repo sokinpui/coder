@@ -13,7 +13,7 @@ var (
 			BorderForeground(lipgloss.Color("240"))
 	userInputStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("240")).
+			BorderForeground(lipgloss.Color("244")).
 			Padding(0, 1)
 	generatingHelpStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
