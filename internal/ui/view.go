@@ -60,22 +60,42 @@ func (m Model) renderConversation() string {
 }
 
 func (m Model) paletteView() string {
-	if !m.showPalette || len(m.paletteItems) == 0 {
+	if !m.showPalette || (len(m.paletteFilteredActions) == 0 && len(m.paletteFilteredCommands) == 0) {
 		return ""
 	}
 
 	var b strings.Builder
+	numActions := len(m.paletteFilteredActions)
 
-	b.WriteString(paletteHeaderStyle.Render("Suggestions"))
-	b.WriteString("\n")
-
-	for i, item := range m.paletteItems {
-		if i == m.paletteCursor {
-			b.WriteString(paletteSelectedItemStyle.Render("▸ " + item))
-		} else {
-			b.WriteString(paletteItemStyle.Render("  " + item))
-		}
+	if numActions > 0 {
+		b.WriteString(paletteHeaderStyle.Render("Actions"))
 		b.WriteString("\n")
+		for i, action := range m.paletteFilteredActions {
+			if i == m.paletteCursor {
+				b.WriteString(paletteSelectedItemStyle.Render("▸ " + action))
+			} else {
+				b.WriteString(paletteItemStyle.Render("  " + action))
+			}
+			b.WriteString("\n")
+		}
+	}
+
+	if numActions > 0 && len(m.paletteFilteredCommands) > 0 {
+		b.WriteString("\n")
+	}
+
+	if len(m.paletteFilteredCommands) > 0 {
+		b.WriteString(paletteHeaderStyle.Render("Commands"))
+		b.WriteString("\n")
+		for i, cmd := range m.paletteFilteredCommands {
+			cursorIndex := i + numActions
+			if cursorIndex == m.paletteCursor {
+				b.WriteString(paletteSelectedItemStyle.Render("▸ " + cmd))
+			} else {
+				b.WriteString(paletteItemStyle.Render("  " + cmd))
+			}
+			b.WriteString("\n")
+		}
 	}
 
 	// Trim trailing newline

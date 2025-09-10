@@ -130,28 +130,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ctrlCPressed = true
 				return m, ctrlCTimeout()
 
-			case tea.KeyTab:
-				if m.showPalette && len(m.paletteItems) > 0 {
-					m.paletteCursor = (m.paletteCursor + 1) % len(m.paletteItems)
-					return m, nil
-				}
-
-			case tea.KeyShiftTab:
-				if m.showPalette && len(m.paletteItems) > 0 {
-					m.paletteCursor--
-					if m.paletteCursor < 0 {
-						m.paletteCursor = len(m.paletteItems) - 1
+			case tea.KeyTab, tea.KeyShiftTab:
+				totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
+				if m.showPalette && totalItems > 0 {
+					if msg.Type == tea.KeyTab {
+						m.paletteCursor = (m.paletteCursor + 1) % totalItems
+					} else { // Shift+Tab
+						m.paletteCursor--
+						if m.paletteCursor < 0 {
+							m.paletteCursor = totalItems - 1
+						}
 					}
-					return m, nil
 				}
+				return m, nil
 
 			case tea.KeyEnter:
 				// If palette is shown, Enter selects the item.
-				if m.showPalette && len(m.paletteItems) > 0 {
-					selectedItem := m.paletteItems[m.paletteCursor]
-					m.textArea.SetValue(selectedItem + " ")
-					m.textArea.CursorEnd()
-					return m, nil
+				if m.showPalette {
+					numActions := len(m.paletteFilteredActions)
+					totalItems := numActions + len(m.paletteFilteredCommands)
+					if totalItems > 0 {
+						var selectedItem string
+						if m.paletteCursor < numActions {
+							selectedItem = m.paletteFilteredActions[m.paletteCursor]
+						} else {
+							selectedItem = m.paletteFilteredCommands[m.paletteCursor-numActions]
+						}
+						m.textArea.SetValue(selectedItem + " ")
+						m.textArea.CursorEnd()
+						return m, nil
+					}
 				}
 
 				// Smart enter: submit if it's a command.
@@ -297,36 +305,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if isPaletteTrigger {
 			prefix := strings.TrimPrefix(val, "/")
-			newPaletteItems := []string{}
+			newPaletteActions := []string{}
 			for _, a := range m.availableActions {
 				if strings.HasPrefix(a, prefix) {
-					newPaletteItems = append(newPaletteItems, "/"+a)
+					newPaletteActions = append(newPaletteActions, "/"+a)
 				}
 			}
+			m.paletteFilteredActions = newPaletteActions
+
+			newPaletteCommands := []string{}
 			for _, c := range m.availableCommands {
 				if strings.HasPrefix(c, prefix) {
-					newPaletteItems = append(newPaletteItems, "/"+c)
+					newPaletteCommands = append(newPaletteCommands, "/"+c)
 				}
 			}
-			m.paletteItems = newPaletteItems
+			m.paletteFilteredCommands = newPaletteCommands
 
-			if len(m.paletteItems) > 0 {
-				m.showPalette = true
-				if m.paletteCursor >= len(m.paletteItems) {
-					m.paletteCursor = 0
-				}
-			} else {
-				m.showPalette = false
+			totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
+			m.showPalette = totalItems > 0
+
+			if m.paletteCursor >= totalItems {
 				m.paletteCursor = 0
 			}
 		} else {
 			m.showPalette = false
-			m.paletteItems = []string{}
 			m.paletteCursor = 0
 		}
 	} else {
 		m.showPalette = false
-		m.paletteItems = []string{}
 		m.paletteCursor = 0
 	}
 

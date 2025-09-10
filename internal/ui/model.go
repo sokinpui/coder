@@ -58,8 +58,9 @@ type Model struct {
 	showPalette        bool
 	availableActions   []string
 	availableCommands  []string
-	paletteItems       []string
-	paletteCursor      int
+	paletteFilteredActions  []string
+	paletteFilteredCommands []string
+	paletteCursor           int
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -131,7 +132,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 		showPalette:        false,
 		availableActions:   actions,
 		availableCommands:  commands,
-		paletteItems:       []string{},
-		paletteCursor:      0,
+		paletteFilteredActions:  []string{},
+		paletteFilteredCommands: []string{},
+		paletteCursor:           0,
 	}, nil
 }
