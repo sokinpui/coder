@@ -84,8 +84,8 @@ func (m Model) helpView() string {
 	}
 
 	helpPart := helpStyle.Render(help)
-	modelPart := helpStyle.Render(modelInfo)
-	tokenPart := helpStyle.Render(tokenInfo)
+	modelPart := modelInfoStyle.Render(modelInfo)
+	tokenPart := tokenCountStyle.Render(tokenInfo)
 
 	rightSide := modelPart
 	if tokenPart != "" {
