@@ -7,6 +7,7 @@ import (
 	"coder/internal/generation"
 	"coder/internal/history"
 	"context"
+	"sort"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -54,6 +55,9 @@ type Model struct {
 	providedDocuments  string
 	tokenCount         int
 	isCountingTokens   bool
+	showPalette        bool
+	availableActions   []string
+	availableCommands  []string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -100,6 +104,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 		{Type: core.InitMessage, Content: welcomeMessage},
 	}
 
+	actions := core.GetActions()
+	sort.Strings(actions)
+	commands := core.GetCommands()
+	sort.Strings(commands)
+
 	return Model{
 		textArea:           ta,
 		viewport:           vp,
@@ -117,5 +126,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 		providedDocuments:  docs,
 		tokenCount:         0,
 		isCountingTokens:   true, // Start counting tokens on init
+		showPalette:        false,
+		availableActions:   actions,
+		availableCommands:  commands,
 	}, nil
 }

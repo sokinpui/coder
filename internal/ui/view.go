@@ -59,6 +59,37 @@ func (m Model) renderConversation() string {
 	return strings.Join(parts, "\n")
 }
 
+func (m Model) paletteView() string {
+	if !m.showPalette {
+		return ""
+	}
+
+	var b strings.Builder
+
+	// Actions
+	b.WriteString(paletteHeaderStyle.Render("Actions"))
+	b.WriteString("\n")
+	for _, action := range m.availableActions {
+		b.WriteString(paletteItemStyle.Render("  /" + action))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+
+	// Commands
+	b.WriteString(paletteHeaderStyle.Render("Commands"))
+	b.WriteString("\n")
+	for _, cmd := range m.availableCommands {
+		b.WriteString(paletteItemStyle.Render("  /" + cmd))
+		b.WriteString("\n")
+	}
+
+	// Trim trailing newline
+	content := strings.TrimRight(b.String(), "\n")
+
+	return paletteContainerStyle.Render(content)
+}
+
 func (m Model) helpView() string {
 	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
 		return helpStyle.Render("Press Ctrl+C again to quit.")
@@ -105,8 +136,14 @@ func (m Model) View() string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s",
+	var palette string
+	if m.showPalette {
+		palette = m.paletteView() + "\n"
+	}
+
+	return fmt.Sprintf("%s\n%s%s\n%s",
 		m.viewport.View(),
+		palette,
 		textAreaStyle.Render(m.textArea.View()),
 		m.helpView(),
 	)

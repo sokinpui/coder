@@ -34,6 +34,15 @@ var actions = map[string]actionFunc{
 	"itf":  itfAction,
 }
 
+// GetActions returns a slice of available action names.
+func GetActions() []string {
+	actionNames := make([]string, 0, len(actions))
+	for name := range actions {
+		actionNames = append(actionNames, name)
+	}
+	return actionNames
+}
+
 // ProcessAction tries to execute an action from the input string.
 // It returns the result and a boolean indicating if it was an action.
 func ProcessAction(input string) (result string, isAction bool, success bool) {

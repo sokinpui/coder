@@ -16,6 +16,15 @@ var commands = map[string]commandFunc{
 	"model": modelCmd,
 }
 
+// GetCommands returns a slice of available command names.
+func GetCommands() []string {
+	commandNames := make([]string, 0, len(commands))
+	for name := range commands {
+		commandNames = append(commandNames, name)
+	}
+	return commandNames
+}
+
 func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	if args == "" {
 		var b strings.Builder

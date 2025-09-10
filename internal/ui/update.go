@@ -267,11 +267,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	inputHeight := min(m.textArea.LineCount(), m.height/4) + 1
 	m.textArea.SetHeight(inputHeight)
 
+	// After textarea update, check for palette
+	if m.state == stateIdle {
+		val := m.textArea.Value()
+		if strings.HasPrefix(val, "/") && !strings.Contains(val, " ") {
+			m.showPalette = true
+		} else {
+			m.showPalette = false
+		}
+	} else {
+		m.showPalette = false
+	}
+
 	helpViewHeight := lipgloss.Height(m.helpView())
-	viewportHeight := m.height - m.textArea.Height() - helpViewHeight - textAreaStyle.GetVerticalPadding() - 2
+
+	paletteHeight := 0
+	if m.showPalette {
+		// We need a view to calculate its height.
+		// This is a bit inefficient but necessary with lipgloss.
+		paletteHeight = lipgloss.Height(m.paletteView()) + 1 // +1 for the newline
+	}
+
+	viewportHeight := m.height - m.textArea.Height() - helpViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
+
 	m.viewport.Height = viewportHeight
 
 	return m, tea.Batch(cmds...)
