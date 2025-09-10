@@ -60,27 +60,21 @@ func (m Model) renderConversation() string {
 }
 
 func (m Model) paletteView() string {
-	if !m.showPalette {
+	if !m.showPalette || len(m.paletteItems) == 0 {
 		return ""
 	}
 
 	var b strings.Builder
 
-	// Actions
-	b.WriteString(paletteHeaderStyle.Render("Actions"))
-	b.WriteString("\n")
-	for _, action := range m.availableActions {
-		b.WriteString(paletteItemStyle.Render("  /" + action))
-		b.WriteString("\n")
-	}
-
+	b.WriteString(paletteHeaderStyle.Render("Suggestions"))
 	b.WriteString("\n")
 
-	// Commands
-	b.WriteString(paletteHeaderStyle.Render("Commands"))
-	b.WriteString("\n")
-	for _, cmd := range m.availableCommands {
-		b.WriteString(paletteItemStyle.Render("  /" + cmd))
+	for i, item := range m.paletteItems {
+		if i == m.paletteCursor {
+			b.WriteString(paletteSelectedItemStyle.Render("▸ " + item))
+		} else {
+			b.WriteString(paletteItemStyle.Render("  " + item))
+		}
 		b.WriteString("\n")
 	}
 

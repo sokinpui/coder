@@ -130,7 +130,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ctrlCPressed = true
 				return m, ctrlCTimeout()
 
+			case tea.KeyTab:
+				if m.showPalette && len(m.paletteItems) > 0 {
+					m.paletteCursor = (m.paletteCursor + 1) % len(m.paletteItems)
+					return m, nil
+				}
+
+			case tea.KeyShiftTab:
+				if m.showPalette && len(m.paletteItems) > 0 {
+					m.paletteCursor--
+					if m.paletteCursor < 0 {
+						m.paletteCursor = len(m.paletteItems) - 1
+					}
+					return m, nil
+				}
+
 			case tea.KeyEnter:
+				// If palette is shown, Enter selects the item.
+				if m.showPalette && len(m.paletteItems) > 0 {
+					selectedItem := m.paletteItems[m.paletteCursor]
+					m.textArea.SetValue(selectedItem + " ")
+					m.textArea.CursorEnd()
+					return m, nil
+				}
+
 				// Smart enter: submit if it's a command.
 				if strings.HasPrefix(m.textArea.Value(), "/") {
 					return m.handleSubmit()
@@ -270,13 +293,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// After textarea update, check for palette
 	if m.state == stateIdle {
 		val := m.textArea.Value()
-		if strings.HasPrefix(val, "/") && !strings.Contains(val, " ") {
-			m.showPalette = true
+		isPaletteTrigger := strings.HasPrefix(val, "/") && !strings.Contains(val, " ")
+
+		if isPaletteTrigger {
+			prefix := strings.TrimPrefix(val, "/")
+			newPaletteItems := []string{}
+			for _, a := range m.availableActions {
+				if strings.HasPrefix(a, prefix) {
+					newPaletteItems = append(newPaletteItems, "/"+a)
+				}
+			}
+			for _, c := range m.availableCommands {
+				if strings.HasPrefix(c, prefix) {
+					newPaletteItems = append(newPaletteItems, "/"+c)
+				}
+			}
+			m.paletteItems = newPaletteItems
+
+			if len(m.paletteItems) > 0 {
+				m.showPalette = true
+				if m.paletteCursor >= len(m.paletteItems) {
+					m.paletteCursor = 0
+				}
+			} else {
+				m.showPalette = false
+				m.paletteCursor = 0
+			}
 		} else {
 			m.showPalette = false
+			m.paletteItems = []string{}
+			m.paletteCursor = 0
 		}
 	} else {
 		m.showPalette = false
+		m.paletteItems = []string{}
+		m.paletteCursor = 0
 	}
 
 	helpViewHeight := lipgloss.Height(m.helpView())

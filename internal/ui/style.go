@@ -21,6 +21,9 @@ var (
 				Underline(true)
 	paletteItemStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244"))
+	paletteSelectedItemStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("208")). // Orange, to match header
+					Bold(true)
 	textAreaStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240"))
