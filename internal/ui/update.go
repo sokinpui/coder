@@ -130,6 +130,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ctrlCPressed = true
 				return m, ctrlCTimeout()
 
+			case tea.KeyEscape:
+				// Clears the text input. If the palette is open, this will also
+				// cause it to close in the subsequent logic.
+				if m.textArea.Value() != "" {
+					m.textArea.Reset()
+				}
+				return m, nil
+
 			case tea.KeyTab, tea.KeyShiftTab:
 				totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
 				if m.showPalette && totalItems > 0 {

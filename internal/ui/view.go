@@ -118,7 +118,7 @@ func (m Model) helpView() string {
 		return fmt.Sprintf("%s%s", m.spinner.View(), statusText)
 	}
 
-	help := "Ctrl+C to clear/quit"
+	help := "Esc: clear | Ctrl+C: clear/quit"
 	modelInfo := fmt.Sprintf("Model: %s", m.config.Generation.ModelCode)
 
 	var tokenInfo string
