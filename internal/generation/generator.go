@@ -15,7 +15,7 @@ import (
 // Generator handles communication with the code generation gRPC service.
 type Generator struct {
 	client pb.GenerateClient
-	config config.Generation
+	Config config.Generation
 }
 
 // New creates a new Generator.
@@ -26,7 +26,7 @@ func New(cfg *config.Config) (*Generator, error) {
 	}
 
 	client := pb.NewGenerateClient(conn)
-	return &Generator{client: client, config: cfg.Generation}, nil
+	return &Generator{client: client, Config: cfg.Generation}, nil
 }
 
 // GenerateTask sends a prompt to the generation service and streams the response.
@@ -35,13 +35,13 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 
 	req := &pb.Request{
 		Prompt:    prompt,
-		ModelCode: g.config.ModelCode,
+		ModelCode: g.Config.ModelCode,
 		Stream:    true,
 		Config: &pb.GenerationConfig{
-			Temperature:  &g.config.Temperature,
-			TopP:         &g.config.TopP,
-			TopK:         &g.config.TopK,
-			OutputLength: &g.config.OutputLength,
+			Temperature:  &g.Config.Temperature,
+			TopP:         &g.Config.TopP,
+			TopK:         &g.Config.TopK,
+			OutputLength: &g.Config.OutputLength,
 		},
 	}
 

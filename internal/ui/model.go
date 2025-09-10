@@ -48,6 +48,7 @@ type Model struct {
 	isStreaming        bool
 	lastRenderedAIPart string
 	ctrlCPressed       bool
+	config             *config.Config
 	systemInstructions string
 	providedDocuments  string
 }
@@ -108,6 +109,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		messages:           initialMessages,
 		lastRenderedAIPart: "",
 		ctrlCPressed:       false,
+		config:             cfg,
 		systemInstructions: sysInstructions,
 		providedDocuments:  docs,
 	}, nil

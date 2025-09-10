@@ -39,8 +39,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, m.messages)
+		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, m.messages, m.config)
 		if isCmd {
+			m.generator.Config = m.config.Generation
 			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
 			if cmdSuccess {
 				m.messages = append(m.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})

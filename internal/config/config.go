@@ -1,5 +1,14 @@
 package config
 
+var AvailableModels = []string{
+	"gemini-2.5-pro",
+	"gemini-2.5-flash",
+	"gemini-2.5-flash-lite",
+	"gemini-2.0-flash",
+	"gemini-2.0-flash-lite",
+	"gemma-3-27b-it",
+}
+
 // GRPC contains gRPC server configuration.
 type GRPC struct {
 	Addr string
@@ -32,9 +41,7 @@ func Default() *Config {
 			Addr: "localhost:50051",
 		},
 		Generation: Generation{
-			ModelCode: "gemini-2.0-flash",
-			// ModelCode: "gemini-2.5-pro",
-			// ModelCode:    "gemini-2.0-flash-lite",
+			ModelCode:    AvailableModels[3], // gemini-2.0-flash
 			Temperature:  temp,
 			TopP:         topP,
 			TopK:         topK,

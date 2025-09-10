@@ -3,6 +3,7 @@ package ui
 import (
 	"coder/internal/core"
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 )
 
@@ -72,7 +73,19 @@ func (m Model) helpView() string {
 		return fmt.Sprintf("%s%s", m.spinner.View(), statusText)
 	}
 
-	return helpStyle.Render("Ctrl+J to send • Enter for newline (or /cmd) • Ctrl+U/D to scroll • Ctrl+C to clear/quit")
+	help := "Ctrl+J to send • Enter for newline (or /cmd) • Ctrl+U/D to scroll • Ctrl+C to clear/quit"
+	modelInfo := fmt.Sprintf("Model: %s", m.generator.Config.ModelCode)
+
+	helpPart := helpStyle.Render(help)
+	modelPart := helpStyle.Render(modelInfo)
+
+	spacing := m.width - lipgloss.Width(helpPart) - lipgloss.Width(modelPart)
+	if spacing < 1 {
+		return helpPart
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, helpPart, strings.Repeat(" ", spacing), modelPart)
+
 }
 
 func (m Model) View() string {
