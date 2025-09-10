@@ -2,10 +2,10 @@ package ui
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
-	"coder/internal/history"
 	"coder/internal/contextdir"
+	"coder/internal/core"
 	"coder/internal/generation"
+	"coder/internal/history"
 	"context"
 	"fmt"
 
@@ -20,7 +20,8 @@ const welcomeMessage = `Welcome to Coder!
 
 - Chat with the AI
 - Press Enter for a new line in your prompt.
-- Press Ctrl+J to send your message to the AI.
+- Use Ctrl+J to send your message to the AI.
+- Use Ctrl+d and Ctrl+u to scroll down and up.
 - Use /<command> to execute commands. Press Enter to run a command.
 - Place files in the 'Context' directory.`
 
