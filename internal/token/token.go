@@ -1,11 +1,30 @@
 package token
 
 import (
+	"log"
 	"strings"
+
+	"github.com/tiktoken-go/tokenizer"
 )
 
-// CountTokens approximates the number of tokens in a string using a simple word count.
-// This method is not highly accurate but serves as a basic, dependency-free estimator.
+var codec tokenizer.Codec
+
+func init() {
+	var err error
+	// Using cl100k_base as a general-purpose encoder for good approximation.
+	codec, err = tokenizer.Get(tokenizer.Cl100kBase)
+	if err != nil {
+		log.Fatalf("could not load tokenizer: %v", err)
+	}
+}
+
+// CountTokens provides a more accurate token count using the tiktoken library.
 func CountTokens(text string) int {
 	return len(strings.Fields(text))
+	ids, _, err := codec.Encode(text)
+	if err != nil {
+		// Fallback to a rough character-based estimate on encoding failure.
+		return len(text) / 4
+	}
+	return len(ids)
 }
