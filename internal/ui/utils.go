@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"coder/internal/token"
 	"errors"
 	"strings"
 	"time"
@@ -20,6 +21,13 @@ func listenForStream(sub chan string) tea.Cmd {
 			return errorMsg{errors.New(errMsg)}
 		}
 		return streamResultMsg(content)
+	}
+}
+
+func countTokensCmd(text string) tea.Cmd {
+	return func() tea.Msg {
+		count := token.CountTokens(text)
+		return tokenCountResultMsg(count)
 	}
 }
 

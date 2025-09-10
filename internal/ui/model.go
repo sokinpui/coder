@@ -52,6 +52,8 @@ type Model struct {
 	config             *config.Config
 	systemInstructions string
 	providedDocuments  string
+	tokenCount         int
+	isCountingTokens   bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -113,5 +115,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		config:             cfg,
 		systemInstructions: sysInstructions,
 		providedDocuments:  docs,
+		tokenCount:         0,
+		isCountingTokens:   true, // Start counting tokens on init
 	}, nil
 }

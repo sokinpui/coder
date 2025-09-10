@@ -15,4 +15,5 @@ type (
 	renderTickMsg     struct{}
 	errorMsg          struct{ error }
 	ctrlCTimeoutMsg   struct{}
+	tokenCountResultMsg int
 )

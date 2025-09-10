@@ -74,18 +74,30 @@ func (m Model) helpView() string {
 	}
 
 	help := "Ctrl+C to clear/quit"
-	modelInfo := fmt.Sprintf("Model: %s", m.generator.Config.ModelCode)
+	modelInfo := fmt.Sprintf("Model: %s", m.config.Generation.ModelCode)
+
+	var tokenInfo string
+	if m.isCountingTokens {
+		tokenInfo = "Tokens: counting..."
+	} else if m.tokenCount > 0 {
+		tokenInfo = fmt.Sprintf("Tokens: %d", m.tokenCount)
+	}
 
 	helpPart := helpStyle.Render(help)
 	modelPart := helpStyle.Render(modelInfo)
+	tokenPart := helpStyle.Render(tokenInfo)
 
-	spacing := m.width - lipgloss.Width(helpPart) - lipgloss.Width(modelPart)
+	rightSide := modelPart
+	if tokenPart != "" {
+		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", modelPart)
+	}
+
+	spacing := m.width - lipgloss.Width(helpPart) - lipgloss.Width(rightSide)
 	if spacing < 1 {
 		return helpPart
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, helpPart, strings.Repeat(" ", spacing), modelPart)
-
+	return lipgloss.JoinHorizontal(lipgloss.Top, helpPart, strings.Repeat(" ", spacing), rightSide)
 }
 
 func (m Model) View() string {

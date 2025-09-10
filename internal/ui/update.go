@@ -14,7 +14,9 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return textarea.Blink
+	// On startup, count the tokens of the initial context (system instructions + documents).
+	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, nil)
+	return tea.Batch(textarea.Blink, countTokensCmd(initialPrompt))
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
@@ -61,6 +63,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	m.state = stateThinking
 	m.isStreaming = true
+	m.isCountingTokens = true
 	m.streamSub = make(chan string)
 	m.textArea.Blur()
 
@@ -76,7 +79,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	m.textArea.Reset()
 	m.textArea.SetHeight(1)
 
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick)
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -172,7 +175,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancelGeneration = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
-		return m, nil
+
+		prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.messages)
+		m.isCountingTokens = true
+
+		return m, countTokensCmd(prompt)
 
 	case renderTickMsg:
 		if m.state != stateGenerating || !m.isStreaming {
@@ -190,6 +197,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, renderTick()
+
+	case tokenCountResultMsg:
+		m.tokenCount = int(msg)
+		m.isCountingTokens = false
+		return m, nil
 
 	case ctrlCTimeoutMsg:
 		m.ctrlCPressed = false
