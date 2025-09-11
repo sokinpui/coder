@@ -7,12 +7,13 @@ import (
 const (
 	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
 	providedDocumentsHeader   = "# PROVIDED DOCUMENTS\n\n"
+	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	separator                 = "\n\n---\n\n"
 )
 
 // BuildPrompt constructs the full prompt with conversation history.
-func BuildPrompt(systemInstructions, providedDocuments string, messages []Message) string {
+func BuildPrompt(systemInstructions, providedDocuments, projectSourceCode string, messages []Message) string {
 	var sb strings.Builder
 
 	// Predefined system instructions (without header)
@@ -36,6 +37,12 @@ func BuildPrompt(systemInstructions, providedDocuments string, messages []Messag
 	if providedDocuments != "" {
 		sb.WriteString(providedDocumentsHeader)
 		sb.WriteString(providedDocuments)
+		sb.WriteString(separator)
+	}
+
+	if projectSourceCode != "" {
+		sb.WriteString(projectSourceCodeHeader)
+		sb.WriteString(projectSourceCode)
 		sb.WriteString(separator)
 	}
 

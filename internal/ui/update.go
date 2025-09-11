@@ -15,7 +15,7 @@ import (
 
 func (m Model) Init() tea.Cmd {
 	// On startup, count the tokens of the initial context (system instructions + documents).
-	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, nil)
+	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
 	return tea.Batch(textarea.Blink, countTokensCmd(initialPrompt))
 }
 
@@ -59,7 +59,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
-	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.messages)
+	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
 
 	m.state = stateThinking
 	m.isStreaming = true
@@ -214,8 +214,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancelGeneration = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
-
-		prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.messages)
+		prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
 		m.isCountingTokens = true
 
 		return m, countTokensCmd(prompt)

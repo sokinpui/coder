@@ -3,6 +3,7 @@ package ui
 import (
 	"coder/internal/config"
 	"coder/internal/contextdir"
+	"coder/internal/source"
 	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/history"
@@ -53,6 +54,7 @@ type Model struct {
 	config             *config.Config
 	systemInstructions string
 	providedDocuments  string
+	projectSourceCode  string
 	tokenCount         int
 	isCountingTokens   bool
 	showPalette        bool
@@ -103,6 +105,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, fmt.Errorf("failed to load context: %w", err)
 	}
 
+	projSource, err := source.LoadProjectSource()
+	if err != nil {
+		return Model{}, fmt.Errorf("failed to load project source: %w", err)
+	}
+
 	initialMessages := []core.Message{
 		{Type: core.InitMessage, Content: welcomeMessage},
 	}
@@ -127,6 +134,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		config:             cfg,
 		systemInstructions: sysInstructions,
 		providedDocuments:  docs,
+		projectSourceCode:  projSource,
 		tokenCount:         0,
 		isCountingTokens:   true, // Start counting tokens on init
 		showPalette:        false,
