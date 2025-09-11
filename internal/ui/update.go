@@ -350,7 +350,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.showPalette {
 		// We need a view to calculate its height.
 		// This is a bit inefficient but necessary with lipgloss.
-		paletteHeight = lipgloss.Height(m.paletteView()) + 1 // +1 for the newline
+		paletteHeight = lipgloss.Height(m.paletteView())
 	}
 
 	viewportHeight := m.height - m.textArea.Height() - helpViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2

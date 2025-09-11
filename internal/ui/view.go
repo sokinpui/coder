@@ -150,15 +150,18 @@ func (m Model) View() string {
 		return ""
 	}
 
-	var palette string
+	var b strings.Builder
+	b.WriteString(m.viewport.View())
+	b.WriteString("\n")
+
 	if m.showPalette {
-		palette = m.paletteView() + "\n"
+		b.WriteString(m.paletteView())
+		b.WriteString("\n")
 	}
 
-	return fmt.Sprintf("%s\n%s%s\n%s",
-		m.viewport.View(),
-		palette,
-		textAreaStyle.Render(m.textArea.View()),
-		m.helpView(),
-	)
+	b.WriteString(textAreaStyle.Render(m.textArea.View()))
+	b.WriteString("\n")
+	b.WriteString(m.helpView())
+
+	return b.String()
 }
