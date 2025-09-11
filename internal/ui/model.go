@@ -2,8 +2,6 @@ package ui
 
 import (
 	"coder/internal/config"
-	"coder/internal/contextdir"
-	"coder/internal/source"
 	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/history"
@@ -100,16 +98,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, err
 	}
 
-	sysInstructions, docs, err := contextdir.LoadContext()
-	if err != nil {
-		return Model{}, fmt.Errorf("failed to load context: %w", err)
-	}
-
-	projSource, err := source.LoadProjectSource()
-	if err != nil {
-		return Model{}, fmt.Errorf("failed to load project source: %w", err)
-	}
-
 	initialMessages := []core.Message{
 		{Type: core.InitMessage, Content: welcomeMessage},
 	}
@@ -132,11 +120,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 		lastRenderedAIPart: "",
 		ctrlCPressed:       false,
 		config:             cfg,
-		systemInstructions: sysInstructions,
-		providedDocuments:  docs,
-		projectSourceCode:  projSource,
+		systemInstructions: "",
+		providedDocuments:  "",
+		projectSourceCode:  "",
 		tokenCount:         0,
-		isCountingTokens:   true, // Start counting tokens on init
+		isCountingTokens:   false,
 		showPalette:        false,
 		availableActions:   actions,
 		availableCommands:  commands,

@@ -16,4 +16,10 @@ type (
 	errorMsg          struct{ error }
 	ctrlCTimeoutMsg   struct{}
 	tokenCountResultMsg int
+	initialContextLoadedMsg struct {
+		systemInstructions string
+		providedDocuments  string
+		projectSourceCode  string
+		err                error
+	}
 )

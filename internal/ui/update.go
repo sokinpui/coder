@@ -14,9 +14,7 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	// On startup, count the tokens of the initial context (system instructions + documents).
-	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
-	return tea.Batch(textarea.Blink, countTokensCmd(initialPrompt))
+	return tea.Batch(textarea.Blink, loadInitialContextCmd())
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
@@ -244,6 +242,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ctrlCTimeoutMsg:
 		m.ctrlCPressed = false
 		return m, nil
+
+	case initialContextLoadedMsg:
+		if msg.err != nil {
+			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
+			m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
+			return m, nil
+		}
+
+		m.systemInstructions = msg.systemInstructions
+		m.providedDocuments = msg.providedDocuments
+		m.projectSourceCode = msg.projectSourceCode
+
+		// Now that context is loaded, count the tokens.
+		initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
+		m.isCountingTokens = true
+
+		return m, countTokensCmd(initialPrompt)
 
 	case errorMsg:
 		m.isStreaming = false
