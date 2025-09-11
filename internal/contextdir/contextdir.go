@@ -9,18 +9,16 @@ import (
 )
 
 const contextDirName = "Context"
-const systemInstructionsFile = "sysI.md"
 
 // LoadContext finds and reads all files from the context directory.
-// It separates the content of `SystemInstructions.md` from other documents.
-// If multiple `SystemInstructions.md` files are found, the last one encountered wins.
+// It returns all file contents as provided documents.
+// User-defined system instructions are not supported from the context directory.
 func LoadContext() (systemInstructions string, providedDocuments string, err error) {
 	if _, err := os.Stat(contextDirName); os.IsNotExist(err) {
 		return "", "", nil
 	}
 
 	var documents []string
-	var sysInstructions string
 
 	walkErr := filepath.WalkDir(contextDirName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -30,11 +28,6 @@ func LoadContext() (systemInstructions string, providedDocuments string, err err
 			contentBytes, readErr := os.ReadFile(path)
 			if readErr != nil {
 				return fmt.Errorf("failed to read file %s: %w", path, readErr)
-			}
-
-			if d.Name() == systemInstructionsFile {
-				sysInstructions = string(contentBytes)
-				return nil // Don't add to the regular documents list
 			}
 
 			content := string(contentBytes)
@@ -57,8 +50,9 @@ func LoadContext() (systemInstructions string, providedDocuments string, err err
 	}
 
 	if len(documents) == 0 {
-		return sysInstructions, "", nil
+		return "", "", nil
 	}
 
-	return sysInstructions, strings.Join(documents, "\n\n"), nil
+	// systemInstructions is returned as empty because user-defined instructions are not loaded from files.
+	return "", strings.Join(documents, "\n\n"), nil
 }
