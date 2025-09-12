@@ -56,6 +56,12 @@ func (m Model) renderConversation() string {
 			parts = append(parts, cmdErrorBlock)
 		}
 	}
+
+	if m.state == stateThinking {
+		thinkingMsg := fmt.Sprintf("   %s AI is thinking...", m.spinner.View())
+		block := thinkingStyle.Render(thinkingMsg)
+		parts = append(parts, block)
+	}
 	return strings.Join(parts, "\n")
 }
 
@@ -109,16 +115,16 @@ func (m Model) helpView() string {
 		return helpStyle.Render("Press Ctrl+C again to quit.")
 	}
 
+	var help string
 	switch m.state {
 	case stateThinking, stateGenerating:
-		statusText := generatingHelpStyle.Render(" Generating... • Ctrl+U/D to scroll • Ctrl+C to cancel")
-		return fmt.Sprintf("%s%s", m.spinner.View(), statusText)
+		help = "Ctrl+U/D: scroll | Ctrl+C: cancel"
 	case stateCancelling:
-		statusText := generatingHelpStyle.Render(" Cancelling...")
-		return fmt.Sprintf("%s%s", m.spinner.View(), statusText)
+		return generatingHelpStyle.Render("Cancelling...")
+	default: // stateIdle
+		help = "Esc: clear | Ctrl+C: clear/quit"
 	}
 
-	help := "Esc: clear | Ctrl+C: clear/quit"
 	modelInfo := fmt.Sprintf("Model: %s", m.config.Generation.ModelCode)
 
 	var tokenInfo string

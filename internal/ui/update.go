@@ -259,6 +259,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		var spinnerCmd tea.Cmd
 		m.spinner, spinnerCmd = m.spinner.Update(msg)
+
+		// If we are in the "thinking" state, the spinner is in the viewport.
+		// We need to update the viewport's content to reflect the spinner's animation.
+		if m.state == stateThinking {
+			m.viewport.SetContent(m.renderConversation())
+		}
 		return m, spinnerCmd
 
 	case streamResultMsg:

@@ -11,6 +11,9 @@ var (
 	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
 	modelInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
 	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78")) // Green
+	thinkingStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244")).
+			Italic(true)
 	paletteContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("240")).
