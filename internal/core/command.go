@@ -13,6 +13,9 @@ import (
 // to signal the UI to start a new session.
 const NewSessionResult = "---_NEW_SESSION_---"
 
+// RegenerateResult is a special string returned by the /gen command
+const RegenerateResult = "---_REGENERATE_---"
+
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
@@ -21,6 +24,7 @@ var commands = map[string]commandFunc{
 	"model": modelCmd,
 	"itf":   itfCmd,
 	"new":   newCmd,
+	"gen":   genCmd,
 }
 
 // GetCommands returns a slice of available command names.
@@ -34,6 +38,10 @@ func GetCommands() []string {
 
 func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	return NewSessionResult, true
+}
+
+func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	return RegenerateResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

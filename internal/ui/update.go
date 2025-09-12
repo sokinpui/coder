@@ -46,18 +46,33 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	return m, countTokensCmd(initialPrompt)
 }
 
+func (m Model) startGeneration() (Model, tea.Cmd) {
+	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
+
+	m.state = stateThinking
+	m.isStreaming = true
+	m.isCountingTokens = true
+	m.streamSub = make(chan string)
+	m.textArea.Blur()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cancelGeneration = cancel
+
+	go m.generator.GenerateTask(ctx, prompt, m.streamSub)
+	m.messages = append(m.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
+	m.lastRenderedAIPart = ""
+	m.lastInteractionFailed = false // Reset this flag for the new generation attempt.
+
+	m.viewport.SetContent(m.renderConversation())
+	m.viewport.GotoBottom()
+
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+}
+
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.textArea.Value()
 	if strings.TrimSpace(input) == "" {
 		return m, nil
-	}
-
-	if m.lastInteractionFailed {
-		if len(m.messages) >= 2 {
-			// Remove the previous user message and the failed/cancelled AI message
-			m.messages = m.messages[:len(m.messages)-2]
-		}
-		m.lastInteractionFailed = false
 	}
 
 	if strings.HasPrefix(input, "/") {
@@ -82,6 +97,30 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 				return m.newSession()
 			}
 
+			if cmdSuccess && cmdResult == core.RegenerateResult {
+				lastUserMsgIndex := -1
+				for i := len(m.messages) - 1; i >= 0; i-- {
+					if m.messages[i].Type == core.UserMessage {
+						lastUserMsgIndex = i
+						break
+					}
+				}
+
+				if lastUserMsgIndex == -1 {
+					m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
+					m.viewport.SetContent(m.renderConversation())
+					m.viewport.GotoBottom()
+					m.textArea.Reset()
+					m.textArea.SetHeight(1)
+					return m, nil
+				}
+
+				m.messages = m.messages[:lastUserMsgIndex+1]
+				m.textArea.Reset()
+				m.textArea.SetHeight(1)
+				return m.startGeneration()
+			}
+
 			m.generator.Config = m.config.Generation
 			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
 			if cmdSuccess {
@@ -97,28 +136,20 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// This is now the "new user prompt" section.
+	if m.lastInteractionFailed {
+		if len(m.messages) >= 2 {
+			// Remove the previous user message and the failed/cancelled AI message
+			m.messages = m.messages[:len(m.messages)-2]
+		}
+		m.lastInteractionFailed = false
+	}
+
 	m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
-	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
-
-	m.state = stateThinking
-	m.isStreaming = true
-	m.isCountingTokens = true
-	m.streamSub = make(chan string)
-	m.textArea.Blur()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	m.cancelGeneration = cancel
-
-	go m.generator.GenerateTask(ctx, prompt, m.streamSub)
-	m.messages = append(m.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
-	m.lastRenderedAIPart = ""
-
-	m.viewport.SetContent(m.renderConversation())
-	m.viewport.GotoBottom()
 	m.textArea.Reset()
 	m.textArea.SetHeight(1)
 
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+	return m.startGeneration()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
