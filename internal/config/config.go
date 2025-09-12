@@ -31,9 +31,9 @@ type Config struct {
 
 // Default returns a default configuration.
 func Default() *Config {
-	temp := float32(1.0)
+	temp := float32(0)
 	topP := float32(0.95)
-	topK := int32(40)
+	topK := int32(0) // disabled
 	outputLength := int32(65536)
 
 	return &Config{
@@ -41,7 +41,7 @@ func Default() *Config {
 			Addr: "localhost:50051",
 		},
 		Generation: Generation{
-			ModelCode:    AvailableModels[0], // gemini-2.0-flash
+			ModelCode:    AvailableModels[0],
 			Temperature:  temp,
 			TopP:         topP,
 			TopK:         topK,
