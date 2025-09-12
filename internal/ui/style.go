@@ -13,7 +13,8 @@ var (
 	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78")) // Green
 	thinkingStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
-			Italic(true)
+			Italic(true).
+			Padding(0, 2)
 	paletteContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("240")).
