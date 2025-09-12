@@ -22,7 +22,7 @@ const welcomeMessage = `Welcome to Coder!
 - Press Enter for a new line in your prompt.
 - Use Ctrl+J to send your message to the AI.
 - Use Ctrl+d and Ctrl+u to scroll down and up.
-- Use /<command> to execute commands. Press Enter to run a command.
+- Use :<command> to execute commands. Press Enter to run a command.
 - Place files in the 'Context' directory.`
 
 func min(a, b int) int {

@@ -75,7 +75,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if strings.HasPrefix(input, "/") {
+	if strings.HasPrefix(input, ":") {
 		actionResult, isAction, actionSuccess := core.ProcessAction(input)
 		if isAction {
 			m.messages = append(m.messages, core.Message{Type: core.ActionMessage, Content: input})
@@ -241,7 +241,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Smart enter: submit if it's a command.
-				if strings.HasPrefix(m.textArea.Value(), "/") {
+				if strings.HasPrefix(m.textArea.Value(), ":") {
 					return m.handleSubmit()
 				}
 				// Otherwise, fall through to let the textarea handle the newline.
@@ -417,14 +417,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// After textarea update, check for palette
 	if m.state == stateIdle {
 		val := m.textArea.Value()
-		isPaletteTrigger := strings.HasPrefix(val, "/") && !strings.Contains(val, " ")
+		isPaletteTrigger := strings.HasPrefix(val, ":") && !strings.Contains(val, " ")
 
 		if isPaletteTrigger {
-			prefix := strings.TrimPrefix(val, "/")
+			prefix := strings.TrimPrefix(val, ":")
 			newPaletteActions := []string{}
 			for _, a := range m.availableActions {
 				if strings.HasPrefix(a, prefix) {
-					newPaletteActions = append(newPaletteActions, "/"+a)
+					newPaletteActions = append(newPaletteActions, ":"+a)
 				}
 			}
 			m.paletteFilteredActions = newPaletteActions
@@ -432,7 +432,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newPaletteCommands := []string{}
 			for _, c := range m.availableCommands {
 				if strings.HasPrefix(c, prefix) {
-					newPaletteCommands = append(newPaletteCommands, "/"+c)
+					newPaletteCommands = append(newPaletteCommands, ":"+c)
 				}
 			}
 			m.paletteFilteredCommands = newPaletteCommands

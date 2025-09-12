@@ -62,7 +62,7 @@ func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool
 		for _, m := range config.AvailableModels {
 			fmt.Fprintf(&b, "- %s\n", m)
 		}
-		fmt.Fprint(&b, "Usage: /model <model_name>")
+		fmt.Fprint(&b, "Usage: :model <model_name>")
 		return b.String(), true
 	}
 
@@ -73,7 +73,7 @@ func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool
 		}
 	}
 
-	return fmt.Sprintf("Error: model '%s' not found. Use '/model' to see available models.", args), false
+	return fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args), false
 }
 
 func echoCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
@@ -96,13 +96,13 @@ func copyCmd(args string, messages []Message, cfg *config.Config) (string, bool)
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
 func ProcessCommand(input string, messages []Message, cfg *config.Config) (result string, isCmd bool, success bool) {
-	if !strings.HasPrefix(input, "/") {
+	if !strings.HasPrefix(input, ":") {
 		return "", false, false
 	}
 
-	parts := strings.Fields(strings.TrimPrefix(input, "/"))
+	parts := strings.Fields(strings.TrimPrefix(input, ":"))
 	if len(parts) == 0 {
-		return "Invalid command syntax. Use /<command> [args]", true, false
+		return "Invalid command syntax. Use :<command> [args]", true, false
 	}
 
 	cmdName := parts[0]

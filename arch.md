@@ -34,7 +34,7 @@ The project is structured into several internal packages, each with a focused re
 - **`internal/core`**: Contains the core business logic of the application, independent of the UI or external services.
   - **System Instructions**: Embedded directives for the AI, ensuring consistent behavior.
   - **Actions**: Definition and execution of external command-line tools (e.g., `pcat`, `itf`).
-  - **Commands**: Definition and execution of internal application commands (e.g., `/model`, `/copy`).
+  - **Commands**: Definition and execution of internal application commands (e.g., `:model`, `:copy`).
   - **Messages**: Standardized data structures for representing conversation turns.
   - **Prompt Building**: Logic to assemble all contextual information into a coherent prompt for the AI.
 - **`internal/generation`**: Acts as the gRPC client to communicate with the external AI generation service. It handles request/response serialization (using `protos`), streaming, and configuration of generation parameters.
@@ -94,7 +94,7 @@ The UI heavily relies on custom `tea.Msg` types to communicate events and data b
 
 1.  **Initialization**: `ui.Start()` creates and runs a `tea.Program`. The `Model`'s `Init()` method triggers `loadInitialContextCmd()` to load system instructions, provided documents, and project source in parallel.
 2.  **User Input**: The user types into the `textarea`. Key presses are sent as `tea.KeyMsg` to `Update`.
-3.  **Command Palette**: Typing `/` in the `textarea` triggers the command palette (`paletteView`), which dynamically filters `availableActions` and `availableCommands` based on the input. `Tab` and `Shift+Tab` navigate the palette.
+3.  **Command Palette**: Typing `:` in the `textarea` triggers the command palette (`paletteView`), which dynamically filters `availableActions` and `availableCommands` based on the input. `Tab` and `Shift+Tab` navigate the palette.
 4.  **Submission**:
     - `Ctrl+J` (or `Enter` for slash commands) triggers `handleSubmit()`.
     - `handleSubmit()` first checks if the input is an `Action` (via `core.ProcessAction()`) or a `Command` (via `core.ProcessCommand()`). If so, it executes locally and updates the conversation.

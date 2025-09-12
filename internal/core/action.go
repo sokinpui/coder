@@ -35,13 +35,13 @@ func GetActions() []string {
 // ProcessAction tries to execute an action from the input string.
 // It returns the result and a boolean indicating if it was an action.
 func ProcessAction(input string) (result string, isAction bool, success bool) {
-	if !strings.HasPrefix(input, "/") {
+	if !strings.HasPrefix(input, ":") {
 		return "", false, false
 	}
 
-	parts := strings.Fields(strings.TrimPrefix(input, "/"))
+	parts := strings.Fields(strings.TrimPrefix(input, ":"))
 	if len(parts) == 0 {
-		// It's a slash command, but malformed. We can't tell if it's an action or command.
+		// It's a colon command, but malformed. We can't tell if it's an action or command.
 		// Let's assume it's not an action and let ProcessCommand handle it.
 		return "", false, false
 	}

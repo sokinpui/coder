@@ -65,20 +65,20 @@ Run the `coder` executable from within a Git repository:
 - `Ctrl+D` / `Ctrl+U`: Scroll down / up through the conversation.
 - `Esc`: Clear the current input.
 - `Ctrl+C`: Clear the current input. Press `Ctrl+C` again to quit.
-- `/`: Type `/` to bring up the command/action palette.
+- `:`: Type `:` to bring up the command/action palette.
 - `Tab`/`Shift+Tab`: Navigate the command/action palette.
 - `Enter` (in palette): Select and insert a command/action from the palette.
 
 #### Commands:
 
-- `/model [model_name]`: View or switch the active AI model.
-- `/copy`: Copy the last AI response to the clipboard.
-- `/echo <text>`: Echoes the provided text.
+- `:model [model_name]`: View or switch the active AI model.
+- `:copy`: Copy the last AI response to the clipboard.
+- `:echo <text>`: Echoes the provided text.
 
 #### Actions:
 
-- `/pcat <args>`: Execute the `pcat` command.
-- `/itf <args>`: Execute the `itf` command.
+- `:pcat <args>`: Execute the `pcat` command.
+- `:itf <args>`: Execute the `itf` command.
 
 ## Configuration
 

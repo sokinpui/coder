@@ -6,7 +6,7 @@ import (
 
 const (
 	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
-	providedDocumentsHeader   = "# PROVIDED DOCUMENTS\n\n"
+	providedDocumentsHeader   = "# RELATED DOCUMENTS\n\n"
 	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	separator                 = "\n\n---\n\n"

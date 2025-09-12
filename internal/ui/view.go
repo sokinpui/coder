@@ -58,7 +58,7 @@ func (m Model) renderConversation() string {
 	}
 
 	if m.state == stateThinking {
-		thinkingMsg := fmt.Sprintf("   %s AI is thinking...", m.spinner.View())
+		thinkingMsg := fmt.Sprintf("%s AI is thinking...", m.spinner.View())
 		block := thinkingStyle.Render(thinkingMsg)
 		parts = append(parts, block)
 	}

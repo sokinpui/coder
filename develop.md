@@ -88,7 +88,7 @@ Contains the core business logic, including AI system instructions, handling ext
   - `ProcessAction()`: Parses user input to identify and execute actions.
 - **`command.go`**:
   - `commandFunc` type: Defines the signature for internal commands.
-  - `commands` map: Registers internal application commands (e.g., `/model`, `/copy`).
+  - `commands` map: Registers internal application commands (e.g., `:model`, `:copy`).
   - `ProcessCommand()`: Parses user input to identify and execute internal commands.
 - **`messages.go`**:
   - `MessageType` enum: Categorizes different types of messages in the conversation (User, AI, Action, Command, etc.).
