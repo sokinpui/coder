@@ -3,6 +3,7 @@ package core
 import (
 	"coder/internal/config"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -11,9 +12,10 @@ import (
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
-	"echo": echoCmd,
-	"copy": copyCmd,
+	"echo":  echoCmd,
+	"copy":  copyCmd,
 	"model": modelCmd,
+	"itf":   itfCmd,
 }
 
 // GetCommands returns a slice of available command names.
@@ -23,6 +25,16 @@ func GetCommands() []string {
 		commandNames = append(commandNames, name)
 	}
 	return commandNames
+}
+
+func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	argSlice := strings.Fields(args)
+	cmd := exec.Command("itf", argSlice...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "Error executing itf: " + err.Error() + "\n" + string(output), false
+	}
+	return string(output), true
 }
 
 func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
