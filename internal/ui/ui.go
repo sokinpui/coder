@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"log"
 	"coder/internal/config"
+	"log"
 	"fmt"
 	"os"
 
@@ -30,8 +30,8 @@ func Start() {
 
 	// Save conversation on exit
 	if m, ok := finalModel.(Model); ok {
-		if m.historyManager != nil {
-			if err := m.historyManager.SaveConversation(m.messages, m.systemInstructions, m.providedDocuments, m.projectSourceCode); err != nil {
+		if m.session != nil {
+			if err := m.session.SaveConversation(); err != nil {
 				log.Printf("Error saving conversation history: %v", err)
 			}
 		}

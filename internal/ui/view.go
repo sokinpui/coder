@@ -10,7 +10,7 @@ import (
 // renderConversation renders the entire message history.
 func (m Model) renderConversation() string {
 	var parts []string
-	for _, msg := range m.messages {
+	for _, msg := range m.session.GetMessages() {
 		switch msg.Type {
 		case core.InitMessage:
 			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
@@ -122,10 +122,10 @@ func (m Model) helpView() string {
 	case stateCancelling:
 		return generatingHelpStyle.Render("Cancelling...")
 	default: // stateIdle
-		help = "Esc: clear | Ctrl+C: clear/quit"
+		help = "Ctrl+J: send | Esc: clear | Ctrl+C: clear/quit"
 	}
 
-	modelInfo := fmt.Sprintf("Model: %s", m.config.Generation.ModelCode)
+	modelInfo := fmt.Sprintf("Model: %s", m.session.GetConfig().Generation.ModelCode)
 
 	var tokenInfo string
 	if m.isCountingTokens {

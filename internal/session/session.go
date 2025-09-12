@@ -1,0 +1,219 @@
+package session
+
+import (
+	"coder/internal/config"
+	"coder/internal/contextdir"
+	"coder/internal/core"
+	"coder/internal/generation"
+	"coder/internal/history"
+	"coder/internal/source"
+	"context"
+	"fmt"
+	"log"
+	"strings"
+)
+
+// EventType defines the type of event returned by the session.
+type EventType int
+
+const (
+	// NoOp indicates that no significant action was taken.
+	NoOp EventType = iota
+	// MessagesUpdated indicates that the message list was updated.
+	MessagesUpdated
+	// GenerationStarted indicates a new AI generation task has begun.
+	GenerationStarted
+	// NewSessionStarted indicates the session has been reset.
+	NewSessionStarted
+)
+
+// Event is returned by session methods to inform the UI about what happened.
+type Event struct {
+	Type EventType
+	Data interface{} // Can be a stream channel for GenerationStarted or an error for ErrorOccurred
+}
+
+// Session manages the state of a single conversation.
+type Session struct {
+	config             *config.Config
+	generator          *generation.Generator
+	historyManager     *history.Manager
+	messages           []core.Message
+	systemInstructions string
+	providedDocuments  string
+	projectSourceCode  string
+	cancelGeneration   context.CancelFunc
+}
+
+// New creates a new session.
+func New(cfg *config.Config) (*Session, error) {
+	gen, err := generation.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	hist, err := history.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize history manager: %w", err)
+	}
+
+	return &Session{
+		config:         cfg,
+		generator:      gen,
+		historyManager: hist,
+		messages:       []core.Message{}, // Start with empty messages
+	}, nil
+}
+
+// LoadContext loads the initial context for the session.
+func (s *Session) LoadContext() error {
+	sysInstructions, docs, ctxErr := contextdir.LoadContext()
+	if ctxErr != nil {
+		return fmt.Errorf("failed to load context directory: %w", ctxErr)
+	}
+
+	projSource, srcErr := source.LoadProjectSource()
+	if srcErr != nil {
+		return fmt.Errorf("failed to load project source: %w", srcErr)
+	}
+
+	s.systemInstructions = sysInstructions
+	s.providedDocuments = docs
+	s.projectSourceCode = projSource
+	return nil
+}
+
+// GetMessages returns the current conversation messages.
+func (s *Session) GetMessages() []core.Message {
+	return s.messages
+}
+
+// AddMessage allows adding a message to the history from outside (e.g., UI-specific messages).
+func (s *Session) AddMessage(msg core.Message) {
+	s.messages = append(s.messages, msg)
+}
+
+// ReplaceLastMessage allows updating the last message (e.g., for streaming).
+func (s *Session) ReplaceLastMessage(msg core.Message) {
+	if len(s.messages) > 0 {
+		s.messages[len(s.messages)-1] = msg
+	}
+}
+
+// RemoveLastInteraction removes the last user message and AI response,
+// typically after a failed or cancelled generation.
+func (s *Session) RemoveLastInteraction() {
+	if len(s.messages) >= 2 {
+		s.messages = s.messages[:len(s.messages)-2]
+	}
+}
+
+// GetConfig returns the application configuration.
+func (s *Session) GetConfig() *config.Config {
+	return s.config
+}
+
+// GetPromptForTokenCount builds and returns the full prompt string for token counting.
+func (s *Session) GetPromptForTokenCount() string {
+	return core.BuildPrompt(s.systemInstructions, s.providedDocuments, s.projectSourceCode, s.messages)
+}
+
+// GetInitialPromptForTokenCount returns the prompt with only the context.
+func (s *Session) GetInitialPromptForTokenCount() string {
+	return core.BuildPrompt(s.systemInstructions, s.providedDocuments, s.projectSourceCode, nil)
+}
+
+// SaveConversation saves the current conversation to history.
+func (s *Session) SaveConversation() error {
+	return s.historyManager.SaveConversation(s.messages, s.systemInstructions, s.providedDocuments, s.projectSourceCode)
+}
+
+// CancelGeneration cancels any ongoing AI generation.
+func (s *Session) CancelGeneration() {
+	if s.cancelGeneration != nil {
+		s.cancelGeneration()
+	}
+}
+
+func (s *Session) newSession() {
+	if err := s.SaveConversation(); err != nil {
+		log.Printf("Error saving conversation for /new command: %v", err)
+	}
+	s.messages = []core.Message{} // Clear messages
+}
+
+func (s *Session) startGeneration() Event {
+	prompt := s.GetPromptForTokenCount()
+
+	streamChan := make(chan string)
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancelGeneration = cancel
+
+	go s.generator.GenerateTask(ctx, prompt, streamChan)
+
+	s.messages = append(s.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
+
+	return Event{
+		Type: GenerationStarted,
+		Data: streamChan,
+	}
+}
+
+// HandleInput processes user input (prompts, commands, actions).
+func (s *Session) HandleInput(input string) Event {
+	if strings.TrimSpace(input) == "" {
+		return Event{Type: NoOp}
+	}
+
+	if strings.HasPrefix(input, ":") {
+		actionResult, isAction, actionSuccess := core.ProcessAction(input)
+		if isAction {
+			s.messages = append(s.messages, core.Message{Type: core.ActionMessage, Content: input})
+			if actionSuccess {
+				s.messages = append(s.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
+			} else {
+				s.messages = append(s.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
+			}
+			return Event{Type: MessagesUpdated}
+		}
+
+		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, s.messages, s.config)
+		if isCmd {
+			if cmdSuccess && cmdResult == core.NewSessionResult {
+				s.newSession()
+				return Event{Type: NewSessionStarted}
+			}
+
+			if cmdSuccess && cmdResult == core.RegenerateResult {
+				lastUserMsgIndex := -1
+				for i := len(s.messages) - 1; i >= 0; i-- {
+					if s.messages[i].Type == core.UserMessage {
+						lastUserMsgIndex = i
+						break
+					}
+				}
+
+				if lastUserMsgIndex == -1 {
+					s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
+					return Event{Type: MessagesUpdated}
+				}
+
+				s.messages = s.messages[:lastUserMsgIndex+1]
+				return s.startGeneration()
+			}
+
+			s.generator.Config = s.config.Generation
+			s.messages = append(s.messages, core.Message{Type: core.CommandMessage, Content: input})
+			if cmdSuccess {
+				s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
+			} else {
+				s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
+			}
+			return Event{Type: MessagesUpdated}
+		}
+	}
+
+	// This is a new user prompt.
+	s.messages = append(s.messages, core.Message{Type: core.UserMessage, Content: input})
+	return s.startGeneration()
+}

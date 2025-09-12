@@ -1,9 +1,8 @@
 package ui
 
 import (
+	"coder/internal/session"
 	"coder/internal/core"
-	"log"
-	"context"
 	"fmt"
 	"strings"
 
@@ -15,20 +14,13 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, loadInitialContextCmd())
+	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.session))
 }
 
 func (m Model) newSession() (Model, tea.Cmd) {
-	// Save the current conversation before starting a new one.
-	if err := m.historyManager.SaveConversation(m.messages, m.systemInstructions, m.providedDocuments, m.projectSourceCode); err != nil {
-		// Log the error, but don't block the user from starting a new session.
-		log.Printf("Error saving conversation for /new command: %v", err)
-	}
-
-	// Reset the message history to the initial state.
-	m.messages = []core.Message{
-		{Type: core.InitMessage, Content: welcomeMessage},
-	}
+	// The session handles saving and clearing messages.
+	// The UI just needs to reset its state.
+	m.session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
 
 	// Reset UI and state flags.
 	m.lastInteractionFailed = false
@@ -40,116 +32,56 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	m.viewport.SetContent(m.renderConversation())
 
 	// Recalculate the token count for the base context.
-	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
 	m.isCountingTokens = true
-
-	return m, countTokensCmd(initialPrompt)
-}
-
-func (m Model) startGeneration() (Model, tea.Cmd) {
-	prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
-
-	m.state = stateThinking
-	m.isStreaming = true
-	m.isCountingTokens = true
-	m.streamSub = make(chan string)
-	m.textArea.Blur()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	m.cancelGeneration = cancel
-
-	go m.generator.GenerateTask(ctx, prompt, m.streamSub)
-	m.messages = append(m.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
-	m.lastRenderedAIPart = ""
-	m.lastInteractionFailed = false // Reset this flag for the new generation attempt.
-
-	m.viewport.SetContent(m.renderConversation())
-	m.viewport.GotoBottom()
-
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+	return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.textArea.Value()
-	if strings.TrimSpace(input) == "" {
-		return m, nil
-	}
 
-	if strings.HasPrefix(input, ":") {
-		actionResult, isAction, actionSuccess := core.ProcessAction(input)
-		if isAction {
-			m.messages = append(m.messages, core.Message{Type: core.ActionMessage, Content: input})
-			if actionSuccess {
-				m.messages = append(m.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
-			} else {
-				m.messages = append(m.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
-			}
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
-			m.textArea.Reset()
-			m.textArea.SetHeight(1)
-			return m, nil
-		}
-
-		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, m.messages, m.config)
-		if isCmd {
-			if cmdSuccess && cmdResult == core.NewSessionResult {
-				return m.newSession()
-			}
-
-			if cmdSuccess && cmdResult == core.RegenerateResult {
-				lastUserMsgIndex := -1
-				for i := len(m.messages) - 1; i >= 0; i-- {
-					if m.messages[i].Type == core.UserMessage {
-						lastUserMsgIndex = i
-						break
-					}
-				}
-
-				if lastUserMsgIndex == -1 {
-					m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
-					m.viewport.SetContent(m.renderConversation())
-					m.viewport.GotoBottom()
-					m.textArea.Reset()
-					m.textArea.SetHeight(1)
-					return m, nil
-				}
-
-				m.messages = m.messages[:lastUserMsgIndex+1]
-				m.textArea.Reset()
-				m.textArea.SetHeight(1)
-				return m.startGeneration()
-			}
-
-			m.generator.Config = m.config.Generation
-			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
-			if cmdSuccess {
-				m.messages = append(m.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
-			} else {
-				m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
-			}
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
-			m.textArea.Reset()
-			m.textArea.SetHeight(1)
-			return m, nil
-		}
-	}
-
-	// This is now the "new user prompt" section.
-	if m.lastInteractionFailed {
-		if len(m.messages) >= 2 {
-			// Remove the previous user message and the failed/cancelled AI message
-			m.messages = m.messages[:len(m.messages)-2]
-		}
+	// If the last interaction failed, the user is likely retrying.
+	// Clear the previous failed attempt before submitting the new prompt.
+	if !strings.HasPrefix(input, ":") && m.lastInteractionFailed {
+		m.session.RemoveLastInteraction()
 		m.lastInteractionFailed = false
 	}
 
-	m.messages = append(m.messages, core.Message{Type: core.UserMessage, Content: input})
-	m.textArea.Reset()
-	m.textArea.SetHeight(1)
+	event := m.session.HandleInput(input)
 
-	return m.startGeneration()
+	switch event.Type {
+	case session.NoOp:
+		return m, nil
+
+	case session.MessagesUpdated:
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.GotoBottom()
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		return m, nil
+
+	case session.NewSessionStarted:
+		return m.newSession()
+
+	case session.GenerationStarted:
+		m.state = stateThinking
+		m.isStreaming = true
+		m.streamSub = event.Data.(chan string)
+		m.textArea.Blur()
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+
+		m.lastRenderedAIPart = ""
+		m.lastInteractionFailed = false // Reset this flag for the new generation attempt.
+
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.GotoBottom()
+
+		prompt := m.session.GetPromptForTokenCount()
+		m.isCountingTokens = true
+		return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+	}
+
+	return m, nil
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -178,8 +110,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case stateThinking, stateGenerating, stateCancelling:
 			switch msg.Type {
 			case tea.KeyCtrlC:
-				if m.state != stateCancelling && m.cancelGeneration != nil {
-					m.cancelGeneration()
+				if m.state != stateCancelling {
+					m.session.CancelGeneration()
 					m.state = stateCancelling
 				}
 			}
@@ -268,22 +200,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, spinnerCmd
 
 	case streamResultMsg:
-		lastMsg := &m.messages[len(m.messages)-1]
+		messages := m.session.GetMessages()
+		lastMsg := messages[len(messages)-1]
 		if m.state == stateThinking {
 			m.state = stateGenerating
 			lastMsg.Content += string(msg)
+			m.session.ReplaceLastMessage(lastMsg)
 			return m, tea.Batch(listenForStream(m.streamSub), renderTick())
 		}
 		lastMsg.Content += string(msg)
+		m.session.ReplaceLastMessage(lastMsg)
 		return m, listenForStream(m.streamSub)
 
 	case streamFinishedMsg:
 		m.isStreaming = false
+		messages := m.session.GetMessages()
 
 		if m.state == stateCancelling {
 			// This was a cancellation.
-			m.messages[len(m.messages)-1].Content = "Generation cancelled."
-			m.messages[len(m.messages)-1].Type = core.CommandResultMessage // Re-use style for notification
+			lastMsg := messages[len(messages)-1]
+			lastMsg.Content = "Generation cancelled."
+			lastMsg.Type = core.CommandResultMessage // Re-use style for notification
+			m.session.ReplaceLastMessage(lastMsg)
 			m.lastInteractionFailed = true
 		}
 
@@ -295,7 +233,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.state = stateIdle
 		m.streamSub = nil
-		m.cancelGeneration = nil
+		m.session.CancelGeneration()
 		m.textArea.Reset()
 		m.textArea.Focus()
 
@@ -303,7 +241,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // Don't count tokens on failure/cancellation
 		}
 
-		prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
+		prompt := m.session.GetPromptForTokenCount()
 		m.isCountingTokens = true
 
 		return m, countTokensCmd(prompt)
@@ -313,7 +251,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		lastMsg := m.messages[len(m.messages)-1]
+		messages := m.session.GetMessages()
+		lastMsg := messages[len(messages)-1]
 		if lastMsg.Content != m.lastRenderedAIPart {
 			wasAtBottom := m.viewport.AtBottom()
 			m.viewport.SetContent(m.renderConversation())
@@ -337,27 +276,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case initialContextLoadedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
-			m.messages = append(m.messages, core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
 			return m, nil
 		}
 
-		m.systemInstructions = msg.systemInstructions
-		m.providedDocuments = msg.providedDocuments
-		m.projectSourceCode = msg.projectSourceCode
-
 		// Now that context is loaded, count the tokens.
-		initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
 		m.isCountingTokens = true
-
-		return m, countTokensCmd(initialPrompt)
+		return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
 
 	case errorMsg:
 		m.isStreaming = false
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
-		m.messages[len(m.messages)-1].Content = errorContent
+		messages := m.session.GetMessages()
+		lastMsg := messages[len(messages)-1]
+		lastMsg.Content = errorContent
+		m.session.ReplaceLastMessage(lastMsg)
 		m.lastInteractionFailed = true
 
 		wasAtBottom := m.viewport.AtBottom()
@@ -367,7 +303,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.state = stateIdle
 		m.streamSub = nil
-		m.cancelGeneration = nil
+		m.session.CancelGeneration()
 		m.textArea.Reset()
 		m.textArea.Focus()
 		return m, nil

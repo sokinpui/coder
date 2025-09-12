@@ -3,11 +3,8 @@ package ui
 import (
 	"coder/internal/config"
 	"coder/internal/core"
-	"coder/internal/generation"
-	"coder/internal/history"
-	"context"
+	"coder/internal/session"
 	"sort"
-	"fmt"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -36,11 +33,8 @@ type Model struct {
 	textArea           textarea.Model
 	viewport           viewport.Model
 	spinner            spinner.Model
-	generator          *generation.Generator
-	historyManager     *history.Manager
+	session            *session.Session
 	streamSub          chan string
-	cancelGeneration   context.CancelFunc
-	messages           []core.Message
 	state              state
 	quitting           bool
 	height             int
@@ -49,10 +43,6 @@ type Model struct {
 	isStreaming        bool
 	lastRenderedAIPart string
 	ctrlCPressed       bool
-	config             *config.Config
-	systemInstructions string
-	providedDocuments  string
-	projectSourceCode  string
 	tokenCount         int
 	isCountingTokens   bool
 	showPalette        bool
@@ -65,14 +55,9 @@ type Model struct {
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
-	gen, err := generation.New(cfg)
+	sess, err := session.New(cfg)
 	if err != nil {
 		return Model{}, err
-	}
-
-	hist, err := history.NewManager()
-	if err != nil {
-		return Model{}, fmt.Errorf("failed to initialize history manager: %w", err)
 	}
 
 	s := spinner.New()
@@ -99,9 +84,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, err
 	}
 
-	initialMessages := []core.Message{
-		{Type: core.InitMessage, Content: welcomeMessage},
-	}
+	sess.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
 
 	actions := core.GetActions()
 	sort.Strings(actions)
@@ -109,26 +92,20 @@ func NewModel(cfg *config.Config) (Model, error) {
 	sort.Strings(commands)
 
 	return Model{
-		textArea:           ta,
-		viewport:           vp,
-		spinner:            s,
-		generator:          gen,
-		historyManager:     hist,
-		state:              stateIdle,
-		glamourRenderer:    renderer,
-		isStreaming:        false,
-		messages:           initialMessages,
-		lastRenderedAIPart: "",
-		ctrlCPressed:       false,
-		config:             cfg,
-		systemInstructions: "",
-		providedDocuments:  "",
-		projectSourceCode:  "",
-		tokenCount:         0,
-		isCountingTokens:   false,
-		showPalette:        false,
-		availableActions:   actions,
-		availableCommands:  commands,
+		textArea:                ta,
+		viewport:                vp,
+		spinner:                 s,
+		session:                 sess,
+		state:                   stateIdle,
+		glamourRenderer:         renderer,
+		isStreaming:             false,
+		lastRenderedAIPart:      "",
+		ctrlCPressed:            false,
+		tokenCount:              0,
+		isCountingTokens:        false,
+		showPalette:             false,
+		availableActions:        actions,
+		availableCommands:       commands,
 		paletteFilteredActions:  []string{},
 		paletteFilteredCommands: []string{},
 		paletteCursor:           0,
