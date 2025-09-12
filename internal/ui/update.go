@@ -23,6 +23,14 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.lastInteractionFailed {
+		if len(m.messages) >= 2 {
+			// Remove the previous user message and the failed/cancelled AI message
+			m.messages = m.messages[:len(m.messages)-2]
+		}
+		m.lastInteractionFailed = false
+	}
+
 	if strings.HasPrefix(input, "/") {
 		actionResult, isAction, actionSuccess := core.ProcessAction(input)
 		if isAction {
@@ -201,6 +209,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamFinishedMsg:
 		m.isStreaming = false
+
+		if m.state == stateCancelling {
+			// This was a cancellation.
+			m.messages[len(m.messages)-1].Content = "Generation cancelled."
+			m.messages[len(m.messages)-1].Type = core.CommandResultMessage // Re-use style for notification
+			m.lastInteractionFailed = true
+		}
+
 		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
@@ -212,6 +228,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancelGeneration = nil
 		m.textArea.Reset()
 		m.textArea.Focus()
+
+		if m.lastInteractionFailed {
+			return m, nil // Don't count tokens on failure/cancellation
+		}
+
 		prompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, m.messages)
 		m.isCountingTokens = true
 
@@ -267,6 +288,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		m.messages[len(m.messages)-1].Content = errorContent
+		m.lastInteractionFailed = true
 
 		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())

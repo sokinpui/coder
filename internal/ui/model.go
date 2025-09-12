@@ -61,6 +61,7 @@ type Model struct {
 	paletteFilteredActions  []string
 	paletteFilteredCommands []string
 	paletteCursor           int
+	lastInteractionFailed   bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -131,5 +132,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		paletteFilteredActions:  []string{},
 		paletteFilteredCommands: []string{},
 		paletteCursor:           0,
+		lastInteractionFailed:   false,
 	}, nil
 }
