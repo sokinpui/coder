@@ -9,6 +9,10 @@ import (
 	"github.com/atotto/clipboard"
 )
 
+// NewSessionResult is a special string returned by the /new command
+// to signal the UI to start a new session.
+const NewSessionResult = "---_NEW_SESSION_---"
+
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
@@ -16,6 +20,7 @@ var commands = map[string]commandFunc{
 	"copy":  copyCmd,
 	"model": modelCmd,
 	"itf":   itfCmd,
+	"new":   newCmd,
 }
 
 // GetCommands returns a slice of available command names.
@@ -25,6 +30,10 @@ func GetCommands() []string {
 		commandNames = append(commandNames, name)
 	}
 	return commandNames
+}
+
+func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	return NewSessionResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"coder/internal/core"
+	"log"
 	"context"
 	"fmt"
 	"strings"
@@ -15,6 +16,34 @@ import (
 
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(textarea.Blink, loadInitialContextCmd())
+}
+
+func (m Model) newSession() (Model, tea.Cmd) {
+	// Save the current conversation before starting a new one.
+	if err := m.historyManager.SaveConversation(m.messages, m.systemInstructions, m.providedDocuments, m.projectSourceCode); err != nil {
+		// Log the error, but don't block the user from starting a new session.
+		log.Printf("Error saving conversation for /new command: %v", err)
+	}
+
+	// Reset the message history to the initial state.
+	m.messages = []core.Message{
+		{Type: core.InitMessage, Content: welcomeMessage},
+	}
+
+	// Reset UI and state flags.
+	m.lastInteractionFailed = false
+	m.lastRenderedAIPart = ""
+	m.textArea.Reset()
+	m.textArea.SetHeight(1)
+	m.textArea.Focus()
+	m.viewport.GotoTop()
+	m.viewport.SetContent(m.renderConversation())
+
+	// Recalculate the token count for the base context.
+	initialPrompt := core.BuildPrompt(m.systemInstructions, m.providedDocuments, m.projectSourceCode, nil)
+	m.isCountingTokens = true
+
+	return m, countTokensCmd(initialPrompt)
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
@@ -49,6 +78,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, m.messages, m.config)
 		if isCmd {
+			if cmdSuccess && cmdResult == core.NewSessionResult {
+				return m.newSession()
+			}
+
 			m.generator.Config = m.config.Generation
 			m.messages = append(m.messages, core.Message{Type: core.CommandMessage, Content: input})
 			if cmdSuccess {
