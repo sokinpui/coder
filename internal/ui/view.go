@@ -110,19 +110,19 @@ func (m Model) paletteView() string {
 	return paletteContainerStyle.Render(content)
 }
 
-func (m Model) helpView() string {
+func (m Model) statusView() string {
 	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
-		return helpStyle.Render("Press Ctrl+C again to quit.")
+		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	var help string
+	var status string
 	switch m.state {
 	case stateThinking, stateGenerating:
-		help = "Ctrl+U/D: scroll | Ctrl+C: cancel"
+		status = "Ctrl+U/D: scroll | Ctrl+C: cancel"
 	case stateCancelling:
-		return generatingHelpStyle.Render("Cancelling...")
+		return generatingStatusStyle.Render("Cancelling...")
 	default: // stateIdle
-		help = "Ctrl+J: send | Esc: clear | Ctrl+C: clear/quit"
+		status = ""
 	}
 
 	modelInfo := fmt.Sprintf("Model: %s", m.session.GetConfig().Generation.ModelCode)
@@ -134,7 +134,7 @@ func (m Model) helpView() string {
 		tokenInfo = fmt.Sprintf("Tokens: %d", m.tokenCount)
 	}
 
-	helpPart := helpStyle.Render(help)
+	statusPart := statusStyle.Render(status)
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
@@ -143,12 +143,12 @@ func (m Model) helpView() string {
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", modelPart)
 	}
 
-	spacing := m.width - lipgloss.Width(helpPart) - lipgloss.Width(rightSide)
+	spacing := m.width - lipgloss.Width(statusPart) - lipgloss.Width(rightSide)
 	if spacing < 1 {
-		return helpPart
+		return statusPart
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, helpPart, strings.Repeat(" ", spacing), rightSide)
+	return lipgloss.JoinHorizontal(lipgloss.Top, statusPart, strings.Repeat(" ", spacing), rightSide)
 }
 
 func (m Model) View() string {
@@ -167,7 +167,7 @@ func (m Model) View() string {
 
 	b.WriteString(textAreaStyle.Render(m.textArea.View()))
 	b.WriteString("\n")
-	b.WriteString(m.helpView())
+	b.WriteString(m.statusView())
 
 	return b.String()
 }

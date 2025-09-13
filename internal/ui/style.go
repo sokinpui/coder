@@ -8,8 +8,8 @@ var (
 				Italic(true).
 				Bold(true).
 				Padding(0, 1)
-	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
-	modelInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
+	statusStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
+	modelInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69")) // Blue
 	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78")) // Green
 	thinkingStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
@@ -35,7 +35,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("244")).
 			Padding(0, 1)
-	generatingHelpStyle = lipgloss.NewStyle().
+	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
 	actionInputStyle = lipgloss.NewStyle().

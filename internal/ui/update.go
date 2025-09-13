@@ -388,7 +388,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.paletteCursor = 0
 	}
 
-	helpViewHeight := lipgloss.Height(m.helpView())
+	statusViewHeight := lipgloss.Height(m.statusView())
 
 	paletteHeight := 0
 	if m.showPalette {
@@ -397,7 +397,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		paletteHeight = lipgloss.Height(m.paletteView())
 	}
 
-	viewportHeight := m.height - m.textArea.Height() - helpViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
+	viewportHeight := m.height - m.textArea.Height() - statusViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}

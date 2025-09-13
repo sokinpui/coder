@@ -15,12 +15,13 @@ import (
 
 const welcomeMessage = `Welcome to Coder!
 
-- Chat with the AI
-- Press Enter for a new line in your prompt.
-- Use Ctrl+J to send your message to the AI.
-- Use Ctrl+d and Ctrl+u to scroll down and up.
-- Use :<command> to execute commands. Press Enter to run a command.
-- Place files in the 'Context' directory.`
+- Chat with the AI.
+- Use Ctrl+J to send your message.
+- Press Enter for a new line in your prompt (or to run a command).
+- Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
+- Use Ctrl+D and Ctrl+U to scroll the conversation.
+- Type ':' to see available commands and actions.
+- Place files in the 'Context' directory to provide them to the AI.`
 
 func min(a, b int) int {
 	if a < b {
