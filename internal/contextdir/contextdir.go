@@ -1,6 +1,7 @@
 package contextdir
 
 import (
+	"coder/internal/utils"
 	"fmt"
 	"io/fs"
 	"os"
@@ -10,17 +11,25 @@ import (
 
 const contextDirName = "Context"
 
-// LoadContext finds and reads all files from the context directory.
+// LoadContext finds and reads all files from the context directory at the git repository root.
 // It returns all file contents as provided documents.
 // User-defined system instructions are not supported from the context directory.
 func LoadContext() (systemInstructions string, providedDocuments string, err error) {
-	if _, err := os.Stat(contextDirName); os.IsNotExist(err) {
+	repoRoot, err := utils.FindRepoRoot()
+	if err != nil {
+		// This should be caught by the initial check in main, but handle gracefully.
+		return "", "", nil
+	}
+
+	contextPath := filepath.Join(repoRoot, contextDirName)
+
+	if _, err := os.Stat(contextPath); os.IsNotExist(err) {
 		return "", "", nil
 	}
 
 	var documents []string
 
-	walkErr := filepath.WalkDir(contextDirName, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(contextPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -32,8 +41,15 @@ func LoadContext() (systemInstructions string, providedDocuments string, err err
 
 			content := string(contentBytes)
 
+			// Make the path relative to the repo root for display
+			relativePath, relErr := filepath.Rel(repoRoot, path)
+			if relErr != nil {
+				// Fallback to the full path if relative path fails
+				relativePath = path
+			}
+
 			// Use filepath.ToSlash to ensure consistent path separators
-			displayPath := filepath.ToSlash(path)
+			displayPath := filepath.ToSlash(relativePath)
 
 			if !strings.HasSuffix(content, "\n") {
 				content += "\n"
