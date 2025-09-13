@@ -4,7 +4,10 @@ import (
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/session"
+	"fmt"
+	"os"
 	"sort"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -31,24 +34,24 @@ func min(a, b int) int {
 }
 
 type Model struct {
-	textArea           textarea.Model
-	viewport           viewport.Model
-	spinner            spinner.Model
-	session            *session.Session
-	streamSub          chan string
-	state              state
-	quitting           bool
-	height             int
-	width              int
-	glamourRenderer    *glamour.TermRenderer
-	isStreaming        bool
-	lastRenderedAIPart string
-	ctrlCPressed       bool
-	tokenCount         int
-	isCountingTokens   bool
-	showPalette        bool
-	availableActions   []string
-	availableCommands  []string
+	textArea                textarea.Model
+	viewport                viewport.Model
+	spinner                 spinner.Model
+	session                 *session.Session
+	streamSub               chan string
+	state                   state
+	quitting                bool
+	height                  int
+	width                   int
+	glamourRenderer         *glamour.TermRenderer
+	isStreaming             bool
+	lastRenderedAIPart      string
+	ctrlCPressed            bool
+	tokenCount              int
+	isCountingTokens        bool
+	showPalette             bool
+	availableActions        []string
+	availableCommands       []string
 	paletteFilteredActions  []string
 	paletteFilteredCommands []string
 	paletteCursor           int
@@ -86,6 +89,18 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 
 	sess.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
+
+	wd, err := os.Getwd()
+	if err != nil {
+		wd = "an unknown directory"
+	} else {
+		home, err := os.UserHomeDir()
+		if err == nil && home != "" && strings.HasPrefix(wd, home) {
+			wd = "~" + strings.TrimPrefix(wd, home)
+		}
+	}
+	dirMsg := fmt.Sprintf("Currently in: %s", wd)
+	sess.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
 
 	actions := core.GetActions()
 	sort.Strings(actions)

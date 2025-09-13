@@ -12,6 +12,7 @@ const (
 	CommandResultMessage
 	CommandErrorResultMessage
 	InitMessage
+	DirectoryMessage
 )
 
 type Message struct {

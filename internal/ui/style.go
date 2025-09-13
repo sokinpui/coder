@@ -8,6 +8,11 @@ var (
 				Italic(true).
 				Bold(true).
 				Padding(0, 1)
+	directoryWelcomeStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("39")).
+				Italic(true).
+				Bold(true).
+				Padding(0, 1)
 	statusStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
 	modelInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69")) // Blue
 	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78")) // Green

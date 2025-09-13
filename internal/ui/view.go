@@ -16,6 +16,10 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
 			block := initMessageStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
+		case core.DirectoryMessage:
+			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalPadding()
+			block := directoryWelcomeStyle.Width(blockWidth).Render(msg.Content)
+			parts = append(parts, block)
 		case core.UserMessage:
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
 			block := userInputStyle.Width(blockWidth).Render(msg.Content)
