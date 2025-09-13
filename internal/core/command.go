@@ -45,8 +45,23 @@ func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) 
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	var lastAIResponse string
+	found := false
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Type == AIMessage {
+			lastAIResponse = messages[i].Content
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return "No AI response found to pipe to itf.", false
+	}
+
 	argSlice := strings.Fields(args)
 	cmd := exec.Command("itf", argSlice...)
+	cmd.Stdin = strings.NewReader(lastAIResponse)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "Error executing itf: " + err.Error() + "\n" + string(output), false
