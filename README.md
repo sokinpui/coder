@@ -1,6 +1,8 @@
 # Coder
 
-Coder is an interactive terminal-based AI assistant designed to help developers with code generation and understanding within their Git repositories. It leverages a gRPC-based AI generation service to provide intelligent responses and allows users to interact with their project's codebase through a command-line interface.
+Coder is a TUI AI coding assistant which try to address copy-and-paste overwhelming.
+
+Ask Generation and apply code change directly within `coder`
 
 ## Documentation
 
