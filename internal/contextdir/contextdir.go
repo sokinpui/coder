@@ -12,9 +12,9 @@ import (
 const contextDirName = "Context"
 
 // LoadContext finds and reads all files from the context directory at the git repository root.
-// It returns all file contents as provided documents.
+// It returns all file contents as related documents.
 // User-defined system instructions are not supported from the context directory.
-func LoadContext() (systemInstructions string, providedDocuments string, err error) {
+func LoadContext() (systemInstructions string, relatedDocuments string, err error) {
 	repoRoot, err := utils.FindRepoRoot()
 	if err != nil {
 		// This should be caught by the initial check in main, but handle gracefully.

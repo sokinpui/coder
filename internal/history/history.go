@@ -37,9 +37,9 @@ func NewManager() (*Manager, error) {
 
 // SaveConversation saves the conversation to a markdown file.
 // It use BuildPrompt to construct the conversation history.
-func (m *Manager) SaveConversation(messages []core.Message, systemInstructions, providedDocuments, projectSourceCode string) error {
+func (m *Manager) SaveConversation(messages []core.Message, systemInstructions, relatedDocuments, projectSourceCode string) error {
 
-	content := core.BuildPrompt(systemInstructions, providedDocuments, projectSourceCode, messages)
+	content := core.BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode, messages)
 
 	// The prompt builder adds a trailing "AI Assistant:\n" which we don't want in the saved file.
 	content = strings.TrimSuffix(content, "AI Assistant:\n")

@@ -40,7 +40,7 @@ type Session struct {
 	historyManager     *history.Manager
 	messages           []core.Message
 	systemInstructions string
-	providedDocuments  string
+	relatedDocuments   string
 	projectSourceCode  string
 	cancelGeneration   context.CancelFunc
 }
@@ -78,7 +78,7 @@ func (s *Session) LoadContext() error {
 	}
 
 	s.systemInstructions = sysInstructions
-	s.providedDocuments = docs
+	s.relatedDocuments = docs
 	s.projectSourceCode = projSource
 	return nil
 }
@@ -115,17 +115,17 @@ func (s *Session) GetConfig() *config.Config {
 
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	return core.BuildPrompt(s.systemInstructions, s.providedDocuments, s.projectSourceCode, s.messages)
+	return core.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	return core.BuildPrompt(s.systemInstructions, s.providedDocuments, s.projectSourceCode, nil)
+	return core.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
 }
 
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
-	return s.historyManager.SaveConversation(s.messages, s.systemInstructions, s.providedDocuments, s.projectSourceCode)
+	return s.historyManager.SaveConversation(s.messages, s.systemInstructions, s.relatedDocuments, s.projectSourceCode)
 }
 
 // CancelGeneration cancels any ongoing AI generation.
