@@ -142,7 +142,26 @@ func (s *Session) newSession() {
 	s.messages = []core.Message{} // Clear messages
 }
 
+// reloadProjectSource reloads the project source code from disk.
+func (s *Session) reloadProjectSource() error {
+	projSource, err := source.LoadProjectSource()
+	if err != nil {
+		return fmt.Errorf("failed to reload project source: %w", err)
+	}
+	s.projectSourceCode = projSource
+	return nil
+}
+
 func (s *Session) startGeneration() Event {
+	if err := s.reloadProjectSource(); err != nil {
+		log.Printf("Error reloading project source for generation: %v", err)
+		s.messages = append(s.messages, core.Message{
+			Type:    core.CommandErrorResultMessage,
+			Content: fmt.Sprintf("Failed to reload project source before generation:\n%v", err),
+		})
+		return Event{Type: MessagesUpdated}
+	}
+
 	prompt := s.GetPromptForTokenCount()
 
 	streamChan := make(chan string)
