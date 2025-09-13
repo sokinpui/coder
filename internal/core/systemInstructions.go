@@ -2,5 +2,8 @@ package core
 
 import _ "embed"
 
-//go:embed SystemInstructions.md
-var CoderSystemInstructions string
+//go:embed Role.md
+var CoderRole string
+
+//go:embed Instructions.md
+var CoderInstructions string

@@ -6,37 +6,43 @@ import (
 
 const (
 	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
-	providedDocumentsHeader   = "# RELATED DOCUMENTS\n\n"
+	relatedDocumentsHeader    = "# RELATED DOCUMENTS\n\n"
 	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	separator                 = "\n\n---\n\n"
 )
 
 // BuildPrompt constructs the full prompt with conversation history.
-func BuildPrompt(systemInstructions, providedDocuments, projectSourceCode string, messages []Message) string {
+func BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []Message) string {
 	var sb strings.Builder
 
-	// Predefined system instructions (without header)
-	if CoderSystemInstructions != "" {
-		sb.WriteString(CoderSystemInstructions)
+	hasPredefinedContent := false
+	if CoderRole != "" {
+		sb.WriteString(CoderRole)
+		hasPredefinedContent = true
+	}
+
+	if CoderInstructions != "" {
+		sb.WriteString(CoderInstructions)
+		hasPredefinedContent = true
 	}
 
 	// User-defined system instructions (with header)
 	if systemInstructions != "" {
-		if CoderSystemInstructions != "" {
+		if hasPredefinedContent {
 			sb.WriteString(separator)
 		}
 		sb.WriteString(systemInstructionsHeader)
 		sb.WriteString(systemInstructions)
 		sb.WriteString(separator)
-	} else if CoderSystemInstructions != "" {
+	} else if hasPredefinedContent {
 		// If there are only predefined instructions, we still need a separator
 		sb.WriteString(separator)
 	}
 
-	if providedDocuments != "" {
-		sb.WriteString(providedDocumentsHeader)
-		sb.WriteString(providedDocuments)
+	if relatedDocuments != "" {
+		sb.WriteString(relatedDocumentsHeader)
+		sb.WriteString(relatedDocuments)
 		sb.WriteString(separator)
 	}
 
