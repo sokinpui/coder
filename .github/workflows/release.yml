@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.1'
+
+      - name: Set up Protoc
+        uses: arduino/setup-protoc@v3
+
+      - name: Generate gRPC code
+        run: ./gen.sh
+
+      - name: Build binaries
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o coder-linux-amd64 cmd/coder/main.go
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o coder-darwin-amd64 cmd/coder/main.go
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o coder-windows-amd64.exe cmd/coder/main.go
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            coder-linux-amd64
+            coder-darwin-amd64
+            coder-windows-amd64.exe
