@@ -123,7 +123,7 @@ Provides a simple file-based logger.
 
 Loads the project's source code by interacting with Git.
 
-- **`LoadProjectSource()`**: Executes `git ls-tree --full-tree -r --name-only HEAD | pcat` to get a formatted view of the current project's tracked files.
+- **`LoadProjectSource()`**: Executes `git ls-files | pcat` to get a formatted view of all tracked files in the working directory.
 
 ### `internal/token`
 

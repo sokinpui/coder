@@ -5,7 +5,7 @@ Coder is an interactive terminal-based AI assistant designed to help developers 
 ## Features
 
 - **AI-Powered Code Generation:** Chat with an AI model to generate code, understand existing code, or get help with development tasks.
-- **Contextual Understanding:** Automatically loads system instructions, user-provided documents from a `Context` directory, and project source code (via `git ls-tree` and `pcat`) to provide relevant AI responses.
+- **Contextual Understanding:** Automatically loads system instructions, user-provided documents from a `Context` directory, and project source code (via `git ls-files` and `pcat`) to provide relevant AI responses.
 - **Interactive Terminal UI:** Built with [Charmbracelet Bubble Tea](https://github.com/charmbracelet/bubbletea) for a rich and responsive user experience.
 - **Markdown Rendering:** AI responses are rendered in markdown for readability.
 - **Action Execution:** Execute predefined actions like `pcat` (project-aware cat and `itf` (interactive test framework - placeholder/example) directly from the chat.
