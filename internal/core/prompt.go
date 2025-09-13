@@ -13,12 +13,12 @@ const (
 )
 
 // BuildPrompt constructs the full prompt with conversation history.
-func BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []Message) string {
+func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode string, messages []Message) string {
 	var sb strings.Builder
 
 	hasPredefinedContent := false
-	if CoderRole != "" {
-		sb.WriteString(CoderRole)
+	if role != "" {
+		sb.WriteString(role)
 		hasPredefinedContent = true
 	}
 

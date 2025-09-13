@@ -129,6 +129,7 @@ func (m Model) statusView() string {
 		status = ""
 	}
 
+	modeInfo := fmt.Sprintf("Mode: %s", m.session.GetConfig().AppMode)
 	modelInfo := fmt.Sprintf("Model: %s", m.session.GetConfig().Generation.ModelCode)
 
 	var tokenInfo string
@@ -139,12 +140,13 @@ func (m Model) statusView() string {
 	}
 
 	statusPart := statusStyle.Render(status)
+	modePart := modelInfoStyle.Render(modeInfo)
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
-	rightSide := modelPart
+	rightSide := lipgloss.JoinHorizontal(lipgloss.Top, modePart, " | ", modelPart)
 	if tokenPart != "" {
-		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", modelPart)
+		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", rightSide)
 	}
 
 	spacing := m.width - lipgloss.Width(statusPart) - lipgloss.Width(rightSide)

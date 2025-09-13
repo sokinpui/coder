@@ -24,6 +24,7 @@ var commands = map[string]commandFunc{
 	"model": modelCmd,
 	"itf":   itfCmd,
 	"new":   newCmd,
+	"mode":  modeCmd,
 	"gen":   genCmd,
 }
 
@@ -89,6 +90,29 @@ func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool
 	}
 
 	return fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args), false
+}
+
+func modeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	if args == "" {
+		var b strings.Builder
+		fmt.Fprintf(&b, "Current mode: %s\n", cfg.AppMode)
+		fmt.Fprintln(&b, "Available modes:")
+		for _, m := range config.AvailableAppModes {
+			fmt.Fprintf(&b, "- %s\n", m)
+		}
+		fmt.Fprint(&b, "Usage: :mode <mode_name>")
+		return b.String(), true
+	}
+
+	requestedMode := config.AppMode(args)
+	for _, m := range config.AvailableAppModes {
+		if m == requestedMode {
+			cfg.AppMode = requestedMode
+			return fmt.Sprintf("Switched mode to: %s", args), true
+		}
+	}
+
+	return fmt.Sprintf("Error: mode '%s' not found. Use ':mode' to see available modes.", args), false
 }
 
 func echoCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

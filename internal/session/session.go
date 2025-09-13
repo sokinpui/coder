@@ -72,7 +72,7 @@ func (s *Session) LoadContext() error {
 		return fmt.Errorf("failed to load context directory: %w", ctxErr)
 	}
 
-	projSource, srcErr := source.LoadProjectSource()
+	projSource, srcErr := source.LoadProjectSource(s.config.AppMode)
 	if srcErr != nil {
 		return fmt.Errorf("failed to load project source: %w", srcErr)
 	}
@@ -113,19 +113,33 @@ func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
+func (s *Session) getCurrentRole() string {
+	switch s.config.AppMode {
+	case config.DocumentingMode:
+		return core.DocumentingRole
+	case config.CodingMode:
+		fallthrough
+	default:
+		return core.CodingRole
+	}
+}
+
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	return core.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
+	role := s.getCurrentRole()
+	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	return core.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
+	role := s.getCurrentRole()
+	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
 }
 
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
-	return s.historyManager.SaveConversation(s.messages, s.systemInstructions, s.relatedDocuments, s.projectSourceCode)
+	role := s.getCurrentRole()
+	return s.historyManager.SaveConversation(s.messages, role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode)
 }
 
 // CancelGeneration cancels any ongoing AI generation.
@@ -144,7 +158,7 @@ func (s *Session) newSession() {
 
 // reloadProjectSource reloads the project source code from disk.
 func (s *Session) reloadProjectSource() error {
-	projSource, err := source.LoadProjectSource()
+	projSource, err := source.LoadProjectSource(s.config.AppMode)
 	if err != nil {
 		return fmt.Errorf("failed to reload project source: %w", err)
 	}

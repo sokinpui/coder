@@ -9,6 +9,15 @@ var AvailableModels = []string{
 	"gemma-3-27b-it",
 }
 
+type AppMode string
+
+const (
+	CodingMode      AppMode = "Coding"
+	DocumentingMode AppMode = "Documenting"
+)
+
+var AvailableAppModes = []AppMode{CodingMode, DocumentingMode}
+
 // GRPC contains gRPC server configuration.
 type GRPC struct {
 	Addr string
@@ -25,6 +34,7 @@ type Generation struct {
 
 // Config holds the application configuration.
 type Config struct {
+	AppMode    AppMode
 	GRPC       GRPC
 	Generation Generation
 }
@@ -37,6 +47,7 @@ func Default() *Config {
 	outputLength := int32(65536)
 
 	return &Config{
+		AppMode: CodingMode,
 		GRPC: GRPC{
 			Addr: "localhost:50051",
 		},

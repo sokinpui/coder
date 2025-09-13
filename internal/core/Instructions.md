@@ -45,3 +45,8 @@ list the name of the files that are deleted.
 1. unless specify, you do not need to modify any files.
 2. Your Sugeestion or explanation should be concise and to the point.
 3. Go beyond generic answers if user asking something specific.
+
+## Order of output
+
+1. abstract of your suggestion or explanation
+2. details of your suggestion or explanation
