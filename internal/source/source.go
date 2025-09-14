@@ -12,10 +12,10 @@ func LoadProjectSource(mode config.AppMode) (string, error) {
 	var command string
 	if mode == config.DocumentingMode {
 		// Include markdown files for documenting mode
-		command = "git ls-files | pcat --no-header"
+		command = "fd | pcat --no-header"
 	} else {
 		// Exclude markdown files for other modes (e.g., Coding)
-		command = "git ls-files | rg -v '.+.md$' | pcat --no-header"
+		command = "fd -E '*.md' | pcat --no-header"
 	}
 
 	cmd := exec.Command("sh", "-c", command)
