@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"coder/internal/session"
 	"coder/internal/core"
+	"coder/internal/session"
 	"fmt"
 	"strings"
 
