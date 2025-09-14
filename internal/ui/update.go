@@ -178,6 +178,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				// Otherwise, fall through to let the textarea handle the newline.
 
+			case tea.KeyCtrlE:
+				if m.textArea.Focused() {
+					return m, editInEditorCmd(m.textArea.Value())
+				}
+
 			case tea.KeyCtrlJ:
 				return m.handleSubmit()
 			}
@@ -245,6 +250,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isCountingTokens = true
 
 		return m, countTokensCmd(prompt)
+
+	case editorFinishedMsg:
+		if msg.err != nil {
+			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
+			m.session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
+			return m, nil
+		}
+		m.textArea.SetValue(msg.content)
+		m.textArea.CursorEnd()
+		m.textArea.Focus()
+		return m, nil
 
 	case renderTickMsg:
 		if m.state != stateGenerating || !m.isStreaming {

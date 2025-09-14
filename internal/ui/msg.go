@@ -17,4 +17,8 @@ type (
 	ctrlCTimeoutMsg   struct{}
 	tokenCountResultMsg int
 	initialContextLoadedMsg struct{ err error }
+	editorFinishedMsg struct {
+		content string
+		err     error
+	}
 )

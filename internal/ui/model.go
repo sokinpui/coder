@@ -20,6 +20,7 @@ const welcomeMessage = `Welcome to Coder!
 
 - Chat with the AI.
 - Use Ctrl+J to send your message.
+- Use Ctrl+E to edit your prompt in an external editor ($EDITOR).
 - Press Enter for a new line in your prompt (or to run a command).
 - Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - Use Ctrl+D and Ctrl+U to scroll the conversation.
