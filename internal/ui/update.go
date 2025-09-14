@@ -90,6 +90,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	// Reset cycling flag on any key press that is not Tab.
+	if key, ok := msg.(tea.KeyMsg); ok && key.Type != tea.KeyTab && key.Type != tea.KeyShiftTab {
+		m.isCyclingCompletions = false
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type != tea.KeyCtrlC {
@@ -141,45 +146,62 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 
 			case tea.KeyTab, tea.KeyShiftTab:
-				totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
-				if m.showPalette && totalItems > 0 {
-					if msg.Type == tea.KeyTab {
-						m.paletteCursor = (m.paletteCursor + 1) % totalItems
-					} else { // Shift+Tab
-						m.paletteCursor--
-						if m.paletteCursor < 0 {
-							m.paletteCursor = totalItems - 1
-						}
-					}
-				}
-				return m, nil
-
-			case tea.KeyEnter:
-				// If palette is shown, Enter selects the item.
-				if !m.showPalette {
-					// Smart enter: submit if it's a command.
-					if strings.HasPrefix(m.textArea.Value(), ":") {
-						return m.handleSubmit()
-					}
-					// Otherwise, fall through to let the textarea handle the newline.
-					break
-				}
+				m.isCyclingCompletions = true
 
 				numActions := len(m.paletteFilteredActions)
-				totalItems := numActions + len(m.paletteFilteredCommands)
-				if totalItems == 0 {
-					break
+				numCommands := len(m.paletteFilteredCommands)
+				numArgs := len(m.paletteFilteredArguments)
+				totalItems := numActions + numCommands + numArgs
+
+				if !m.showPalette || totalItems == 0 {
+					return m, nil
+				}
+
+				if msg.Type == tea.KeyTab {
+					m.paletteCursor = (m.paletteCursor + 1) % totalItems
+				} else { // Shift+Tab
+					m.paletteCursor--
+					if m.paletteCursor < 0 {
+						m.paletteCursor = totalItems - 1
+					}
 				}
 
 				var selectedItem string
+				isArgument := false
 				if m.paletteCursor < numActions {
 					selectedItem = m.paletteFilteredActions[m.paletteCursor]
-				} else {
+				} else if m.paletteCursor < numActions+numCommands {
 					selectedItem = m.paletteFilteredCommands[m.paletteCursor-numActions]
+				} else {
+					selectedItem = m.paletteFilteredArguments[m.paletteCursor-numActions-numCommands]
+					isArgument = true
 				}
-				m.textArea.SetValue(selectedItem + " ")
+
+				val := m.textArea.Value()
+				parts := strings.Fields(val)
+
+				if isArgument {
+					var prefixParts []string
+					if len(parts) > 0 && !strings.HasSuffix(val, " ") {
+						prefixParts = parts[:len(parts)-1]
+					} else {
+						prefixParts = parts
+					}
+					m.textArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				} else { // command/action
+					m.textArea.SetValue(selectedItem)
+				}
 				m.textArea.CursorEnd()
 				return m, nil
+
+			case tea.KeyEnter:
+				// Smart enter: submit if it's a command.
+				if strings.HasPrefix(m.textArea.Value(), ":") {
+					return m.handleSubmit()
+				}
+				// Otherwise, fall through to let the textarea handle the newline.
+				break
+
 			case tea.KeyCtrlE:
 				if m.textArea.Focused() {
 					return m, editInEditorCmd(m.textArea.Value())
@@ -371,31 +393,53 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.textArea.SetHeight(inputHeight)
 
 	// After textarea update, check for palette
-	val := m.textArea.Value()
-	isPaletteTrigger := strings.HasPrefix(val, ":") && !strings.Contains(val, " ")
+	if !m.isCyclingCompletions {
+		val := m.textArea.Value()
+		m.paletteFilteredActions = []string{}
+		m.paletteFilteredCommands = []string{}
+		m.paletteFilteredArguments = []string{}
 
-	if m.state != stateIdle || !isPaletteTrigger {
-		m.showPalette = false
-		m.paletteCursor = 0
-	} else {
-		prefix := strings.TrimPrefix(val, ":")
-		newPaletteActions := []string{}
-		for _, a := range m.availableActions {
-			if strings.HasPrefix(a, prefix) {
-				newPaletteActions = append(newPaletteActions, ":"+a)
+		if m.state == stateIdle && strings.HasPrefix(val, ":") {
+			parts := strings.Fields(val)
+			hasTrailingSpace := strings.HasSuffix(val, " ")
+
+			if len(parts) == 0 { // Just ":"
+				parts = []string{":"}
+			}
+
+			if len(parts) == 1 && !hasTrailingSpace {
+				// Command/Action completion mode
+				prefix := strings.TrimPrefix(parts[0], ":")
+				for _, a := range m.availableActions {
+					if strings.HasPrefix(a, prefix) {
+						m.paletteFilteredActions = append(m.paletteFilteredActions, ":"+a)
+					}
+				}
+				for _, c := range m.availableCommands {
+					if strings.HasPrefix(c, prefix) {
+						m.paletteFilteredCommands = append(m.paletteFilteredCommands, ":"+c)
+					}
+				}
+			} else if len(parts) >= 1 {
+				// Argument completion mode
+				cmdName := strings.TrimPrefix(parts[0], ":")
+				suggestions := core.GetCommandArgumentSuggestions(cmdName, m.session.GetConfig())
+				if suggestions != nil {
+					var argPrefix string
+					if len(parts) > 1 && !hasTrailingSpace {
+						argPrefix = parts[len(parts)-1]
+					}
+
+					for _, s := range suggestions {
+						if strings.HasPrefix(s, argPrefix) {
+							m.paletteFilteredArguments = append(m.paletteFilteredArguments, s)
+						}
+					}
+				}
 			}
 		}
-		m.paletteFilteredActions = newPaletteActions
 
-		newPaletteCommands := []string{}
-		for _, c := range m.availableCommands {
-			if strings.HasPrefix(c, prefix) {
-				newPaletteCommands = append(newPaletteCommands, ":"+c)
-			}
-		}
-		m.paletteFilteredCommands = newPaletteCommands
-
-		totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
+		totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
 		m.showPalette = totalItems > 0
 
 		if m.paletteCursor >= totalItems {

@@ -28,6 +28,33 @@ var commands = map[string]commandFunc{
 	"gen":   genCmd,
 }
 
+type argumentCompleter func(cfg *config.Config) []string
+
+var commandArgumentCompleters = map[string]argumentCompleter{
+	"model": modelArgumentCompleter,
+	"mode":  modeArgumentCompleter,
+}
+
+func modelArgumentCompleter(cfg *config.Config) []string {
+	return config.AvailableModels
+}
+
+func modeArgumentCompleter(cfg *config.Config) []string {
+	modes := make([]string, len(config.AvailableAppModes))
+	for i, m := range config.AvailableAppModes {
+		modes[i] = string(m)
+	}
+	return modes
+}
+
+// GetCommandArgumentSuggestions returns suggestions for a command's arguments.
+func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config) []string {
+	if completer, ok := commandArgumentCompleters[cmdName]; ok {
+		return completer(cfg)
+	}
+	return nil
+}
+
 // GetCommands returns a slice of available command names.
 func GetCommands() []string {
 	commandNames := make([]string, 0, len(commands))

@@ -57,6 +57,8 @@ type Model struct {
 	paletteFilteredCommands []string
 	paletteCursor           int
 	lastInteractionFailed   bool
+	paletteFilteredArguments []string
+	isCyclingCompletions    bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -127,5 +129,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		paletteFilteredCommands: []string{},
 		paletteCursor:           0,
 		lastInteractionFailed:   false,
+		paletteFilteredArguments: []string{},
+		isCyclingCompletions:    false,
 	}, nil
 }
