@@ -156,28 +156,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case tea.KeyEnter:
 				// If palette is shown, Enter selects the item.
-				if m.showPalette {
-					numActions := len(m.paletteFilteredActions)
-					totalItems := numActions + len(m.paletteFilteredCommands)
-					if totalItems > 0 {
-						var selectedItem string
-						if m.paletteCursor < numActions {
-							selectedItem = m.paletteFilteredActions[m.paletteCursor]
-						} else {
-							selectedItem = m.paletteFilteredCommands[m.paletteCursor-numActions]
-						}
-						m.textArea.SetValue(selectedItem + " ")
-						m.textArea.CursorEnd()
-						return m, nil
+				if !m.showPalette {
+					// Smart enter: submit if it's a command.
+					if strings.HasPrefix(m.textArea.Value(), ":") {
+						return m.handleSubmit()
 					}
+					// Otherwise, fall through to let the textarea handle the newline.
+					break
 				}
 
-				// Smart enter: submit if it's a command.
-				if strings.HasPrefix(m.textArea.Value(), ":") {
-					return m.handleSubmit()
+				numActions := len(m.paletteFilteredActions)
+				totalItems := numActions + len(m.paletteFilteredCommands)
+				if totalItems == 0 {
+					break
 				}
-				// Otherwise, fall through to let the textarea handle the newline.
 
+				var selectedItem string
+				if m.paletteCursor < numActions {
+					selectedItem = m.paletteFilteredActions[m.paletteCursor]
+				} else {
+					selectedItem = m.paletteFilteredCommands[m.paletteCursor-numActions]
+				}
+				m.textArea.SetValue(selectedItem + " ")
+				m.textArea.CursorEnd()
+				return m, nil
 			case tea.KeyCtrlE:
 				if m.textArea.Focused() {
 					return m, editInEditorCmd(m.textArea.Value())
@@ -369,41 +371,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.textArea.SetHeight(inputHeight)
 
 	// After textarea update, check for palette
-	if m.state == stateIdle {
-		val := m.textArea.Value()
-		isPaletteTrigger := strings.HasPrefix(val, ":") && !strings.Contains(val, " ")
+	val := m.textArea.Value()
+	isPaletteTrigger := strings.HasPrefix(val, ":") && !strings.Contains(val, " ")
 
-		if isPaletteTrigger {
-			prefix := strings.TrimPrefix(val, ":")
-			newPaletteActions := []string{}
-			for _, a := range m.availableActions {
-				if strings.HasPrefix(a, prefix) {
-					newPaletteActions = append(newPaletteActions, ":"+a)
-				}
-			}
-			m.paletteFilteredActions = newPaletteActions
-
-			newPaletteCommands := []string{}
-			for _, c := range m.availableCommands {
-				if strings.HasPrefix(c, prefix) {
-					newPaletteCommands = append(newPaletteCommands, ":"+c)
-				}
-			}
-			m.paletteFilteredCommands = newPaletteCommands
-
-			totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
-			m.showPalette = totalItems > 0
-
-			if m.paletteCursor >= totalItems {
-				m.paletteCursor = 0
-			}
-		} else {
-			m.showPalette = false
-			m.paletteCursor = 0
-		}
-	} else {
+	if m.state != stateIdle || !isPaletteTrigger {
 		m.showPalette = false
 		m.paletteCursor = 0
+	} else {
+		prefix := strings.TrimPrefix(val, ":")
+		newPaletteActions := []string{}
+		for _, a := range m.availableActions {
+			if strings.HasPrefix(a, prefix) {
+				newPaletteActions = append(newPaletteActions, ":"+a)
+			}
+		}
+		m.paletteFilteredActions = newPaletteActions
+
+		newPaletteCommands := []string{}
+		for _, c := range m.availableCommands {
+			if strings.HasPrefix(c, prefix) {
+				newPaletteCommands = append(newPaletteCommands, ":"+c)
+			}
+		}
+		m.paletteFilteredCommands = newPaletteCommands
+
+		totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands)
+		m.showPalette = totalItems > 0
+
+		if m.paletteCursor >= totalItems {
+			m.paletteCursor = 0
+		}
 	}
 
 	statusViewHeight := lipgloss.Height(m.statusView())

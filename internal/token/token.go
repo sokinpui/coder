@@ -2,7 +2,6 @@ package token
 
 import (
 	"log"
-	"strings"
 
 	"github.com/tiktoken-go/tokenizer"
 )
@@ -20,7 +19,6 @@ func init() {
 
 // CountTokens provides a more accurate token count using the tiktoken library.
 func CountTokens(text string) int {
-	return len(strings.Fields(text))
 	ids, _, err := codec.Encode(text)
 	if err != nil {
 		// Fallback to a rough character-based estimate on encoding failure.

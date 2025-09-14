@@ -64,27 +64,30 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 			case ActionMessage:
-				// Look ahead for the action result
-				if i+1 < len(messages) {
-					nextMsg := messages[i+1]
-					if nextMsg.Type == ActionResultMessage {
-						// only save action that was executed successfully
-						sb.WriteString("Action Execute:\n")
-						sb.WriteString(msg.Content)
-						sb.WriteString("\n")
+				if i+1 >= len(messages) {
+					continue
+				}
+				nextMsg := messages[i+1]
+				if nextMsg.Type != ActionResultMessage {
+					continue
+				}
 
-						sb.WriteString("Action Execute Result:\n")
-						sb.WriteString(nextMsg.Content)
-						sb.WriteString("\n")
-						i++ // Skip the result message in the next iteration
-					}
-				}
+				// only save action that was executed successfully
+				sb.WriteString("Action Execute:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
+
+				sb.WriteString("Action Execute Result:\n")
+				sb.WriteString(nextMsg.Content)
+				sb.WriteString("\n")
+				i++ // Skip the result message in the next iteration
 			case AIMessage:
-				if msg.Content != "" {
-					sb.WriteString("AI Assistant:\n")
-					sb.WriteString(msg.Content)
-					sb.WriteString("\n")
+				if msg.Content == "" {
+					continue
 				}
+				sb.WriteString("AI Assistant:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
 			}
 		}
 		sb.WriteString("AI Assistant:\n")

@@ -198,55 +198,55 @@ func (s *Session) HandleInput(input string) Event {
 		return Event{Type: NoOp}
 	}
 
-	if strings.HasPrefix(input, ":") {
-		actionResult, isAction, actionSuccess := core.ProcessAction(input)
-		if isAction {
-			s.messages = append(s.messages, core.Message{Type: core.ActionMessage, Content: input})
-			if actionSuccess {
-				s.messages = append(s.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
-			} else {
-				s.messages = append(s.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
-			}
-			return Event{Type: MessagesUpdated}
-		}
-
-		cmdResult, isCmd, cmdSuccess := core.ProcessCommand(input, s.messages, s.config)
-		if isCmd {
-			if cmdSuccess && cmdResult == core.NewSessionResult {
-				s.newSession()
-				return Event{Type: NewSessionStarted}
-			}
-
-			if cmdSuccess && cmdResult == core.RegenerateResult {
-				lastUserMsgIndex := -1
-				for i := len(s.messages) - 1; i >= 0; i-- {
-					if s.messages[i].Type == core.UserMessage {
-						lastUserMsgIndex = i
-						break
-					}
-				}
-
-				if lastUserMsgIndex == -1 {
-					s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
-					return Event{Type: MessagesUpdated}
-				}
-
-				s.messages = s.messages[:lastUserMsgIndex+1]
-				return s.startGeneration()
-			}
-
-			s.generator.Config = s.config.Generation
-			s.messages = append(s.messages, core.Message{Type: core.CommandMessage, Content: input})
-			if cmdSuccess {
-				s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
-			} else {
-				s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
-			}
-			return Event{Type: MessagesUpdated}
-		}
+	if !strings.HasPrefix(input, ":") {
+		// This is a new user prompt.
+		s.messages = append(s.messages, core.Message{Type: core.UserMessage, Content: input})
+		return s.startGeneration()
 	}
 
-	// This is a new user prompt.
-	s.messages = append(s.messages, core.Message{Type: core.UserMessage, Content: input})
-	return s.startGeneration()
+	actionResult, isAction, actionSuccess := core.ProcessAction(input)
+	if isAction {
+		s.messages = append(s.messages, core.Message{Type: core.ActionMessage, Content: input})
+		if actionSuccess {
+			s.messages = append(s.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
+		} else {
+			s.messages = append(s.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
+		}
+		return Event{Type: MessagesUpdated}
+	}
+
+	cmdResult, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config)
+	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
+
+	if cmdSuccess && cmdResult == core.NewSessionResult {
+		s.newSession()
+		return Event{Type: NewSessionStarted}
+	}
+
+	if cmdSuccess && cmdResult == core.RegenerateResult {
+		lastUserMsgIndex := -1
+		for i := len(s.messages) - 1; i >= 0; i-- {
+			if s.messages[i].Type == core.UserMessage {
+				lastUserMsgIndex = i
+				break
+			}
+		}
+
+		if lastUserMsgIndex == -1 {
+			s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
+			return Event{Type: MessagesUpdated}
+		}
+
+		s.messages = s.messages[:lastUserMsgIndex+1]
+		return s.startGeneration()
+	}
+
+	s.generator.Config = s.config.Generation
+	s.messages = append(s.messages, core.Message{Type: core.CommandMessage, Content: input})
+	if cmdSuccess {
+		s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
+	} else {
+		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
+	}
+	return Event{Type: MessagesUpdated}
 }

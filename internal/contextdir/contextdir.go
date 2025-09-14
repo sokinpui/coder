@@ -33,31 +33,32 @@ func LoadContext() (systemInstructions string, relatedDocuments string, err erro
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
-			contentBytes, readErr := os.ReadFile(path)
-			if readErr != nil {
-				return fmt.Errorf("failed to read file %s: %w", path, readErr)
-			}
-
-			content := string(contentBytes)
-
-			// Make the path relative to the repo root for display
-			relativePath, relErr := filepath.Rel(repoRoot, path)
-			if relErr != nil {
-				// Fallback to the full path if relative path fails
-				relativePath = path
-			}
-
-			// Use filepath.ToSlash to ensure consistent path separators
-			displayPath := filepath.ToSlash(relativePath)
-
-			if !strings.HasSuffix(content, "\n") {
-				content += "\n"
-			}
-
-			docString := fmt.Sprintf("`%s`\n```\n%s```", displayPath, content)
-			documents = append(documents, docString)
+		if d.IsDir() {
+			return nil
 		}
+		contentBytes, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return fmt.Errorf("failed to read file %s: %w", path, readErr)
+		}
+
+		content := string(contentBytes)
+
+		// Make the path relative to the repo root for display
+		relativePath, relErr := filepath.Rel(repoRoot, path)
+		if relErr != nil {
+			// Fallback to the full path if relative path fails
+			relativePath = path
+		}
+
+		// Use filepath.ToSlash to ensure consistent path separators
+		displayPath := filepath.ToSlash(relativePath)
+
+		if !strings.HasSuffix(content, "\n") {
+			content += "\n"
+		}
+
+		docString := fmt.Sprintf("`%s`\n```\n%s```", displayPath, content)
+		documents = append(documents, docString)
 		return nil
 	})
 

@@ -33,15 +33,15 @@ func (m Model) renderConversation() string {
 			block := commandInputStyle.Width(blockWidth).Render(msg.Content)
 			parts = append(parts, block)
 		case core.AIMessage:
-			var content string
-			if msg.Content != "" {
-				renderedAI, err := m.glamourRenderer.Render(msg.Content)
-				if err != nil {
-					renderedAI = msg.Content
-				}
-				content = renderedAI
+			if msg.Content == "" {
+				parts = append(parts, "")
+				continue
 			}
-			parts = append(parts, content)
+			renderedAI, err := m.glamourRenderer.Render(msg.Content)
+			if err != nil {
+				renderedAI = msg.Content
+			}
+			parts = append(parts, renderedAI)
 		case core.ActionResultMessage:
 			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
 			cmdResultBlock := actionResultStyle.Width(blockWidth).Render(msg.Content)

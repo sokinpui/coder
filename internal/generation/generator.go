@@ -61,10 +61,10 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 			// If context is cancelled, grpc will return a status error with code Canceled.
 			if ctx.Err() != nil {
 				log.Printf("Generation cancelled: %v", ctx.Err())
-			} else {
+				break
+			}
 				log.Printf("Stream recv failed: %v", err)
 				streamChan <- fmt.Sprintf("Error: Stream failed: %v", err)
-			}
 			break
 		}
 		chunk := resp.GetOutputString()
