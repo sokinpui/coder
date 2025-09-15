@@ -1,0 +1,96 @@
+import { useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import { Box, Paper, Typography, CircularProgress } from '@mui/material'
+import type { Message } from '../../types'
+
+interface MessageListProps {
+  messages: Message[]
+  isGenerating: boolean
+}
+
+export function MessageList({ messages, isGenerating }: MessageListProps) {
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(scrollToBottom, [messages])
+
+  return (
+    <Box
+      sx={{
+        flexGrow: 1,
+        overflowY: 'auto',
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {messages.map((msg, index) => {
+        if (msg.sender === 'System') {
+          return (
+            <Typography
+              key={index}
+              variant="caption"
+              sx={{ alignSelf: 'center', fontStyle: 'italic', color: 'text.secondary', mb: 1.5 }}
+            >
+              {msg.content}
+            </Typography>
+          )
+        }
+
+        const isUser = msg.sender === 'User'
+        const isError = msg.sender === 'Error'
+
+        return (
+          <Paper
+            key={index}
+            elevation={1}
+            sx={{
+              p: 1.5,
+              mb: 1.5,
+              maxWidth: '80%',
+              alignSelf: isUser ? 'flex-end' : 'flex-start',
+              bgcolor: isUser ? 'primary.main' : isError ? 'error.main' : 'background.paper',
+              color: isUser || isError ? 'primary.contrastText' : 'text.primary',
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {msg.sender}
+            </Typography>
+            <Box
+              className="message-content"
+              sx={{
+                '& pre': { whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: 'monospace' },
+                '& code': { fontFamily: 'monospace', backgroundColor: 'action.hover', px: 0.5, borderRadius: 1 },
+                '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
+              }}
+            >
+              {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
+            </Box>
+          </Paper>
+        )
+      })}
+      {isGenerating && messages.length > 0 && messages[messages.length - 1].sender === 'User' && (
+        <Paper
+          elevation={1}
+          sx={{
+            p: 1.5,
+            mb: 1.5,
+            maxWidth: '80%',
+            alignSelf: 'flex-start',
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CircularProgress size={20} sx={{ mr: 1.5 }} />
+            <Typography variant="body2">AI is thinking...</Typography>
+          </Box>
+        </Paper>
+      )}
+      <div ref={messagesEndRef} />
+    </Box>
+  )
+}

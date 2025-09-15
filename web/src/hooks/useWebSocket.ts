@@ -83,6 +83,8 @@ export function useWebSocket(url: string) {
     }
     if (!payload.startsWith(':')) {
       setIsGenerating(true);
+      // Optimistic update for user messages
+      setMessages((prev) => [...prev, { sender: 'User', content: payload }])
     }
     const wsMsg = {
       type: "userInput",
@@ -105,5 +107,5 @@ export function useWebSocket(url: string) {
   };
 
 
-  return { messages, sendMessage, setMessages, cwd, isGenerating, cancelGeneration };
+  return { messages, sendMessage, cwd, isGenerating, cancelGeneration };
 }
