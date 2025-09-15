@@ -201,8 +201,8 @@ function App() {
           variant="outlined"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-          placeholder="Type your message... (Shift+Enter for new line)"
+          onKeyDown={(e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+          placeholder="Type your message... (Enter for new line, Shift+Enter to send)"
           autoComplete="off"
           multiline
           maxRows={10}
