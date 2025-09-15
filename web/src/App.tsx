@@ -7,6 +7,11 @@ import {
   Toolbar,
   CssBaseline,
   IconButton,
+	FormControl,
+	Select,
+	MenuItem,
+	Divider,
+	type SelectChangeEvent,
 } from '@mui/material'
 import {
   Brightness4 as Brightness4Icon,
@@ -20,7 +25,17 @@ import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
 
 function App() {
-  const { messages, sendMessage, cwd, isGenerating, cancelGeneration } = useWebSocket(`ws://${location.host}/ws`)
+  const {
+		messages,
+		sendMessage,
+		cwd,
+		isGenerating,
+		cancelGeneration,
+		mode,
+		model,
+		availableModes,
+		availableModels,
+	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const theme = useTheme()
   const { toggleColorMode } = useContext(AppContext)
@@ -34,44 +49,19 @@ function App() {
     sendMessage(':new')
   }
 
+	const handleModeChange = (event: SelectChangeEvent) => {
+		sendMessage(`:mode ${event.target.value}`)
+	}
+
+	const handleModelChange = (event: SelectChangeEvent) => {
+		sendMessage(`:model ${event.target.value}`)
+  }
+
   const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        elevation={1}
-        sx={{
-          zIndex: theme.zIndex.drawer + 1,
-          width: `calc(100% - ${currentDrawerWidth}px)`,
-          marginLeft: `${currentDrawerWidth}px`,
-          transition: theme.transitions.create(['width', 'margin'], {
-            easing: theme.transitions.easing.sharp,
-            duration: sidebarOpen ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
-          }),
-        }}
-      >
-        <Toolbar variant="dense">
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleSidebarToggle}
-            edge="start"
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Coder
-          </Typography>
-          <Typography variant="caption" sx={{ mr: 2, color: 'text.secondary' }}>
-            {cwd}
-          </Typography>
-          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
-            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Toolbar>
-      </AppBar>
       <Sidebar open={sidebarOpen} onNewChat={handleNewChat} isGenerating={isGenerating} />
       <Box
         component="main"
@@ -84,7 +74,55 @@ function App() {
           color: 'text.primary',
         }}
       >
-        <Toolbar variant="dense" />
+        <AppBar position="static" elevation={1}>
+          <Toolbar variant="dense">
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleSidebarToggle}
+              edge="start"
+            >
+              <MenuIcon />
+            </IconButton>
+					<Box sx={{ flexGrow: 1 }} />
+					<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+						{cwd}
+					</Typography>
+
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+					<FormControl size="small" variant="standard" sx={{ minWidth: 120 }} disabled={isGenerating}>
+						<Select
+							value={mode}
+							onChange={handleModeChange}
+							disableUnderline
+							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+						>
+							{availableModes.map((m) => (
+								<MenuItem key={m} value={m}>{m}</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+					<FormControl size="small" variant="standard" sx={{ minWidth: 200 }} disabled={isGenerating}>
+						<Select
+							value={model}
+							onChange={handleModelChange}
+							disableUnderline
+							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+						>
+							{availableModels.map((m) => (
+								<MenuItem key={m} value={m}>{m}</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+          </Toolbar>
+        </AppBar>
         <MessageList messages={messages} isGenerating={isGenerating} />
         <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
       </Box>

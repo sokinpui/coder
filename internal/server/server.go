@@ -131,7 +131,23 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) handleUserInput(payload string) {
+	oldMode := c.session.GetConfig().AppMode
+	oldModel := c.session.GetConfig().Generation.ModelCode
+
 	event := c.session.HandleInput(payload)
+
+	newMode := c.session.GetConfig().AppMode
+	newModel := c.session.GetConfig().Generation.ModelCode
+
+	if oldMode != newMode || oldModel != newModel {
+		c.send <- ServerToClientMessage{
+			Type: "stateUpdate",
+			Payload: map[string]string{
+				"mode":  string(newMode),
+				"model": newModel,
+			},
+		}
+	}
 
 	switch event.Type {
 	case session.NoOp:
@@ -200,10 +216,19 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		send:    make(chan ServerToClientMessage, 256),
 	}
 
+	modes := make([]string, len(config.AvailableAppModes))
+	for i, m := range config.AvailableAppModes {
+		modes[i] = string(m)
+	}
+
 	client.send <- ServerToClientMessage{
 		Type: "initialState",
-		Payload: map[string]string{
-			"cwd": getShortCwd(),
+		Payload: map[string]interface{}{
+			"cwd":             getShortCwd(),
+			"mode":            string(cfg.AppMode),
+			"model":           cfg.Generation.ModelCode,
+			"availableModes":  modes,
+			"availableModels": config.AvailableModels,
 		},
 	}
 

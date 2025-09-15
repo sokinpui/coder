@@ -5,6 +5,10 @@ export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mode, setMode] = useState<string>('');
+  const [model, setModel] = useState<string>('');
+  const [availableModes, setAvailableModes] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -26,8 +30,16 @@ export function useWebSocket(url: string) {
 
       switch (msg.type) {
         case "initialState":
-          setCwd(msg.payload.cwd)
+          setCwd(msg.payload.cwd || '');
+          setMode(msg.payload.mode || '');
+          setModel(msg.payload.model || '');
+          setAvailableModes(msg.payload.availableModes || []);
+          setAvailableModels(msg.payload.availableModels || []);
           break
+        case "stateUpdate":
+          setMode(msg.payload.mode);
+          setModel(msg.payload.model);
+          break;
         case "messageUpdate":
           setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content }]);
           break;
@@ -107,5 +119,15 @@ export function useWebSocket(url: string) {
   };
 
 
-  return { messages, sendMessage, cwd, isGenerating, cancelGeneration };
+  return {
+		messages,
+		sendMessage,
+		cwd,
+		isGenerating,
+		cancelGeneration,
+		mode,
+		model,
+		availableModes,
+		availableModels,
+	};
 }

@@ -8,9 +8,10 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Typography,
   useTheme,
 } from '@mui/material'
-import { AddComment as AddCommentIcon } from '@mui/icons-material'
+import { AddComment as AddCommentIcon, Code as CodeIcon } from '@mui/icons-material'
 import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 
 interface SidebarProps {
@@ -44,7 +45,16 @@ export function Sidebar({ open, onNewChat, isGenerating }: SidebarProps) {
         },
       }}
     >
-      <Toolbar variant="dense" />
+      <Toolbar variant="dense" sx={{ justifyContent: open ? 'initial' : 'center' }}>
+        {open ? (
+          <Typography variant="h6" noWrap component="div">
+            Coder
+          </Typography>
+        ) : (
+          <CodeIcon />
+        )}
+      </Toolbar>
+      <Divider />
       <Box>
         <List>
           <ListItem disablePadding sx={{ display: 'block' }}>
