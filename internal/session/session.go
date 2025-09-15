@@ -100,6 +100,26 @@ func (s *Session) ReplaceLastMessage(msg core.Message) {
 	}
 }
 
+// DeleteMessages removes messages at the given indices from the session.
+func (s *Session) DeleteMessages(indices []int) {
+	if len(indices) == 0 {
+		return
+	}
+
+	toDelete := make(map[int]struct{})
+	for _, idx := range indices {
+		toDelete[idx] = struct{}{}
+	}
+
+	newMessages := make([]core.Message, 0, len(s.messages)-len(indices))
+	for i, msg := range s.messages {
+		if _, found := toDelete[i]; !found {
+			newMessages = append(newMessages, msg)
+		}
+	}
+	s.messages = newMessages
+}
+
 // RemoveLastInteraction removes the last user message and AI response,
 // typically after a failed or cancelled generation.
 func (s *Session) RemoveLastInteraction() {

@@ -95,3 +95,48 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 
 	return sb.String()
 }
+
+// BuildHistorySnippet constructs a string representation of a list of messages for copying.
+func BuildHistorySnippet(messages []Message) string {
+	var sb strings.Builder
+
+	for i := 0; i < len(messages); i++ {
+		msg := messages[i]
+
+		switch msg.Type {
+		case UserMessage:
+			sb.WriteString("User:\n")
+			sb.WriteString(msg.Content)
+		case AIMessage:
+			if msg.Content == "" {
+				continue
+			}
+			sb.WriteString("AI Assistant:\n")
+			sb.WriteString(msg.Content)
+		case ActionMessage:
+			sb.WriteString("Action Execute:\n")
+			sb.WriteString(msg.Content)
+		case ActionResultMessage:
+			sb.WriteString("Action Execute Result:\n")
+			sb.WriteString(msg.Content)
+		case ActionErrorResultMessage:
+			sb.WriteString("Action Execute Error:\n")
+			sb.WriteString(msg.Content)
+		case CommandMessage:
+			sb.WriteString("Command Execute:\n")
+			sb.WriteString(msg.Content)
+		case CommandResultMessage:
+			sb.WriteString("Command Execute Result:\n")
+			sb.WriteString(msg.Content)
+		case CommandErrorResultMessage:
+			sb.WriteString("Command Execute Error:\n")
+			sb.WriteString(msg.Content)
+		default:
+			// Skip system messages like InitMessage, DirectoryMessage
+			continue
+		}
+		sb.WriteString("\n\n")
+	}
+
+	return strings.TrimSpace(sb.String())
+}

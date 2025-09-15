@@ -7,6 +7,7 @@ const (
 	stateThinking
 	stateGenerating
 	stateCancelling
+	stateVisualSelect
 )
 
 type (

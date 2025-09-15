@@ -1,64 +1,85 @@
 package ui
 
 import (
-	"coder/internal/core"
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"strings"
+
+	"coder/internal/core"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // renderConversation renders the entire message history.
 func (m Model) renderConversation() string {
 	var parts []string
-	for _, msg := range m.session.GetMessages() {
+
+	selectedIndices := make(map[int]struct{})
+	if m.state == stateVisualSelect {
+		start, end := m.visualSelectStart, m.visualSelectCursor
+		if start > end {
+			start, end = end, start
+		}
+
+		if end < len(m.selectableBlocks) {
+			for i := start; i <= end; i++ {
+				block := m.selectableBlocks[i]
+				for j := block.startIdx; j <= block.endIdx; j++ {
+					selectedIndices[j] = struct{}{}
+				}
+			}
+		}
+	}
+
+	for i, msg := range m.session.GetMessages() {
+		var renderedMsg string
 		switch msg.Type {
 		case core.InitMessage:
 			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
-			block := initMessageStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, block)
+			renderedMsg = initMessageStyle.Width(blockWidth).Render(msg.Content)
 		case core.DirectoryMessage:
 			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalPadding()
-			block := directoryWelcomeStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, block)
+			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(msg.Content)
 		case core.UserMessage:
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
-			block := userInputStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, block)
+			renderedMsg = userInputStyle.Width(blockWidth).Render(msg.Content)
 		case core.ActionMessage:
 			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalPadding()
-			block := actionInputStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, block)
+			renderedMsg = actionInputStyle.Width(blockWidth).Render(msg.Content)
 		case core.CommandMessage:
 			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
-			block := commandInputStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, block)
+			renderedMsg = commandInputStyle.Width(blockWidth).Render(msg.Content)
 		case core.AIMessage:
 			if msg.Content == "" {
-				parts = append(parts, "")
-				continue
+				renderedMsg = ""
+			} else {
+				renderedAI, err := m.glamourRenderer.Render(msg.Content)
+				if err != nil {
+					renderedAI = msg.Content
+				}
+				renderedMsg = renderedAI
 			}
-			renderedAI, err := m.glamourRenderer.Render(msg.Content)
-			if err != nil {
-				renderedAI = msg.Content
-			}
-			parts = append(parts, renderedAI)
 		case core.ActionResultMessage:
 			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
-			cmdResultBlock := actionResultStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, cmdResultBlock)
+			renderedMsg = actionResultStyle.Width(blockWidth).Render(msg.Content)
 		case core.CommandResultMessage:
+			// Don't render the special result messages for copy/delete mode
+			if msg.Content == core.CopyModeResult || msg.Content == core.DeleteModeResult {
+				continue
+			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
-			cmdResultBlock := commandResultStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, cmdResultBlock)
+			renderedMsg = commandResultStyle.Width(blockWidth).Render(msg.Content)
 		case core.ActionErrorResultMessage:
 			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalPadding()
-			cmdErrorBlock := actionErrorStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, cmdErrorBlock)
+			renderedMsg = actionErrorStyle.Width(blockWidth).Render(msg.Content)
 		case core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalPadding()
-			cmdErrorBlock := commandErrorStyle.Width(blockWidth).Render(msg.Content)
-			parts = append(parts, cmdErrorBlock)
+			renderedMsg = commandErrorStyle.Width(blockWidth).Render(msg.Content)
 		}
+
+		if _, isSelected := selectedIndices[i]; isSelected {
+			renderedMsg = visualSelectStyle.Render(renderedMsg)
+		}
+		parts = append(parts, renderedMsg)
 	}
 
 	if m.state == stateThinking {
@@ -139,11 +160,18 @@ func (m Model) statusView() string {
 	}
 
 	var status string
+	var modeStr string
 	switch m.state {
 	case stateThinking, stateGenerating:
 		status = "Ctrl+U/D: scroll | Ctrl+C: cancel"
 	case stateCancelling:
 		return generatingStatusStyle.Render("Cancelling...")
+	case stateVisualSelect:
+		modeStr = "COPY"
+		if m.visualMode == visualModeDelete {
+			modeStr = "DELETE"
+		}
+		status = fmt.Sprintf("-- %s MODE -- | j/k: move | enter: confirm | esc: cancel", modeStr)
 	default: // stateIdle
 		status = ""
 	}

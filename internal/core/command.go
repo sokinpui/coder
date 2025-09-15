@@ -1,12 +1,11 @@
 package core
 
 import (
-	"coder/internal/config"
 	"fmt"
 	"os/exec"
 	"strings"
 
-	"github.com/atotto/clipboard"
+	"coder/internal/config"
 )
 
 // NewSessionResult is a special string returned by the /new command
@@ -16,16 +15,23 @@ const NewSessionResult = "---_NEW_SESSION_---"
 // RegenerateResult is a special string returned by the /gen command
 const RegenerateResult = "---_REGENERATE_---"
 
+// CopyModeResult signals the UI to enter visual copy mode.
+const CopyModeResult = "---_COPY_MODE_---"
+
+// DeleteModeResult signals the UI to enter visual delete mode.
+const DeleteModeResult = "---_DELETE_MODE_---"
+
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
 	"echo":  echoCmd,
-	"copy":  copyCmd,
 	"model": modelCmd,
 	"itf":   itfCmd,
 	"new":   newCmd,
 	"mode":  modeCmd,
 	"gen":   genCmd,
+	"copy":   copyModeCmd,
+	"delete": deleteModeCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -70,6 +76,14 @@ func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) 
 
 func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	return RegenerateResult, true
+}
+
+func copyModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	return CopyModeResult, true
+}
+
+func deleteModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	return DeleteModeResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
@@ -144,19 +158,6 @@ func modeCmd(args string, messages []Message, cfg *config.Config) (string, bool)
 
 func echoCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	return args, true
-}
-
-func copyCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
-	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Type == AIMessage {
-			contentToCopy := messages[i].Content
-			if err := clipboard.WriteAll(contentToCopy); err != nil {
-				return fmt.Sprintf("Error copying to clipboard: %v", err), false
-			}
-			return "Copied last AI response to clipboard.", true
-		}
-	}
-	return "No AI response found to copy.", false
 }
 
 // ProcessCommand tries to execute a command from the input string.

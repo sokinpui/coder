@@ -34,6 +34,22 @@ func min(a, b int) int {
 	return b
 }
 
+type visualMode int
+
+const (
+	visualModeNone visualMode = iota
+	visualModeCopy
+	visualModeDelete
+)
+
+// messageBlock represents a single selectable unit in the conversation view.
+// It holds the start and end indices (inclusive) of messages in the session's
+// message slice that form a single logical block.
+type messageBlock struct {
+	startIdx int
+	endIdx   int
+}
+
 type Model struct {
 	textArea                textarea.Model
 	viewport                viewport.Model
@@ -60,6 +76,10 @@ type Model struct {
 	paletteFilteredArguments []string
 	isCyclingCompletions    bool
 	clearedInputBuffer      string
+	visualMode              visualMode
+	selectableBlocks        []messageBlock
+	visualSelectCursor      int
+	visualSelectStart       int
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -133,5 +153,9 @@ func NewModel(cfg *config.Config) (Model, error) {
 		paletteFilteredArguments: []string{},
 		isCyclingCompletions:    false,
 		clearedInputBuffer:      "",
+		visualMode:              visualModeNone,
+		selectableBlocks:        []messageBlock{},
+		visualSelectCursor:      0,
+		visualSelectStart:       0,
 	}, nil
 }

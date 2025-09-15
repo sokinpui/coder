@@ -1,11 +1,13 @@
 package ui
 
 import (
-	"coder/internal/core"
-	"coder/internal/session"
 	"fmt"
 	"strings"
 
+	"coder/internal/core"
+	"coder/internal/session"
+
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -53,6 +55,32 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case session.MessagesUpdated:
+		messages := m.session.GetMessages()
+		if len(messages) > 0 {
+			lastMsg := messages[len(messages)-1]
+			if lastMsg.Type == core.CommandResultMessage {
+				enterVisualMode := func(mode visualMode) (tea.Model, tea.Cmd) {
+					m.state = stateVisualSelect
+					m.visualMode = mode
+					m.selectableBlocks = groupMessages(m.session.GetMessages())
+					if len(m.selectableBlocks) > 0 {
+						m.visualSelectCursor = len(m.selectableBlocks) - 1
+						m.visualSelectStart = m.visualSelectCursor
+					}
+					m.textArea.Blur()
+					m.viewport.SetContent(m.renderConversation())
+					return m, nil
+				}
+
+				switch lastMsg.Content {
+				case core.CopyModeResult:
+					return enterVisualMode(visualModeCopy)
+				case core.DeleteModeResult:
+					return enterVisualMode(visualModeDelete)
+				}
+			}
+		}
+
 		m.viewport.SetContent(m.renderConversation())
 		m.viewport.GotoBottom()
 		m.textArea.Reset()
@@ -118,6 +146,63 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.state != stateCancelling {
 					m.session.CancelGeneration()
 					m.state = stateCancelling
+				}
+			}
+			return m, nil
+
+		case stateVisualSelect:
+			switch msg.Type {
+			case tea.KeyEsc, tea.KeyCtrlC:
+				m.state = stateIdle
+				m.visualMode = visualModeNone
+				m.textArea.Focus()
+				m.viewport.SetContent(m.renderConversation())
+				return m, textarea.Blink
+
+			case tea.KeyEnter:
+				start, end := m.visualSelectStart, m.visualSelectCursor
+				if start > end {
+					start, end = end, start
+				}
+
+				if end < len(m.selectableBlocks) {
+					var selectedMessages []core.Message
+					var selectedIndices []int
+					for i := start; i <= end; i++ {
+						block := m.selectableBlocks[i]
+						for j := block.startIdx; j <= block.endIdx; j++ {
+							selectedMessages = append(selectedMessages, m.session.GetMessages()[j])
+							selectedIndices = append(selectedIndices, j)
+						}
+					}
+
+					if m.visualMode == visualModeCopy {
+						content := core.BuildHistorySnippet(selectedMessages)
+						clipboard.WriteAll(content)
+					} else if m.visualMode == visualModeDelete {
+						m.session.DeleteMessages(selectedIndices)
+					}
+				}
+
+				m.state = stateIdle
+				m.visualMode = visualModeNone
+				m.textArea.Focus()
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+				return m, textarea.Blink
+
+			case tea.KeyRunes:
+				switch string(msg.Runes) {
+				case "j":
+					if m.visualSelectCursor < len(m.selectableBlocks)-1 {
+						m.visualSelectCursor++
+						m.viewport.SetContent(m.renderConversation())
+					}
+				case "k":
+					if m.visualSelectCursor > 0 {
+						m.visualSelectCursor--
+						m.viewport.SetContent(m.renderConversation())
+					}
 				}
 			}
 			return m, nil

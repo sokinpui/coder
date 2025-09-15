@@ -81,4 +81,6 @@ var (
 				BorderTop(false).
 				BorderBottom(false).
 				BorderRight(false)
+	visualSelectStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("236"))
 )
