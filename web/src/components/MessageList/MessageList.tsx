@@ -79,7 +79,8 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
                 position: 'sticky',
                 top: 0,
                 zIndex: 1,
-                bgcolor: 'inherit',
+                bgcolor: (theme) =>
+                  theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[200],
                 py: 0.5,
                 px: 1.5,
               }}
