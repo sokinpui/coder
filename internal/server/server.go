@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +28,18 @@ type ClientToServerMessage struct {
 type ServerToClientMessage struct {
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
+}
+
+func getShortCwd() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "unknown directory"
+	}
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" && strings.HasPrefix(wd, home) {
+		return "~" + strings.TrimPrefix(wd, home)
+	}
+	return wd
 }
 
 type MessagePayload struct {
@@ -176,6 +190,13 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		conn:    conn,
 		session: sess,
 		send:    make(chan ServerToClientMessage, 256),
+	}
+
+	client.send <- ServerToClientMessage{
+		Type: "initialState",
+		Payload: map[string]string{
+			"cwd": getShortCwd(),
+		},
 	}
 
 	log.Println("Client connected")

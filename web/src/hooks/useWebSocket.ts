@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Message } from '../types';
 
 export function useWebSocket(url: string) {
+  const [cwd, setCwd] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
   const ws = useRef<WebSocket | null>(null);
 
@@ -23,6 +24,9 @@ export function useWebSocket(url: string) {
       console.log("Received:", msg);
 
       switch (msg.type) {
+        case "initialState":
+          setCwd(msg.payload.cwd)
+          break
         case "messageUpdate":
           setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content }]);
           break;
@@ -80,5 +84,5 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
-  return { messages, sendMessage, setMessages };
+  return { messages, sendMessage, setMessages, cwd };
 }

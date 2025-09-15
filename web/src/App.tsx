@@ -23,7 +23,7 @@ import { useWebSocket } from './hooks/useWebSocket'
 import { Sidebar, drawerWidth, getCollapsedDrawerWidth } from './components/Sidebar'
 
 function App() {
-  const { messages, sendMessage, setMessages } = useWebSocket(`ws://${location.host}/ws`)
+  const { messages, sendMessage, setMessages, cwd } = useWebSocket(`ws://${location.host}/ws`)
   const [input, setInput] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -85,6 +85,9 @@ function App() {
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Coder
+          </Typography>
+          <Typography variant="caption" sx={{ mr: 2, color: 'text.secondary' }}>
+            {cwd}
           </Typography>
           <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
             {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
