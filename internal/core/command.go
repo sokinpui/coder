@@ -12,14 +12,14 @@ import (
 // to signal the UI to start a new session.
 const NewSessionResult = "---_NEW_SESSION_---"
 
-// RegenerateResult is a special string returned by the /gen command
-const RegenerateResult = "---_REGENERATE_---"
-
 // CopyModeResult signals the UI to enter visual copy mode.
 const CopyModeResult = "---_COPY_MODE_---"
 
 // DeleteModeResult signals the UI to enter visual delete mode.
 const DeleteModeResult = "---_DELETE_MODE_---"
+
+// GenerateModeResult signals the UI to enter visual generate mode.
+const GenerateModeResult = "---_GENERATE_MODE_---"
 
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
@@ -75,7 +75,7 @@ func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) 
 }
 
 func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
-	return RegenerateResult, true
+	return GenerateModeResult, true
 }
 
 func copyModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

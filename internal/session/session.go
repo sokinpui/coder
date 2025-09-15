@@ -176,6 +176,21 @@ func (s *Session) newSession() {
 	s.messages = []core.Message{} // Clear messages
 }
 
+// RegenerateFrom truncates the message history to the specified user message
+// and starts a new generation.
+func (s *Session) RegenerateFrom(userMessageIndex int) Event {
+	if userMessageIndex < 0 || userMessageIndex >= len(s.messages) || s.messages[userMessageIndex].Type != core.UserMessage {
+		s.messages = append(s.messages, core.Message{
+			Type:    core.CommandErrorResultMessage,
+			Content: "Invalid index for regeneration.",
+		})
+		return Event{Type: MessagesUpdated}
+	}
+
+	s.messages = s.messages[:userMessageIndex+1]
+	return s.startGeneration()
+}
+
 // reloadProjectSource reloads the project source code from disk.
 func (s *Session) reloadProjectSource() error {
 	projSource, err := source.LoadProjectSource(s.config.AppMode)
@@ -241,24 +256,6 @@ func (s *Session) HandleInput(input string) Event {
 	if cmdSuccess && cmdResult == core.NewSessionResult {
 		s.newSession()
 		return Event{Type: NewSessionStarted}
-	}
-
-	if cmdSuccess && cmdResult == core.RegenerateResult {
-		lastUserMsgIndex := -1
-		for i := len(s.messages) - 1; i >= 0; i-- {
-			if s.messages[i].Type == core.UserMessage {
-				lastUserMsgIndex = i
-				break
-			}
-		}
-
-		if lastUserMsgIndex == -1 {
-			s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: "No previous user prompt to regenerate from."})
-			return Event{Type: MessagesUpdated}
-		}
-
-		s.messages = s.messages[:lastUserMsgIndex+1]
-		return s.startGeneration()
 	}
 
 	s.generator.Config = s.config.Generation

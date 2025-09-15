@@ -39,6 +39,28 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
 }
 
+func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
+	if event.Type != session.GenerationStarted {
+		return m, nil // Should not happen
+	}
+	m.state = stateThinking
+	m.isStreaming = true
+	m.streamSub = event.Data.(chan string)
+	m.textArea.Blur()
+	m.textArea.Reset()
+	m.textArea.SetHeight(1)
+
+	m.lastRenderedAIPart = ""
+	m.lastInteractionFailed = false
+
+	m.viewport.SetContent(m.renderConversation())
+	m.viewport.GotoBottom()
+
+	prompt := m.session.GetPromptForTokenCount()
+	m.isCountingTokens = true
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+}
+
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.textArea.Value()
 
@@ -84,6 +106,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					return enterVisualMode(visualModeCopy)
 				case core.DeleteModeResult:
 					return enterVisualMode(visualModeDelete)
+				case core.GenerateModeResult:
+					return enterVisualMode(visualModeGenerate)
 				}
 			}
 		}
@@ -98,22 +122,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m.newSession()
 
 	case session.GenerationStarted:
-		m.state = stateThinking
-		m.isStreaming = true
-		m.streamSub = event.Data.(chan string)
-		m.textArea.Blur()
-		m.textArea.Reset()
-		m.textArea.SetHeight(1)
-
-		m.lastRenderedAIPart = ""
-		m.lastInteractionFailed = false // Reset this flag for the new generation attempt.
-
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.GotoBottom()
-
-		prompt := m.session.GetPromptForTokenCount()
-		m.isCountingTokens = true
-		return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+		return m.startGeneration(event)
 	}
 
 	return m, nil
@@ -195,6 +204,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.session.DeleteMessages(selectedIndices)
 						m.statusBarMessage = "Deleted selected messages."
 						cmd = clearStatusBarCmd(2 * time.Second)
+					} else if m.visualMode == visualModeGenerate {
+						block := m.selectableBlocks[m.visualSelectCursor]
+						userMsgIndex := -1
+						// Find the first user message at or before the start of the selected block
+						for i := block.startIdx; i >= 0; i-- {
+							if m.session.GetMessages()[i].Type == core.UserMessage {
+								userMsgIndex = i
+								break
+							}
+						}
+
+						if userMsgIndex != -1 {
+							// Exit visual mode before starting generation
+							m.state = stateIdle
+							m.visualMode = visualModeNone
+							m.textArea.Focus()
+
+							event := m.session.RegenerateFrom(userMsgIndex)
+							return m.startGeneration(event)
+						}
+						// If no user message found (should be impossible if there are blocks),
+						// fall through to exit visual mode.
 					}
 				}
 

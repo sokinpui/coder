@@ -24,16 +24,25 @@ func (m Model) renderConversation() string {
 
 	selectedIndices := make(map[int]struct{})
 	if m.state == stateVisualSelect {
-		start, end := m.visualSelectStart, m.visualSelectCursor
-		if start > end {
-			start, end = end, start
-		}
-
-		if end < len(m.selectableBlocks) {
-			for i := start; i <= end; i++ {
-				block := m.selectableBlocks[i]
+		if m.visualMode == visualModeGenerate {
+			if m.visualSelectCursor < len(m.selectableBlocks) {
+				block := m.selectableBlocks[m.visualSelectCursor]
 				for j := block.startIdx; j <= block.endIdx; j++ {
 					selectedIndices[j] = struct{}{}
+				}
+			}
+		} else {
+			start, end := m.visualSelectStart, m.visualSelectCursor
+			if start > end {
+				start, end = end, start
+			}
+
+			if end < len(m.selectableBlocks) {
+				for i := start; i <= end; i++ {
+					block := m.selectableBlocks[i]
+					for j := block.startIdx; j <= block.endIdx; j++ {
+						selectedIndices[j] = struct{}{}
+					}
 				}
 			}
 		}
@@ -191,6 +200,8 @@ func (m Model) statusView() string {
 		modeStr = "COPY"
 		if m.visualMode == visualModeDelete {
 			modeStr = "DELETE"
+		} else if m.visualMode == visualModeGenerate {
+			modeStr = "GENERATE"
 		}
 		status = fmt.Sprintf("-- %s MODE -- | j/k: move | enter: confirm | esc: cancel", modeStr)
 	default: // stateIdle
