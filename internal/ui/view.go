@@ -9,6 +9,15 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func truncateMessage(content string, maxLines int) string {
+	lines := strings.Split(content, "\n")
+	if len(lines) <= maxLines {
+		return content
+	}
+	truncatedLines := lines[:maxLines]
+	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
+}
+
 // renderConversation renders the entire message history.
 func (m Model) renderConversation() string {
 	var parts []string
@@ -31,49 +40,57 @@ func (m Model) renderConversation() string {
 	}
 
 	for i, msg := range m.session.GetMessages() {
+		currentMsg := msg // Make a copy to modify content for visual mode
+		if m.state == stateVisualSelect {
+			switch currentMsg.Type {
+			case core.UserMessage, core.AIMessage, core.ActionResultMessage, core.CommandResultMessage, core.ActionErrorResultMessage, core.CommandErrorResultMessage:
+				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
+			}
+		}
+
 		var renderedMsg string
-		switch msg.Type {
+		switch currentMsg.Type {
 		case core.InitMessage:
 			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
-			renderedMsg = initMessageStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.DirectoryMessage:
 			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalPadding()
-			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.UserMessage:
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
-			renderedMsg = userInputStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ActionMessage:
 			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalPadding()
-			renderedMsg = actionInputStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = actionInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandMessage:
 			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
-			renderedMsg = commandInputStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.AIMessage:
-			if msg.Content == "" {
+			if currentMsg.Content == "" {
 				renderedMsg = ""
 			} else {
-				renderedAI, err := m.glamourRenderer.Render(msg.Content)
+				renderedAI, err := m.glamourRenderer.Render(currentMsg.Content)
 				if err != nil {
-					renderedAI = msg.Content
+					renderedAI = currentMsg.Content
 				}
 				renderedMsg = renderedAI
 			}
 		case core.ActionResultMessage:
 			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
-			renderedMsg = actionResultStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
 			// Don't render the special result messages for copy/delete mode
-			if msg.Content == core.CopyModeResult || msg.Content == core.DeleteModeResult {
+			if currentMsg.Content == core.CopyModeResult || currentMsg.Content == core.DeleteModeResult {
 				continue
 			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
-			renderedMsg = commandResultStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ActionErrorResultMessage:
 			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalPadding()
-			renderedMsg = actionErrorStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = actionErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalPadding()
-			renderedMsg = commandErrorStyle.Width(blockWidth).Render(msg.Content)
+			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		}
 
 		if _, isSelected := selectedIndices[i]; isSelected {
