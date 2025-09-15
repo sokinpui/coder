@@ -62,28 +62,38 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
             elevation={1}
             sx={{
               position: 'relative',
-              p: 1.5,
               mb: 1.5,
               maxWidth: '80%',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
               bgcolor: isError ? 'error.main' : 'background.paper',
               color: isError ? 'primary.contrastText' : 'text.primary',
+              overflow: 'hidden',
             }}
           >
-            <Box sx={{ position: 'sticky', top: 0, zIndex: 1, height: 0, overflow: 'visible' }}>
-              <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
-                <CopyButton content={msg.content} />
-              </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                bgcolor: 'inherit',
+                py: 0.5,
+                px: 1.5,
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{msg.sender}</Typography>
+              <CopyButton content={msg.content} />
             </Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-              {msg.sender}
-            </Typography>
             <Box
               className="message-content"
               sx={{
                 '& pre': { whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: 'monospace' },
                 '& code': { fontFamily: 'monospace', backgroundColor: 'action.hover', px: 0.5, borderRadius: 1 },
                 '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
+                px: 1.5,
+                pb: 1.5,
               }}
             >
               {msg.sender === 'AI' || msg.sender === 'User' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
