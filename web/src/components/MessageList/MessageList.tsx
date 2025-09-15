@@ -66,8 +66,8 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
               mb: 1.5,
               maxWidth: '80%',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
-              bgcolor: isUser ? 'primary.main' : isError ? 'error.main' : 'background.paper',
-              color: isUser || isError ? 'primary.contrastText' : 'text.primary',
+              bgcolor: isError ? 'error.main' : 'background.paper',
+              color: isError ? 'primary.contrastText' : 'text.primary',
             }}
           >
             <Box sx={{ position: 'sticky', top: 0, zIndex: 1, height: 0, overflow: 'visible' }}>
@@ -86,7 +86,7 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
                 '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
               }}
             >
-              {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
+              {msg.sender === 'AI' || msg.sender === 'User' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
             </Box>
           </Paper>
         )
