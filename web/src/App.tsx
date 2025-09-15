@@ -9,14 +9,7 @@ import {
   useTheme,
   AppBar,
   Toolbar,
-  Drawer,
   CssBaseline,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
 } from '@mui/material'
 import {
   Send as SendIcon,
@@ -27,9 +20,7 @@ import {
 } from '@mui/icons-material'
 import { AppContext } from './AppContext'
 import { useWebSocket } from './hooks/useWebSocket'
-import type { Message } from './types'
-
-const drawerWidth = 240
+import { Sidebar, drawerWidth, getCollapsedDrawerWidth } from './components/Sidebar'
 
 function App() {
   const { messages, sendMessage, setMessages } = useWebSocket(`ws://${location.host}/ws`)
@@ -38,7 +29,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const theme = useTheme()
   const { toggleColorMode } = useContext(AppContext)
-  const collapsedDrawerWidth = theme.spacing(7)
+  const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -100,53 +91,7 @@ function App() {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <Drawer
-        variant="permanent"
-        anchor="left"
-        sx={{
-          width: currentDrawerWidth,
-          flexShrink: 0,
-          whiteSpace: 'nowrap',
-          boxSizing: 'border-box',
-          '& .MuiDrawer-paper': {
-            width: currentDrawerWidth,
-            transition: theme.transitions.create('width', {
-              easing: theme.transitions.easing.sharp,
-              duration: sidebarOpen ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
-            }),
-            overflowX: 'hidden',
-            boxSizing: 'border-box',
-          },
-        }}
-      >
-        <Toolbar variant="dense" />
-        <Box>
-          <List>
-            <ListItem disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={handleNewChat}
-                sx={{
-                  minHeight: 48,
-                  justifyContent: sidebarOpen ? 'initial' : 'center',
-                  px: 2.5,
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: sidebarOpen ? 3 : 'auto',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <AddCommentIcon />
-                </ListItemIcon>
-                <ListItemText primary="New Chat" sx={{ opacity: sidebarOpen ? 1 : 0 }} />
-              </ListItemButton>
-            </ListItem>
-          </List>
-          <Divider />
-        </Box>
-      </Drawer>
+      <Sidebar open={sidebarOpen} onNewChat={handleNewChat} />
       <Box
         component="main"
         sx={{
