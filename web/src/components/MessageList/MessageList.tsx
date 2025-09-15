@@ -9,16 +9,28 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, isGenerating }: MessageListProps) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  useEffect(scrollToBottom, [messages])
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    // Only auto-scroll if the user is near the bottom.
+    // This prevents the view from jumping down if they've scrolled up.
+    const scrollThreshold = 100 // pixels
+    const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + scrollThreshold
+
+    if (isScrolledToBottom) scrollToBottom()
+  }, [messages])
 
   return (
     <Box
+      ref={scrollContainerRef}
       sx={{
         flexGrow: 1,
         overflowY: 'auto',
