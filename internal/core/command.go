@@ -27,12 +27,11 @@ const EditModeResult = "---_EDIT_MODE_---"
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
-	"echo":  echoCmd,
-	"model": modelCmd,
-	"itf":   itfCmd,
-	"new":   newCmd,
-	"mode":  modeCmd,
-	"gen":   genCmd,
+	"model":  modelCmd,
+	"itf":    itfCmd,
+	"new":    newCmd,
+	"mode":   modeCmd,
+	"gen":    genCmd,
 	"copy":   copyModeCmd,
 	"delete": deleteModeCmd,
 	"edit":   editModeCmd,
@@ -162,10 +161,6 @@ func modeCmd(args string, messages []Message, cfg *config.Config) (string, bool)
 	}
 
 	return fmt.Sprintf("Error: mode '%s' not found. Use ':mode' to see available modes.", args), false
-}
-
-func echoCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
-	return args, true
 }
 
 // ProcessCommand tries to execute a command from the input string.
