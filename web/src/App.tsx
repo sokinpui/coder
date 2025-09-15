@@ -1,6 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import './index.css';
+import { useState, useEffect, useRef, useContext } from 'react'
+import ReactMarkdown from 'react-markdown'
+import {
+  Box,
+  TextField,
+  IconButton,
+  Paper,
+  Typography,
+  useTheme,
+  AppBar,
+  Toolbar,
+} from '@mui/material'
+import { Send as SendIcon, Brightness4 as Brightness4Icon, Brightness7 as Brightness7Icon } from '@mui/icons-material'
+import { AppContext } from './AppContext'
 
 // Define message types for better state management
 interface Message {
@@ -13,6 +24,8 @@ function App() {
   const [input, setInput] = useState('');
   const ws = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const theme = useTheme();
+  const { toggleColorMode } = useContext(AppContext);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -87,7 +100,7 @@ function App() {
     };
   }, []); // Empty dependency array means this runs once on mount
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
       return;
@@ -103,29 +116,103 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <div className="messages-container">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.sender.toLowerCase()}`}>
-            <strong>{msg.sender}:</strong>
-            <div className="message-content">
-                {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <pre>{msg.content}</pre>}
-            </div>
-          </div>
-        ))}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        bgcolor: 'background.default',
+        color: 'text.primary',
+      }}
+    >
+      <AppBar position="static" elevation={1}>
+        <Toolbar variant="dense">
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Coder
+          </Typography>
+          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: 'auto',
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {messages.map((msg, index) => {
+          if (msg.sender === 'System') {
+            return (
+              <Typography
+                key={index}
+                variant="caption"
+                sx={{ alignSelf: 'center', fontStyle: 'italic', color: 'text.secondary', mb: 1.5 }}
+              >
+                {msg.content}
+              </Typography>
+            );
+          }
+
+          const isUser = msg.sender === 'User';
+          const isError = msg.sender === 'Error';
+
+          return (
+            <Paper
+              key={index}
+              elevation={1}
+              sx={{
+                p: 1.5,
+                mb: 1.5,
+                maxWidth: '80%',
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                bgcolor: isUser ? 'primary.main' : isError ? 'error.main' : 'background.paper',
+                color: isUser || isError ? 'primary.contrastText' : 'text.primary',
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {msg.sender}
+              </Typography>
+              <Box
+                className="message-content"
+                sx={{
+                  '& pre': { whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: 'monospace' },
+                  '& code': { fontFamily: 'monospace', backgroundColor: 'action.hover', px: 0.5, borderRadius: 1 },
+                  '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
+                }}
+              >
+                {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
+              </Box>
+            </Paper>
+          );
+        })}
         <div ref={messagesEndRef} />
-      </div>
-      <form onSubmit={handleSubmit} className="input-form">
-        <input
-          type="text"
+      </Box>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ p: 1, display: 'flex', alignItems: 'center', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
+      >
+        <TextField
+          fullWidth
+          variant="outlined"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+          placeholder="Type your message... (Shift+Enter for new line)"
           autoComplete="off"
+          multiline
+          maxRows={5}
+          size="small"
         />
-        <button type="submit">Send</button>
-      </form>
-    </div>
+        <IconButton type="submit" color="primary" sx={{ ml: 1 }}>
+          <SendIcon />
+        </IconButton>
+      </Box>
+    </Box>
   );
 }
 
