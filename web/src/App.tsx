@@ -194,7 +194,7 @@ function App() {
       <Box
         component="form"
         onSubmit={handleSubmit}
-        sx={{ p: 1, display: 'flex', alignItems: 'center', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
+        sx={{ p: 1, display: 'flex', alignItems: 'flex-end', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
       >
         <TextField
           fullWidth
@@ -205,8 +205,13 @@ function App() {
           placeholder="Type your message... (Shift+Enter for new line)"
           autoComplete="off"
           multiline
-          maxRows={5}
+          maxRows={10}
           size="small"
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              maxHeight: '25vh',
+            },
+          }}
         />
         <IconButton type="submit" color="primary" sx={{ ml: 1 }}>
           <SendIcon />
