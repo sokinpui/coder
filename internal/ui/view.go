@@ -24,7 +24,7 @@ func (m Model) renderConversation() string {
 
 	selectedIndices := make(map[int]struct{})
 	if m.state == stateVisualSelect {
-		if m.visualMode == visualModeGenerate {
+		if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit {
 			if m.visualSelectCursor < len(m.selectableBlocks) {
 				block := m.selectableBlocks[m.visualSelectCursor]
 				for j := block.startIdx; j <= block.endIdx; j++ {
@@ -88,8 +88,8 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
-			// Don't render the special result messages for copy/delete mode
-			if currentMsg.Content == core.CopyModeResult || currentMsg.Content == core.DeleteModeResult {
+			// Don't render the special result messages that trigger visual modes.
+			if currentMsg.Content == core.CopyModeResult || currentMsg.Content == core.DeleteModeResult || currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult {
 				continue
 			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
@@ -202,6 +202,8 @@ func (m Model) statusView() string {
 			modeStr = "DELETE"
 		} else if m.visualMode == visualModeGenerate {
 			modeStr = "GENERATE"
+		} else if m.visualMode == visualModeEdit {
+			modeStr = "EDIT"
 		}
 		status = fmt.Sprintf("-- %s MODE -- | j/k: move | enter: confirm | esc: cancel", modeStr)
 	default: // stateIdle

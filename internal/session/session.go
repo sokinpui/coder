@@ -120,6 +120,20 @@ func (s *Session) DeleteMessages(indices []int) {
 	s.messages = newMessages
 }
 
+// EditMessage updates the content of a user message at a given index.
+// It only allows editing of UserMessage types.
+func (s *Session) EditMessage(index int, newContent string) error {
+	if index < 0 || index >= len(s.messages) {
+		return fmt.Errorf("index out of bounds: %d", index)
+	}
+	if s.messages[index].Type != core.UserMessage {
+		return fmt.Errorf("can only edit user messages, but got type %v at index %d", s.messages[index].Type, index)
+	}
+
+	s.messages[index].Content = newContent
+	return nil
+}
+
 // RemoveLastInteraction removes the last user message and AI response,
 // typically after a failed or cancelled generation.
 func (s *Session) RemoveLastInteraction() {

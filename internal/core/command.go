@@ -21,6 +21,9 @@ const DeleteModeResult = "---_DELETE_MODE_---"
 // GenerateModeResult signals the UI to enter visual generate mode.
 const GenerateModeResult = "---_GENERATE_MODE_---"
 
+// EditModeResult signals the UI to enter visual edit mode.
+const EditModeResult = "---_EDIT_MODE_---"
+
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
@@ -32,6 +35,7 @@ var commands = map[string]commandFunc{
 	"gen":   genCmd,
 	"copy":   copyModeCmd,
 	"delete": deleteModeCmd,
+	"edit":   editModeCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -84,6 +88,10 @@ func copyModeCmd(args string, messages []Message, cfg *config.Config) (string, b
 
 func deleteModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	return DeleteModeResult, true
+}
+
+func editModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	return EditModeResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

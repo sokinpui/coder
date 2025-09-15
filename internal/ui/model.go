@@ -41,6 +41,7 @@ const (
 	visualModeCopy
 	visualModeDelete
 	visualModeGenerate
+	visualModeEdit
 )
 
 // messageBlock represents a single selectable unit in the conversation view.
@@ -82,6 +83,7 @@ type Model struct {
 	visualSelectCursor      int
 	visualSelectStart       int
 	statusBarMessage        string
+	editingMessageIndex     int
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -160,5 +162,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		visualSelectCursor:      0,
 		visualSelectStart:       0,
 		statusBarMessage:        "",
+		editingMessageIndex:     -1,
 	}, nil
 }

@@ -108,6 +108,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					return enterVisualMode(visualModeDelete)
 				case core.GenerateModeResult:
 					return enterVisualMode(visualModeGenerate)
+				case core.EditModeResult:
+					return enterVisualMode(visualModeEdit)
 				}
 			}
 		}
@@ -226,6 +228,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						// If no user message found (should be impossible if there are blocks),
 						// fall through to exit visual mode.
+					} else if m.visualMode == visualModeEdit {
+						block := m.selectableBlocks[m.visualSelectCursor]
+						userMsgIndex := -1
+						// Find the first user message at or before the start of the selected block
+						for i := block.startIdx; i >= 0; i-- {
+							if m.session.GetMessages()[i].Type == core.UserMessage {
+								userMsgIndex = i
+								break
+							}
+						}
+
+						if userMsgIndex != -1 {
+							// Exit visual mode before starting editor
+							m.state = stateIdle
+							m.visualMode = visualModeNone
+							m.editingMessageIndex = userMsgIndex
+							originalContent := m.session.GetMessages()[userMsgIndex].Content
+							return m, editInEditorCmd(originalContent)
+						}
+						// Fall through to exit visual mode if no user message found.
 					}
 				}
 
@@ -450,8 +472,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
+			m.editingMessageIndex = -1 // Also reset here
 			return m, nil
 		}
+
+		if m.editingMessageIndex != -1 {
+			// This block handles the return from editing a previous message in the history.
+			// It updates the message in place and does not trigger a new generation.
+			if err := m.session.EditMessage(m.editingMessageIndex, msg.content); err != nil {
+				// This should ideally not happen if the logic for selecting an editable message is correct.
+				errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
+				m.session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			}
+
+			m.textArea.Focus()
+			m.viewport.SetContent(m.renderConversation())
+
+			m.editingMessageIndex = -1 // Reset on success or failure
+			return m, textarea.Blink
+		}
+
+		// This is for Ctrl+E on the text area.
 		m.textArea.SetValue(msg.content)
 		m.textArea.CursorEnd()
 		m.textArea.Focus()
