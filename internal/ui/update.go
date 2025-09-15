@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"coder/internal/core"
 	"coder/internal/session"
@@ -58,17 +59,23 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		messages := m.session.GetMessages()
 		if len(messages) > 0 {
 			lastMsg := messages[len(messages)-1]
-			if lastMsg.Type == core.CommandResultMessage {
+			if lastMsg.Type == core.CommandResultMessage && len(messages) >= 2 {
 				enterVisualMode := func(mode visualMode) (tea.Model, tea.Cmd) {
+					// Remove the command that triggered visual mode from the session.
+					// This prevents it from being part of the copy/delete operations or being displayed.
+					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
+
 					m.state = stateVisualSelect
 					m.visualMode = mode
-					m.selectableBlocks = groupMessages(m.session.GetMessages())
+					m.selectableBlocks = groupMessages(m.session.GetMessages()) // Use updated messages
 					if len(m.selectableBlocks) > 0 {
 						m.visualSelectCursor = len(m.selectableBlocks) - 1
 						m.visualSelectStart = m.visualSelectCursor
 					}
+					m.textArea.Reset()
+					m.textArea.SetHeight(1)
 					m.textArea.Blur()
-					m.viewport.SetContent(m.renderConversation())
+					m.viewport.SetContent(m.renderConversation()) // Render with updated messages
 					return m, nil
 				}
 
@@ -165,6 +172,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					start, end = end, start
 				}
 
+				var cmd tea.Cmd
+
 				if end < len(m.selectableBlocks) {
 					var selectedMessages []core.Message
 					var selectedIndices []int
@@ -178,9 +187,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					if m.visualMode == visualModeCopy {
 						content := core.BuildHistorySnippet(selectedMessages)
-						clipboard.WriteAll(content)
+						if err := clipboard.WriteAll(content); err == nil {
+							m.statusBarMessage = "Copied to clipboard."
+							cmd = clearStatusBarCmd(2 * time.Second)
+						}
 					} else if m.visualMode == visualModeDelete {
 						m.session.DeleteMessages(selectedIndices)
+						m.statusBarMessage = "Deleted selected messages."
+						cmd = clearStatusBarCmd(2 * time.Second)
 					}
 				}
 
@@ -189,7 +203,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Focus()
 				m.viewport.SetContent(m.renderConversation())
 				m.viewport.GotoBottom()
-				return m, textarea.Blink
+				return m, tea.Batch(textarea.Blink, cmd)
 
 			case tea.KeyRunes:
 				switch string(msg.Runes) {
@@ -433,6 +447,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tokenCountResultMsg:
 		m.tokenCount = int(msg)
 		m.isCountingTokens = false
+		return m, nil
+
+	case clearStatusBarMsg:
+		m.statusBarMessage = ""
 		return m, nil
 
 	case ctrlCTimeoutMsg:

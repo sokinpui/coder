@@ -53,6 +53,12 @@ func ctrlCTimeout() tea.Cmd {
 	})
 }
 
+func clearStatusBarCmd(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(t time.Time) tea.Msg {
+		return clearStatusBarMsg{}
+	})
+}
+
 func getEditor() string {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {

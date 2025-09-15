@@ -22,4 +22,5 @@ type (
 		content string
 		err     error
 	}
+	clearStatusBarMsg struct{}
 )

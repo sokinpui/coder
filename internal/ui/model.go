@@ -80,6 +80,7 @@ type Model struct {
 	selectableBlocks        []messageBlock
 	visualSelectCursor      int
 	visualSelectStart       int
+	statusBarMessage        string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -157,5 +158,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		selectableBlocks:        []messageBlock{},
 		visualSelectCursor:      0,
 		visualSelectStart:       0,
+		statusBarMessage:        "",
 	}, nil
 }

@@ -155,6 +155,10 @@ func (m Model) paletteView() string {
 }
 
 func (m Model) statusView() string {
+	if m.statusBarMessage != "" {
+		return statusBarMsgStyle.Render(m.statusBarMessage)
+	}
+
 	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}

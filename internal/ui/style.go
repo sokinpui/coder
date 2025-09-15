@@ -83,4 +83,6 @@ var (
 				BorderRight(false)
 	visualSelectStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("236"))
+	statusBarMsgStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("51")) // Cyan
 )
