@@ -67,7 +67,6 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
               alignSelf: isUser ? 'flex-end' : 'flex-start',
               bgcolor: isError ? 'error.main' : 'background.paper',
               color: isError ? 'primary.contrastText' : 'text.primary',
-              overflow: 'hidden',
             }}
           >
             <Box
