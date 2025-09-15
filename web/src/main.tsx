@@ -23,6 +23,21 @@ function Root() {
       createTheme({
         palette: {
           mode,
+          ...(mode === 'light'
+            ? {
+                // Use a light grey background for light mode to reduce eye strain
+                background: {
+                  default: '#fafafa',
+                  paper: '#fff',
+                },
+              }
+            : {
+                // Custom dark mode colors for better contrast
+                background: {
+                  default: '#303030',
+                  paper: '#424242',
+                },
+              }),
         },
       }),
     [mode],
