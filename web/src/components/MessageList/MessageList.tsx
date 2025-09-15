@@ -35,7 +35,8 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
       sx={{
         flexGrow: 1,
         overflowY: 'auto',
-        p: 2,
+        px: 2,
+        pb: 2,
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -63,6 +64,7 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
             sx={{
               position: 'relative',
               mb: 1.5,
+              ...(index === 0 && { mt: 2 }),
               maxWidth: '80%',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
               bgcolor: isError ? 'error.main' : 'background.paper',
