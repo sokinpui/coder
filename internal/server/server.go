@@ -3,6 +3,7 @@ package server
 import (
 	"coder/internal/config"
 	"coder/internal/core"
+	"coder/internal/token"
 	"coder/internal/session"
 	"encoding/json"
 	"log"
@@ -131,22 +132,16 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) handleUserInput(payload string) {
-	oldMode := c.session.GetConfig().AppMode
-	oldModel := c.session.GetConfig().Generation.ModelCode
-
 	event := c.session.HandleInput(payload)
 
-	newMode := c.session.GetConfig().AppMode
-	newModel := c.session.GetConfig().Generation.ModelCode
-
-	if oldMode != newMode || oldModel != newModel {
-		c.send <- ServerToClientMessage{
-			Type: "stateUpdate",
-			Payload: map[string]string{
-				"mode":  string(newMode),
-				"model": newModel,
-			},
-		}
+	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
+	c.send <- ServerToClientMessage{
+		Type: "stateUpdate",
+		Payload: map[string]interface{}{
+			"mode":       string(c.session.GetConfig().AppMode),
+			"model":      c.session.GetConfig().Generation.ModelCode,
+			"tokenCount": tokenCount,
+		},
 	}
 
 	switch event.Type {
@@ -221,12 +216,15 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		modes[i] = string(m)
 	}
 
+	initialTokenCount := token.CountTokens(sess.GetInitialPromptForTokenCount())
+
 	client.send <- ServerToClientMessage{
 		Type: "initialState",
 		Payload: map[string]interface{}{
 			"cwd":             getShortCwd(),
 			"mode":            string(cfg.AppMode),
 			"model":           cfg.Generation.ModelCode,
+			"tokenCount":      initialTokenCount,
 			"availableModes":  modes,
 			"availableModels": config.AvailableModels,
 		},

@@ -30,6 +30,7 @@ function App() {
 		sendMessage,
 		cwd,
 		isGenerating,
+		tokenCount,
 		cancelGeneration,
 		mode,
 		model,
@@ -85,6 +86,12 @@ function App() {
               <MenuIcon />
             </IconButton>
 					<Box sx={{ flexGrow: 1 }} />
+					<Typography variant="body2" sx={{ color: 'inherit' }}>
+						{`Tokens: ${tokenCount}`}
+					</Typography>
+
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
 					<Typography variant="body2" sx={{ color: 'inherit' }}>
 						{cwd}
 					</Typography>

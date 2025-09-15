@@ -5,6 +5,7 @@ export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [tokenCount, setTokenCount] = useState<number>(0)
   const [mode, setMode] = useState<string>('');
   const [model, setModel] = useState<string>('');
   const [availableModes, setAvailableModes] = useState<string[]>([]);
@@ -31,12 +32,14 @@ export function useWebSocket(url: string) {
       switch (msg.type) {
         case "initialState":
           setCwd(msg.payload.cwd || '');
+          setTokenCount(msg.payload.tokenCount || 0)
           setMode(msg.payload.mode || '');
           setModel(msg.payload.model || '');
           setAvailableModes(msg.payload.availableModes || []);
           setAvailableModels(msg.payload.availableModels || []);
           break
         case "stateUpdate":
+          setTokenCount(msg.payload.tokenCount || 0)
           setMode(msg.payload.mode);
           setModel(msg.payload.model);
           break;
@@ -123,6 +126,7 @@ export function useWebSocket(url: string) {
 		messages,
 		sendMessage,
 		cwd,
+		tokenCount,
 		isGenerating,
 		cancelGeneration,
 		mode,
