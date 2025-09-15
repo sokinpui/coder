@@ -11,12 +11,19 @@ import {
   Toolbar,
   Drawer,
   CssBaseline,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from '@mui/material'
 import {
   Send as SendIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
   Menu as MenuIcon,
+  AddComment as AddCommentIcon,
 } from '@mui/icons-material'
 import { AppContext } from './AppContext'
 
@@ -39,6 +46,17 @@ function App() {
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
+  }
+
+  const handleNewChat = () => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    const wsMsg = {
+      type: "userInput",
+      payload: ":new"
+    };
+    ws.current.send(JSON.stringify(wsMsg));
   }
 
   const scrollToBottom = () => {
@@ -183,6 +201,17 @@ function App() {
       >
         <Toolbar variant="dense" />
         <Box sx={{ overflow: 'auto' }}>
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleNewChat}>
+                <ListItemIcon>
+                  <AddCommentIcon />
+                </ListItemIcon>
+                <ListItemText primary="New Chat" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          <Divider />
           {/* Sidebar content goes here */}
         </Box>
       </Drawer>
