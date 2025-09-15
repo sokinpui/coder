@@ -377,8 +377,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle updates for textarea and viewport based on focus.
 	isRuneKey := false
-	if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyRunes {
-		isRuneKey = true
+	isViewportNavKey := false
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.Type {
+		case tea.KeyRunes:
+			isRuneKey = true
+		case tea.KeyUp, tea.KeyDown, tea.KeyLeft, tea.KeyRight,
+			tea.KeyPgUp, tea.KeyPgDown, tea.KeyHome, tea.KeyEnd:
+			isViewportNavKey = true
+		}
 	}
 
 	// When the textarea is focused, it gets all messages.
@@ -387,7 +394,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.textArea, cmd = m.textArea.Update(msg)
 		cmds = append(cmds, cmd)
 
-		if !isRuneKey {
+		// Don't pass navigation keys to viewport when textarea is focused
+		if !isRuneKey && !isViewportNavKey {
 			m.viewport, cmd = m.viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
