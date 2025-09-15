@@ -33,11 +33,12 @@ const drawerWidth = 240
 
 function App() {
   const { messages, sendMessage, setMessages } = useWebSocket(`ws://${location.host}/ws`)
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const theme = useTheme();
-  const { toggleColorMode } = useContext(AppContext);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const theme = useTheme()
+  const { toggleColorMode } = useContext(AppContext)
+  const collapsedDrawerWidth = theme.spacing(7)
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -48,10 +49,10 @@ function App() {
   }
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(scrollToBottom, [messages])
 
   const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
@@ -60,9 +61,11 @@ function App() {
     }
 
     sendMessage(input);
-    setMessages(prev => [...prev, { sender: 'User', content: input }]);
-    setInput('');
-  };
+    setMessages((prev) => [...prev, { sender: 'User', content: input }])
+    setInput('')
+  }
+
+  const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -71,17 +74,12 @@ function App() {
         position="fixed"
         elevation={1}
         sx={{
-          transition: theme.transitions.create(['margin', 'width'], {
+          zIndex: theme.zIndex.drawer + 1,
+          width: `calc(100% - ${currentDrawerWidth}px)`,
+          marginLeft: `${currentDrawerWidth}px`,
+          transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          ...(sidebarOpen && {
-            width: `calc(100% - ${drawerWidth}px)`,
-            marginLeft: `${drawerWidth}px`,
-            transition: theme.transitions.create(['margin', 'width'], {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
+            duration: sidebarOpen ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
           }),
         }}
       >
@@ -91,7 +89,6 @@ function App() {
             aria-label="open drawer"
             onClick={handleSidebarToggle}
             edge="start"
-            sx={{ mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
@@ -104,32 +101,50 @@ function App() {
         </Toolbar>
       </AppBar>
       <Drawer
+        variant="permanent"
+        anchor="left"
         sx={{
-          width: drawerWidth,
+          width: currentDrawerWidth,
           flexShrink: 0,
+          whiteSpace: 'nowrap',
+          boxSizing: 'border-box',
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
+            width: currentDrawerWidth,
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: sidebarOpen ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
+            }),
+            overflowX: 'hidden',
             boxSizing: 'border-box',
           },
         }}
-        variant="persistent"
-        anchor="left"
-        open={sidebarOpen}
       >
         <Toolbar variant="dense" />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box>
           <List>
-            <ListItem disablePadding>
-              <ListItemButton onClick={handleNewChat}>
-                <ListItemIcon>
+            <ListItem disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                onClick={handleNewChat}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: sidebarOpen ? 'initial' : 'center',
+                  px: 2.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: sidebarOpen ? 3 : 'auto',
+                    justifyContent: 'center',
+                  }}
+                >
                   <AddCommentIcon />
                 </ListItemIcon>
-                <ListItemText primary="New Chat" />
+                <ListItemText primary="New Chat" sx={{ opacity: sidebarOpen ? 1 : 0 }} />
               </ListItemButton>
             </ListItem>
           </List>
           <Divider />
-          {/* Sidebar content goes here */}
         </Box>
       </Drawer>
       <Box
@@ -141,18 +156,6 @@ function App() {
           height: '100vh',
           bgcolor: 'background.default',
           color: 'text.primary',
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          marginLeft: `-${drawerWidth}px`,
-          ...(sidebarOpen && {
-            transition: theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-            marginLeft: 0,
-          }),
         }}
       >
         <Toolbar variant="dense" />
@@ -175,7 +178,7 @@ function App() {
                 >
                   {msg.content}
                 </Typography>
-              );
+              )
             }
 
             const isUser = msg.sender === 'User';
@@ -208,7 +211,7 @@ function App() {
                   {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
                 </Box>
               </Paper>
-            );
+            )
           })}
           <div ref={messagesEndRef} />
         </Box>
@@ -222,7 +225,12 @@ function App() {
             variant="outlined"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault()
+                handleSubmit(e)
+              }
+            }}
             placeholder="Type your message... (Enter for new line, Shift+Enter to send)"
             autoComplete="off"
             multiline
@@ -240,7 +248,7 @@ function App() {
         </Box>
       </Box>
     </Box>
-  );
+  )
 }
 
 export default App;
