@@ -59,6 +59,7 @@ type Model struct {
 	lastInteractionFailed   bool
 	paletteFilteredArguments []string
 	isCyclingCompletions    bool
+	clearedInputBuffer      string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -131,5 +132,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		lastInteractionFailed:   false,
 		paletteFilteredArguments: []string{},
 		isCyclingCompletions:    false,
+		clearedInputBuffer:      "",
 	}, nil
 }

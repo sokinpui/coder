@@ -126,6 +126,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.Type {
 			case tea.KeyCtrlC:
 				if m.textArea.Value() != "" {
+					m.clearedInputBuffer = m.textArea.Value()
 					m.textArea.Reset()
 					m.ctrlCPressed = false
 					return m, nil
@@ -136,6 +137,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.ctrlCPressed = true
 				return m, ctrlCTimeout()
+
+			case tea.KeyCtrlZ:
+				if m.clearedInputBuffer != "" {
+					m.textArea.SetValue(m.clearedInputBuffer)
+					m.textArea.CursorEnd()
+					m.clearedInputBuffer = ""
+				}
+				return m, nil
 
 			case tea.KeyEscape:
 				// Clears the text input. If the palette is open, this will also
