@@ -204,6 +204,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 
 			case tea.KeyEnter:
+				totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
+				if m.showPalette && totalItems == 1 {
+					var selectedItem string
+					isArgument := false
+					if len(m.paletteFilteredActions) == 1 {
+						selectedItem = m.paletteFilteredActions[0]
+					} else if len(m.paletteFilteredCommands) == 1 {
+						selectedItem = m.paletteFilteredCommands[0]
+					} else {
+						selectedItem = m.paletteFilteredArguments[0]
+						isArgument = true
+					}
+
+					if isArgument {
+						val := m.textArea.Value()
+						parts := strings.Fields(val)
+						var prefixParts []string
+						if len(parts) > 0 && !strings.HasSuffix(val, " ") {
+							prefixParts = parts[:len(parts)-1]
+						} else {
+							prefixParts = parts
+						}
+						m.textArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+					} else {
+						m.textArea.SetValue(selectedItem)
+					}
+					m.textArea.CursorEnd()
+					return m.handleSubmit()
+				}
+
 				// Smart enter: submit if it's a command.
 				if strings.HasPrefix(m.textArea.Value(), ":") {
 					return m.handleSubmit()
