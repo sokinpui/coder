@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Box, Paper, Typography, CircularProgress } from '@mui/material'
 import type { Message } from '../../types'
+import { CopyButton } from '../CopyButton'
 
 interface MessageListProps {
   messages: Message[]
@@ -60,6 +61,7 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
             key={index}
             elevation={1}
             sx={{
+              position: 'relative',
               p: 1.5,
               mb: 1.5,
               maxWidth: '80%',
@@ -68,6 +70,11 @@ export function MessageList({ messages, isGenerating }: MessageListProps) {
               color: isUser || isError ? 'primary.contrastText' : 'text.primary',
             }}
           >
+            <Box sx={{ position: 'sticky', top: 0, zIndex: 1, height: 0, overflow: 'visible' }}>
+              <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+                <CopyButton content={msg.content} />
+              </Box>
+            </Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
               {msg.sender}
             </Typography>
