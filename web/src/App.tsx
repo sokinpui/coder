@@ -85,7 +85,7 @@ function App() {
               <MenuIcon />
             </IconButton>
 					<Box sx={{ flexGrow: 1 }} />
-					<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+					<Typography variant="body2" sx={{ color: 'inherit' }}>
 						{cwd}
 					</Typography>
 
