@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import type { Message } from '../types';
 
 export function useWebSocket(url: string) {
+  const [cwd, setCwd] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [tokenCount, setTokenCount] = useState<number>(0)
+  const [mode, setMode] = useState<string>('');
+  const [model, setModel] = useState<string>('');
+  const [availableModes, setAvailableModes] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -23,6 +30,19 @@ export function useWebSocket(url: string) {
       console.log("Received:", msg);
 
       switch (msg.type) {
+        case "initialState":
+          setCwd(msg.payload.cwd || '');
+          setTokenCount(msg.payload.tokenCount || 0)
+          setMode(msg.payload.mode || '');
+          setModel(msg.payload.model || '');
+          setAvailableModes(msg.payload.availableModes || []);
+          setAvailableModels(msg.payload.availableModels || []);
+          break
+        case "stateUpdate":
+          setTokenCount(msg.payload.tokenCount || 0)
+          setMode(msg.payload.mode);
+          setModel(msg.payload.model);
+          break;
         case "messageUpdate":
           setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content }]);
           break;
@@ -40,12 +60,15 @@ export function useWebSocket(url: string) {
           break;
         case "generationEnd":
           // No action needed, chunking is handled
+          setIsGenerating(false);
           break;
         case "newSession":
           setMessages([{ sender: 'System', content: 'New session started.' }]);
+          setIsGenerating(false);
           break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
+          setIsGenerating(false);
           break;
       }
     };
@@ -73,6 +96,11 @@ export function useWebSocket(url: string) {
       console.error("WebSocket is not open.");
       return;
     }
+    if (!payload.startsWith(':')) {
+      setIsGenerating(true);
+      // Optimistic update for user messages
+      setMessages((prev) => [...prev, { sender: 'User', content: payload }])
+    }
     const wsMsg = {
       type: "userInput",
       payload: payload
@@ -80,5 +108,30 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
-  return { messages, sendMessage, setMessages };
+  const cancelGeneration = () => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    const wsMsg = {
+      type: "cancelGeneration",
+      payload: ""
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+    setIsGenerating(false);
+  };
+
+
+  return {
+		messages,
+		sendMessage,
+		cwd,
+		tokenCount,
+		isGenerating,
+		cancelGeneration,
+		mode,
+		model,
+		availableModes,
+		availableModels,
+	};
 }

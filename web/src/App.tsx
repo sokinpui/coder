@@ -1,43 +1,46 @@
-import { useState, useEffect, useRef, useContext } from 'react'
-import ReactMarkdown from 'react-markdown'
+import { useState, useContext } from 'react'
 import {
   Box,
-  TextField,
-  IconButton,
-  Paper,
   Typography,
   useTheme,
   AppBar,
   Toolbar,
-  Drawer,
   CssBaseline,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
+  IconButton,
+	FormControl,
+	Select,
+	MenuItem,
+	Divider,
+	type SelectChangeEvent,
 } from '@mui/material'
 import {
-  Send as SendIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
   Menu as MenuIcon,
-  AddComment as AddCommentIcon,
 } from '@mui/icons-material'
 import { AppContext } from './AppContext'
 import { useWebSocket } from './hooks/useWebSocket'
-import type { Message } from './types'
-
-const drawerWidth = 240
+import { Sidebar, drawerWidth, getCollapsedDrawerWidth } from './components/Sidebar'
+import { MessageList } from './components/MessageList'
+import { ChatInput } from './components/ChatInput'
 
 function App() {
-  const { messages, sendMessage, setMessages } = useWebSocket(`ws://${location.host}/ws`)
-  const [input, setInput] = useState('');
+  const {
+		messages,
+		sendMessage,
+		cwd,
+		isGenerating,
+		tokenCount,
+		cancelGeneration,
+		mode,
+		model,
+		availableModes,
+		availableModels,
+	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const theme = useTheme();
-  const { toggleColorMode } = useContext(AppContext);
+  const theme = useTheme()
+  const { toggleColorMode } = useContext(AppContext)
+  const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -47,91 +50,20 @@ function App() {
     sendMessage(':new')
   }
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+	const handleModeChange = (event: SelectChangeEvent) => {
+		sendMessage(`:mode ${event.target.value}`)
+	}
 
-  useEffect(scrollToBottom, [messages]);
+	const handleModelChange = (event: SelectChangeEvent) => {
+		sendMessage(`:model ${event.target.value}`)
+  }
 
-  const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    if (!input.trim()) {
-      return;
-    }
-
-    sendMessage(input);
-    setMessages(prev => [...prev, { sender: 'User', content: input }]);
-    setInput('');
-  };
+  const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        elevation={1}
-        sx={{
-          transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          ...(sidebarOpen && {
-            width: `calc(100% - ${drawerWidth}px)`,
-            marginLeft: `${drawerWidth}px`,
-            transition: theme.transitions.create(['margin', 'width'], {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-          }),
-        }}
-      >
-        <Toolbar variant="dense">
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleSidebarToggle}
-            edge="start"
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Coder
-          </Typography>
-          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
-            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={sidebarOpen}
-      >
-        <Toolbar variant="dense" />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton onClick={handleNewChat}>
-                <ListItemIcon>
-                  <AddCommentIcon />
-                </ListItemIcon>
-                <ListItemText primary="New Chat" />
-              </ListItemButton>
-            </ListItem>
-          </List>
-          <Divider />
-          {/* Sidebar content goes here */}
-        </Box>
-      </Drawer>
+      <Sidebar open={sidebarOpen} onNewChat={handleNewChat} isGenerating={isGenerating} />
       <Box
         component="main"
         sx={{
@@ -141,106 +73,68 @@ function App() {
           height: '100vh',
           bgcolor: 'background.default',
           color: 'text.primary',
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          marginLeft: `-${drawerWidth}px`,
-          ...(sidebarOpen && {
-            transition: theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-            marginLeft: 0,
-          }),
         }}
       >
-        <Toolbar variant="dense" />
-        <Box
-          sx={{
-            flexGrow: 1,
-            overflowY: 'auto',
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {messages.map((msg, index) => {
-            if (msg.sender === 'System') {
-              return (
-                <Typography
-                  key={index}
-                  variant="caption"
-                  sx={{ alignSelf: 'center', fontStyle: 'italic', color: 'text.secondary', mb: 1.5 }}
-                >
-                  {msg.content}
-                </Typography>
-              );
-            }
+        <AppBar position="static" elevation={1}>
+          <Toolbar variant="dense">
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleSidebarToggle}
+              edge="start"
+            >
+              <MenuIcon />
+            </IconButton>
+					<Box sx={{ flexGrow: 1 }} />
+					<Typography variant="body2" sx={{ color: 'inherit' }}>
+						{`Tokens: ${tokenCount}`}
+					</Typography>
 
-            const isUser = msg.sender === 'User';
-            const isError = msg.sender === 'Error';
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
-            return (
-              <Paper
-                key={index}
-                elevation={1}
-                sx={{
-                  p: 1.5,
-                  mb: 1.5,
-                  maxWidth: '80%',
-                  alignSelf: isUser ? 'flex-end' : 'flex-start',
-                  bgcolor: isUser ? 'primary.main' : isError ? 'error.main' : 'background.paper',
-                  color: isUser || isError ? 'primary.contrastText' : 'text.primary',
-                }}
-              >
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                  {msg.sender}
-                </Typography>
-                <Box
-                  className="message-content"
-                  sx={{
-                    '& pre': { whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: 'monospace' },
-                    '& code': { fontFamily: 'monospace', backgroundColor: 'action.hover', px: 0.5, borderRadius: 1 },
-                    '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
-                  }}
-                >
-                  {msg.sender === 'AI' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
-                </Box>
-              </Paper>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </Box>
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{ p: 1, display: 'flex', alignItems: 'flex-end', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
-        >
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-            placeholder="Type your message... (Enter for new line, Shift+Enter to send)"
-            autoComplete="off"
-            multiline
-            maxRows={10}
-            size="small"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                maxHeight: '25vh',
-              },
-            }}
-          />
-          <IconButton type="submit" color="primary" sx={{ ml: 1 }}>
-            <SendIcon />
+					<Typography variant="body2" sx={{ color: 'inherit' }}>
+						{cwd}
+					</Typography>
+
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+					<FormControl size="small" variant="standard" sx={{ minWidth: 120 }} disabled={isGenerating}>
+						<Select
+							value={mode}
+							onChange={handleModeChange}
+							disableUnderline
+							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+						>
+							{availableModes.map((m) => (
+								<MenuItem key={m} value={m}>{m}</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+
+					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+					<FormControl size="small" variant="standard" sx={{ minWidth: 200 }} disabled={isGenerating}>
+						<Select
+							value={model}
+							onChange={handleModelChange}
+							disableUnderline
+							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+						>
+							{availableModels.map((m) => (
+								<MenuItem key={m} value={m}>{m}</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
-        </Box>
+          </Toolbar>
+        </AppBar>
+        <MessageList messages={messages} isGenerating={isGenerating} />
+        <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
       </Box>
     </Box>
-  );
+  )
 }
 
 export default App;

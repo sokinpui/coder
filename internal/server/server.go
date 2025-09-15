@@ -3,10 +3,13 @@ package server
 import (
 	"coder/internal/config"
 	"coder/internal/core"
+	"coder/internal/token"
 	"coder/internal/session"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +29,18 @@ type ClientToServerMessage struct {
 type ServerToClientMessage struct {
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
+}
+
+func getShortCwd() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "unknown directory"
+	}
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" && strings.HasPrefix(wd, home) {
+		return "~" + strings.TrimPrefix(wd, home)
+	}
+	return wd
 }
 
 type MessagePayload struct {
@@ -48,7 +63,12 @@ type Client struct {
 }
 
 func (c *Client) readPump() {
-	defer c.conn.Close()
+	defer func() {
+		if err := c.session.SaveConversation(); err != nil {
+			log.Printf("Error saving conversation on disconnect: %v", err)
+		}
+		c.conn.Close()
+	}()
 
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
@@ -71,7 +91,15 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		go c.handleClientMessage(msg)
+		switch msg.Type {
+		case "userInput":
+			go c.handleUserInput(msg.Payload)
+		case "cancelGeneration":
+			log.Println("Received cancel generation request")
+			c.session.CancelGeneration()
+		default:
+			log.Printf("unknown message type: %s", msg.Type)
+		}
 	}
 }
 
@@ -103,13 +131,18 @@ func (c *Client) writePump() {
 	}
 }
 
-func (c *Client) handleClientMessage(msg ClientToServerMessage) {
-	if msg.Type != "userInput" {
-		log.Printf("unknown message type: %s", msg.Type)
-		return
-	}
+func (c *Client) handleUserInput(payload string) {
+	event := c.session.HandleInput(payload)
 
-	event := c.session.HandleInput(msg.Payload)
+	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
+	c.send <- ServerToClientMessage{
+		Type: "stateUpdate",
+		Payload: map[string]interface{}{
+			"mode":       string(c.session.GetConfig().AppMode),
+			"model":      c.session.GetConfig().Generation.ModelCode,
+			"tokenCount": tokenCount,
+		},
+	}
 
 	switch event.Type {
 	case session.NoOp:
@@ -176,6 +209,25 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		conn:    conn,
 		session: sess,
 		send:    make(chan ServerToClientMessage, 256),
+	}
+
+	modes := make([]string, len(config.AvailableAppModes))
+	for i, m := range config.AvailableAppModes {
+		modes[i] = string(m)
+	}
+
+	initialTokenCount := token.CountTokens(sess.GetInitialPromptForTokenCount())
+
+	client.send <- ServerToClientMessage{
+		Type: "initialState",
+		Payload: map[string]interface{}{
+			"cwd":             getShortCwd(),
+			"mode":            string(cfg.AppMode),
+			"model":           cfg.Generation.ModelCode,
+			"tokenCount":      initialTokenCount,
+			"availableModes":  modes,
+			"availableModels": config.AvailableModels,
+		},
 	}
 
 	log.Println("Client connected")
