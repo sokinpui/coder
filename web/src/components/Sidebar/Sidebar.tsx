@@ -16,9 +16,10 @@ import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 interface SidebarProps {
   open: boolean
   onNewChat: () => void
+  isGenerating: boolean
 }
 
-export function Sidebar({ open, onNewChat }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -49,6 +50,7 @@ export function Sidebar({ open, onNewChat }: SidebarProps) {
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={onNewChat}
+              disabled={isGenerating}
               sx={{
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',

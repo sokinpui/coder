@@ -62,7 +62,12 @@ type Client struct {
 }
 
 func (c *Client) readPump() {
-	defer c.conn.Close()
+	defer func() {
+		if err := c.session.SaveConversation(); err != nil {
+			log.Printf("Error saving conversation on disconnect: %v", err)
+		}
+		c.conn.Close()
+	}()
 
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
@@ -85,7 +90,15 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		go c.handleClientMessage(msg)
+		switch msg.Type {
+		case "userInput":
+			go c.handleUserInput(msg.Payload)
+		case "cancelGeneration":
+			log.Println("Received cancel generation request")
+			c.session.CancelGeneration()
+		default:
+			log.Printf("unknown message type: %s", msg.Type)
+		}
 	}
 }
 
@@ -117,13 +130,8 @@ func (c *Client) writePump() {
 	}
 }
 
-func (c *Client) handleClientMessage(msg ClientToServerMessage) {
-	if msg.Type != "userInput" {
-		log.Printf("unknown message type: %s", msg.Type)
-		return
-	}
-
-	event := c.session.HandleInput(msg.Payload)
+func (c *Client) handleUserInput(payload string) {
+	event := c.session.HandleInput(payload)
 
 	switch event.Type {
 	case session.NoOp:

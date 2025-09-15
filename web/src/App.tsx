@@ -10,6 +10,8 @@ import {
   AppBar,
   Toolbar,
   CssBaseline,
+  CircularProgress,
+  Button,
 } from '@mui/material'
 import {
   Send as SendIcon,
@@ -23,7 +25,7 @@ import { useWebSocket } from './hooks/useWebSocket'
 import { Sidebar, drawerWidth, getCollapsedDrawerWidth } from './components/Sidebar'
 
 function App() {
-  const { messages, sendMessage, setMessages, cwd } = useWebSocket(`ws://${location.host}/ws`)
+  const { messages, sendMessage, setMessages, cwd, isGenerating, cancelGeneration } = useWebSocket(`ws://${location.host}/ws`)
   const [input, setInput] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -94,7 +96,7 @@ function App() {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <Sidebar open={sidebarOpen} onNewChat={handleNewChat} />
+      <Sidebar open={sidebarOpen} onNewChat={handleNewChat} isGenerating={isGenerating} />
       <Box
         component="main"
         sx={{
@@ -161,6 +163,24 @@ function App() {
               </Paper>
             )
           })}
+          {isGenerating && messages.length > 0 && messages[messages.length - 1].sender === 'User' && (
+            <Paper
+              elevation={1}
+              sx={{
+                p: 1.5,
+                mb: 1.5,
+                maxWidth: '80%',
+                alignSelf: 'flex-start',
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CircularProgress size={20} sx={{ mr: 1.5 }} />
+                <Typography variant="body2">AI is thinking...</Typography>
+              </Box>
+            </Paper>
+          )}
           <div ref={messagesEndRef} />
         </Box>
         <Box
@@ -184,15 +204,28 @@ function App() {
             multiline
             maxRows={10}
             size="small"
+            disabled={isGenerating}
             sx={{
               '& .MuiOutlinedInput-root': {
                 maxHeight: '25vh',
               },
             }}
           />
-          <IconButton type="submit" color="primary" sx={{ ml: 1 }}>
-            <SendIcon />
-          </IconButton>
+          {isGenerating ? (
+            <Button
+              onClick={cancelGeneration}
+              startIcon={<CircularProgress size={20} />}
+              sx={{ ml: 1, whiteSpace: 'nowrap' }}
+              variant="outlined"
+              color="secondary"
+            >
+              Stop
+            </Button>
+          ) : (
+            <IconButton type="submit" color="primary" sx={{ ml: 1 }} disabled={!input.trim()}>
+              <SendIcon />
+            </IconButton>
+          )}
         </Box>
       </Box>
     </Box>
