@@ -26,20 +26,15 @@ import {
   AddComment as AddCommentIcon,
 } from '@mui/icons-material'
 import { AppContext } from './AppContext'
-
-// Define message types for better state management
-interface Message {
-  sender: 'User' | 'AI' | 'System' | 'Command' | 'Result' | 'Error';
-  content: string;
-}
+import { useWebSocket } from './hooks/useWebSocket'
+import type { Message } from './types'
 
 const drawerWidth = 240
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, sendMessage, setMessages } = useWebSocket(`ws://${location.host}/ws`)
   const [input, setInput] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const ws = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const theme = useTheme();
   const { toggleColorMode } = useContext(AppContext);
@@ -49,14 +44,7 @@ function App() {
   }
 
   const handleNewChat = () => {
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    const wsMsg = {
-      type: "userInput",
-      payload: ":new"
-    };
-    ws.current.send(JSON.stringify(wsMsg));
+    sendMessage(':new')
   }
 
   const scrollToBottom = () => {
@@ -65,84 +53,13 @@ function App() {
 
   useEffect(scrollToBottom, [messages]);
 
-  useEffect(() => {
-    let ignore = false;
-
-    // Initialize WebSocket connection
-    const socket = new WebSocket(`ws://${location.host}/ws`);
-    ws.current = socket;
-
-    socket.onopen = () => {
-      if (ignore) return;
-      console.log("Connected to WebSocket");
-      setMessages(prev => [...prev, { sender: 'System', content: 'Connected to server.' }]);
-    };
-
-    socket.onmessage = (event) => {
-      if (ignore) return;
-      const msg = JSON.parse(event.data);
-      console.log("Received:", msg);
-
-      switch (msg.type) {
-        case "messageUpdate":
-          setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content }]);
-          break;
-        case "generationChunk":
-          setMessages(prev => {
-            const lastMessage = prev[prev.length - 1];
-            if (lastMessage && lastMessage.sender === 'AI') {
-              // Append to the last AI message
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1] = { ...lastMessage, content: lastMessage.content + msg.payload };
-              return newMessages;
-            } else {
-              // Start a new AI message
-              return [...prev, { sender: 'AI', content: msg.payload }];
-            }
-          });
-          break;
-        case "generationEnd":
-          // No action needed, chunking is handled
-          break;
-        case "newSession":
-          setMessages([{ sender: 'System', content: 'New session started.' }]);
-          break;
-        case "error":
-          setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
-          break;
-      }
-    };
-
-    socket.onclose = () => {
-      if (ignore) return;
-      console.log("Connection closed");
-      setMessages(prev => [...prev, { sender: 'System', content: 'Connection closed.' }]);
-    };
-
-    socket.onerror = (err) => {
-      if (ignore) return;
-      console.error("WebSocket error:", err);
-      setMessages(prev => [...prev, { sender: 'Error', content: 'WebSocket connection error.' }]);
-    };
-
-    // Cleanup on component unmount
-    return () => {
-      ignore = true;
-      socket.close();
-    };
-  }, []); // Empty dependency array means this runs once on mount
-
   const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
-    if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
+    if (!input.trim()) {
       return;
     }
 
-    const wsMsg = {
-      type: "userInput",
-      payload: input
-    };
-    ws.current.send(JSON.stringify(wsMsg));
+    sendMessage(input);
     setMessages(prev => [...prev, { sender: 'User', content: input }]);
     setInput('');
   };
