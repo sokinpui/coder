@@ -1,28 +1,14 @@
-import { useState, useContext } from 'react'
+import { useState } from 'react'
 import {
   Box,
-  Typography,
-  useTheme,
-  AppBar,
-  Toolbar,
   CssBaseline,
-  IconButton,
-	FormControl,
-	Select,
-	MenuItem,
-	Divider,
 	type SelectChangeEvent,
 } from '@mui/material'
-import {
-  Brightness4 as Brightness4Icon,
-  Brightness7 as Brightness7Icon,
-  Menu as MenuIcon,
-} from '@mui/icons-material'
-import { AppContext } from './AppContext'
 import { useWebSocket } from './hooks/useWebSocket'
-import { Sidebar, drawerWidth, getCollapsedDrawerWidth } from './components/Sidebar'
+import { Sidebar } from './components/Sidebar'
 import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
+import { TopBar } from './components/TopBar'
 
 function App() {
   const {
@@ -43,9 +29,6 @@ function App() {
 		availableModels,
 	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const theme = useTheme()
-  const { toggleColorMode } = useContext(AppContext)
-  const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -83,8 +66,6 @@ function App() {
     deleteMessage(index)
   }
 
-  const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
-
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <CssBaseline />
@@ -100,61 +81,18 @@ function App() {
           color: 'text.primary',
         }}
       >
-        <AppBar position="static" elevation={1}>
-          <Toolbar variant="dense">
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              onClick={handleSidebarToggle}
-              edge="start"
-            >
-              <MenuIcon />
-            </IconButton>
-					<Box sx={{ flexGrow: 1 }} />
-					<Typography variant="body2" sx={{ color: 'inherit' }}>
-						{`Tokens: ${tokenCount}`}
-					</Typography>
-
-					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-
-					<Typography variant="body2" sx={{ color: 'inherit' }}>
-						{cwd}
-					</Typography>
-
-					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-
-					<FormControl size="small" variant="standard" sx={{ minWidth: 120 }} disabled={isGenerating}>
-						<Select
-							value={mode}
-							onChange={handleModeChange}
-							disableUnderline
-							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
-						>
-							{availableModes.map((m) => (
-								<MenuItem key={m} value={m}>{m}</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-
-					<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
-
-					<FormControl size="small" variant="standard" sx={{ minWidth: 200 }} disabled={isGenerating}>
-						<Select
-							value={model}
-							onChange={handleModelChange}
-							disableUnderline
-							sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
-						>
-							{availableModels.map((m) => (
-								<MenuItem key={m} value={m}>{m}</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
-            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-          </Toolbar>
-        </AppBar>
+        <TopBar
+          onSidebarToggle={handleSidebarToggle}
+          tokenCount={tokenCount}
+          cwd={cwd}
+          mode={mode}
+          onModeChange={handleModeChange}
+          availableModes={availableModes}
+          model={model}
+          onModelChange={handleModelChange}
+          availableModels={availableModels}
+          isGenerating={isGenerating}
+        />
         <MessageList
           messages={messages}
           isGenerating={isGenerating}
