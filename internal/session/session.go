@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 // EventType defines the type of event returned by the session.
@@ -45,6 +46,8 @@ type Session struct {
 	cancelGeneration   context.CancelFunc
 	title              string
 	titleGenerated     bool
+	historyFilename    string
+	createdAt          time.Time
 }
 
 // New creates a new session.
@@ -75,6 +78,8 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 		messages:       messages,
 		title:          "New Chat",
 		titleGenerated: false,
+		createdAt:      time.Now(),
+		historyFilename:    "",
 	}, nil
 }
 
@@ -185,8 +190,27 @@ func (s *Session) GetInitialPromptForTokenCount() string {
 
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
+	// Don't save empty sessions.
+	if len(s.messages) == 0 {
+		return nil
+	}
+
+	if s.historyFilename == "" {
+		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
+	}
+
 	role := s.getCurrentRole()
-	return s.historyManager.SaveConversation(s.messages, role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode)
+	data := &history.ConversationData{
+		Filename:          s.historyFilename,
+		Title:             s.title,
+		CreatedAt:         s.createdAt,
+		Messages:          s.messages,
+		Role:              role,
+		SystemInstructions: s.systemInstructions,
+		RelatedDocuments:  s.relatedDocuments,
+		ProjectSourceCode: s.projectSourceCode,
+	}
+	return s.historyManager.SaveConversation(data)
 }
 
 // GetTitle returns the conversation title.
@@ -248,6 +272,8 @@ func (s *Session) newSession() {
 	s.messages = []core.Message{} // Clear messages
 	s.title = "New Chat"
 	s.titleGenerated = false
+	s.createdAt = time.Now()
+	s.historyFilename = ""
 }
 
 // Branch saves the current session and creates a new one containing messages

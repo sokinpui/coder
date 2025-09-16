@@ -1,6 +1,7 @@
 package history
 
 import (
+	"bytes"
 	"coder/internal/core"
 	"coder/internal/utils"
 	"fmt"
@@ -13,6 +14,18 @@ import (
 const (
 	historyDirName = ".coder/history"
 )
+
+// ConversationData holds all the necessary information to save a conversation history file.
+type ConversationData struct {
+	Filename          string
+	Title             string
+	CreatedAt         time.Time
+	Messages          []core.Message
+	Role              string
+	SystemInstructions string
+	RelatedDocuments  string
+	ProjectSourceCode string
+}
 
 // Manager handles saving conversation history.
 type Manager struct {
@@ -36,22 +49,28 @@ func NewManager() (*Manager, error) {
 }
 
 // SaveConversation saves the conversation to a markdown file.
-// It use BuildPrompt to construct the conversation history.
-func (m *Manager) SaveConversation(messages []core.Message, role, systemInstructions, relatedDocuments, projectSourceCode string) error {
-
-	content := core.BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode, messages)
+// It includes YAML frontmatter for metadata.
+func (m *Manager) SaveConversation(data *ConversationData) error {
+	content := core.BuildPrompt(data.Role, data.SystemInstructions, data.RelatedDocuments, data.ProjectSourceCode, data.Messages)
 
 	// The prompt builder adds a trailing "AI Assistant:\n" which we don't want in the saved file.
 	content = strings.TrimSuffix(content, "AI Assistant:\n")
 	content = strings.TrimSpace(content)
 
-	if content == "" {
+	if content == "" && data.Title == "New Chat" {
 		return nil
 	}
 
-	timestamp := time.Now().Unix()
-	fileName := fmt.Sprintf("%d.md", timestamp)
-	filePath := filepath.Join(m.historyPath, fileName)
+	var fileBuf bytes.Buffer
+	fmt.Fprintln(&fileBuf, "---")
+	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
+	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
+	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
+	fmt.Fprintln(&fileBuf, "---")
+	fmt.Fprintln(&fileBuf, "") // newline after metadata block
 
-	return os.WriteFile(filePath, []byte(content), 0644)
+	fileBuf.WriteString(content)
+
+	filePath := filepath.Join(m.historyPath, data.Filename)
+	return os.WriteFile(filePath, fileBuf.Bytes(), 0644)
 }
