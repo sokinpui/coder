@@ -1,7 +1,7 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip } from '@mui/material'
-import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon } from '@mui/icons-material'
+import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextField } from '@mui/material'
+import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
 
@@ -10,11 +10,15 @@ interface MessageListProps {
   isGenerating: boolean
   onRegenerate: (userMessageIndex: number) => void
   onApplyItf: (content: string) => void
+  onEditMessage: (index: number, content: string) => void
 }
 
-export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }: MessageListProps) {
+export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, onEditMessage }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -31,6 +35,24 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }
 
     if (isScrolledToBottom) scrollToBottom()
   }, [messages])
+
+  const handleEditStart = (index: number, content: string) => {
+    setEditingIndex(index)
+    setEditText(content)
+  }
+
+  const handleEditSave = () => {
+    if (editingIndex !== null) {
+      onEditMessage(editingIndex, editText)
+    }
+    setEditingIndex(null)
+    setEditText('')
+  }
+
+  const handleEditCancel = () => {
+    setEditingIndex(null)
+    setEditText('')
+  }
 
   return (
     <Box
@@ -60,6 +82,7 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }
         const isUser = msg.sender === 'User'
         const isError = msg.sender === 'Error'
         const isAI = msg.sender === 'AI'
+        const isEditing = editingIndex === index
 
         return (
           <Paper
@@ -91,6 +114,24 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{msg.sender}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {isUser && !isGenerating && !isEditing && (
+                  <Tooltip title="Edit" placement="left">
+                    <IconButton
+                      onClick={() => handleEditStart(index, msg.content)}
+                      size="small"
+                      color="inherit"
+                      sx={{
+                        mr: 0.5,
+                        backgroundColor: (theme) => theme.palette.action.hover,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.action.selected,
+                        },
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 {isAI && !isGenerating && (
                   <Tooltip title="Apply" placement="left">
                     <IconButton
@@ -140,7 +181,36 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }
                 pb: 1.5,
               }}
             >
-              {msg.sender === 'AI' || msg.sender === 'User' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : <Typography component="pre">{msg.content}</Typography>}
+              {isEditing ? (
+                <Box sx={{ pt: 1 }}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    maxRows={20}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    autoFocus
+                  />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
+                    <IconButton onClick={handleEditCancel} size="small">
+                      <CloseIcon />
+                    </IconButton>
+                    <IconButton onClick={handleEditSave} size="small" color="primary">
+                      <CheckIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ) : (
+                <>
+                  {msg.sender === 'AI' || msg.sender === 'User' ? (
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  ) : (
+                    <Typography component="pre">{msg.content}</Typography>
+                  )}
+                </>
+              )}
             </Box>
           </Paper>
         )

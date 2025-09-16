@@ -3,9 +3,10 @@ package server
 import (
 	"coder/internal/config"
 	"coder/internal/core"
-	"coder/internal/token"
 	"coder/internal/session"
+	"coder/internal/token"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -106,6 +107,14 @@ func (c *Client) readPump() {
 		case "applyItf":
 			if content, ok := msg.Payload.(string); ok {
 				go c.handleApplyItf(content)
+			}
+		case "editMessage":
+			if payload, ok := msg.Payload.(map[string]interface{}); ok {
+				index, indexOk := payload["index"].(float64) // JSON numbers are float64
+				content, contentOk := payload["content"].(string)
+				if indexOk && contentOk {
+					go c.handleEditMessage(int(index), content)
+				}
 			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
@@ -271,6 +280,18 @@ func (c *Client) handleApplyItf(content string) {
 		Type:    "messageUpdate",
 		Payload: MessagePayload{Type: messageTypeToString(resultMsg.Type), Content: resultMsg.Content},
 	}
+}
+
+func (c *Client) handleEditMessage(index int, newContent string) {
+	err := c.session.EditMessage(index, newContent)
+	if err != nil {
+		log.Printf("Error editing message: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: fmt.Sprintf("Failed to edit message: %v", err),
+		}
+	}
+	// No success message needed, client updates optimistically.
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {

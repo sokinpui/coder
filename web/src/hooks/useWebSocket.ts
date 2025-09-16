@@ -21,7 +21,6 @@ export function useWebSocket(url: string) {
     socket.onopen = () => {
       if (ignore) return;
       console.log("Connected to WebSocket");
-      setMessages(prev => [...prev, { sender: 'System', content: 'Connected to server.' }]);
     };
 
     socket.onmessage = (event) => {
@@ -149,6 +148,26 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
+  const editMessage = (index: number, content: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    // Optimistic update
+    setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages[index] && newMessages[index].sender === 'User') {
+            newMessages[index] = { ...newMessages[index], content: content };
+        }
+        return newMessages;
+    });
+
+    const wsMsg = {
+      type: "editMessage",
+      payload: { index, content }
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  };
 
   return {
 		messages,
@@ -163,5 +182,6 @@ export function useWebSocket(url: string) {
 		availableModels,
 		regenerateFrom,
 		applyItf,
+		editMessage,
 	};
 }
