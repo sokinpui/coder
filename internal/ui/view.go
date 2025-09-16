@@ -24,7 +24,7 @@ func (m Model) renderConversation() string {
 
 	selectedIndices := make(map[int]struct{})
 	if m.state == stateVisualSelect {
-		if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit {
+		if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit || m.visualMode == visualModeBranch {
 			if m.visualSelectCursor < len(m.selectableBlocks) {
 				block := m.selectableBlocks[m.visualSelectCursor]
 				for j := block.startIdx; j <= block.endIdx; j++ {
@@ -98,7 +98,7 @@ func (m Model) renderConversation() string {
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
 			// Don't render the special result messages that trigger visual modes.
-			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult {
+			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult || currentMsg.Content == core.BranchModeResult {
 				continue
 			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
@@ -212,6 +212,9 @@ func (m Model) statusView() string {
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
 		} else if m.visualMode == visualModeEdit {
 			modeStr = "EDIT"
+			helpStr = "j/k: move | enter: confirm | esc: cancel"
+		} else if m.visualMode == visualModeBranch {
+			modeStr = "BRANCH"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
 		} else { // visualModeNone
 			modeStr = "VISUAL"

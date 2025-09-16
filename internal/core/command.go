@@ -21,6 +21,9 @@ const VisualModeResult = "---_VISUAL_MODE_---"
 // EditModeResult signals the UI to enter visual edit mode.
 const EditModeResult = "---_EDIT_MODE_---"
 
+// BranchModeResult signals the UI to enter visual branch mode.
+const BranchModeResult = "---_BRANCH_MODE_---"
+
 type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
 
 var commands = map[string]commandFunc{
@@ -31,6 +34,7 @@ var commands = map[string]commandFunc{
 	"gen":    genCmd,
 	"edit":   editModeCmd,
 	"visual": visualCmd,
+	"branch": branchCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -104,6 +108,13 @@ func visualCmd(args string, messages []Message, cfg *config.Config) (string, boo
 		return "Cannot enter visual mode: no messages to select.", false
 	}
 	return VisualModeResult, true
+}
+
+func branchCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	if !hasSelectableMessages(messages) {
+		return "Cannot enter branch mode: no messages to select.", false
+	}
+	return BranchModeResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

@@ -121,6 +121,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					return enterVisualMode(visualModeGenerate)
 				case core.EditModeResult:
 					return enterVisualMode(visualModeEdit)
+				case core.BranchModeResult:
+					return enterVisualMode(visualModeBranch)
 				}
 			}
 		}
@@ -194,70 +196,93 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, textarea.Blink
 
 			case tea.KeyEnter:
-				if m.visualMode != visualModeGenerate && m.visualMode != visualModeEdit {
-					return m, nil
-				}
-				start, end := m.visualSelectStart, m.visualSelectCursor
-				if start > end {
-					start, end = end, start
+				if m.visualSelectCursor >= len(m.selectableBlocks) {
+					return m, nil // Out of bounds, do nothing
 				}
 
+				var cmds []tea.Cmd
 				var cmd tea.Cmd
 
-				if end < len(m.selectableBlocks) {
-					var selectedMessages []core.Message
-					var selectedIndices []int
-					for i := start; i <= end; i++ {
-						block := m.selectableBlocks[i]
-						for j := block.startIdx; j <= block.endIdx; j++ {
-							selectedMessages = append(selectedMessages, m.session.GetMessages()[j])
-							selectedIndices = append(selectedIndices, j)
+				switch m.visualMode {
+				case visualModeGenerate:
+					block := m.selectableBlocks[m.visualSelectCursor]
+					userMsgIndex := -1
+					// Find the first user message at or before the start of the selected block
+					for i := block.startIdx; i >= 0; i-- {
+						if m.session.GetMessages()[i].Type == core.UserMessage {
+							userMsgIndex = i
+							break
 						}
 					}
 
-					if m.visualMode == visualModeGenerate {
-						block := m.selectableBlocks[m.visualSelectCursor]
-						userMsgIndex := -1
-						// Find the first user message at or before the start of the selected block
-						for i := block.startIdx; i >= 0; i-- {
-							if m.session.GetMessages()[i].Type == core.UserMessage {
-								userMsgIndex = i
-								break
-							}
-						}
+					if userMsgIndex != -1 {
+						// Exit visual mode before starting generation
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.textArea.Focus()
 
-						if userMsgIndex != -1 {
-							// Exit visual mode before starting generation
-							m.state = stateIdle
-							m.visualMode = visualModeNone
-							m.textArea.Focus()
-
-							event := m.session.RegenerateFrom(userMsgIndex)
-							return m.startGeneration(event)
-						}
-						// If no user message found (should be impossible if there are blocks),
-						// fall through to exit visual mode.
-					} else if m.visualMode == visualModeEdit {
-						block := m.selectableBlocks[m.visualSelectCursor]
-						userMsgIndex := -1
-						// Find the first user message at or before the start of the selected block
-						for i := block.startIdx; i >= 0; i-- {
-							if m.session.GetMessages()[i].Type == core.UserMessage {
-								userMsgIndex = i
-								break
-							}
-						}
-
-						if userMsgIndex != -1 {
-							// Exit visual mode before starting editor
-							m.state = stateIdle
-							m.visualMode = visualModeNone
-							m.editingMessageIndex = userMsgIndex
-							originalContent := m.session.GetMessages()[userMsgIndex].Content
-							return m, editInEditorCmd(originalContent)
-						}
-						// Fall through to exit visual mode if no user message found.
+						event := m.session.RegenerateFrom(userMsgIndex)
+						return m.startGeneration(event)
 					}
+					// If no user message found (should be impossible if there are blocks),
+					// fall through to exit visual mode.
+
+				case visualModeEdit:
+					block := m.selectableBlocks[m.visualSelectCursor]
+					userMsgIndex := -1
+					// Find the first user message at or before the start of the selected block
+					for i := block.startIdx; i >= 0; i-- {
+						if m.session.GetMessages()[i].Type == core.UserMessage {
+							userMsgIndex = i
+							break
+						}
+					}
+
+					if userMsgIndex != -1 {
+						// Exit visual mode before starting editor
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.editingMessageIndex = userMsgIndex
+						originalContent := m.session.GetMessages()[userMsgIndex].Content
+						return m, editInEditorCmd(originalContent)
+					}
+					// Fall through to exit visual mode if no user message found.
+				case visualModeBranch:
+					block := m.selectableBlocks[m.visualSelectCursor]
+					endMessageIndex := block.endIdx
+
+					newSess, err := m.session.Branch(endMessageIndex)
+					if err != nil {
+						m.statusBarMessage = fmt.Sprintf("Error branching session: %v", err)
+						cmd = clearStatusBarCmd(5 * time.Second)
+					} else {
+						m.session = newSess
+						m.statusBarMessage = "Branched to a new session."
+						cmd = clearStatusBarCmd(2 * time.Second)
+
+						// Reset UI state for new session
+						m.lastInteractionFailed = false
+						m.lastRenderedAIPart = ""
+						m.textArea.Reset()
+						m.textArea.SetHeight(1)
+						m.textArea.Focus()
+						m.viewport.SetContent(m.renderConversation())
+						m.viewport.GotoBottom()
+
+						// Recalculate token count
+						m.isCountingTokens = true
+						cmds = append(cmds, countTokensCmd(m.session.GetPromptForTokenCount()))
+
+						// Exit visual mode and apply changes
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.visualIsSelecting = false
+						return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...))
+					}
+					// On error, fall through to exit visual mode.
+				default:
+					// For visualModeNone, Enter does nothing.
+					return m, nil
 				}
 
 				m.state = stateIdle
@@ -266,7 +291,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Focus()
 				m.viewport.SetContent(m.renderConversation())
 				m.viewport.GotoBottom()
-				return m, tea.Batch(textarea.Blink, cmd)
+				return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...))
 
 			case tea.KeyRunes:
 				switch string(msg.Runes) {

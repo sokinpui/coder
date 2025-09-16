@@ -40,6 +40,7 @@ const (
 	visualModeNone visualMode = iota
 	visualModeGenerate
 	visualModeEdit
+	visualModeBranch
 )
 
 // messageBlock represents a single selectable unit in the conversation view.

@@ -199,6 +199,33 @@ func (s *Session) newSession() {
 	s.messages = []core.Message{} // Clear messages
 }
 
+// Branch saves the current session and creates a new one containing messages
+// up to the specified index.
+func (s *Session) Branch(endMessageIndex int) (*Session, error) {
+	if err := s.SaveConversation(); err != nil {
+		return nil, fmt.Errorf("failed to save current session before branching: %w", err)
+	}
+
+	if endMessageIndex < 0 || endMessageIndex >= len(s.messages) {
+		return nil, fmt.Errorf("invalid index for branching: %d", endMessageIndex)
+	}
+
+	messagesToKeep := s.messages[:endMessageIndex+1]
+
+	// NewWithMessages makes a defensive copy, so this is safe.
+	newSess, err := NewWithMessages(s.config, messagesToKeep)
+	if err != nil {
+		return nil, err
+	}
+
+	// The new session needs the context from the old one.
+	newSess.systemInstructions = s.systemInstructions
+	newSess.relatedDocuments = s.relatedDocuments
+	newSess.projectSourceCode = s.projectSourceCode
+
+	return newSess, nil
+}
+
 // RegenerateFrom truncates the message history to the specified user message
 // and starts a new generation.
 func (s *Session) RegenerateFrom(userMessageIndex int) Event {
