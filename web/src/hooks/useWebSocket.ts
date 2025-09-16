@@ -181,6 +181,21 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
+  const deleteMessage = (index: number) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    // Optimistic update
+    setMessages(prev => prev.filter((_, i) => i !== index));
+
+    const wsMsg = {
+      type: "deleteMessage",
+      payload: index
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  };
+
   return {
 		messages,
 		sendMessage,
@@ -196,5 +211,6 @@ export function useWebSocket(url: string) {
 		applyItf,
 		editMessage,
 		branchFrom,
+		deleteMessage,
 	};
 }

@@ -120,6 +120,10 @@ func (c *Client) readPump() {
 			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
 				go c.handleBranchFrom(int(index))
 			}
+		case "deleteMessage":
+			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
+				go c.handleDeleteMessage(int(index))
+			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -328,6 +332,11 @@ func (c *Client) handleBranchFrom(endMessageIndex int) {
 			"tokenCount": tokenCount,
 		},
 	}
+}
+
+func (c *Client) handleDeleteMessage(index int) {
+	// The session's DeleteMessages method takes a slice of indices.
+	c.session.DeleteMessages([]int{index})
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextField } from '@mui/material'
-import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon, CallSplit as CallSplitIcon } from '@mui/icons-material'
+import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon, CallSplit as CallSplitIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
 
@@ -12,9 +12,10 @@ interface MessageListProps {
   onApplyItf: (content: string) => void
   onEditMessage: (index: number, content: string) => void
   onBranchFrom: (messageIndex: number) => void
+  onDeleteMessage: (index: number) => void
 }
 
-export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, onEditMessage, onBranchFrom }: MessageListProps) {
+export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, onEditMessage, onBranchFrom, onDeleteMessage }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -188,6 +189,24 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
                   </Tooltip>
                 )}
                 <CopyButton content={msg.content} />
+                {!isGenerating && (
+                  <Tooltip title="Delete" placement="left">
+                    <IconButton
+                      onClick={() => onDeleteMessage(index)}
+                      size="small"
+                      color="inherit"
+                      sx={{
+                        ml: 0.5,
+                        backgroundColor: (theme) => theme.palette.action.hover,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.action.selected,
+                        },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             </Box>
             <Box
