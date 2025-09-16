@@ -116,6 +116,10 @@ func (c *Client) readPump() {
 					go c.handleEditMessage(int(index), content)
 				}
 			}
+		case "branchFrom":
+			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
+				go c.handleBranchFrom(int(index))
+			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -292,6 +296,38 @@ func (c *Client) handleEditMessage(index int, newContent string) {
 		}
 	}
 	// No success message needed, client updates optimistically.
+}
+
+func (c *Client) handleBranchFrom(endMessageIndex int) {
+	newSess, err := c.session.Branch(endMessageIndex)
+	if err != nil {
+		log.Printf("Error branching session: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: fmt.Sprintf("Failed to branch session: %v", err),
+		}
+		return
+	}
+
+	c.session = newSess
+
+	// Tell the client to truncate its message list.
+	// The new session has `endMessageIndex + 1` messages.
+	c.send <- ServerToClientMessage{
+		Type:    "truncateMessages",
+		Payload: endMessageIndex + 1,
+	}
+
+	// Send updated state like token count
+	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
+	c.send <- ServerToClientMessage{
+		Type: "stateUpdate",
+		Payload: map[string]interface{}{
+			"mode":       string(c.session.GetConfig().AppMode),
+			"model":      c.session.GetConfig().Generation.ModelCode,
+			"tokenCount": tokenCount,
+		},
+	}
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {

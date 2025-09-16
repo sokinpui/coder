@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextField } from '@mui/material'
-import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material'
+import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon, CallSplit as CallSplitIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
 
@@ -11,9 +11,10 @@ interface MessageListProps {
   onRegenerate: (userMessageIndex: number) => void
   onApplyItf: (content: string) => void
   onEditMessage: (index: number, content: string) => void
+  onBranchFrom: (messageIndex: number) => void
 }
 
-export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, onEditMessage }: MessageListProps) {
+export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, onEditMessage, onBranchFrom }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -147,6 +148,24 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
                       }}
                     >
                       <PlaylistAddCheckIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {(isUser || isAI) && !isGenerating && (
+                  <Tooltip title="Branch from here" placement="left">
+                    <IconButton
+                      onClick={() => onBranchFrom(index)}
+                      size="small"
+                      color="inherit"
+                      sx={{
+                        mr: 0.5,
+                        backgroundColor: (theme) => theme.palette.action.hover,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.action.selected,
+                        },
+                      }}
+                    >
+                      <CallSplitIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 )}

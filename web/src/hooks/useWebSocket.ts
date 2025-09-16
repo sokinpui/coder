@@ -169,6 +169,18 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
+  const branchFrom = (messageIndex: number) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    const wsMsg = {
+      type: "branchFrom",
+      payload: messageIndex
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  };
+
   return {
 		messages,
 		sendMessage,
@@ -183,5 +195,6 @@ export function useWebSocket(url: string) {
 		regenerateFrom,
 		applyItf,
 		editMessage,
+		branchFrom,
 	};
 }

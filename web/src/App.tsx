@@ -37,6 +37,7 @@ function App() {
 		applyItf,
 		model,
 		editMessage,
+		branchFrom,
 		availableModes,
 		availableModels,
 	} = useWebSocket(`ws://${location.host}/ws`)
@@ -71,6 +72,10 @@ function App() {
 
   const handleEditMessage = (index: number, content: string) => {
     editMessage(index, content)
+  }
+
+  const handleBranchFrom = (index: number) => {
+    branchFrom(index)
   }
 
   const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
@@ -151,6 +156,7 @@ function App() {
           onRegenerate={handleRegenerate}
           onApplyItf={handleApplyItf}
           onEditMessage={handleEditMessage}
+          onBranchFrom={handleBranchFrom}
         />
         <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
       </Box>
