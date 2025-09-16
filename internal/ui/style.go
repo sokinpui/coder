@@ -13,10 +13,10 @@ var (
 				Italic(true).
 				Bold(true).
 				Padding(0, 1)
-	statusStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
-	modelInfoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("69")) // Blue
-	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78")) // Green
-	thinkingStyle = lipgloss.NewStyle().
+	statusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
+	modelInfoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
+	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))  // Green
+	thinkingStyle   = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
 			Italic(true).
 			Padding(0, 2)
@@ -82,7 +82,10 @@ var (
 				BorderBottom(false).
 				BorderRight(false)
 	visualSelectStyle = lipgloss.NewStyle().
-				Reverse(true)
+				Border(lipgloss.ThickBorder(), false, false, false, true).
+				BorderForeground(lipgloss.Color("208")). // Orange
+				PaddingLeft(1).
+				Background(lipgloss.Color("240")) // Subtle dark gray background highlight
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 )
