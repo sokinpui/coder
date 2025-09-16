@@ -260,6 +260,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.statusBarMessage = "Branched to a new session."
 						cmd = clearStatusBarCmd(2 * time.Second)
 
+						// Exit visual mode and apply changes
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.visualIsSelecting = false
+
 						// Reset UI state for new session
 						m.lastInteractionFailed = false
 						m.lastRenderedAIPart = ""
@@ -273,10 +278,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.isCountingTokens = true
 						cmds = append(cmds, countTokensCmd(m.session.GetPromptForTokenCount()))
 
-						// Exit visual mode and apply changes
-						m.state = stateIdle
-						m.visualMode = visualModeNone
-						m.visualIsSelecting = false
 						return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...))
 					}
 					// On error, fall through to exit visual mode.
