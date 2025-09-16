@@ -24,7 +24,13 @@ const EditModeResult = "---_EDIT_MODE_---"
 // BranchModeResult signals the UI to enter visual branch mode.
 const BranchModeResult = "---_BRANCH_MODE_---"
 
-type commandFunc func(args string, messages []Message, cfg *config.Config) (string, bool)
+// SessionChanger is an interface that allows commands to modify session state
+// without creating a circular dependency between core and session packages.
+type SessionChanger interface {
+	SetTitle(title string)
+}
+
+type commandFunc func(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool)
 
 var commands = map[string]commandFunc{
 	"model":  modelCmd,
@@ -35,6 +41,7 @@ var commands = map[string]commandFunc{
 	"edit":   editModeCmd,
 	"visual": visualCmd,
 	"branch": branchCmd,
+	"rename": renameCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -85,32 +92,32 @@ func hasSelectableMessages(messages []Message) bool {
 	return false
 }
 
-func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func newCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	return NewSessionResult, true
 }
 
-func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func genCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if !hasSelectableMessages(messages) {
 		return "Cannot enter generate mode: no messages to select.", false
 	}
 	return GenerateModeResult, true
 }
 
-func editModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func editModeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if !hasSelectableMessages(messages) {
 		return "Cannot enter edit mode: no messages to select.", false
 	}
 	return EditModeResult, true
 }
 
-func visualCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func visualCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if !hasSelectableMessages(messages) {
 		return "Cannot enter visual mode: no messages to select.", false
 	}
 	return VisualModeResult, true
 }
 
-func branchCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func branchCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if !hasSelectableMessages(messages) {
 		return "Cannot enter branch mode: no messages to select.", false
 	}
@@ -129,7 +136,7 @@ func ExecuteItf(content string, args string) (string, bool) {
 	return string(output), true
 }
 
-func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func itfCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	var lastAIResponse string
 	found := false
 	for i := len(messages) - 1; i >= 0; i-- {
@@ -147,7 +154,7 @@ func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) 
 	return ExecuteItf(lastAIResponse, args)
 }
 
-func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func modelCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current model: %s\n", cfg.Generation.ModelCode)
@@ -169,7 +176,7 @@ func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool
 	return fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args), false
 }
 
-func modeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+func modeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current mode: %s\n", cfg.AppMode)
@@ -192,9 +199,17 @@ func modeCmd(args string, messages []Message, cfg *config.Config) (string, bool)
 	return fmt.Sprintf("Error: mode '%s' not found. Use ':mode' to see available modes.", args), false
 }
 
+func renameCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+	if args == "" {
+		return "Usage: :rename <new title>", false
+	}
+	sess.SetTitle(args)
+	return fmt.Sprintf("Session title renamed to: %s", args), true
+}
+
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
-func ProcessCommand(input string, messages []Message, cfg *config.Config) (result string, isCmd bool, success bool) {
+func ProcessCommand(input string, messages []Message, cfg *config.Config, sess SessionChanger) (result string, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
 		return "", false, false
 	}
@@ -212,6 +227,6 @@ func ProcessCommand(input string, messages []Message, cfg *config.Config) (resul
 		return fmt.Sprintf("Unknown command: %s", cmdName), true, false
 	}
 
-	result, success = cmd(args, messages, cfg)
+	result, success = cmd(args, messages, cfg, sess)
 	return result, true, success
 }

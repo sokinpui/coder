@@ -225,6 +225,15 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) {
 	log.Printf("Generated title: %s", s.title)
 }
 
+// SetTitle manually sets the conversation title.
+func (s *Session) SetTitle(title string) {
+	if strings.TrimSpace(title) == "" {
+		return
+	}
+	s.title = title
+	s.titleGenerated = true // Mark as manually set/generated
+}
+
 // CancelGeneration cancels any ongoing AI generation.
 func (s *Session) CancelGeneration() {
 	if s.cancelGeneration != nil {
@@ -342,7 +351,7 @@ func (s *Session) HandleInput(input string) Event {
 		return Event{Type: MessagesUpdated}
 	}
 
-	cmdResult, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config)
+	cmdResult, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
 	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
 
 	if cmdSuccess && cmdResult == core.NewSessionResult {
