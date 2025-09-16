@@ -47,6 +47,11 @@ type Session struct {
 
 // New creates a new session.
 func New(cfg *config.Config) (*Session, error) {
+	return NewWithMessages(cfg, nil)
+}
+
+// NewWithMessages creates a new session with a pre-existing set of messages.
+func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -57,11 +62,15 @@ func New(cfg *config.Config) (*Session, error) {
 		return nil, fmt.Errorf("failed to initialize history manager: %w", err)
 	}
 
+	// Make a defensive copy of the slice to avoid external modifications.
+	messages := make([]core.Message, len(initialMessages))
+	copy(messages, initialMessages)
+
 	return &Session{
 		config:         cfg,
 		generator:      gen,
 		historyManager: hist,
-		messages:       []core.Message{}, // Start with empty messages
+		messages:       messages,
 	}, nil
 }
 
