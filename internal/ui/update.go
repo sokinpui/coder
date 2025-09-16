@@ -71,6 +71,12 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.lastInteractionFailed = false
 	}
 
+	var cmds []tea.Cmd
+	shouldGenerateTitle := !strings.HasPrefix(input, ":") && !m.session.IsTitleGenerated()
+	if shouldGenerateTitle {
+		cmds = append(cmds, generateTitleCmd(m.session, input))
+	}
+
 	event := m.session.HandleInput(input)
 
 	switch event.Type {
@@ -131,13 +137,15 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.viewport.GotoBottom()
 		m.textArea.Reset()
 		m.textArea.SetHeight(1)
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case session.NewSessionStarted:
 		return m.newSession()
 
 	case session.GenerationStarted:
-		return m.startGeneration(event)
+		m, cmd := m.startGeneration(event)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
 	}
 
 	return m, nil
@@ -609,6 +617,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tokenCountResultMsg:
 		m.tokenCount = int(msg)
 		m.isCountingTokens = false
+		return m, nil
+
+	case titleGeneratedMsg:
+		// The title is already updated in the session.
+		// This message just triggers a re-render of the status bar.
 		return m, nil
 
 	case clearStatusBarMsg:

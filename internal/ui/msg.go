@@ -23,4 +23,5 @@ type (
 		err     error
 	}
 	clearStatusBarMsg struct{}
+	titleGeneratedMsg struct{}
 )

@@ -88,4 +88,7 @@ var (
 				Background(lipgloss.Color("240")) // Subtle dark gray background highlight
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
+	statusBarTitleStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("228")). // Yellow
+				Bold(true)
 )

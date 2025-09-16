@@ -198,6 +198,8 @@ func (m Model) statusView() string {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
+	titlePart := statusBarTitleStyle.Render(m.session.GetTitle())
+
 	var status string
 	switch m.state {
 	case stateThinking, stateGenerating:
@@ -239,7 +241,8 @@ func (m Model) statusView() string {
 		tokenInfo = fmt.Sprintf("Tokens: %d", m.tokenCount)
 	}
 
-	statusPart := statusStyle.Render(status)
+	statusTextPart := statusStyle.Render(status)
+	leftSide := lipgloss.JoinHorizontal(lipgloss.Top, titlePart, " ", statusTextPart)
 	modePart := modelInfoStyle.Render(modeInfo)
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
@@ -249,12 +252,12 @@ func (m Model) statusView() string {
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", rightSide)
 	}
 
-	spacing := m.width - lipgloss.Width(statusPart) - lipgloss.Width(rightSide)
+	spacing := m.width - lipgloss.Width(leftSide) - lipgloss.Width(rightSide)
 	if spacing < 1 {
-		return statusPart
+		spacing = 1
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, statusPart, strings.Repeat(" ", spacing), rightSide)
+	return lipgloss.JoinHorizontal(lipgloss.Top, leftSide, strings.Repeat(" ", spacing), rightSide)
 }
 
 func (m Model) View() string {

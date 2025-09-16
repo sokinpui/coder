@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	pb "coder/grpc"
 	"google.golang.org/grpc"
@@ -63,12 +64,51 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 				log.Printf("Generation cancelled: %v", ctx.Err())
 				break
 			}
-				log.Printf("Stream recv failed: %v", err)
-				streamChan <- fmt.Sprintf("Error: Stream failed: %v", err)
+			log.Printf("Stream recv failed: %v", err)
+			streamChan <- fmt.Sprintf("Error: Stream failed: %v", err)
 			break
 		}
 		chunk := resp.GetOutputString()
 		log.Printf("Received raw chunk from server: %q", chunk)
 		streamChan <- chunk
 	}
+}
+
+// GenerateTitle sends a prompt to the generation service and gets a single response for a title.
+func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
+	// A smaller output length for titles.
+	outputLength := int32(256)
+	temp := float32(0.2) // A bit of creativity for titles
+
+	req := &pb.Request{
+		Prompt:    prompt,
+		ModelCode: "gemini-2.0-flash-lite",
+		Stream:    false, // We want a single response
+		Config: &pb.GenerationConfig{
+			Temperature:  &temp,
+			TopP:         &g.Config.TopP,
+			TopK:         &g.Config.TopK,
+			OutputLength: &outputLength,
+		},
+	}
+
+	stream, err := g.client.GenerateTask(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("GenerateTitle failed: %w", err)
+	}
+
+	// For non-streaming, we expect one response, then EOF.
+	var fullResponse strings.Builder
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("stream recv failed during title generation: %w", err)
+		}
+		fullResponse.WriteString(resp.GetOutputString())
+	}
+
+	return strings.TrimSpace(fullResponse.String()), nil
 }

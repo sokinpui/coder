@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"coder/internal/session"
 	"coder/internal/token"
 	"errors"
@@ -57,6 +58,14 @@ func clearStatusBarCmd(d time.Duration) tea.Cmd {
 	return tea.Tick(d, func(t time.Time) tea.Msg {
 		return clearStatusBarMsg{}
 	})
+}
+
+func generateTitleCmd(sess *session.Session, userPrompt string) tea.Cmd {
+	return func() tea.Msg {
+		// This runs in a goroutine managed by Bubble Tea.
+		sess.GenerateTitle(context.Background(), userPrompt)
+		return titleGeneratedMsg{}
+	}
 }
 
 func getEditor() string {

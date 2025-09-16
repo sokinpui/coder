@@ -43,6 +43,8 @@ type Session struct {
 	relatedDocuments   string
 	projectSourceCode  string
 	cancelGeneration   context.CancelFunc
+	title              string
+	titleGenerated     bool
 }
 
 // New creates a new session.
@@ -71,6 +73,8 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 		generator:      gen,
 		historyManager: hist,
 		messages:       messages,
+		title:          "New Chat",
+		titleGenerated: false,
 	}, nil
 }
 
@@ -185,6 +189,42 @@ func (s *Session) SaveConversation() error {
 	return s.historyManager.SaveConversation(s.messages, role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode)
 }
 
+// GetTitle returns the conversation title.
+func (s *Session) GetTitle() string {
+	return s.title
+}
+
+// IsTitleGenerated checks if a title has been generated for the session.
+func (s *Session) IsTitleGenerated() bool {
+	return s.titleGenerated
+}
+
+// GenerateTitle generates and sets a title for the conversation based on the first user prompt.
+func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) {
+	s.titleGenerated = true // Set this first to prevent concurrent calls.
+
+	prompt := strings.Replace(core.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
+
+	title, err := s.generator.GenerateTitle(ctx, prompt)
+	if err != nil {
+		log.Printf("Error generating title, falling back to first few words: %v", err)
+		words := strings.Fields(userPrompt)
+		numWords := 5
+		if len(words) < numWords {
+			numWords = len(words)
+		}
+		fallbackTitle := strings.Join(words[:numWords], " ")
+		if len(words) > numWords {
+			fallbackTitle += "..."
+		}
+		s.title = fallbackTitle
+		return
+	}
+
+	s.title = strings.Trim(title, "\"") // Models sometimes add quotes
+	log.Printf("Generated title: %s", s.title)
+}
+
 // CancelGeneration cancels any ongoing AI generation.
 func (s *Session) CancelGeneration() {
 	if s.cancelGeneration != nil {
@@ -197,6 +237,8 @@ func (s *Session) newSession() {
 		log.Printf("Error saving conversation for /new command: %v", err)
 	}
 	s.messages = []core.Message{} // Clear messages
+	s.title = "New Chat"
+	s.titleGenerated = false
 }
 
 // Branch saves the current session and creates a new one containing messages
