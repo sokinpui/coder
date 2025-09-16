@@ -29,6 +29,7 @@ function App() {
 		availableModels,
 	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [inputValue, setInputValue] = useState('')
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -36,6 +37,7 @@ function App() {
 
   const handleNewChat = () => {
     sendMessage(':new')
+    setInputValue('')
   }
 
 	const handleModeChange = (event: SelectChangeEvent) => {
@@ -44,6 +46,11 @@ function App() {
 
 	const handleModelChange = (event: SelectChangeEvent) => {
 		sendMessage(`:model ${event.target.value}`)
+  }
+
+  const handleSendMessage = (message: string) => {
+    sendMessage(message)
+    setInputValue('')
   }
 
   const handleRegenerate = (index: number) => {
@@ -102,7 +109,13 @@ function App() {
           onBranchFrom={handleBranchFrom}
           onDeleteMessage={handleDeleteMessage}
         />
-        <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
+        <ChatInput
+          sendMessage={handleSendMessage}
+          cancelGeneration={cancelGeneration}
+          isGenerating={isGenerating}
+          value={inputValue}
+          onChange={setInputValue}
+        />
       </Box>
     </Box>
   )

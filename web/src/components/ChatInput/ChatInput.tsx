@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Box, TextField, IconButton, Button, CircularProgress } from '@mui/material'
 import { Send as SendIcon } from '@mui/icons-material'
 
@@ -6,19 +5,18 @@ interface ChatInputProps {
   isGenerating: boolean
   sendMessage: (message: string) => void
   cancelGeneration: () => void
+  value: string
+  onChange: (value: string) => void
 }
 
-export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatInputProps) {
-  const [input, setInput] = useState('')
-
+export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, onChange }: ChatInputProps) {
   const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault()
-    if (!input.trim()) {
+    if (!value.trim()) {
       return
     }
 
-    sendMessage(input)
-    setInput('')
+    sendMessage(value)
   }
 
   return (
@@ -30,8 +28,8 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatI
       <TextField
         fullWidth
         variant="outlined"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && e.shiftKey) {
             e.preventDefault()
@@ -61,7 +59,7 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatI
           Stop
         </Button>
       ) : (
-        <IconButton type="submit" color="primary" sx={{ ml: 1 }} disabled={!input.trim()}>
+        <IconButton type="submit" color="primary" sx={{ ml: 1 }} disabled={!value.trim()}>
           <SendIcon />
         </IconButton>
       )}
