@@ -94,10 +94,11 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
               position: 'relative',
               mb: 1.5,
               ...(index === 0 && { mt: 2 }),
-              maxWidth: '80%',
+              maxWidth: isEditing ? '100%' : '80%',
+              width: isEditing ? '100%' : 'auto',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
-              bgcolor: isError ? 'error.main' : 'background.paper',
-              color: isError ? 'primary.contrastText' : 'text.primary',
+              bgcolor: 'background.paper',
+              color: isError ? 'error.main' : 'text.primary',
             }}
           >
             <Box
