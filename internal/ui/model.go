@@ -38,8 +38,6 @@ type visualMode int
 
 const (
 	visualModeNone visualMode = iota
-	visualModeCopy
-	visualModeDelete
 	visualModeGenerate
 	visualModeEdit
 )
@@ -79,6 +77,7 @@ type Model struct {
 	isCyclingCompletions    bool
 	clearedInputBuffer      string
 	visualMode              visualMode
+	visualIsSelecting       bool
 	selectableBlocks        []messageBlock
 	visualSelectCursor      int
 	visualSelectStart       int
@@ -158,6 +157,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		isCyclingCompletions:    false,
 		clearedInputBuffer:      "",
 		visualMode:              visualModeNone,
+		visualIsSelecting:       false,
 		selectableBlocks:        []messageBlock{},
 		visualSelectCursor:      0,
 		visualSelectStart:       0,

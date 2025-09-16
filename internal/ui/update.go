@@ -86,6 +86,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					// Remove the command that triggered visual mode from the session.
 					// This prevents it from being part of the copy/delete operations or being displayed.
 					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
+					m.visualIsSelecting = true // For single-item selection modes
 
 					m.state = stateVisualSelect
 					m.visualMode = mode
@@ -102,10 +103,20 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 				}
 
 				switch lastMsg.Content {
-				case core.CopyModeResult:
-					return enterVisualMode(visualModeCopy)
-				case core.DeleteModeResult:
-					return enterVisualMode(visualModeDelete)
+				case core.VisualModeResult:
+					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
+					m.state = stateVisualSelect
+					m.visualMode = visualModeNone
+					m.visualIsSelecting = false
+					m.selectableBlocks = groupMessages(m.session.GetMessages())
+					if len(m.selectableBlocks) > 0 {
+						m.visualSelectCursor = len(m.selectableBlocks) - 1
+					}
+					m.textArea.Reset()
+					m.textArea.SetHeight(1)
+					m.textArea.Blur()
+					m.viewport.SetContent(m.renderConversation())
+					return m, nil
 				case core.GenerateModeResult:
 					return enterVisualMode(visualModeGenerate)
 				case core.EditModeResult:
@@ -171,6 +182,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case stateVisualSelect:
 			switch msg.Type {
 			case tea.KeyEsc, tea.KeyCtrlC:
+				if m.visualIsSelecting {
+					m.visualIsSelecting = false
+					m.viewport.SetContent(m.renderConversation())
+					return m, nil
+				}
 				m.state = stateIdle
 				m.visualMode = visualModeNone
 				m.textArea.Focus()
@@ -178,6 +194,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, textarea.Blink
 
 			case tea.KeyEnter:
+				if m.visualMode != visualModeGenerate && m.visualMode != visualModeEdit {
+					return m, nil
+				}
 				start, end := m.visualSelectStart, m.visualSelectCursor
 				if start > end {
 					start, end = end, start
@@ -196,17 +215,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 					}
 
-					if m.visualMode == visualModeCopy {
-						content := core.BuildHistorySnippet(selectedMessages)
-						if err := clipboard.WriteAll(content); err == nil {
-							m.statusBarMessage = "Copied to clipboard."
-							cmd = clearStatusBarCmd(2 * time.Second)
-						}
-					} else if m.visualMode == visualModeDelete {
-						m.session.DeleteMessages(selectedIndices)
-						m.statusBarMessage = "Deleted selected messages."
-						cmd = clearStatusBarCmd(2 * time.Second)
-					} else if m.visualMode == visualModeGenerate {
+					if m.visualMode == visualModeGenerate {
 						block := m.selectableBlocks[m.visualSelectCursor]
 						userMsgIndex := -1
 						// Find the first user message at or before the start of the selected block
@@ -253,6 +262,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.state = stateIdle
 				m.visualMode = visualModeNone
+				m.visualIsSelecting = false
 				m.textArea.Focus()
 				m.viewport.SetContent(m.renderConversation())
 				m.viewport.GotoBottom()
@@ -269,6 +279,60 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.visualSelectCursor > 0 {
 						m.visualSelectCursor--
 						m.viewport.SetContent(m.renderConversation())
+					}
+				case "v", "V":
+					if !m.visualIsSelecting {
+						m.visualIsSelecting = true
+						m.visualSelectStart = m.visualSelectCursor
+						m.viewport.SetContent(m.renderConversation())
+					}
+				case "y":
+					if m.visualIsSelecting && m.visualMode == visualModeNone {
+						start, end := m.visualSelectStart, m.visualSelectCursor
+						if start > end {
+							start, end = end, start
+						}
+						var selectedMessages []core.Message
+						for i := start; i <= end; i++ {
+							block := m.selectableBlocks[i]
+							for j := block.startIdx; j <= block.endIdx; j++ {
+								selectedMessages = append(selectedMessages, m.session.GetMessages()[j])
+							}
+						}
+						content := core.BuildHistorySnippet(selectedMessages)
+						if err := clipboard.WriteAll(content); err == nil {
+							m.statusBarMessage = "Copied to clipboard."
+							cmd = clearStatusBarCmd(2 * time.Second)
+						}
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.visualIsSelecting = false
+						m.textArea.Focus()
+						m.viewport.SetContent(m.renderConversation())
+						return m, tea.Batch(textarea.Blink, cmd)
+					}
+				case "d":
+					if m.visualIsSelecting && m.visualMode == visualModeNone {
+						start, end := m.visualSelectStart, m.visualSelectCursor
+						if start > end {
+							start, end = end, start
+						}
+						var selectedIndices []int
+						for i := start; i <= end; i++ {
+							block := m.selectableBlocks[i]
+							for j := block.startIdx; j <= block.endIdx; j++ {
+								selectedIndices = append(selectedIndices, j)
+							}
+						}
+						m.session.DeleteMessages(selectedIndices)
+						m.statusBarMessage = "Deleted selected messages."
+						cmd = clearStatusBarCmd(2 * time.Second)
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.visualIsSelecting = false
+						m.textArea.Focus()
+						m.viewport.SetContent(m.renderConversation())
+						return m, tea.Batch(textarea.Blink, cmd)
 					}
 				}
 			}

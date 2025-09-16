@@ -32,16 +32,25 @@ func (m Model) renderConversation() string {
 				}
 			}
 		} else {
-			start, end := m.visualSelectStart, m.visualSelectCursor
+			var start, end int
+			if m.visualIsSelecting {
+				start, end = m.visualSelectStart, m.visualSelectCursor
+			} else {
+				// Highlight only cursor when not selecting
+				start, end = m.visualSelectCursor, m.visualSelectCursor
+			}
+
 			if start > end {
 				start, end = end, start
 			}
 
 			if end < len(m.selectableBlocks) {
 				for i := start; i <= end; i++ {
-					block := m.selectableBlocks[i]
-					for j := block.startIdx; j <= block.endIdx; j++ {
-						selectedIndices[j] = struct{}{}
+					if i < len(m.selectableBlocks) {
+						block := m.selectableBlocks[i]
+						for j := block.startIdx; j <= block.endIdx; j++ {
+							selectedIndices[j] = struct{}{}
+						}
 					}
 				}
 			}
@@ -76,7 +85,7 @@ func (m Model) renderConversation() string {
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.AIMessage:
 			if currentMsg.Content == "" {
-				renderedMsg = ""
+				continue
 			} else {
 				renderedAI, err := m.glamourRenderer.Render(currentMsg.Content)
 				if err != nil {
@@ -89,7 +98,7 @@ func (m Model) renderConversation() string {
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
 			// Don't render the special result messages that trigger visual modes.
-			if currentMsg.Content == core.CopyModeResult || currentMsg.Content == core.DeleteModeResult || currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult {
+			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult {
 				continue
 			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
@@ -190,22 +199,29 @@ func (m Model) statusView() string {
 	}
 
 	var status string
-	var modeStr string
 	switch m.state {
 	case stateThinking, stateGenerating:
 		status = "Ctrl+U/D: scroll | Ctrl+C: cancel"
 	case stateCancelling:
 		return generatingStatusStyle.Render("Cancelling...")
 	case stateVisualSelect:
-		modeStr = "COPY"
-		if m.visualMode == visualModeDelete {
-			modeStr = "DELETE"
-		} else if m.visualMode == visualModeGenerate {
+		var modeStr string
+		var helpStr string
+		if m.visualMode == visualModeGenerate {
 			modeStr = "GENERATE"
+			helpStr = "j/k: move | enter: confirm | esc: cancel"
 		} else if m.visualMode == visualModeEdit {
 			modeStr = "EDIT"
+			helpStr = "j/k: move | enter: confirm | esc: cancel"
+		} else { // visualModeNone
+			modeStr = "VISUAL"
+			if m.visualIsSelecting {
+				helpStr = "j/k: move | y: copy | d: delete | esc: cancel selection"
+			} else {
+				helpStr = "j/k: move | v: start selection | esc: cancel"
+			}
 		}
-		status = fmt.Sprintf("-- %s MODE -- | j/k: move | enter: confirm | esc: cancel", modeStr)
+		status = fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr)
 	default: // stateIdle
 		status = ""
 	}

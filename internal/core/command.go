@@ -12,14 +12,11 @@ import (
 // to signal the UI to start a new session.
 const NewSessionResult = "---_NEW_SESSION_---"
 
-// CopyModeResult signals the UI to enter visual copy mode.
-const CopyModeResult = "---_COPY_MODE_---"
-
-// DeleteModeResult signals the UI to enter visual delete mode.
-const DeleteModeResult = "---_DELETE_MODE_---"
-
 // GenerateModeResult signals the UI to enter visual generate mode.
 const GenerateModeResult = "---_GENERATE_MODE_---"
+
+// VisualModeResult signals the UI to enter visual mode.
+const VisualModeResult = "---_VISUAL_MODE_---"
 
 // EditModeResult signals the UI to enter visual edit mode.
 const EditModeResult = "---_EDIT_MODE_---"
@@ -32,9 +29,8 @@ var commands = map[string]commandFunc{
 	"new":    newCmd,
 	"mode":   modeCmd,
 	"gen":    genCmd,
-	"copy":   copyModeCmd,
-	"delete": deleteModeCmd,
 	"edit":   editModeCmd,
+	"visual": visualCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -73,24 +69,41 @@ func GetCommands() []string {
 	return commandNames
 }
 
+func hasSelectableMessages(messages []Message) bool {
+	for _, msg := range messages {
+		switch msg.Type {
+		case InitMessage, DirectoryMessage:
+			continue
+		default:
+			return true
+		}
+	}
+	return false
+}
+
 func newCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	return NewSessionResult, true
 }
 
 func genCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	if !hasSelectableMessages(messages) {
+		return "Cannot enter generate mode: no messages to select.", false
+	}
 	return GenerateModeResult, true
 }
 
-func copyModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
-	return CopyModeResult, true
-}
-
-func deleteModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
-	return DeleteModeResult, true
-}
-
 func editModeCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	if !hasSelectableMessages(messages) {
+		return "Cannot enter edit mode: no messages to select.", false
+	}
 	return EditModeResult, true
+}
+
+func visualCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
+	if !hasSelectableMessages(messages) {
+		return "Cannot enter visual mode: no messages to select.", false
+	}
+	return VisualModeResult, true
 }
 
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
