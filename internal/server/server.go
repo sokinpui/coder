@@ -22,8 +22,8 @@ const (
 )
 
 type ClientToServerMessage struct {
-	Type    string `json:"type"`
-	Payload string `json:"payload"`
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
 }
 
 type ServerToClientMessage struct {
@@ -93,10 +93,16 @@ func (c *Client) readPump() {
 
 		switch msg.Type {
 		case "userInput":
-			go c.handleUserInput(msg.Payload)
+			if payload, ok := msg.Payload.(string); ok {
+				go c.handleUserInput(payload)
+			}
 		case "cancelGeneration":
 			log.Println("Received cancel generation request")
 			c.session.CancelGeneration()
+		case "regenerateFrom":
+			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
+				go c.handleRegenerate(int(index))
+			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -175,6 +181,55 @@ func (c *Client) handleUserInput(payload string) {
 				if chunk != "" {
 					c.send <- ServerToClientMessage{Type: "generationChunk", Payload: chunk}
 				}
+			}
+			c.send <- ServerToClientMessage{Type: "generationEnd"}
+		}()
+	}
+}
+
+func (c *Client) handleRegenerate(userMessageIndex int) {
+	event := c.session.RegenerateFrom(userMessageIndex)
+
+	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
+	c.send <- ServerToClientMessage{
+		Type: "stateUpdate",
+		Payload: map[string]interface{}{
+			"mode":       string(c.session.GetConfig().AppMode),
+			"model":      c.session.GetConfig().Generation.ModelCode,
+			"tokenCount": tokenCount,
+		},
+	}
+
+	switch event.Type {
+	case session.MessagesUpdated: // This is for errors
+		messages := c.session.GetMessages()
+		if len(messages) == 0 {
+			return
+		}
+		lastMsg := messages[len(messages)-1]
+		c.send <- ServerToClientMessage{
+			Type: "messageUpdate",
+			Payload: MessagePayload{
+				Type:    messageTypeToString(lastMsg.Type),
+				Content: lastMsg.Content,
+			},
+		}
+
+	case session.GenerationStarted:
+		// Tell the client to truncate its message list.
+		// The session now has `userMessageIndex + 1` messages.
+		c.send <- ServerToClientMessage{
+			Type:    "truncateMessages",
+			Payload: userMessageIndex + 1,
+		}
+
+		streamChan, ok := event.Data.(chan string)
+		if !ok {
+			return
+		}
+		go func() {
+			for chunk := range streamChan {
+				c.send <- ServerToClientMessage{Type: "generationChunk", Payload: chunk}
 			}
 			c.send <- ServerToClientMessage{Type: "generationEnd"}
 		}()

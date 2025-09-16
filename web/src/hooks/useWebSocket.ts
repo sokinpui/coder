@@ -66,6 +66,9 @@ export function useWebSocket(url: string) {
           setMessages([{ sender: 'System', content: 'New session started.' }]);
           setIsGenerating(false);
           break;
+        case "truncateMessages":
+          setMessages(prev => prev.slice(0, msg.payload));
+          break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
           setIsGenerating(false);
@@ -121,6 +124,19 @@ export function useWebSocket(url: string) {
     setIsGenerating(false);
   };
 
+  const regenerateFrom = (userMessageIndex: number) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    setIsGenerating(true);
+    const wsMsg = {
+      type: "regenerateFrom",
+      payload: userMessageIndex
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  };
+
 
   return {
 		messages,
@@ -133,5 +149,6 @@ export function useWebSocket(url: string) {
 		model,
 		availableModes,
 		availableModels,
+		regenerateFrom,
 	};
 }

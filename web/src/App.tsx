@@ -33,6 +33,7 @@ function App() {
 		tokenCount,
 		cancelGeneration,
 		mode,
+		regenerateFrom,
 		model,
 		availableModes,
 		availableModels,
@@ -56,6 +57,10 @@ function App() {
 
 	const handleModelChange = (event: SelectChangeEvent) => {
 		sendMessage(`:model ${event.target.value}`)
+  }
+
+  const handleRegenerate = (index: number) => {
+    regenerateFrom(index)
   }
 
   const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
@@ -130,7 +135,7 @@ function App() {
           </IconButton>
           </Toolbar>
         </AppBar>
-        <MessageList messages={messages} isGenerating={isGenerating} />
+        <MessageList messages={messages} isGenerating={isGenerating} onRegenerate={handleRegenerate} />
         <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
       </Box>
     </Box>
