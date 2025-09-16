@@ -34,6 +34,7 @@ function App() {
 		cancelGeneration,
 		mode,
 		regenerateFrom,
+		applyItf,
 		model,
 		availableModes,
 		availableModels,
@@ -61,6 +62,10 @@ function App() {
 
   const handleRegenerate = (index: number) => {
     regenerateFrom(index)
+  }
+
+  const handleApplyItf = (content: string) => {
+    applyItf(content)
   }
 
   const currentDrawerWidth = sidebarOpen ? drawerWidth : collapsedDrawerWidth
@@ -135,7 +140,12 @@ function App() {
           </IconButton>
           </Toolbar>
         </AppBar>
-        <MessageList messages={messages} isGenerating={isGenerating} onRegenerate={handleRegenerate} />
+        <MessageList
+          messages={messages}
+          isGenerating={isGenerating}
+          onRegenerate={handleRegenerate}
+          onApplyItf={handleApplyItf}
+        />
         <ChatInput sendMessage={sendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
       </Box>
     </Box>

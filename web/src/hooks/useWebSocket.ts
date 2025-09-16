@@ -137,6 +137,18 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
+  const applyItf = (content: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    const wsMsg = {
+      type: "applyItf",
+      payload: content
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  };
+
 
   return {
 		messages,
@@ -150,5 +162,6 @@ export function useWebSocket(url: string) {
 		availableModes,
 		availableModels,
 		regenerateFrom,
+		applyItf,
 	};
 }

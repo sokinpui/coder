@@ -117,6 +117,18 @@ func branchCmd(args string, messages []Message, cfg *config.Config) (string, boo
 	return BranchModeResult, true
 }
 
+// ExecuteItf runs the 'itf' command with the given content as stdin.
+func ExecuteItf(content string, args string) (string, bool) {
+	argSlice := strings.Fields(args)
+	cmd := exec.Command("itf", argSlice...)
+	cmd.Stdin = strings.NewReader(content)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "Error executing itf: " + err.Error() + "\n" + string(output), false
+	}
+	return string(output), true
+}
+
 func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) {
 	var lastAIResponse string
 	found := false
@@ -132,14 +144,7 @@ func itfCmd(args string, messages []Message, cfg *config.Config) (string, bool) 
 		return "No AI response found to pipe to itf.", false
 	}
 
-	argSlice := strings.Fields(args)
-	cmd := exec.Command("itf", argSlice...)
-	cmd.Stdin = strings.NewReader(lastAIResponse)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "Error executing itf: " + err.Error() + "\n" + string(output), false
-	}
-	return string(output), true
+	return ExecuteItf(lastAIResponse, args)
 }
 
 func modelCmd(args string, messages []Message, cfg *config.Config) (string, bool) {

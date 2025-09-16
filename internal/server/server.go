@@ -103,6 +103,10 @@ func (c *Client) readPump() {
 			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
 				go c.handleRegenerate(int(index))
 			}
+		case "applyItf":
+			if content, ok := msg.Payload.(string); ok {
+				go c.handleApplyItf(content)
+			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -233,6 +237,39 @@ func (c *Client) handleRegenerate(userMessageIndex int) {
 			}
 			c.send <- ServerToClientMessage{Type: "generationEnd"}
 		}()
+	}
+}
+
+func (c *Client) handleApplyItf(content string) {
+	result, success := core.ExecuteItf(content, "")
+
+	cmdMsg := core.Message{
+		Type:    core.CommandMessage,
+		Content: ":itf (from apply button)",
+	}
+	c.session.AddMessage(cmdMsg)
+	c.send <- ServerToClientMessage{
+		Type: "messageUpdate",
+		Payload: MessagePayload{
+			Type:    messageTypeToString(cmdMsg.Type),
+			Content: cmdMsg.Content,
+		},
+	}
+
+	var resultMsgType core.MessageType
+	if success {
+		resultMsgType = core.CommandResultMessage
+	} else {
+		resultMsgType = core.CommandErrorResultMessage
+	}
+	resultMsg := core.Message{
+		Type:    resultMsgType,
+		Content: result,
+	}
+	c.session.AddMessage(resultMsg)
+	c.send <- ServerToClientMessage{
+		Type:    "messageUpdate",
+		Payload: MessagePayload{Type: messageTypeToString(resultMsg.Type), Content: resultMsg.Content},
 	}
 }
 

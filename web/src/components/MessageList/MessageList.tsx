@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip } from '@mui/material'
-import { Replay as ReplayIcon } from '@mui/icons-material'
+import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
 
@@ -9,9 +9,10 @@ interface MessageListProps {
   messages: Message[]
   isGenerating: boolean
   onRegenerate: (userMessageIndex: number) => void
+  onApplyItf: (content: string) => void
 }
 
-export function MessageList({ messages, isGenerating, onRegenerate }: MessageListProps) {
+export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -90,6 +91,24 @@ export function MessageList({ messages, isGenerating, onRegenerate }: MessageLis
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{msg.sender}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {isAI && !isGenerating && (
+                  <Tooltip title="Apply" placement="left">
+                    <IconButton
+                      onClick={() => onApplyItf(msg.content)}
+                      size="small"
+                      color="inherit"
+                      sx={{
+                        mr: 0.5,
+                        backgroundColor: (theme) => theme.palette.action.hover,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.action.selected,
+                        },
+                      }}
+                    >
+                      <PlaylistAddCheckIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 {(isUser || (isAI && index > 0 && messages[index - 1].sender === 'User')) && !isGenerating && (
                   <Tooltip title="Regenerate" placement="left">
                     <IconButton
@@ -98,9 +117,9 @@ export function MessageList({ messages, isGenerating, onRegenerate }: MessageLis
                       color="inherit"
                       sx={{
                         mr: 0.5,
-                        backgroundColor: theme => theme.palette.action.hover,
+                        backgroundColor: (theme) => theme.palette.action.hover,
                         '&:hover': {
-                          backgroundColor: theme => theme.palette.action.selected,
+                          backgroundColor: (theme) => theme.palette.action.selected,
                         },
                       }}
                     >
