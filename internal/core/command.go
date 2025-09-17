@@ -24,6 +24,9 @@ const EditModeResult = "---_EDIT_MODE_---"
 // BranchModeResult signals the UI to enter visual branch mode.
 const BranchModeResult = "---_BRANCH_MODE_---"
 
+// HistoryModeResult signals the UI to enter history browsing mode.
+const HistoryModeResult = "---_HISTORY_MODE_---"
+
 // SessionChanger is an interface that allows commands to modify session state
 // without creating a circular dependency between core and session packages.
 type SessionChanger interface {
@@ -42,6 +45,7 @@ var commands = map[string]commandFunc{
 	"visual": visualCmd,
 	"branch": branchCmd,
 	"rename": renameCmd,
+	"history": historyCmd,
 }
 
 type argumentCompleter func(cfg *config.Config) []string
@@ -122,6 +126,10 @@ func branchCmd(args string, messages []Message, cfg *config.Config, sess Session
 		return "Cannot enter branch mode: no messages to select.", false
 	}
 	return BranchModeResult, true
+}
+
+func historyCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+	return HistoryModeResult, true
 }
 
 // ExecuteItf runs the 'itf' command with the given content as stdin.

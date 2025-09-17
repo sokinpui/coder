@@ -129,6 +129,13 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					return enterVisualMode(visualModeEdit)
 				case core.BranchModeResult:
 					return enterVisualMode(visualModeBranch)
+				case core.HistoryModeResult:
+					// Remove the command that triggered history mode.
+					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
+					m.state = stateHistorySelect
+					m.textArea.Blur()
+					return m, listHistoryCmd(m.session.GetHistoryManager())
+
 				}
 			}
 		}
@@ -185,6 +192,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.state != stateCancelling {
 					m.session.CancelGeneration()
 					m.state = stateCancelling
+				}
+			}
+			return m, nil
+
+		case stateHistorySelect:
+			switch msg.Type {
+			case tea.KeyEsc, tea.KeyCtrlC:
+				m.state = stateIdle
+				m.historyItems = nil
+				m.textArea.Focus()
+				m.viewport.SetContent(m.renderConversation())
+				return m, textarea.Blink
+
+			case tea.KeyEnter:
+				if len(m.historyItems) == 0 || m.historySelectCursor >= len(m.historyItems) {
+					return m, nil
+				}
+				selectedItem := m.historyItems[m.historySelectCursor]
+				return m, loadConversationCmd(m.session, selectedItem.Filename)
+
+			case tea.KeyRunes:
+				switch string(msg.Runes) {
+				case "j":
+					if m.historySelectCursor < len(m.historyItems)-1 {
+						m.historySelectCursor++
+						m.viewport.SetContent(m.historyView())
+					}
+				case "k":
+					if m.historySelectCursor > 0 {
+						m.historySelectCursor--
+						m.viewport.SetContent(m.historyView())
+					}
 				}
 			}
 			return m, nil
@@ -618,6 +657,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tokenCount = int(msg)
 		m.isCountingTokens = false
 		return m, nil
+
+	case historyListResultMsg:
+		if msg.err != nil {
+			m.statusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
+			m.state = stateIdle
+			m.textArea.Focus()
+			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink)
+		}
+		m.historyItems = msg.items
+		m.historySelectCursor = 0
+		m.viewport.SetContent(m.historyView())
+		m.viewport.GotoTop()
+		return m, nil
+
+	case conversationLoadedMsg:
+		if msg.err != nil {
+			m.statusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)
+			m.state = stateIdle
+			m.textArea.Focus()
+			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink)
+		}
+		m.state = stateIdle
+		m.lastInteractionFailed = false
+		m.lastRenderedAIPart = ""
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		m.textArea.Focus()
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.GotoBottom()
+		m.isCountingTokens = true
+		return m, tea.Batch(countTokensCmd(m.session.GetPromptForTokenCount()), textarea.Blink)
 
 	case titleGeneratedMsg:
 		// The title is already updated in the session.

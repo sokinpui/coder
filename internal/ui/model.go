@@ -2,6 +2,7 @@ package ui
 
 import (
 	"coder/internal/config"
+	"coder/internal/history"
 	"coder/internal/core"
 	"coder/internal/session"
 	"fmt"
@@ -84,6 +85,8 @@ type Model struct {
 	visualSelectStart       int
 	statusBarMessage        string
 	editingMessageIndex     int
+	historyItems            []history.ConversationInfo
+	historySelectCursor     int
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -164,5 +167,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		visualSelectStart:       0,
 		statusBarMessage:        "",
 		editingMessageIndex:     -1,
+		historyItems:            nil,
+		historySelectCursor:     0,
 	}, nil
 }

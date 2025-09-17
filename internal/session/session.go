@@ -258,6 +258,37 @@ func (s *Session) SetTitle(title string) {
 	s.titleGenerated = true // Mark as manually set/generated
 }
 
+// GetHistoryManager returns the session's history manager.
+func (s *Session) GetHistoryManager() *history.Manager {
+	return s.historyManager
+}
+
+// LoadConversation loads a conversation from a history file, replacing the current session state.
+func (s *Session) LoadConversation(filename string) error {
+	if len(s.messages) > 0 {
+		if err := s.SaveConversation(); err != nil {
+			// Log the error but continue, as loading a new session is more important.
+			log.Printf("Error saving current conversation before loading another: %v", err)
+		}
+	}
+
+	metadata, messages, err := s.historyManager.LoadConversation(filename)
+	if err != nil {
+		return fmt.Errorf("failed to load conversation %s: %w", filename, err)
+	}
+
+	s.messages = messages
+	s.title = metadata.Title
+	s.titleGenerated = true // A loaded conversation always has a title.
+	s.createdAt = metadata.CreatedAt
+	s.historyFilename = filename
+
+	if err := s.reloadProjectSource(); err != nil {
+		log.Printf("Error reloading project source after loading conversation: %v", err)
+	}
+	return nil
+}
+
 // CancelGeneration cancels any ongoing AI generation.
 func (s *Session) CancelGeneration() {
 	if s.cancelGeneration != nil {

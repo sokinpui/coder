@@ -1,5 +1,7 @@
 package ui
 
+import "coder/internal/history"
+
 type state int
 
 const (
@@ -8,6 +10,7 @@ const (
 	stateGenerating
 	stateCancelling
 	stateVisualSelect
+	stateHistorySelect
 )
 
 type (
@@ -23,5 +26,12 @@ type (
 		err     error
 	}
 	clearStatusBarMsg struct{}
-	titleGeneratedMsg struct{}
+	titleGeneratedMsg   struct{}
+	historyListResultMsg struct {
+		items []history.ConversationInfo
+		err   error
+	}
+	conversationLoadedMsg struct {
+		err error
+	}
 )

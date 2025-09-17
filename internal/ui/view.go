@@ -18,6 +18,27 @@ func truncateMessage(content string, maxLines int) string {
 	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
 }
 
+func (m Model) historyView() string {
+	if len(m.historyItems) == 0 {
+		return "No history found."
+	}
+
+	var b strings.Builder
+	b.WriteString("Select a conversation to load:\n\n")
+
+	for i, item := range m.historyItems {
+		line := fmt.Sprintf("  %s (%s)", item.Title, item.ModifiedAt.Format("2006-01-02 15:04"))
+		if i == m.historySelectCursor {
+			b.WriteString(paletteSelectedItemStyle.Render("▸" + line))
+		} else {
+			b.WriteString(paletteItemStyle.Render(" " + line))
+		}
+		b.WriteString("\n")
+	}
+
+	return b.String()
+}
+
 // renderConversation renders the entire message history.
 func (m Model) renderConversation() string {
 	var parts []string
@@ -98,7 +119,7 @@ func (m Model) renderConversation() string {
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
 			// Don't render the special result messages that trigger visual modes.
-			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult || currentMsg.Content == core.BranchModeResult {
+			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult || currentMsg.Content == core.BranchModeResult || currentMsg.Content == core.HistoryModeResult {
 				continue
 			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
@@ -206,6 +227,8 @@ func (m Model) statusView() string {
 		status = "Ctrl+U/D: scroll | Ctrl+C: cancel"
 	case stateCancelling:
 		return generatingStatusStyle.Render("Cancelling...")
+	case stateHistorySelect:
+		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
 	case stateVisualSelect:
 		var modeStr string
 		var helpStr string
@@ -269,13 +292,15 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	if m.showPalette {
-		b.WriteString(m.paletteView())
+	if m.state != stateHistorySelect {
+		if m.showPalette {
+			b.WriteString(m.paletteView())
+			b.WriteString("\n")
+		}
+
+		b.WriteString(textAreaStyle.Render(m.textArea.View()))
 		b.WriteString("\n")
 	}
-
-	b.WriteString(textAreaStyle.Render(m.textArea.View()))
-	b.WriteString("\n")
 	b.WriteString(m.statusView())
 
 	return b.String()

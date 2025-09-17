@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"coder/internal/history"
 	"coder/internal/session"
 	"coder/internal/token"
 	"errors"
@@ -39,6 +40,20 @@ func loadInitialContextCmd(sess *session.Session) tea.Cmd {
 	return func() tea.Msg {
 		err := sess.LoadContext()
 		return initialContextLoadedMsg{err: err}
+	}
+}
+
+func listHistoryCmd(histMgr *history.Manager) tea.Cmd {
+	return func() tea.Msg {
+		items, err := histMgr.ListConversations()
+		return historyListResultMsg{items: items, err: err}
+	}
+}
+
+func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
+	return func() tea.Msg {
+		err := sess.LoadConversation(filename)
+		return conversationLoadedMsg{err: err}
 	}
 }
 
