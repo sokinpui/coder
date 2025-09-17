@@ -1,9 +1,11 @@
 import { useRef, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextField } from '@mui/material'
+import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextField, useTheme } from '@mui/material'
 import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon, CallSplit as CallSplitIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 interface MessageListProps {
   messages: Message[]
@@ -21,6 +23,9 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
+
+  const theme = useTheme()
+  const syntaxTheme = theme.palette.mode === 'dark' ? oneDark : oneLight
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -89,7 +94,7 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
         return (
           <Paper
             key={index}
-            elevation={isUser ? 2 : 1}
+            elevation={1}
             sx={{
               position: 'relative',
               mb: 1.5,
@@ -97,8 +102,8 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
               maxWidth: isEditing ? '100%' : '80%',
               width: isEditing ? '100%' : 'auto',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
-              bgcolor: isUser ? 'primary.main' : 'background.paper',
-              color: isUser ? 'primary.contrastText' : isError ? 'error.main' : 'text.primary',
+              bgcolor: 'background.paper',
+              color: isError ? 'error.main' : 'text.primary',
               borderTopLeftRadius: !isUser ? 0 : undefined,
               borderTopRightRadius: isUser ? 0 : undefined,
             }}
@@ -252,7 +257,32 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
               ) : (
                 <>
                   {msg.sender === 'AI' || msg.sender === 'User' ? (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown
+                      components={{
+                        code({ node, inline, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || '')
+                          return !inline && match ? (
+                            <SyntaxHighlighter
+                              style={syntaxTheme}
+                              language={match[1]}
+                              customStyle={{
+                                borderRadius: `${theme.shape.borderRadius}px`,
+                                margin: 0,
+                                padding: theme.spacing(1.5),
+                                whiteSpace: 'pre-wrap',
+                                overflowWrap: 'break-word',
+                              }}
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          )
+                        },
+                      }}>{msg.content}</ReactMarkdown>
                   ) : (
                     <Typography component="pre">{msg.content}</Typography>
                   )}
