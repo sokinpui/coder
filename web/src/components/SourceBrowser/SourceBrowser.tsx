@@ -10,6 +10,7 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Link,
   useTheme,
 } from "@mui/material";
 import {
@@ -32,6 +33,8 @@ import {
 } from "react";
 import type { SourceNode } from "../../types";
 import { AppContext } from "../../AppContext";
+import ReactMarkdown from "react-markdown";
+import { CodeBlock } from "../CodeBlock";
 import { CopyButton } from "../CopyButton";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { EditorView, lineNumbers } from "@codemirror/view";
@@ -167,6 +170,44 @@ export function SourceBrowser({
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const handleLinkClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string | undefined,
+  ) => {
+    e.preventDefault();
+    if (!href || !activeFile) return;
+
+    // Check for external link
+    if (/^(https?:)?\/\//.test(href)) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // Resolve internal link relative to the current file's directory
+    const pathParts = activeFile.path.split("/");
+    pathParts.pop(); // remove filename
+
+    const targetPath = href.startsWith("/")
+      ? href.substring(1) // Absolute path from repo root
+      : (pathParts.length > 0 ? pathParts.join("/") + "/" : "") + href;
+
+    const targetPathParts = targetPath.split("/");
+    const resolvedPathParts: string[] = [];
+
+    for (const part of targetPathParts) {
+      if (part === "." || part === "") continue;
+
+      if (part === "..") {
+        if (resolvedPathParts.length > 0) resolvedPathParts.pop();
+      } else {
+        resolvedPathParts.push(part);
+      }
+    }
+
+    const newPath = resolvedPathParts.join("/");
+    onFileSelect(newPath);
+  };
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -249,6 +290,8 @@ export function SourceBrowser({
   const langExtension = activeFile
     ? getLanguageExtension(activeFile.path)
     : undefined;
+
+  const isMarkdown = activeFile?.path.toLowerCase().endsWith(".md");
 
   const customBgTheme = EditorView.theme({
     "&": {
@@ -418,15 +461,76 @@ export function SourceBrowser({
         </Box>
         <Box sx={{ overflow: "auto", flexGrow: 1 }}>
           {activeFile ? (
-            <CodeMirror
-              value={activeFile.content}
-              height="100%"
-              theme={codeTheme === "dark" ? oneDark : githubLight}
-              extensions={extensions}
-              readOnly={true}
-              editable={false}
-              basicSetup={false}
-            />
+            isMarkdown ? (
+              <Box
+                sx={{
+                  p: 2,
+                  "& pre": {
+                    whiteSpace: "pre-wrap",
+                    wordWrap: "break-word",
+                    fontFamily: "monospace",
+                  },
+                  "& code": {
+                    fontFamily: "monospace",
+                    backgroundColor: "action.hover",
+                    px: 0.5,
+                    borderRadius: (theme) => theme.shape.borderRadius / 2,
+                  },
+                  "& pre > code": {
+                    display: "block",
+                    p: 1,
+                    backgroundColor: "action.selected",
+                    borderRadius: (theme) => theme.shape.borderRadius / 2,
+                  },
+                }}
+              >
+                <ReactMarkdown
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      if (!inline && match) {
+                        return (
+                          <CodeBlock language={match[1]}>{children}</CodeBlock>
+                        );
+                      }
+                      return (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    a: ({ node, ...props }) => {
+                      return (
+                        <Link
+                          href={props.href}
+                          onClick={(e) =>
+                            handleLinkClick(
+                              e as React.MouseEvent<HTMLAnchorElement>,
+                              props.href,
+                            )
+                          }
+                          sx={{ cursor: "pointer" }}
+                        >
+                          {props.children}
+                        </Link>
+                      );
+                    },
+                  }}
+                >
+                  {activeFile.content}
+                </ReactMarkdown>
+              </Box>
+            ) : (
+              <CodeMirror
+                value={activeFile.content}
+                height="100%"
+                theme={codeTheme === "dark" ? oneDark : githubLight}
+                extensions={extensions}
+                readOnly={true}
+                editable={false}
+                basicSetup={false}
+              />
+            )
           ) : (
             <Box
               sx={{
