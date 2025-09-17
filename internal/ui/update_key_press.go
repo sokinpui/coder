@@ -223,6 +223,55 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.viewport.SetContent(m.renderConversation())
 				m.viewport.GotoBottom()
 				return m, textarea.Blink, true
+			case "g":
+				if !m.visualIsSelecting && m.visualMode == visualModeNone {
+					if m.visualSelectCursor >= len(m.selectableBlocks) {
+						return m, nil, true // Out of bounds
+					}
+					block := m.selectableBlocks[m.visualSelectCursor]
+					userMsgIndex := -1
+					// Find the first user message at or before the start of the selected block
+					for i := block.startIdx; i >= 0; i-- {
+						if m.session.GetMessages()[i].Type == core.UserMessage {
+							userMsgIndex = i
+							break
+						}
+					}
+
+					if userMsgIndex != -1 {
+						// Exit visual mode before starting generation
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.textArea.Focus()
+
+						event := m.session.RegenerateFrom(userMsgIndex)
+						model, cmd := m.startGeneration(event)
+						return model, cmd, true
+					}
+				}
+			case "e":
+				if !m.visualIsSelecting && m.visualMode == visualModeNone {
+					if m.visualSelectCursor >= len(m.selectableBlocks) {
+						return m, nil, true // Out of bounds
+					}
+					block := m.selectableBlocks[m.visualSelectCursor]
+					userMsgIndex := -1
+					// Find the first user message at or before the start of the selected block
+					for i := block.startIdx; i >= 0; i-- {
+						if m.session.GetMessages()[i].Type == core.UserMessage {
+							userMsgIndex = i
+							break
+						}
+					}
+
+					if userMsgIndex != -1 {
+						m.state = stateIdle
+						m.visualMode = visualModeNone
+						m.editingMessageIndex = userMsgIndex
+						originalContent := m.session.GetMessages()[userMsgIndex].Content
+						return m, editInEditorCmd(originalContent), true
+					}
+				}
 			case "y":
 				if m.visualIsSelecting && m.visualMode == visualModeNone {
 					start, end := m.visualSelectStart, m.visualSelectCursor
