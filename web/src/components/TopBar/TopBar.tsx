@@ -16,6 +16,7 @@ import {
   Menu as MenuIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
+  Edit as EditIcon,
   Palette as PaletteIcon,
 } from '@mui/icons-material'
 import { AppContext } from '../../AppContext'
@@ -23,6 +24,7 @@ import { AppContext } from '../../AppContext'
 interface TopBarProps {
   onSidebarToggle: () => void
   title: string
+  onTitleRename: () => void
   tokenCount: number
   cwd: string
   mode: string
@@ -37,6 +39,7 @@ interface TopBarProps {
 export function TopBar({
   onSidebarToggle,
   title,
+  onTitleRename,
   tokenCount,
   cwd,
   mode,
@@ -61,9 +64,24 @@ export function TopBar({
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="subtitle1" noWrap component="div" sx={{ ml: 1, mr: 2, fontWeight: 'bold' }}>
-          {title}
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            ml: 1,
+            mr: 2,
+            '&:hover .rename-button': {
+              opacity: 1,
+            },
+          }}
+        >
+          <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+            {title}
+          </Typography>
+          <IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Box>
         <Box sx={{ flexGrow: 1 }} />
         <Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', md: 'block' } }}>
           {`Tokens: ${tokenCount}`}

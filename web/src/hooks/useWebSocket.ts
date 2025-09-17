@@ -115,6 +115,10 @@ export function useWebSocket(url: string) {
       console.error("WebSocket is not open.");
       return;
     }
+    if (payload.startsWith(':rename ')) {
+        const newTitle = payload.substring(8);
+        setTitle(newTitle);
+    }
     if (!payload.startsWith(':')) {
       setIsGenerating(true);
       // Optimistic update for user messages

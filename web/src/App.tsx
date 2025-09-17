@@ -10,6 +10,7 @@ import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
 import { TopBar } from './components/TopBar';
 import { HistoryDialog } from './components/HistoryDialog';
+import { RenameDialog } from './components/RenameDialog';
 
 function App() {
   const {
@@ -35,6 +36,7 @@ function App() {
 	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
 
   const handleSidebarToggle = () => {
@@ -58,6 +60,15 @@ function App() {
   const handleLoadConversation = (filename: string) => {
     loadConversation(filename)
     handleHistoryClose()
+  }
+
+  const handleRenameOpen = () => {
+    setRenameDialogOpen(true)
+  }
+
+  const handleRenameSave = (newTitle: string) => {
+    sendMessage(`:rename ${newTitle}`)
+    setRenameDialogOpen(false)
   }
 
 	const handleModeChange = (event: SelectChangeEvent) => {
@@ -117,6 +128,7 @@ function App() {
         <TopBar
           onSidebarToggle={handleSidebarToggle}
           title={title}
+          onTitleRename={handleRenameOpen}
           tokenCount={tokenCount}
           cwd={cwd}
           mode={mode}
@@ -149,6 +161,12 @@ function App() {
         onClose={handleHistoryClose}
         history={history}
         onLoad={handleLoadConversation}
+      />
+      <RenameDialog
+        open={renameDialogOpen}
+        onClose={() => setRenameDialogOpen(false)}
+        onSave={handleRenameSave}
+        currentTitle={title}
       />
     </Box>
   )
