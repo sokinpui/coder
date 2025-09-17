@@ -35,7 +35,7 @@ interface TopBarProps {
   onModelChange: (event: SelectChangeEvent) => void
   availableModels: string[]
   isGenerating: boolean
-	view: 'chat' | 'code'
+	view: 'chat' | 'code' | 'git'
 	showLineNumbers: boolean
 	onToggleLineNumbers: () => void
 }

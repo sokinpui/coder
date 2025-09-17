@@ -2,6 +2,7 @@ package server
 
 import (
 	"coder/internal/config"
+	"coder/internal/git"
 	"coder/internal/core"
 	"coder/internal/files"
 	"coder/internal/session"
@@ -139,6 +140,8 @@ func (c *Client) readPump() {
 			if path, ok := msg.Payload.(string); ok {
 				c.handleGetFileContent(path)
 			}
+		case "getGitLog":
+			c.handleGetGitLog()
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -449,6 +452,22 @@ func (c *Client) handleGetFileContent(path string) {
 			"path":    path,
 			"content": content,
 		},
+	}
+}
+
+func (c *Client) handleGetGitLog() {
+	logEntries, err := git.GetLog()
+	if err != nil {
+		log.Printf("Error getting git log: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: "Failed to get git log.",
+		}
+		return
+	}
+	c.send <- ServerToClientMessage{
+		Type:    "gitLog",
+		Payload: logEntries,
 	}
 }
 

@@ -10,8 +10,8 @@ import {
   Toolbar,
   Typography,
   useTheme,
-} from '@mui/material'
-import { AddComment as AddCommentIcon, Chat as ChatIcon, Code as CodeIcon, History as HistoryIcon, Folder as FolderIcon } from '@mui/icons-material'
+} from '@mui/material';
+import { AddComment as AddCommentIcon, Chat as ChatIcon, Code as CodeIcon, History as HistoryIcon, Folder as FolderIcon, AccountTree as GitIcon } from '@mui/icons-material';
 import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 
 interface SidebarProps {
@@ -21,9 +21,10 @@ interface SidebarProps {
   onHistoryOpen: () => void
   onChatViewOpen: () => void
   onCodeBrowserOpen: () => void
+  onGitBrowserOpen: () => void
 }
 
-export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onChatViewOpen, onCodeBrowserOpen }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onChatViewOpen, onCodeBrowserOpen, onGitBrowserOpen }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -162,6 +163,32 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onChatVi
                 <FolderIcon />
               </ListItemIcon>
               <ListItemText primary="Code" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={onGitBrowserOpen}
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+                mx: 1,
+                width: 'auto',
+                borderRadius: (theme) => theme.shape.borderRadius,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                <GitIcon />
+              </ListItemIcon>
+              <ListItemText primary="Git" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>

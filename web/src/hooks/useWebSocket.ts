@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Message, HistoryItem, SourceNode } from '../types';
+import type { Message, HistoryItem, SourceNode, GitLogEntry } from '../types';
 
 export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
@@ -14,6 +14,7 @@ export function useWebSocket(url: string) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sourceTree, setSourceTree] = useState<SourceNode | null>(null);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
+  const [gitLog, setGitLog] = useState<GitLogEntry[]>([]);
   const ws = useRef<WebSocket | null>(null);
   const fileCache = useRef<Map<string, string>>(new Map());
 
@@ -94,6 +95,9 @@ export function useWebSocket(url: string) {
         case "fileContent":
           fileCache.current.set(msg.payload.path, msg.payload.content);
           setActiveFile(msg.payload);
+          break;
+        case "gitLog":
+          setGitLog(msg.payload || []);
           break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
@@ -264,6 +268,14 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify({ type: "getFileContent", payload: path }));
   };
 
+  const getGitLog = () => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "getGitLog" }));
+  };
+
   return {
 		messages,
 		title,
@@ -288,5 +300,7 @@ export function useWebSocket(url: string) {
 		getSourceTree,
 		activeFile,
 		getFileContent,
+		gitLog,
+		getGitLog,
 	};
 }

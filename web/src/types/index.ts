@@ -15,3 +15,10 @@ export interface SourceNode {
   type: "file" | "directory";
   children?: SourceNode[];
 }
+
+export interface GitLogEntry {
+  hash: string;
+  authorName: string;
+  relativeDate: string;
+  subject: string;
+}

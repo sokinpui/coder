@@ -12,6 +12,7 @@ import { TopBar } from './components/TopBar';
 import { HistoryDialog } from './components/HistoryDialog';
 import { RenameDialog } from './components/RenameDialog';
 import { SourceBrowser } from './components/SourceBrowser';
+import { GitBrowser } from './components/GitBrowser';
 
 function App() {
   const {
@@ -38,12 +39,14 @@ function App() {
 		getSourceTree,
 		activeFile,
 		getFileContent,
+		gitLog,
+		getGitLog,
 	} = useWebSocket(`ws://${location.host}/ws`)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
 	const [renameDialogOpen, setRenameDialogOpen] = useState(false)
 	const [inputValue, setInputValue] = useState('')
-	const [view, setView] = useState<'chat' | 'code'>('chat')
+	const [view, setView] = useState<'chat' | 'code' | 'git'>('chat')
 	const [showLineNumbers, setShowLineNumbers] = useState(false)
 
   const handleSidebarToggle = () => {
@@ -89,6 +92,11 @@ function App() {
       getSourceTree()
     }
 		setView('code')
+  }
+
+  const handleGitBrowserOpen = () => {
+    getGitLog()
+    setView('git')
   }
 
 	const handleToggleLineNumbers = () => {
@@ -138,6 +146,7 @@ function App() {
         onHistoryOpen={handleHistoryOpen}
         onChatViewOpen={handleChatViewOpen}
         onCodeBrowserOpen={handleSourceBrowserOpen}
+        onGitBrowserOpen={handleGitBrowserOpen}
       />
       <Box
         component="main"
@@ -154,7 +163,7 @@ function App() {
         <TopBar
           onSidebarToggle={handleSidebarToggle}
 					view={view}
-					title={view === 'code' ? 'Code' : title}
+					title={view === 'code' ? 'Code' : view === 'git' ? 'Git' : title}
           onTitleRename={handleRenameOpen}
           tokenCount={tokenCount}
           cwd={cwd}
@@ -181,7 +190,7 @@ function App() {
 						/>
 						<ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
 					</>
-				) : (
+				) : view === 'code' ? (
 					<SourceBrowser
 						tree={sourceTree}
 						activeFile={activeFile}
@@ -189,6 +198,8 @@ function App() {
 						showLineNumbers={showLineNumbers}
 						cwd={cwd}
 					/>
+				) : (
+					<GitBrowser log={gitLog} />
 				)}
       </Box>
       <HistoryDialog
