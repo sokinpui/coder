@@ -215,6 +215,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.visualSelectStart = m.visualSelectCursor
 					m.viewport.SetContent(m.renderConversation())
 				}
+			case "i":
+				m.state = stateIdle
+				m.visualMode = visualModeNone
+				m.visualIsSelecting = false
+				m.textArea.Focus()
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+				return m, textarea.Blink, true
 			case "y":
 				if m.visualIsSelecting && m.visualMode == visualModeNone {
 					start, end := m.visualSelectStart, m.visualSelectCursor
@@ -294,11 +302,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 
 		case tea.KeyEscape:
-			// Clears the text input. If the palette is open, this will also
-			// cause it to close in the subsequent logic.
-			if m.textArea.Value() != "" {
-				m.textArea.Reset()
+			// Enter visual mode, keeping text area content.
+			m.state = stateVisualSelect
+			m.visualMode = visualModeNone
+			m.visualIsSelecting = false
+			m.selectableBlocks = groupMessages(m.session.GetMessages())
+			if len(m.selectableBlocks) > 0 {
+				m.visualSelectCursor = len(m.selectableBlocks) - 1
 			}
+			m.textArea.Blur()
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
 			return m, nil, true
 
 		case tea.KeyTab, tea.KeyShiftTab:
