@@ -66,6 +66,9 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen }: Sideba
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',
                 px: 2.5,
+                mx: 1,
+                width: 'auto',
+                borderRadius: (theme) => theme.shape.borderRadius,
               }}
             >
               <ListItemIcon
@@ -90,6 +93,9 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen }: Sideba
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',
                 px: 2.5,
+                mx: 1,
+                width: 'auto',
+                borderRadius: (theme) => theme.shape.borderRadius,
               }}
             >
               <ListItemIcon

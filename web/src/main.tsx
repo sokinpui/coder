@@ -21,21 +21,22 @@ function Root() {
   const theme = useMemo(
     () =>
       createTheme({
+        shape: {
+          borderRadius: 12,
+        },
         palette: {
           mode,
           ...(mode === 'light'
             ? {
-                // Use a light grey background for light mode to reduce eye strain
                 background: {
-                  default: '#fafafa',
-                  paper: '#fff',
+                  default: '#f4f6f8',
+                  paper: '#ffffff',
                 },
               }
             : {
-                // Custom dark mode colors for better contrast
                 background: {
-                  default: '#303030',
-                  paper: '#424242',
+                  default: '#121212',
+                  paper: '#1e1e1e',
                 },
               }),
         },

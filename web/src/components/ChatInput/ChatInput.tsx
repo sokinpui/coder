@@ -23,7 +23,7 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, 
     <Box
       component="form"
       onSubmit={handleSubmit}
-      sx={{ p: 1, display: 'flex', alignItems: 'flex-end', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
+      sx={{ p: 2, display: 'flex', alignItems: 'center', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', gap: 1 }}
     >
       <TextField
         fullWidth
@@ -44,7 +44,11 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, 
         disabled={isGenerating}
         sx={{
           '& .MuiOutlinedInput-root': {
+            borderRadius: '24px',
             maxHeight: '25vh',
+            '& .MuiOutlinedInput-input': {
+              padding: '10px 14px',
+            },
           },
         }}
       />
@@ -59,7 +63,12 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, 
           Stop
         </Button>
       ) : (
-        <IconButton type="submit" color="primary" sx={{ ml: 1 }} disabled={!value.trim()}>
+        <IconButton
+          type="submit"
+          color="primary"
+          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }}
+          disabled={!value.trim()}
+        >
           <SendIcon />
         </IconButton>
       )}

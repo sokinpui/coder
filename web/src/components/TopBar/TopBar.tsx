@@ -50,7 +50,7 @@ export function TopBar({
   const { toggleColorMode } = useContext(AppContext)
 
   return (
-    <AppBar position="static" elevation={1}>
+    <AppBar position="static" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
       <Toolbar variant="dense">
         <IconButton
           color="inherit"
@@ -76,12 +76,18 @@ export function TopBar({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
-        <FormControl size="small" variant="standard" sx={{ minWidth: 120 }} disabled={isGenerating}>
+        <FormControl size="small" sx={{ minWidth: 120 }} disabled={isGenerating}>
           <Select
             value={mode}
             onChange={onModeChange}
-            disableUnderline
-            sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+            sx={{
+              color: 'inherit',
+              '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+              '.MuiSvgIcon-root': { color: 'inherit' },
+              borderRadius: '20px',
+            }}
           >
             {availableModes.map((m) => (
               <MenuItem key={m} value={m}>{m}</MenuItem>
@@ -91,12 +97,18 @@ export function TopBar({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
-        <FormControl size="small" variant="standard" sx={{ minWidth: 200 }} disabled={isGenerating}>
+        <FormControl size="small" sx={{ minWidth: 200 }} disabled={isGenerating}>
           <Select
             value={model}
             onChange={onModelChange}
-            disableUnderline
-            sx={{ color: 'inherit', '& .MuiSelect-icon': { color: 'inherit' } }}
+            sx={{
+              color: 'inherit',
+              '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+              '.MuiSvgIcon-root': { color: 'inherit' },
+              borderRadius: '20px',
+            }}
           >
             {availableModels.map((m) => (
               <MenuItem key={m} value={m}>{m}</MenuItem>

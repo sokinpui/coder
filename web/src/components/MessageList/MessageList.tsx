@@ -89,7 +89,7 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
         return (
           <Paper
             key={index}
-            elevation={1}
+            elevation={isUser ? 2 : 1}
             sx={{
               position: 'relative',
               mb: 1.5,
@@ -97,8 +97,10 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
               maxWidth: isEditing ? '100%' : '80%',
               width: isEditing ? '100%' : 'auto',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
-              bgcolor: 'background.paper',
-              color: isError ? 'error.main' : 'text.primary',
+              bgcolor: isUser ? 'primary.main' : 'background.paper',
+              color: isUser ? 'primary.contrastText' : isError ? 'error.main' : 'text.primary',
+              borderTopLeftRadius: !isUser ? 0 : undefined,
+              borderTopRightRadius: isUser ? 0 : undefined,
             }}
           >
             <Box
@@ -109,10 +111,11 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
                 position: 'sticky',
                 top: 0,
                 zIndex: 1,
-                bgcolor: (theme) =>
-                  theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[200],
+                bgcolor: 'action.hover',
                 py: 0.5,
                 px: 1.5,
+                borderTopLeftRadius: (theme) => (!isUser ? 0 : theme.shape.borderRadius),
+                borderTopRightRadius: (theme) => (isUser ? 0 : theme.shape.borderRadius),
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{msg.sender}</Typography>
@@ -214,8 +217,13 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
               className="message-content"
               sx={{
                 '& pre': { whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: 'monospace' },
-                '& code': { fontFamily: 'monospace', backgroundColor: 'action.hover', px: 0.5, borderRadius: 1 },
-                '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected' },
+                '& code': {
+                  fontFamily: 'monospace',
+                  backgroundColor: 'action.hover',
+                  px: 0.5,
+                  borderRadius: (theme) => theme.shape.borderRadius / 2,
+                },
+                '& pre > code': { display: 'block', p: 1, backgroundColor: 'action.selected', borderRadius: (theme) => theme.shape.borderRadius / 2 },
                 px: 1.5,
                 pb: 1.5,
               }}
