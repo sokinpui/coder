@@ -136,7 +136,7 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onChatVi
               >
                 <HistoryIcon />
               </ListItemIcon>
-              <ListItemText primary="History" sx={{ opacity: open ? 1 : 0 }} />
+              <ListItemText primary="Chat History" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>
