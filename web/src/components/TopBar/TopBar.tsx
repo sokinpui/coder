@@ -64,19 +64,19 @@ export function TopBar({
           {title}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
-        <Typography variant="body2" sx={{ color: 'inherit' }}>
+        <Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', md: 'block' } }}>
           {`Tokens: ${tokenCount}`}
         </Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', md: 'block' } }} />
 
-        <Typography variant="body2" sx={{ color: 'inherit' }}>
+        <Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', lg: 'block' } }}>
           {cwd}
         </Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', lg: 'block' } }} />
 
-        <FormControl size="small" sx={{ minWidth: 120 }} disabled={isGenerating}>
+        <FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }} disabled={isGenerating}>
           <Select
             value={mode}
             onChange={onModeChange}
@@ -97,7 +97,7 @@ export function TopBar({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
-        <FormControl size="small" sx={{ minWidth: 200 }} disabled={isGenerating}>
+        <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }} disabled={isGenerating}>
           <Select
             value={model}
             onChange={onModelChange}
