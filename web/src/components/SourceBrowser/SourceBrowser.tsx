@@ -9,6 +9,7 @@ import {
   Collapse,
   CircularProgress,
   IconButton,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import {
@@ -18,6 +19,8 @@ import {
   ExpandMore,
   ChevronLeft,
   ChevronRight,
+  UnfoldMore as UnfoldMoreIcon,
+  UnfoldLess as UnfoldLessIcon,
 } from "@mui/icons-material";
 import {
   useContext,
@@ -53,18 +56,22 @@ interface TreeNodeProps {
   node: SourceNode;
   onFileSelect: (path: string) => void;
   level: number;
+  expandedNodes: Set<string>;
+  onToggleNode: (path: string) => void;
 }
 
 const TreeNode = memo(function TreeNode({
   node,
   onFileSelect,
   level,
+  expandedNodes,
+  onToggleNode,
 }: TreeNodeProps) {
-  const [open, setOpen] = useState(level === 0);
+  const isExpanded = expandedNodes.has(node.path);
 
   const handleClick = () => {
     if (node.type === "directory") {
-      setOpen(!open);
+      onToggleNode(node.path);
     } else {
       onFileSelect(node.path);
     }
@@ -84,10 +91,10 @@ const TreeNode = memo(function TreeNode({
           primary={node.name}
           primaryTypographyProps={{ variant: "caption", noWrap: true }}
         />
-        {node.type === "directory" && (open ? <ExpandLess /> : <ExpandMore />)}
+        {node.type === "directory" && (isExpanded ? <ExpandLess /> : <ExpandMore />)}
       </ListItemButton>
       {node.type === "directory" && (
-        <Collapse in={open} timeout="auto" unmountOnExit>
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {node.children?.map((child) => (
               <TreeNode
@@ -95,6 +102,8 @@ const TreeNode = memo(function TreeNode({
                 node={child}
                 onFileSelect={onFileSelect}
                 level={level + 1}
+                expandedNodes={expandedNodes}
+                onToggleNode={onToggleNode}
               />
             ))}
           </List>
@@ -153,6 +162,7 @@ export function SourceBrowser({
   const { codeTheme } = useContext(AppContext);
   const muiTheme = useTheme();
   const [treeWidth, setTreeWidth] = useState(300);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,6 +175,45 @@ export function SourceBrowser({
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
   }, []);
+
+  const handleToggleNode = useCallback((path: string) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) {
+        newSet.delete(path);
+      } else {
+        newSet.add(path);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleExpandAll = () => {
+    if (!tree) return;
+    const allDirPaths = new Set<string>();
+    const traverse = (node: SourceNode) => {
+      if (node.type === "directory") {
+        allDirPaths.add(node.path);
+        node.children?.forEach(traverse);
+      }
+    };
+    tree.children?.forEach(traverse);
+    setExpandedNodes(allDirPaths);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedNodes(new Set());
+  };
+
+  useEffect(() => {
+    if (tree) {
+      const initialExpanded = new Set<string>();
+      tree.children?.forEach((node) => {
+        if (node.type === "directory") initialExpanded.add(node.path);
+      });
+      setExpandedNodes(initialExpanded);
+    }
+  }, [tree]);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -254,22 +303,25 @@ export function SourceBrowser({
               borderColor: "divider",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent: "flex-end",
               flexShrink: 0,
             }}
           >
-            <Typography
-              variant="subtitle2"
-              noWrap
-              sx={{
-                fontWeight: "bold",
-              }}
-            >
-              {cwd}
-            </Typography>
-            <IconButton onClick={toggleCollapse} size="small">
-              <ChevronLeft />
-            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Tooltip title="Expand All">
+                <IconButton onClick={handleExpandAll} size="small">
+                  <UnfoldMoreIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Collapse All">
+                <IconButton onClick={handleCollapseAll} size="small">
+                  <UnfoldLessIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <IconButton onClick={toggleCollapse} size="small">
+                <ChevronLeft />
+              </IconButton>
+            </Box>
           </Box>
           <Box
             sx={{
@@ -287,6 +339,8 @@ export function SourceBrowser({
                     node={node}
                     onFileSelect={onFileSelect}
                     level={0}
+                    expandedNodes={expandedNodes}
+                    onToggleNode={handleToggleNode}
                   />
                 ))}
               </List>
