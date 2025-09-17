@@ -18,12 +18,20 @@ import {
   ChevronLeft,
   ChevronRight,
 } from '@mui/icons-material'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { useContext, useState, useRef, useCallback, useEffect } from 'react'
+import { useContext, useState, useRef, useCallback, useEffect, memo } from 'react'
 import type { SourceNode } from '../../types'
 import { AppContext } from '../../AppContext'
 import { CopyButton } from '../CopyButton'
+import CodeMirror from '@uiw/react-codemirror'
+import { EditorView } from '@codemirror/view'
+import { oneDark } from '@codemirror/theme-one-dark'
+import { githubLight } from '@uiw/codemirror-theme-github'
+import { go } from '@codemirror/lang-go'
+import { javascript } from '@codemirror/lang-javascript'
+import { json } from '@codemirror/lang-json'
+import { markdown } from '@codemirror/lang-markdown'
+import { html } from '@codemirror/lang-html'
+import { css } from '@codemirror/lang-css'
 
 interface SourceBrowserProps {
   tree: SourceNode | null
@@ -37,7 +45,7 @@ interface TreeNodeProps {
   level: number
 }
 
-function TreeNode({ node, onFileSelect, level }: TreeNodeProps) {
+const TreeNode = memo(function TreeNode({ node, onFileSelect, level }: TreeNodeProps) {
   const [open, setOpen] = useState(level === 0)
 
   const handleClick = () => {
@@ -68,11 +76,45 @@ function TreeNode({ node, onFileSelect, level }: TreeNodeProps) {
       )}
     </>
   )
+})
+
+const getLanguageExtension = (filePath: string) => {
+  const extension = filePath.split('.').pop() || ''
+  switch (extension) {
+    case 'go':
+      return go()
+    case 'js':
+    case 'jsx':
+    case 'ts':
+    case 'tsx':
+      return javascript({ jsx: true, typescript: true })
+    case 'json':
+      return json()
+    case 'md':
+      return markdown()
+    case 'html':
+      return html()
+    case 'css':
+      return css()
+    default:
+      return undefined
+  }
 }
+
+// Custom theme to make the editor look like a static viewer
+const readOnlyTheme = EditorView.theme({
+  // Hide the cursor
+  '.cm-cursor, .cm-dropCursor': { border: 'none' },
+  // Make selection invisible
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+    backgroundColor: 'transparent !important',
+  },
+  // Remove focus ring
+  '&.cm-focused': { outline: 'none' },
+})
 
 export function SourceBrowser({ tree, activeFile, onFileSelect }: SourceBrowserProps) {
   const { codeTheme } = useContext(AppContext)
-  const syntaxTheme = codeTheme === 'dark' ? oneDark : oneLight
   const [treeWidth, setTreeWidth] = useState(300)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -112,6 +154,12 @@ export function SourceBrowser({ tree, activeFile, onFileSelect }: SourceBrowserP
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed)
+  }
+
+  const langExtension = activeFile ? getLanguageExtension(activeFile.path) : undefined
+  const extensions = [EditorView.lineWrapping, readOnlyTheme]
+  if (langExtension) {
+    extensions.push(langExtension)
   }
 
   return (
@@ -197,21 +245,15 @@ export function SourceBrowser({ tree, activeFile, onFileSelect }: SourceBrowserP
         </Box>
         <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
           {activeFile ? (
-            <SyntaxHighlighter
-              style={syntaxTheme}
-              language={activeFile.path.split('.').pop() || 'text'}
-              customStyle={{
-                margin: 0,
-                height: '100%',
-                padding: '8px',
-                whiteSpace: 'pre-wrap',
-                fontSize: '0.8rem',
-                overflowWrap: 'break-word',
-              }}
-              showLineNumbers
-            >
-              {activeFile.content}
-            </SyntaxHighlighter>
+            <CodeMirror
+              value={activeFile.content}
+              height="100%"
+              theme={codeTheme === 'dark' ? oneDark : githubLight}
+              extensions={extensions}
+              readOnly={true}
+              editable={false}
+              basicSetup={false}
+            />
           ) : (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <Typography variant="body2" color="text.secondary">

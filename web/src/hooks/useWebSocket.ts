@@ -15,6 +15,7 @@ export function useWebSocket(url: string) {
   const [sourceTree, setSourceTree] = useState<SourceNode | null>(null);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
+  const fileCache = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     let ignore = false;
@@ -91,6 +92,7 @@ export function useWebSocket(url: string) {
           setSourceTree(msg.payload);
           break;
         case "fileContent":
+          fileCache.current.set(msg.payload.path, msg.payload.content);
           setActiveFile(msg.payload);
           break;
         case "error":
@@ -250,6 +252,11 @@ export function useWebSocket(url: string) {
   };
 
   const getFileContent = (path: string) => {
+    if (fileCache.current.has(path)) {
+      setActiveFile({ path, content: fileCache.current.get(path)! });
+      return;
+    }
+
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
