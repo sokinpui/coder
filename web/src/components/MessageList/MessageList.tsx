@@ -21,8 +21,7 @@ import {
 } from "@mui/icons-material";
 import type { Message } from "../../types";
 import { CopyButton } from "../CopyButton";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "../CodeBlock";
 
 interface MessageListProps {
   messages: Message[];
@@ -50,7 +49,6 @@ export function MessageList({
   const [editText, setEditText] = useState("");
 
   const theme = useTheme();
-  const syntaxTheme = oneDark;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -327,23 +325,12 @@ export function MessageList({
                       components={{
                         code({ node, inline, className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              style={syntaxTheme}
-                              language={match[1]}
-                              customStyle={{
-                                borderRadius: `${theme.shape.borderRadius}px`,
-                                margin: 0,
-                                padding: theme.spacing(1.5),
-                                whiteSpace: "pre-wrap",
-                                fontSize: "0.95rem",
-                                overflowWrap: "break-word",
-                              }}
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          ) : (
+                          if (!inline && match) {
+                            return (
+                              <CodeBlock language={match[1]}>{children}</CodeBlock>
+                            );
+                          }
+                          return (
                             <code className={className} {...props}>
                               {children}
                             </code>

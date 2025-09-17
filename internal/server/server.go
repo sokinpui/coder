@@ -5,6 +5,7 @@ import (
 	"coder/internal/core"
 	"coder/internal/session"
 	"coder/internal/token"
+	"coder/internal/utils"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -204,7 +205,7 @@ func (c *Client) handleUserInput(payload string) {
 			Type: "messageUpdate",
 			Payload: MessagePayload{
 				Type:    messageTypeToString(lastMsg.Type),
-				Content: lastMsg.Content,
+				Content: utils.StripAnsi(lastMsg.Content),
 			},
 		}
 
@@ -251,7 +252,7 @@ func (c *Client) handleRegenerate(userMessageIndex int) {
 			Type: "messageUpdate",
 			Payload: MessagePayload{
 				Type:    messageTypeToString(lastMsg.Type),
-				Content: lastMsg.Content,
+				Content: utils.StripAnsi(lastMsg.Content),
 			},
 		}
 
@@ -288,7 +289,7 @@ func (c *Client) handleApplyItf(content string) {
 		Type: "messageUpdate",
 		Payload: MessagePayload{
 			Type:    messageTypeToString(cmdMsg.Type),
-			Content: cmdMsg.Content,
+			Content: utils.StripAnsi(cmdMsg.Content),
 		},
 	}
 
@@ -305,7 +306,7 @@ func (c *Client) handleApplyItf(content string) {
 	c.session.AddMessage(resultMsg)
 	c.send <- ServerToClientMessage{
 		Type:    "messageUpdate",
-		Payload: MessagePayload{Type: messageTypeToString(resultMsg.Type), Content: resultMsg.Content},
+		Payload: MessagePayload{Type: messageTypeToString(resultMsg.Type), Content: utils.StripAnsi(resultMsg.Content)},
 	}
 }
 
@@ -391,7 +392,7 @@ func (c *Client) handleLoadConversation(filename string) {
 	for i, msg := range messages {
 		payloadMessages[i] = MessagePayload{
 			Type:    messageTypeToString(msg.Type),
-			Content: msg.Content,
+			Content: utils.StripAnsi(msg.Content),
 		}
 	}
 

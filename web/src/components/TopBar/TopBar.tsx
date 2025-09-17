@@ -16,6 +16,7 @@ import {
   Menu as MenuIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
+  Palette as PaletteIcon,
 } from '@mui/icons-material'
 import { AppContext } from '../../AppContext'
 
@@ -47,7 +48,7 @@ export function TopBar({
   isGenerating,
 }: TopBarProps) {
   const theme = useTheme()
-  const { toggleColorMode } = useContext(AppContext)
+  const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
 
   return (
     <AppBar position="static" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -115,6 +116,9 @@ export function TopBar({
             ))}
           </Select>
         </FormControl>
+        <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
+          <PaletteIcon />
+        </IconButton>
         <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
           {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
         </IconButton>
