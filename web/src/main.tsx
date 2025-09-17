@@ -1,6 +1,7 @@
 import { StrictMode, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { BrowserRouter } from 'react-router-dom'
 import CssBaseline from '@mui/material/CssBaseline'
 import './index.css'
 import App from './App.tsx'
@@ -53,7 +54,9 @@ function Root() {
     <AppContext.Provider value={appContext}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </ThemeProvider>
     </AppContext.Provider>
   )

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   List,
@@ -27,16 +28,16 @@ interface GitBrowserProps {
 }
 
 export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) {
-  const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
+  const { '*': selectedCommit } = useParams();
+  const navigate = useNavigate();
   const [diffView, setDiffView] = useState<"side-by-side" | "unified">("side-by-side");
 
   const handleCommitSelect = (hash: string) => {
-    setSelectedCommit(hash);
-    getCommitDiff(hash);
+    navigate(`/git/${hash}`);
   };
 
   const handleBackToLog = () => {
-    setSelectedCommit(null);
+    navigate('/git');
   };
 
   const handleToggleDiffView = () => {

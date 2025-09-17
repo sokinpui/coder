@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   CssBaseline,
 	type SelectChangeEvent,
 } from '@mui/material'
 import { useWebSocket } from './hooks/useWebSocket'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar'
 import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
@@ -43,13 +44,18 @@ function App() {
 		getGitLog,
 		commitDiff,
 		getCommitDiff,
-	} = useWebSocket(`ws://${location.host}/ws`)
+	} = useWebSocket(`ws://${window.location.host}/ws`)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
 	const [renameDialogOpen, setRenameDialogOpen] = useState(false)
 	const [inputValue, setInputValue] = useState('')
-	const [view, setView] = useState<'chat' | 'code' | 'git'>('chat')
 	const [showLineNumbers, setShowLineNumbers] = useState(false)
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const view = pathParts[0] || 'chat';
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -58,11 +64,11 @@ function App() {
   const handleNewChat = () => {
     sendMessage(':new')
     setInputValue('')
-		setView('chat')
+		navigate('/');
   }
 
   const handleChatViewOpen = () => {
-    setView('chat')
+    navigate('/');
   }
 
   const handleHistoryOpen = () => {
@@ -77,7 +83,7 @@ function App() {
   const handleLoadConversation = (filename: string) => {
     loadConversation(filename)
     handleHistoryClose()
-    setView('chat')
+    navigate('/');
   }
 
   const handleRenameOpen = () => {
@@ -93,12 +99,12 @@ function App() {
     if (!sourceTree) {
       getSourceTree()
     }
-		setView('code')
+		navigate('/code');
   }
 
   const handleGitBrowserOpen = () => {
     getGitLog()
-    setView('git')
+    navigate('/git');
   }
 
 	const handleToggleLineNumbers = () => {
@@ -137,6 +143,32 @@ function App() {
   const handleDeleteMessage = (index: number) => {
     deleteMessage(index)
   }
+
+  const handleFileSelect = (path: string) => {
+    navigate(`/code/${path}`);
+  };
+
+  // Effect for deep linking into code browser
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/code/')) {
+      const filePath = path.substring('/code/'.length);
+      if (filePath && (!activeFile || activeFile.path !== filePath)) {
+        getFileContent(filePath);
+      }
+    }
+  }, [location.pathname, getFileContent, activeFile]);
+
+  // Effect for deep linking into git browser
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/git/')) {
+      const hash = path.substring('/git/'.length);
+      if (hash && (!commitDiff || commitDiff.hash !== hash)) {
+        getCommitDiff(hash);
+      }
+    }
+  }, [location.pathname, getCommitDiff, commitDiff]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -179,30 +211,34 @@ function App() {
 					showLineNumbers={showLineNumbers}
 					onToggleLineNumbers={handleToggleLineNumbers}
         />
-				{view === 'chat' ? (
-					<>
-						<MessageList
-							messages={messages}
-							isGenerating={isGenerating}
-							onRegenerate={handleRegenerate}
-							onApplyItf={handleApplyItf}
-							onEditMessage={handleEditMessage}
-							onBranchFrom={handleBranchFrom}
-							onDeleteMessage={handleDeleteMessage}
-						/>
-						<ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
-					</>
-				) : view === 'code' ? (
-					<SourceBrowser
-						tree={sourceTree}
-						activeFile={activeFile}
-						onFileSelect={getFileContent}
-						showLineNumbers={showLineNumbers}
-						cwd={cwd}
-					/>
-				) : (
-					<GitBrowser log={gitLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
-				)}
+        <Routes>
+          <Route path="/code/*" element={
+            <SourceBrowser
+              tree={sourceTree}
+              activeFile={activeFile}
+              onFileSelect={handleFileSelect}
+              showLineNumbers={showLineNumbers}
+              cwd={cwd}
+            />
+          } />
+          <Route path="/git/*" element={
+            <GitBrowser log={gitLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
+          } />
+          <Route path="/*" element={
+            <>
+              <MessageList
+                messages={messages}
+                isGenerating={isGenerating}
+                onRegenerate={handleRegenerate}
+                onApplyItf={handleApplyItf}
+                onEditMessage={handleEditMessage}
+                onBranchFrom={handleBranchFrom}
+                onDeleteMessage={handleDeleteMessage}
+              />
+              <ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
+            </>
+          } />
+        </Routes>
       </Box>
       <HistoryDialog
         open={historyDialogOpen}
