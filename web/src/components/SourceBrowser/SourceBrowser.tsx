@@ -141,11 +141,7 @@ const getLanguageExtension = (filePath: string) => {
 const readOnlyTheme = EditorView.theme({
   // Hide the cursor
   ".cm-cursor, .cm-dropCursor": { border: "none" },
-  // Make selection invisible
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    {
-      backgroundColor: "transparent !important",
-    },
+  // Allow default selection highlighting
   // Remove focus ring
   "&.cm-focused": { outline: "none" },
   ".cm-content": {
