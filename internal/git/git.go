@@ -11,17 +11,17 @@ type LogEntry struct {
 	AuthorName   string `json:"authorName"`
 	RelativeDate string `json:"relativeDate"`
 	Subject      string `json:"subject"`
+	Body         string `json:"body"`
 }
 
 // GetLog retrieves a formatted git log from the repository.
 func GetLog() ([]LogEntry, error) {
-	// Using a custom format that's easy to parse.
-	// %H: commit hash
-	// %an: author name
-	// %ar: author date, relative
-	// %s: subject
-	const format = "%H|%an|%ar|%s"
-	cmd := exec.Command("git", "log", "--pretty=format:"+format)
+	// Using unit separator (0x1f) for fields and record separator (0x1e) for commits.
+	const fieldSeparator = "\x1f"
+	const recordSeparator = "\x1e"
+	const format = "%H" + fieldSeparator + "%an" + fieldSeparator + "%ar" + fieldSeparator + "%B"
+
+	cmd := exec.Command("git", "log", "--pretty=format:"+format+recordSeparator)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -29,21 +29,31 @@ func GetLog() ([]LogEntry, error) {
 	}
 
 	var entries []LogEntry
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	logs := strings.Split(string(output), recordSeparator)
 
-	for _, line := range lines {
-		if line == "" {
+	for _, log := range logs {
+		if log == "" {
 			continue
 		}
-		parts := strings.SplitN(line, "|", 4)
+		parts := strings.SplitN(log, fieldSeparator, 4)
 		if len(parts) != 4 {
 			continue // Skip malformed lines
 		}
+
+		fullMessage := parts[3]
+		messageLines := strings.SplitN(fullMessage, "\n", 2)
+		subject := messageLines[0]
+		body := ""
+		if len(messageLines) > 1 {
+			body = strings.TrimSpace(messageLines[1])
+		}
+
 		entry := LogEntry{
 			Hash:         parts[0],
 			AuthorName:   parts[1],
 			RelativeDate: parts[2],
-			Subject:      parts[3],
+			Subject:      subject,
+			Body:         body,
 		}
 		entries = append(entries, entry)
 	}

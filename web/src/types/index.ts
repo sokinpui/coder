@@ -21,4 +21,5 @@ export interface GitLogEntry {
   authorName: string;
   relativeDate: string;
   subject: string;
+  body: string;
 }
