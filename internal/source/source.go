@@ -16,6 +16,7 @@ func LoadProjectSource(mode config.AppMode) (string, error) {
 	exclusions := []string{
 		"*-lock.json",
 		"go.sum",
+		".git",
 		".coder",
 		".vscode",
 		".idea",
@@ -70,7 +71,7 @@ func LoadProjectSource(mode config.AppMode) (string, error) {
 	}
 
 	var commandBuilder strings.Builder
-	commandBuilder.WriteString("fd . --type=file")
+	commandBuilder.WriteString("fd . --type=file --hidden")
 
 	for _, exclusion := range exclusions {
 		// Using single quotes to handle potential special characters in globs for the shell.
