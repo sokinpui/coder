@@ -63,6 +63,12 @@ func renderTick() tea.Cmd {
 	})
 }
 
+func animateTitleTick() tea.Cmd {
+	return tea.Tick(50*time.Millisecond, func(t time.Time) tea.Msg {
+		return animateTitleTickMsg{}
+	})
+}
+
 func ctrlCTimeout() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return ctrlCTimeoutMsg{}
@@ -78,8 +84,8 @@ func clearStatusBarCmd(d time.Duration) tea.Cmd {
 func generateTitleCmd(sess *session.Session, userPrompt string) tea.Cmd {
 	return func() tea.Msg {
 		// This runs in a goroutine managed by Bubble Tea.
-		sess.GenerateTitle(context.Background(), userPrompt)
-		return titleGeneratedMsg{}
+		title := sess.GenerateTitle(context.Background(), userPrompt)
+		return titleGeneratedMsg{title: title}
 	}
 }
 

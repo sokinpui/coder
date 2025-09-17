@@ -219,12 +219,18 @@ func (m Model) statusView() string {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	titlePart := statusBarTitleStyle.Render(m.session.GetTitle())
+	var titlePart string
+	if m.animatingTitle {
+		titlePart = statusBarTitleStyle.Render(m.displayedTitle)
+	} else {
+		titlePart = statusBarTitleStyle.Render(m.session.GetTitle())
+	}
 
 	var status string
 	switch m.state {
 	case stateThinking, stateGenerating:
-		status = "Ctrl+U/D: scroll | Ctrl+C: cancel"
+		// This is now handled on the right side
+		status = ""
 	case stateCancelling:
 		return generatingStatusStyle.Render("Cancelling...")
 	case stateHistorySelect:
@@ -273,6 +279,11 @@ func (m Model) statusView() string {
 	rightSide := lipgloss.JoinHorizontal(lipgloss.Top, modePart, " | ", modelPart)
 	if tokenPart != "" {
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", rightSide)
+	}
+
+	if m.state == stateThinking || m.state == stateGenerating {
+		generatingPart := statusStyle.Render("Generating...")
+		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, generatingPart, " | ", rightSide)
 	}
 
 	spacing := m.width - lipgloss.Width(leftSide) - lipgloss.Width(rightSide)

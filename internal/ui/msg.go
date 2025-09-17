@@ -26,7 +26,8 @@ type (
 		err     error
 	}
 	clearStatusBarMsg struct{}
-	titleGeneratedMsg   struct{}
+	titleGeneratedMsg   struct{ title string }
+	animateTitleTickMsg struct{}
 	historyListResultMsg struct {
 		items []history.ConversationInfo
 		err   error

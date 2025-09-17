@@ -164,8 +164,23 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, tea.Batch(countTokensCmd(m.session.GetPromptForTokenCount()), textarea.Blink), true
 
 	case titleGeneratedMsg:
-		// The title is already updated in the session.
-		// This message just triggers a re-render of the status bar.
+		m.animatingTitle = true
+		m.fullGeneratedTitle = msg.title
+		m.displayedTitle = ""
+		return m, animateTitleTick(), true
+
+	case animateTitleTickMsg:
+		if !m.animatingTitle {
+			return m, nil, true
+		}
+
+		if len(m.displayedTitle) < len(m.fullGeneratedTitle) {
+			// Use rune-safe slicing to handle multi-byte characters
+			m.displayedTitle = string([]rune(m.fullGeneratedTitle)[:len([]rune(m.displayedTitle))+1])
+			return m, animateTitleTick(), true
+		}
+
+		m.animatingTitle = false
 		return m, nil, true
 
 	case clearStatusBarMsg:

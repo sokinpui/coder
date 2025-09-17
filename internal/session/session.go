@@ -224,7 +224,7 @@ func (s *Session) IsTitleGenerated() bool {
 }
 
 // GenerateTitle generates and sets a title for the conversation based on the first user prompt.
-func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) {
+func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.titleGenerated = true // Set this first to prevent concurrent calls.
 
 	prompt := strings.Replace(core.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
@@ -242,11 +242,12 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) {
 			fallbackTitle += "..."
 		}
 		s.title = fallbackTitle
-		return
+		return s.title
 	}
 
 	s.title = strings.Trim(title, "\"") // Models sometimes add quotes
 	log.Printf("Generated title: %s", s.title)
+	return s.title
 }
 
 // SetTitle manually sets the conversation title.

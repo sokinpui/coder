@@ -25,6 +25,7 @@ const welcomeMessage = `Welcome to Coder!
 - Press Enter for a new line in your prompt (or to run a command).
 - Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - Use Ctrl+D and Ctrl+U to scroll the conversation.
+- During generation, press Ctrl+C to cancel.
 - Type ':' to see available commands and actions.
 - Place files in the 'Context' directory to provide them to the AI.`
 
@@ -84,6 +85,9 @@ type Model struct {
 	visualSelectCursor      int
 	visualSelectStart       int
 	statusBarMessage        string
+	animatingTitle          bool
+	fullGeneratedTitle      string
+	displayedTitle          string
 	editingMessageIndex     int
 	historyItems            []history.ConversationInfo
 	historySelectCursor     int
@@ -166,6 +170,9 @@ func NewModel(cfg *config.Config) (Model, error) {
 		visualSelectCursor:      0,
 		visualSelectStart:       0,
 		statusBarMessage:        "",
+		animatingTitle:          false,
+		fullGeneratedTitle:      "",
+		displayedTitle:          "",
 		editingMessageIndex:     -1,
 		historyItems:            nil,
 		historySelectCursor:     0,
