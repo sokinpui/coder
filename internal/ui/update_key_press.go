@@ -86,6 +86,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.visualMode = visualModeNone
 			m.textArea.Focus()
 			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
 			return m, textarea.Blink, true
 
 		case tea.KeyEnter:
@@ -229,6 +230,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.visualIsSelecting = false
 					m.textArea.Focus()
 					m.viewport.SetContent(m.renderConversation())
+					m.viewport.GotoBottom()
 					return m, tea.Batch(textarea.Blink, cmd), true
 				}
 			case "d":
@@ -252,6 +254,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.visualIsSelecting = false
 					m.textArea.Focus()
 					m.viewport.SetContent(m.renderConversation())
+					m.viewport.GotoBottom()
 					return m, tea.Batch(textarea.Blink, cmd), true
 				}
 			}

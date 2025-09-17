@@ -99,7 +99,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					m.textArea.Reset()
 					m.textArea.SetHeight(1)
 					m.textArea.Blur()
+					originalOffset := m.viewport.YOffset
 					m.viewport.SetContent(m.renderConversation()) // Render with updated messages
+					m.viewport.SetYOffset(originalOffset)
 					return m, nil
 				}
 
@@ -116,7 +118,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					m.textArea.Reset()
 					m.textArea.SetHeight(1)
 					m.textArea.Blur()
+					originalOffset := m.viewport.YOffset
 					m.viewport.SetContent(m.renderConversation())
+					m.viewport.SetYOffset(originalOffset)
 					return m, nil
 				case core.GenerateModeResult:
 					return enterVisualMode(visualModeGenerate)

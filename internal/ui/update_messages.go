@@ -98,6 +98,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 			m.textArea.Focus()
 			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
 
 			m.editingMessageIndex = -1 // Reset on success or failure
 			return m, textarea.Blink, true
