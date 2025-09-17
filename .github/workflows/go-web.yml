@@ -1,26 +1,26 @@
-name: Go TUI CI
+name: Go Web CI
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - 'cmd/coder/**'
+      - 'cmd/coder-web/**'
       - 'internal/**'
       - 'protos/**'
       - 'gen.sh'
       - 'go.mod'
       - 'go.sum'
-      - '.github/workflows/go-tui.yml'
+      - '.github/workflows/go-web.yml'
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'cmd/coder/**'
+      - 'cmd/coder-web/**'
       - 'internal/**'
       - 'protos/**'
       - 'gen.sh'
       - 'go.mod'
       - 'go.sum'
-      - '.github/workflows/go-tui.yml'
+      - '.github/workflows/go-web.yml'
 
 jobs:
   build:
@@ -49,5 +49,5 @@ jobs:
         chmod +x gen.sh
         ./gen.sh
 
-    - name: Build Coder TUI
-      run: go build -v ./cmd/coder
+    - name: Build Coder Web
+      run: go build -v ./cmd/coder-web
