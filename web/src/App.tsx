@@ -41,6 +41,8 @@ function App() {
 		getFileContent,
 		gitLog,
 		getGitLog,
+		commitDiff,
+		getCommitDiff,
 	} = useWebSocket(`ws://${location.host}/ws`)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
@@ -199,7 +201,7 @@ function App() {
 						cwd={cwd}
 					/>
 				) : (
-					<GitBrowser log={gitLog} />
+					<GitBrowser log={gitLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
 				)}
       </Box>
       <HistoryDialog

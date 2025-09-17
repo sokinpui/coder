@@ -142,6 +142,10 @@ func (c *Client) readPump() {
 			}
 		case "getGitLog":
 			c.handleGetGitLog()
+		case "getCommitDiff":
+			if hash, ok := msg.Payload.(string); ok {
+				c.handleGetCommitDiff(hash)
+			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -468,6 +472,25 @@ func (c *Client) handleGetGitLog() {
 	c.send <- ServerToClientMessage{
 		Type:    "gitLog",
 		Payload: logEntries,
+	}
+}
+
+func (c *Client) handleGetCommitDiff(hash string) {
+	diff, err := git.GetCommitDiff(hash)
+	if err != nil {
+		log.Printf("Error getting commit diff for %s: %v", hash, err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: fmt.Sprintf("Failed to get diff for commit: %s", hash),
+		}
+		return
+	}
+	c.send <- ServerToClientMessage{
+		Type: "commitDiff",
+		Payload: map[string]string{
+			"hash": hash,
+			"diff": diff,
+		},
 	}
 }
 

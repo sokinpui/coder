@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -19,7 +20,7 @@ func GetLog() ([]LogEntry, error) {
 	// Using unit separator (0x1f) for fields and record separator (0x1e) for commits.
 	const fieldSeparator = "\x1f"
 	const recordSeparator = "\x1e"
-	const format = "%H" + fieldSeparator + "%an" + fieldSeparator + "%ar" + fieldSeparator + "%B"
+	const format = "%H" + fieldSeparator + "%an" + fieldSeparator + "%ar" + fieldSeparator + "%s" + fieldSeparator + "%b"
 
 	cmd := exec.Command("git", "log", "--pretty=format:"+format+recordSeparator)
 
@@ -32,21 +33,17 @@ func GetLog() ([]LogEntry, error) {
 	logs := strings.Split(string(output), recordSeparator)
 
 	for _, log := range logs {
+		log = strings.TrimSpace(log)
 		if log == "" {
 			continue
 		}
-		parts := strings.SplitN(log, fieldSeparator, 4)
-		if len(parts) != 4 {
+		parts := strings.SplitN(log, fieldSeparator, 5)
+		if len(parts) != 5 {
 			continue // Skip malformed lines
 		}
 
-		fullMessage := parts[3]
-		messageLines := strings.SplitN(fullMessage, "\n", 2)
-		subject := messageLines[0]
-		body := ""
-		if len(messageLines) > 1 {
-			body = strings.TrimSpace(messageLines[1])
-		}
+		subject := parts[3]
+		body := strings.TrimSpace(parts[4])
 
 		entry := LogEntry{
 			Hash:         parts[0],
@@ -58,4 +55,33 @@ func GetLog() ([]LogEntry, error) {
 		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+// GetCommitDiff retrieves the diff for a specific commit hash.
+func GetCommitDiff(hash string) (string, error) {
+	// Security: Basic validation to prevent command injection.
+	if !isSafeHash(hash) {
+		return "", fmt.Errorf("invalid commit hash: %s", hash)
+	}
+
+	cmd := exec.Command("git", "show", hash)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("git show failed for %s: %w\n%s", hash, err, string(output))
+	}
+	return string(output), nil
+}
+
+// isSafeHash checks if a string looks like a valid git hash (hexadecimal).
+// This is a simple check to prevent arbitrary command execution.
+func isSafeHash(hash string) bool {
+	if len(hash) == 0 || len(hash) > 40 {
+		return false
+	}
+	for _, r := range hash {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
 }

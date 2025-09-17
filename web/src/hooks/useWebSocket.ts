@@ -15,6 +15,7 @@ export function useWebSocket(url: string) {
   const [sourceTree, setSourceTree] = useState<SourceNode | null>(null);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
   const [gitLog, setGitLog] = useState<GitLogEntry[]>([]);
+  const [commitDiff, setCommitDiff] = useState<{ hash: string; diff: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const fileCache = useRef<Map<string, string>>(new Map());
 
@@ -98,6 +99,9 @@ export function useWebSocket(url: string) {
           break;
         case "gitLog":
           setGitLog(msg.payload || []);
+          break;
+        case "commitDiff":
+          setCommitDiff(msg.payload);
           break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
@@ -276,6 +280,14 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify({ type: "getGitLog" }));
   };
 
+  const getCommitDiff = (hash: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "getCommitDiff", payload: hash }));
+  };
+
   return {
 		messages,
 		title,
@@ -302,5 +314,7 @@ export function useWebSocket(url: string) {
 		getFileContent,
 		gitLog,
 		getGitLog,
+		commitDiff,
+		getCommitDiff,
 	};
 }
