@@ -115,11 +115,11 @@ export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) 
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
-      <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+      <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
         {view === 'graph' ? (
           <GitGraph log={log} onCommitSelect={handleCommitSelect} />
         ) : (
-          <List>
+          <List sx={{ height: '100%', overflowY: 'auto' }}>
             {log.map((entry) => (
               <div key={entry.hash}>
                 <ListItemButton onClick={() => handleCommitSelect(entry.hash)}>

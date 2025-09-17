@@ -38,6 +38,14 @@ function calculateLayout(log: GitGraphLogEntry[]) {
     }
     commitLanes.set(commit.hash, laneIndex);
 
+    // After using a lane for a commit, if other lanes were also pointing to this commit (merge),
+    // they should be freed up.
+    for (let i = 0; i < lanes.length; i++) {
+      if (lanes[i] === commit.hash && i !== laneIndex) {
+        lanes[i] = null;
+      }
+    }
+
     if (!branchColorsMap.has(laneIndex)) {
       branchColorsMap.set(laneIndex, branchColors[colorCounter % branchColors.length]);
       colorCounter++;
@@ -69,7 +77,7 @@ export function GitGraph({ log, onCommitSelect }: GitGraphProps) {
   const { commitLanes, branchColorsMap, commitMap, maxLanes } = useMemo(() => calculateLayout(log), [log]);
 
   return (
-    <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', overflowX: 'auto' }}>
+    <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', overflow: 'auto', height: '100%' }}>
       {log.map((commit, rowIndex) => {
         const commitLane = commitLanes.get(commit.hash);
         if (commitLane === undefined) return null;
