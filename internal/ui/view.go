@@ -43,36 +43,23 @@ func (m Model) historyView() string {
 func (m Model) renderConversation() string {
 	var parts []string
 
-	selectedIndices := make(map[int]struct{})
-	if m.state == stateVisualSelect {
-		if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit || m.visualMode == visualModeBranch {
-			if m.visualSelectCursor < len(m.selectableBlocks) {
-				block := m.selectableBlocks[m.visualSelectCursor]
-				for j := block.startIdx; j <= block.endIdx; j++ {
-					selectedIndices[j] = struct{}{}
-				}
-			}
-		} else {
-			var start, end int
-			if m.visualIsSelecting {
-				start, end = m.visualSelectStart, m.visualSelectCursor
-			} else {
-				// Highlight only cursor when not selecting
-				start, end = m.visualSelectCursor, m.visualSelectCursor
-			}
+	blockStarts := make(map[int]int)
+	selectedBlocks := make(map[int]struct{})
 
+	if m.state == stateVisualSelect {
+		for i, block := range m.selectableBlocks {
+			blockStarts[block.startIdx] = i
+		}
+
+		if m.visualMode == visualModeNone && m.visualIsSelecting {
+			start, end := m.visualSelectStart, m.visualSelectCursor
 			if start > end {
 				start, end = end, start
 			}
 
 			if end < len(m.selectableBlocks) {
 				for i := start; i <= end; i++ {
-					if i < len(m.selectableBlocks) {
-						block := m.selectableBlocks[i]
-						for j := block.startIdx; j <= block.endIdx; j++ {
-							selectedIndices[j] = struct{}{}
-						}
-					}
+					selectedBlocks[i] = struct{}{}
 				}
 			}
 		}
@@ -132,8 +119,35 @@ func (m Model) renderConversation() string {
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		}
 
-		if _, isSelected := selectedIndices[i]; isSelected {
-			renderedMsg = visualSelectStyle.Render(renderedMsg)
+		if blockIndex, isStart := blockStarts[i]; m.state == stateVisualSelect && isStart {
+			isCursorOn := (blockIndex == m.visualSelectCursor)
+
+			var isSelected bool
+			if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit || m.visualMode == visualModeBranch {
+				isSelected = isCursorOn
+			} else { // visualModeNone
+				_, isSelected = selectedBlocks[blockIndex]
+			}
+
+			var checkbox string
+			if isSelected {
+				checkbox = "[x] "
+			} else {
+				checkbox = "[ ] "
+			}
+
+			if isCursorOn {
+				checkbox = "▸ " + checkbox
+			} else {
+				checkbox = "  " + checkbox
+			}
+
+			if isCursorOn {
+				checkbox = paletteSelectedItemStyle.Render(checkbox)
+			} else {
+				checkbox = paletteItemStyle.Render(checkbox)
+			}
+			renderedMsg = lipgloss.JoinHorizontal(lipgloss.Top, checkbox, renderedMsg)
 		}
 		parts = append(parts, renderedMsg)
 	}

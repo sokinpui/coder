@@ -81,11 +81,6 @@ var (
 				BorderTop(false).
 				BorderBottom(false).
 				BorderRight(false)
-	visualSelectStyle = lipgloss.NewStyle().
-				Border(lipgloss.ThickBorder(), false, false, false, true).
-				BorderForeground(lipgloss.Color("208")). // Orange
-				PaddingLeft(1).
-				Background(lipgloss.Color("240")) // Subtle dark gray background highlight
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 	statusBarTitleStyle = lipgloss.NewStyle().

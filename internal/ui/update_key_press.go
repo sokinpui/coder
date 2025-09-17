@@ -194,13 +194,21 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "j":
 				if m.visualSelectCursor < len(m.selectableBlocks)-1 {
 					m.visualSelectCursor++
+					offset := m.viewport.YOffset
 					m.viewport.SetContent(m.renderConversation())
+					m.viewport.SetYOffset(offset)
 				}
+				// Allow the viewport to handle the key press for scrolling
+				return m, nil, false
 			case "k":
 				if m.visualSelectCursor > 0 {
 					m.visualSelectCursor--
+					offset := m.viewport.YOffset
 					m.viewport.SetContent(m.renderConversation())
+					m.viewport.SetYOffset(offset)
 				}
+				// Allow the viewport to handle the key press for scrolling
+				return m, nil, false
 			case "v", "V":
 				if !m.visualIsSelecting {
 					m.visualIsSelecting = true
