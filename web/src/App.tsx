@@ -43,7 +43,8 @@ function App() {
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
 	const [renameDialogOpen, setRenameDialogOpen] = useState(false)
 	const [inputValue, setInputValue] = useState('')
-	const [view, setView] = useState<'chat' | 'source'>('chat')
+	const [view, setView] = useState<'chat' | 'code'>('chat')
+	const [showLineNumbers, setShowLineNumbers] = useState(false)
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -82,8 +83,12 @@ function App() {
     if (!sourceTree) {
       getSourceTree()
     }
-		setView('source')
+		setView('code')
   }
+
+	const handleToggleLineNumbers = () => {
+		setShowLineNumbers((prev) => !prev)
+	}
 
 	const handleModeChange = (event: SelectChangeEvent) => {
 		sendMessage(`:mode ${event.target.value}`)
@@ -126,7 +131,7 @@ function App() {
         onNewChat={handleNewChat}
         isGenerating={isGenerating}
         onHistoryOpen={handleHistoryOpen}
-        onSourceBrowserOpen={handleSourceBrowserOpen}
+        onCodeBrowserOpen={handleSourceBrowserOpen}
       />
       <Box
         component="main"
@@ -143,7 +148,7 @@ function App() {
         <TopBar
           onSidebarToggle={handleSidebarToggle}
 					view={view}
-					title={view === 'source' ? 'Source Browser' : title}
+					title={view === 'code' ? 'Code' : title}
           onTitleRename={handleRenameOpen}
           tokenCount={tokenCount}
           cwd={cwd}
@@ -154,6 +159,8 @@ function App() {
           onModelChange={handleModelChange}
           availableModels={availableModels}
           isGenerating={isGenerating}
+					showLineNumbers={showLineNumbers}
+					onToggleLineNumbers={handleToggleLineNumbers}
         />
 				{view === 'chat' ? (
 					<>
@@ -169,7 +176,12 @@ function App() {
 						<ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
 					</>
 				) : (
-					<SourceBrowser tree={sourceTree} activeFile={activeFile} onFileSelect={getFileContent} />
+					<SourceBrowser
+						tree={sourceTree}
+						activeFile={activeFile}
+						onFileSelect={getFileContent}
+						showLineNumbers={showLineNumbers}
+					/>
 				)}
       </Box>
       <HistoryDialog

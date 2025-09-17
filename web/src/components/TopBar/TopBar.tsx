@@ -18,6 +18,7 @@ import {
   Brightness7 as Brightness7Icon,
   Edit as EditIcon,
   Palette as PaletteIcon,
+  FormatListNumbered as FormatListNumberedIcon,
 } from '@mui/icons-material'
 import { AppContext } from '../../AppContext'
 
@@ -34,7 +35,9 @@ interface TopBarProps {
   onModelChange: (event: SelectChangeEvent) => void
   availableModels: string[]
   isGenerating: boolean
-	view: 'chat' | 'source'
+	view: 'chat' | 'code'
+	showLineNumbers: boolean
+	onToggleLineNumbers: () => void
 }
 
 export function TopBar({
@@ -51,6 +54,8 @@ export function TopBar({
   availableModels,
   isGenerating,
 	view,
+	showLineNumbers,
+	onToggleLineNumbers,
 }: TopBarProps) {
   const theme = useTheme()
   const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
@@ -141,6 +146,11 @@ export function TopBar({
 							</Select>
 						</FormControl>
 					</>
+				)}
+				{view === 'code' && (
+					<IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
+						<FormatListNumberedIcon />
+					</IconButton>
 				)}
         <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
           <PaletteIcon />

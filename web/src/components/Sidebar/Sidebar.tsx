@@ -19,10 +19,10 @@ interface SidebarProps {
   onNewChat: () => void
   isGenerating: boolean
   onHistoryOpen: () => void
-  onSourceBrowserOpen: () => void
+  onCodeBrowserOpen: () => void
 }
 
-export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onSourceBrowserOpen }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onCodeBrowserOpen }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -115,7 +115,7 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onSource
         <List>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={onSourceBrowserOpen}
+              onClick={onCodeBrowserOpen}
               sx={{
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',
@@ -134,7 +134,7 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onSource
               >
                 <FolderIcon />
               </ListItemIcon>
-              <ListItemText primary="Source" sx={{ opacity: open ? 1 : 0 }} />
+              <ListItemText primary="Code" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>
