@@ -16,10 +16,11 @@ export interface SourceNode {
   children?: SourceNode[];
 }
 
-export interface GitLogEntry {
+export interface GitGraphLogEntry {
   hash: string;
+  parentHashes: string[];
   authorName: string;
   relativeDate: string;
   subject: string;
-  body: string;
+  refs: string[];
 }

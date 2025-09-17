@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,16 +13,21 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ViewDayIcon from "@mui/icons-material/ViewDay";
 import VerticalSplitIcon from "@mui/icons-material/VerticalSplit";
-import type { GitLogEntry } from "../../types";
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ListIcon from '@mui/icons-material/List';
+import type { GitGraphLogEntry } from "../../types";
 import { SideBySideDiffViewer } from "../SideBySideDiffViewer";
 import { UnifiedDiffViewer } from "../UnifiedDiffViewer";
+import { GitGraph } from "../GitGraph";
 
 interface GitBrowserProps {
-  log: GitLogEntry[];
+  log: GitGraphLogEntry[];
   getCommitDiff: (hash: string) => void;
   commitDiff: { hash: string; diff: string } | null;
 }
@@ -30,6 +35,7 @@ interface GitBrowserProps {
 export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) {
   const { '*': selectedCommit } = useParams();
   const navigate = useNavigate();
+  const [view, setView] = useState<'graph' | 'list'>('list');
   const [diffView, setDiffView] = useState<"side-by-side" | "unified">("side-by-side");
 
   const handleCommitSelect = (hash: string) => {
@@ -43,6 +49,12 @@ export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) 
   const handleToggleDiffView = () => {
     setDiffView((prev) => (prev === "side-by-side" ? "unified" : "side-by-side"));
   };
+
+  const handleViewChange = (_event: MouseEvent<HTMLElement>, newView: 'graph' | 'list' | null) => {
+    if (newView !== null) {
+      setView(newView);
+    }
+  }
 
   if (log.length === 0) {
     return (
@@ -92,35 +104,54 @@ export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) 
   }
 
   return (
-    <Box sx={{ height: "100%", overflowY: "auto" }}>
-      <List>
-        {log.map((entry) => (
-          <div key={entry.hash}>
-            <ListItemButton onClick={() => handleCommitSelect(entry.hash)}>
-              <ListItemText
-                primary={
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Typography variant="body1" component="span" sx={{ flexShrink: 0 }}>
-                      {entry.subject}
-                    </Typography>
-                    <Chip label={entry.hash.substring(0, 7)} size="small" variant="outlined" component="span" />
-                  </Box>
-                }
-                secondary={`${entry.authorName}, ${entry.relativeDate}`}
-                secondaryTypographyProps={{ sx: { mt: 0.5 } }}
-              />
-            </ListItemButton>
-            <Divider component="li" />
-          </div>
-        ))}
-      </List>
+    <Box sx={{ height: "100%", display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
+        <ToggleButtonGroup value={view} exclusive onChange={handleViewChange} size="small">
+          <ToggleButton value="graph" aria-label="graph view">
+            <AccountTreeIcon />
+          </ToggleButton>
+          <ToggleButton value="list" aria-label="list view">
+            <ListIcon />
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+      <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+        {view === 'graph' ? (
+          <GitGraph log={log} onCommitSelect={handleCommitSelect} />
+        ) : (
+          <List>
+            {log.map((entry) => (
+              <div key={entry.hash}>
+                <ListItemButton onClick={() => handleCommitSelect(entry.hash)}>
+                  <ListItemText
+                    primary={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Typography variant="body1" component="span" sx={{ flexShrink: 0 }}>
+                          {entry.subject}
+                        </Typography>
+                        <Chip label={entry.hash.substring(0, 7)} size="small" variant="outlined" component="span" />
+                        {entry.refs.map(ref => (
+                          <Chip key={ref} label={ref} size="small" color="secondary" component="span" />
+                        ))}
+                      </Box>
+                    }
+                    secondary={`${entry.authorName}, ${entry.relativeDate}`}
+                    secondaryTypographyProps={{ sx: { mt: 0.5 } }}
+                  />
+                </ListItemButton>
+                <Divider component="li" />
+              </div>
+            ))}
+          </List>
+        )}
+      </Box>
     </Box>
   );
 }

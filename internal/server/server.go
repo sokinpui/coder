@@ -140,8 +140,8 @@ func (c *Client) readPump() {
 			if path, ok := msg.Payload.(string); ok {
 				c.handleGetFileContent(path)
 			}
-		case "getGitLog":
-			c.handleGetGitLog()
+		case "getGitGraphLog":
+			c.handleGetGitGraphLog()
 		case "getCommitDiff":
 			if hash, ok := msg.Payload.(string); ok {
 				c.handleGetCommitDiff(hash)
@@ -459,18 +459,18 @@ func (c *Client) handleGetFileContent(path string) {
 	}
 }
 
-func (c *Client) handleGetGitLog() {
-	logEntries, err := git.GetLog()
+func (c *Client) handleGetGitGraphLog() {
+	logEntries, err := git.GetGraphLog()
 	if err != nil {
 		log.Printf("Error getting git log: %v", err)
 		c.send <- ServerToClientMessage{
 			Type:    "error",
-			Payload: "Failed to get git log.",
+			Payload: "Failed to get git graph log.",
 		}
 		return
 	}
 	c.send <- ServerToClientMessage{
-		Type:    "gitLog",
+		Type:    "gitGraphLog",
 		Payload: logEntries,
 	}
 }

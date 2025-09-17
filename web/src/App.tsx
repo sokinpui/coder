@@ -40,8 +40,8 @@ function App() {
 		getSourceTree,
 		activeFile,
 		getFileContent,
-		gitLog,
-		getGitLog,
+		gitGraphLog,
+		getGitGraphLog,
 		commitDiff,
 		getCommitDiff,
 	} = useWebSocket(`ws://${window.location.host}/ws`)
@@ -103,7 +103,7 @@ function App() {
   }
 
   const handleGitBrowserOpen = () => {
-    getGitLog()
+    getGitGraphLog()
     navigate('/git');
   }
 
@@ -222,7 +222,7 @@ function App() {
             />
           } />
           <Route path="/git/*" element={
-            <GitBrowser log={gitLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
+            <GitBrowser log={gitGraphLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
           } />
           <Route path="/*" element={
             <>

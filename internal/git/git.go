@@ -6,30 +6,27 @@ import (
 	"strings"
 )
 
-// LogEntry represents a single commit in the git log.
-type LogEntry struct {
-	Hash         string `json:"hash"`
-	AuthorName   string `json:"authorName"`
-	RelativeDate string `json:"relativeDate"`
-	Subject      string `json:"subject"`
-	Body         string `json:"body"`
+// GraphLogEntry represents a commit node for graph visualization.
+type GraphLogEntry struct {
+	Hash         string   `json:"hash"`
+	ParentHashes []string `json:"parentHashes"`
+	AuthorName   string   `json:"authorName"`
+	RelativeDate string   `json:"relativeDate"`
+	Subject      string   `json:"subject"`
+	Refs         []string `json:"refs"`
 }
 
-// GetLog retrieves a formatted git log from the repository.
-func GetLog() ([]LogEntry, error) {
-	// Using unit separator (0x1f) for fields and record separator (0x1e) for commits.
+// GetGraphLog retrieves a structured git log for graph visualization.
+func GetGraphLog() ([]GraphLogEntry, error) {
 	const fieldSeparator = "\x1f"
 	const recordSeparator = "\x1e"
-	const format = "%H" + fieldSeparator + "%an" + fieldSeparator + "%ar" + fieldSeparator + "%s" + fieldSeparator + "%b"
-
-	cmd := exec.Command("git", "log", "--pretty=format:"+format+recordSeparator)
-
+	const format = "%H" + fieldSeparator + "%P" + fieldSeparator + "%an" + fieldSeparator + "%ar" + fieldSeparator + "%s" + fieldSeparator + "%D"
+	cmd := exec.Command("git", "log", "--all", "--pretty=format:"+format+recordSeparator)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
-
-	var entries []LogEntry
+	var entries []GraphLogEntry
 	logs := strings.Split(string(output), recordSeparator)
 
 	for _, log := range logs {
@@ -37,20 +34,30 @@ func GetLog() ([]LogEntry, error) {
 		if log == "" {
 			continue
 		}
-		parts := strings.SplitN(log, fieldSeparator, 5)
-		if len(parts) != 5 {
+		parts := strings.SplitN(log, fieldSeparator, 6)
+		if len(parts) != 6 {
 			continue // Skip malformed lines
 		}
 
-		subject := parts[3]
-		body := strings.TrimSpace(parts[4])
+		parentHashes := strings.Fields(parts[1])
 
-		entry := LogEntry{
+		refs := []string{}
+		if parts[5] != "" {
+			refStr := strings.Trim(parts[5], " ()")
+			rawRefs := strings.Split(refStr, ", ")
+			for _, r := range rawRefs {
+				if r != "" {
+					refs = append(refs, r)
+				}
+			}
+		}
+		entry := GraphLogEntry{
 			Hash:         parts[0],
-			AuthorName:   parts[1],
-			RelativeDate: parts[2],
-			Subject:      subject,
-			Body:         body,
+			ParentHashes: parentHashes,
+			AuthorName:   parts[2],
+			RelativeDate: parts[3],
+			Subject:      parts[4],
+			Refs:         refs,
 		}
 		entries = append(entries, entry)
 	}

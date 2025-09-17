@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Message, HistoryItem, SourceNode, GitLogEntry } from '../types';
+import type { Message, HistoryItem, SourceNode, GitGraphLogEntry } from '../types';
 
 export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
@@ -14,7 +14,7 @@ export function useWebSocket(url: string) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sourceTree, setSourceTree] = useState<SourceNode | null>(null);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
-  const [gitLog, setGitLog] = useState<GitLogEntry[]>([]);
+  const [gitGraphLog, setGitGraphLog] = useState<GitGraphLogEntry[]>([]);
   const [commitDiff, setCommitDiff] = useState<{ hash: string; diff: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const fileCache = useRef<Map<string, string>>(new Map());
@@ -97,8 +97,8 @@ export function useWebSocket(url: string) {
           fileCache.current.set(msg.payload.path, msg.payload.content);
           setActiveFile(msg.payload);
           break;
-        case "gitLog":
-          setGitLog(msg.payload || []);
+        case "gitGraphLog":
+          setGitGraphLog(msg.payload || []);
           break;
         case "commitDiff":
           setCommitDiff(msg.payload);
@@ -272,12 +272,12 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify({ type: "getFileContent", payload: path }));
   };
 
-  const getGitLog = () => {
+  const getGitGraphLog = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
-    ws.current.send(JSON.stringify({ type: "getGitLog" }));
+    ws.current.send(JSON.stringify({ type: "getGitGraphLog" }));
   };
 
   const getCommitDiff = (hash: string) => {
@@ -312,8 +312,8 @@ export function useWebSocket(url: string) {
 		getSourceTree,
 		activeFile,
 		getFileContent,
-		gitLog,
-		getGitLog,
+		gitGraphLog,
+		getGitGraphLog,
 		commitDiff,
 		getCommitDiff,
 	};
