@@ -272,6 +272,10 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify({ type: "getFileContent", payload: path }));
   };
 
+  const clearActiveFile = () => {
+    setActiveFile(null);
+  };
+
   const getGitGraphLog = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
@@ -312,6 +316,7 @@ export function useWebSocket(url: string) {
 		getSourceTree,
 		activeFile,
 		getFileContent,
+		clearActiveFile,
 		gitGraphLog,
 		getGitGraphLog,
 		commitDiff,

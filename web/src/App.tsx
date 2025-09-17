@@ -40,6 +40,7 @@ function App() {
 		getSourceTree,
 		activeFile,
 		getFileContent,
+		clearActiveFile,
 		gitGraphLog,
 		getGitGraphLog,
 		commitDiff,
@@ -152,16 +153,31 @@ function App() {
     navigate(`/code/${path}`);
   };
 
-  // Effect for deep linking into code browser
+  // Effect for deep linking into code browser and showing README by default
   useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith('/code/')) {
-      const filePath = path.substring('/code/'.length);
-      if (filePath && (!activeFile || activeFile.path !== filePath)) {
-        getFileContent(filePath);
+    if (path.startsWith('/code')) {
+      const filePath = path.startsWith('/code/') ? path.substring('/code/'.length) : '';
+
+      if (filePath) {
+        if (!activeFile || activeFile.path !== filePath) {
+          getFileContent(filePath);
+        }
+      } else { // No file path in URL, e.g., /code or /code/
+        clearActiveFile();
+        if (sourceTree) {
+          // Find README.md case-insensitively
+          const readmeFile = sourceTree.children?.find(
+            (node) => node.name.toLowerCase() === 'readme.md'
+          );
+          if (readmeFile) {
+            // Navigate to the README file, which will trigger this effect again to load it.
+            navigate(`/code/${readmeFile.path}`, { replace: true });
+          }
+        }
       }
     }
-  }, [location.pathname, getFileContent, activeFile]);
+  }, [location.pathname, getFileContent, activeFile, sourceTree, navigate, clearActiveFile]);
 
   // Effect for deep linking into git browser
   useEffect(() => {
