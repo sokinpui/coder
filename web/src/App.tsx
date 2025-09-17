@@ -111,6 +111,7 @@ function App() {
           height: '100vh',
           bgcolor: 'background.default',
           color: 'text.primary',
+          minWidth: 0, // Prevents the content from overflowing when the sidebar is open
         }}
       >
         <TopBar
