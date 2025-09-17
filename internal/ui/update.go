@@ -132,6 +132,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 					// Remove the command that triggered history mode.
 					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
 					m.state = stateHistorySelect
+					m.textArea.Reset()
+					m.textArea.SetHeight(1)
 					m.textArea.Blur()
 					return m, listHistoryCmd(m.session.GetHistoryManager())
 
