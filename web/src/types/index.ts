@@ -8,3 +8,10 @@ export interface HistoryItem {
   title: string;
   modifiedAt: string; // ISO string
 }
+
+export interface SourceNode {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  children?: SourceNode[];
+}

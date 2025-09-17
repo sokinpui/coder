@@ -3,6 +3,7 @@ package server
 import (
 	"coder/internal/config"
 	"coder/internal/core"
+	"coder/internal/files"
 	"coder/internal/session"
 	"coder/internal/token"
 	"coder/internal/utils"
@@ -131,6 +132,12 @@ func (c *Client) readPump() {
 		case "loadConversation":
 			if filename, ok := msg.Payload.(string); ok {
 				c.handleLoadConversation(filename)
+			}
+		case "getSourceTree":
+			c.handleGetSourceTree()
+		case "getFileContent":
+			if path, ok := msg.Payload.(string); ok {
+				c.handleGetFileContent(path)
 			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
@@ -406,6 +413,41 @@ func (c *Client) handleLoadConversation(filename string) {
 			"mode":       string(c.session.GetConfig().AppMode),
 			"model":      c.session.GetConfig().Generation.ModelCode,
 			"tokenCount": tokenCount,
+		},
+	}
+}
+
+func (c *Client) handleGetSourceTree() {
+	tree, err := files.GetFileTree()
+	if err != nil {
+		log.Printf("Error getting source tree: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: "Failed to get project file tree.",
+		}
+		return
+	}
+	c.send <- ServerToClientMessage{
+		Type:    "sourceTree",
+		Payload: tree,
+	}
+}
+
+func (c *Client) handleGetFileContent(path string) {
+	content, err := files.GetFileContent(path)
+	if err != nil {
+		log.Printf("Error getting file content for %s: %v", path, err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: fmt.Sprintf("Failed to get content for file: %s", path),
+		}
+		return
+	}
+	c.send <- ServerToClientMessage{
+		Type: "fileContent",
+		Payload: map[string]string{
+			"path":    path,
+			"content": content,
 		},
 	}
 }

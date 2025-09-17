@@ -11,7 +11,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material'
-import { AddComment as AddCommentIcon, Code as CodeIcon, History as HistoryIcon } from '@mui/icons-material'
+import { AddComment as AddCommentIcon, Code as CodeIcon, History as HistoryIcon, Folder as FolderIcon } from '@mui/icons-material'
 import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 
 interface SidebarProps {
@@ -19,9 +19,10 @@ interface SidebarProps {
   onNewChat: () => void
   isGenerating: boolean
   onHistoryOpen: () => void
+  onSourceBrowserOpen: () => void
 }
 
-export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onSourceBrowserOpen }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -108,6 +109,32 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen }: Sideba
                 <HistoryIcon />
               </ListItemIcon>
               <ListItemText primary="History" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={onSourceBrowserOpen}
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+                mx: 1,
+                width: 'auto',
+                borderRadius: (theme) => theme.shape.borderRadius,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                <FolderIcon />
+              </ListItemIcon>
+              <ListItemText primary="Source" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>

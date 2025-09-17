@@ -11,6 +11,7 @@ import { ChatInput } from './components/ChatInput'
 import { TopBar } from './components/TopBar';
 import { HistoryDialog } from './components/HistoryDialog';
 import { RenameDialog } from './components/RenameDialog';
+import { SourceBrowser } from './components/SourceBrowser';
 
 function App() {
   const {
@@ -33,11 +34,16 @@ function App() {
 		history,
 		listHistory,
 		loadConversation,
+		sourceTree,
+		getSourceTree,
+		activeFile,
+		getFileContent,
 	} = useWebSocket(`ws://${location.host}/ws`)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
-  const [inputValue, setInputValue] = useState('')
+	const [sidebarOpen, setSidebarOpen] = useState(false)
+	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
+	const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+	const [inputValue, setInputValue] = useState('')
+	const [view, setView] = useState<'chat' | 'source'>('chat')
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -46,6 +52,7 @@ function App() {
   const handleNewChat = () => {
     sendMessage(':new')
     setInputValue('')
+		setView('chat')
   }
 
   const handleHistoryOpen = () => {
@@ -69,6 +76,13 @@ function App() {
   const handleRenameSave = (newTitle: string) => {
     sendMessage(`:rename ${newTitle}`)
     setRenameDialogOpen(false)
+  }
+
+  const handleSourceBrowserOpen = () => {
+    if (!sourceTree) {
+      getSourceTree()
+    }
+		setView('source')
   }
 
 	const handleModeChange = (event: SelectChangeEvent) => {
@@ -112,6 +126,7 @@ function App() {
         onNewChat={handleNewChat}
         isGenerating={isGenerating}
         onHistoryOpen={handleHistoryOpen}
+        onSourceBrowserOpen={handleSourceBrowserOpen}
       />
       <Box
         component="main"
@@ -127,7 +142,8 @@ function App() {
       >
         <TopBar
           onSidebarToggle={handleSidebarToggle}
-          title={title}
+					view={view}
+					title={view === 'source' ? 'Source Browser' : title}
           onTitleRename={handleRenameOpen}
           tokenCount={tokenCount}
           cwd={cwd}
@@ -139,22 +155,22 @@ function App() {
           availableModels={availableModels}
           isGenerating={isGenerating}
         />
-        <MessageList
-          messages={messages}
-          isGenerating={isGenerating}
-          onRegenerate={handleRegenerate}
-          onApplyItf={handleApplyItf}
-          onEditMessage={handleEditMessage}
-          onBranchFrom={handleBranchFrom}
-          onDeleteMessage={handleDeleteMessage}
-        />
-        <ChatInput
-          sendMessage={handleSendMessage}
-          cancelGeneration={cancelGeneration}
-          isGenerating={isGenerating}
-          value={inputValue}
-          onChange={setInputValue}
-        />
+				{view === 'chat' ? (
+					<>
+						<MessageList
+							messages={messages}
+							isGenerating={isGenerating}
+							onRegenerate={handleRegenerate}
+							onApplyItf={handleApplyItf}
+							onEditMessage={handleEditMessage}
+							onBranchFrom={handleBranchFrom}
+							onDeleteMessage={handleDeleteMessage}
+						/>
+						<ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
+					</>
+				) : (
+					<SourceBrowser tree={sourceTree} activeFile={activeFile} onFileSelect={getFileContent} />
+				)}
       </Box>
       <HistoryDialog
         open={historyDialogOpen}

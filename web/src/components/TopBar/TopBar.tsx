@@ -34,6 +34,7 @@ interface TopBarProps {
   onModelChange: (event: SelectChangeEvent) => void
   availableModels: string[]
   isGenerating: boolean
+	view: 'chat' | 'source'
 }
 
 export function TopBar({
@@ -49,6 +50,7 @@ export function TopBar({
   onModelChange,
   availableModels,
   isGenerating,
+	view,
 }: TopBarProps) {
   const theme = useTheme()
   const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
@@ -78,62 +80,68 @@ export function TopBar({
           <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 'bold' }}>
             {title}
           </Typography>
-          <IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
+					{view === 'chat' && (
+						<IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
+							<EditIcon fontSize="small" />
+						</IconButton>
+					)}
         </Box>
         <Box sx={{ flexGrow: 1 }} />
-        <Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', md: 'block' } }}>
-          {`Tokens: ${tokenCount}`}
-        </Typography>
+				{view === 'chat' && (
+					<>
+						<Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', md: 'block' } }}>
+							{`Tokens: ${tokenCount}`}
+						</Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', md: 'block' } }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', md: 'block' } }} />
 
-        <Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', lg: 'block' } }}>
-          {cwd}
-        </Typography>
+						<Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', lg: 'block' } }}>
+							{cwd}
+						</Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', lg: 'block' } }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', lg: 'block' } }} />
 
-        <FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }} disabled={isGenerating}>
-          <Select
-            value={mode}
-            onChange={onModeChange}
-            sx={{
-              color: 'inherit',
-              '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-              '.MuiSvgIcon-root': { color: 'inherit' },
-              borderRadius: '20px',
-            }}
-          >
-            {availableModes.map((m) => (
-              <MenuItem key={m} value={m}>{m}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+						<FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }} disabled={isGenerating}>
+							<Select
+								value={mode}
+								onChange={onModeChange}
+								sx={{
+									color: 'inherit',
+									'.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
+									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+									'.MuiSvgIcon-root': { color: 'inherit' },
+									borderRadius: '20px',
+								}}
+							>
+								{availableModes.map((m) => (
+									<MenuItem key={m} value={m}>{m}</MenuItem>
+								))}
+							</Select>
+						</FormControl>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
-        <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }} disabled={isGenerating}>
-          <Select
-            value={model}
-            onChange={onModelChange}
-            sx={{
-              color: 'inherit',
-              '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-              '.MuiSvgIcon-root': { color: 'inherit' },
-              borderRadius: '20px',
-            }}
-          >
-            {availableModels.map((m) => (
-              <MenuItem key={m} value={m}>{m}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+						<FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }} disabled={isGenerating}>
+							<Select
+								value={model}
+								onChange={onModelChange}
+								sx={{
+									color: 'inherit',
+									'.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
+									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+									'.MuiSvgIcon-root': { color: 'inherit' },
+									borderRadius: '20px',
+								}}
+							>
+								{availableModels.map((m) => (
+									<MenuItem key={m} value={m}>{m}</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+					</>
+				)}
         <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
           <PaletteIcon />
         </IconButton>

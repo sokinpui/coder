@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Message, HistoryItem } from '../types';
+import type { Message, HistoryItem, SourceNode } from '../types';
 
 export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
@@ -12,6 +12,8 @@ export function useWebSocket(url: string) {
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [sourceTree, setSourceTree] = useState<SourceNode | null>(null);
+  const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -84,6 +86,12 @@ export function useWebSocket(url: string) {
           setModel(msg.payload.model);
           setTokenCount(msg.payload.tokenCount);
           setIsGenerating(false);
+          break;
+        case "sourceTree":
+          setSourceTree(msg.payload);
+          break;
+        case "fileContent":
+          setActiveFile(msg.payload);
           break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
@@ -233,6 +241,22 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify({ type: "loadConversation", payload: filename }));
   };
 
+  const getSourceTree = () => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "getSourceTree" }));
+  };
+
+  const getFileContent = (path: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "getFileContent", payload: path }));
+  };
+
   return {
 		messages,
 		title,
@@ -253,5 +277,9 @@ export function useWebSocket(url: string) {
 		history,
 		listHistory,
 		loadConversation,
+		sourceTree,
+		getSourceTree,
+		activeFile,
+		getFileContent,
 	};
 }
