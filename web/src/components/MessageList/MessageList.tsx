@@ -320,7 +320,7 @@ export function MessageList({
                   {msg.sender === "AI" || msg.sender === "User" ? (
                     <ReactMarkdown
                       components={{
-                        code({ node, className, children, ...props }) {
+                        code({ className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
                           if (match) {
                             return (

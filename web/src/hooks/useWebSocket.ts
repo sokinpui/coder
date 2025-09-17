@@ -83,7 +83,7 @@ export function useWebSocket(url: string) {
           setHistory(msg.payload || []);
           break;
         case "sessionLoaded":
-          setMessages(msg.payload.messages.map((m: { type: any; content: any; }) => ({ sender: m.type, content: m.content })));
+          setMessages(msg.payload.messages.map((m: { type: Message['sender']; content: string; }) => ({ sender: m.type, content: m.content })));
           setTitle(msg.payload.title);
           setMode(msg.payload.mode);
           setModel(msg.payload.model);

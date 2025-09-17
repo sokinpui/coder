@@ -483,7 +483,7 @@ export function SourceBrowser({
               >
                 <ReactMarkdown
                   components={{
-                    code({ node, className, children, ...props }) {
+                    code({ className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
                       if (match) {
                         return (
@@ -496,7 +496,7 @@ export function SourceBrowser({
                         </code>
                       );
                     },
-                    a: ({ node, ...props }) => {
+                    a: ({ ...props }) => {
                       return (
                         <Link
                           href={props.href}
