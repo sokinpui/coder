@@ -4,8 +4,8 @@ import { Box, Paper, Typography, CircularProgress, IconButton, Tooltip, TextFiel
 import { Replay as ReplayIcon, PlaylistAddCheck as PlaylistAddCheckIcon, Edit as EditIcon, Check as CheckIcon, Close as CloseIcon, CallSplit as CallSplitIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import type { Message } from '../../types'
 import { CopyButton } from '../CopyButton'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface MessageListProps {
   messages: Message[]
@@ -25,7 +25,7 @@ export function MessageList({ messages, isGenerating, onRegenerate, onApplyItf, 
   const [editText, setEditText] = useState('')
 
   const theme = useTheme()
-  const syntaxTheme = theme.palette.mode === 'dark' ? oneDark : oneLight
+  const syntaxTheme = oneDark
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
