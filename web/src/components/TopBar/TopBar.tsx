@@ -21,6 +21,7 @@ import { AppContext } from '../../AppContext'
 
 interface TopBarProps {
   onSidebarToggle: () => void
+  title: string
   tokenCount: number
   cwd: string
   mode: string
@@ -34,6 +35,7 @@ interface TopBarProps {
 
 export function TopBar({
   onSidebarToggle,
+  title,
   tokenCount,
   cwd,
   mode,
@@ -58,6 +60,9 @@ export function TopBar({
         >
           <MenuIcon />
         </IconButton>
+        <Typography variant="h6" noWrap component="div" sx={{ ml: 1, mr: 2 }}>
+          {title}
+        </Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Typography variant="body2" sx={{ color: 'inherit' }}>
           {`Tokens: ${tokenCount}`}

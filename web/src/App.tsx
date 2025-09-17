@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   Box,
   CssBaseline,
@@ -8,11 +8,13 @@ import { useWebSocket } from './hooks/useWebSocket'
 import { Sidebar } from './components/Sidebar'
 import { MessageList } from './components/MessageList'
 import { ChatInput } from './components/ChatInput'
-import { TopBar } from './components/TopBar'
+import { TopBar } from './components/TopBar';
+import { HistoryDialog } from './components/HistoryDialog';
 
 function App() {
   const {
 		messages,
+		title,
 		sendMessage,
 		cwd,
 		isGenerating,
@@ -27,8 +29,12 @@ function App() {
 		deleteMessage,
 		availableModes,
 		availableModels,
+		history,
+		listHistory,
+		loadConversation,
 	} = useWebSocket(`ws://${location.host}/ws`)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
 
   const handleSidebarToggle = () => {
@@ -38,6 +44,20 @@ function App() {
   const handleNewChat = () => {
     sendMessage(':new')
     setInputValue('')
+  }
+
+  const handleHistoryOpen = () => {
+    listHistory()
+    setHistoryDialogOpen(true)
+  }
+
+  const handleHistoryClose = () => {
+    setHistoryDialogOpen(false)
+  }
+
+  const handleLoadConversation = (filename: string) => {
+    loadConversation(filename)
+    handleHistoryClose()
   }
 
 	const handleModeChange = (event: SelectChangeEvent) => {
@@ -76,7 +96,12 @@ function App() {
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <CssBaseline />
-      <Sidebar open={sidebarOpen} onNewChat={handleNewChat} isGenerating={isGenerating} />
+      <Sidebar
+        open={sidebarOpen}
+        onNewChat={handleNewChat}
+        isGenerating={isGenerating}
+        onHistoryOpen={handleHistoryOpen}
+      />
       <Box
         component="main"
         sx={{
@@ -90,6 +115,7 @@ function App() {
       >
         <TopBar
           onSidebarToggle={handleSidebarToggle}
+          title={title}
           tokenCount={tokenCount}
           cwd={cwd}
           mode={mode}
@@ -117,6 +143,12 @@ function App() {
           onChange={setInputValue}
         />
       </Box>
+      <HistoryDialog
+        open={historyDialogOpen}
+        onClose={handleHistoryClose}
+        history={history}
+        onLoad={handleLoadConversation}
+      />
     </Box>
   )
 }

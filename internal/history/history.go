@@ -25,9 +25,9 @@ type Metadata struct {
 
 // ConversationInfo holds metadata for a single conversation.
 type ConversationInfo struct {
-	Filename   string
-	Title      string
-	ModifiedAt time.Time
+	Filename   string    `json:"filename"`
+	Title      string    `json:"title"`
+	ModifiedAt time.Time `json:"modifiedAt"`
 }
 
 // ConversationData holds all the necessary information to save a conversation history file.

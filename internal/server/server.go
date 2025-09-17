@@ -5,6 +5,7 @@ import (
 	"coder/internal/core"
 	"coder/internal/session"
 	"coder/internal/token"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -95,34 +96,40 @@ func (c *Client) readPump() {
 		switch msg.Type {
 		case "userInput":
 			if payload, ok := msg.Payload.(string); ok {
-				go c.handleUserInput(payload)
+				c.handleUserInput(payload)
 			}
 		case "cancelGeneration":
 			log.Println("Received cancel generation request")
 			c.session.CancelGeneration()
 		case "regenerateFrom":
 			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
-				go c.handleRegenerate(int(index))
+				c.handleRegenerate(int(index))
 			}
 		case "applyItf":
 			if content, ok := msg.Payload.(string); ok {
-				go c.handleApplyItf(content)
+				c.handleApplyItf(content)
 			}
 		case "editMessage":
 			if payload, ok := msg.Payload.(map[string]interface{}); ok {
 				index, indexOk := payload["index"].(float64) // JSON numbers are float64
 				content, contentOk := payload["content"].(string)
 				if indexOk && contentOk {
-					go c.handleEditMessage(int(index), content)
+					c.handleEditMessage(int(index), content)
 				}
 			}
 		case "branchFrom":
 			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
-				go c.handleBranchFrom(int(index))
+				c.handleBranchFrom(int(index))
 			}
 		case "deleteMessage":
 			if index, ok := msg.Payload.(float64); ok { // JSON numbers are float64
-				go c.handleDeleteMessage(int(index))
+				c.handleDeleteMessage(int(index))
+			}
+		case "listHistory":
+			c.handleListHistory()
+		case "loadConversation":
+			if filename, ok := msg.Payload.(string); ok {
+				c.handleLoadConversation(filename)
 			}
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
@@ -159,6 +166,18 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) handleUserInput(payload string) {
+	isFirstUserMessage := !c.session.IsTitleGenerated() && !strings.HasPrefix(payload, ":")
+
+	if isFirstUserMessage {
+		go func() {
+			title := c.session.GenerateTitle(context.Background(), payload)
+			c.send <- ServerToClientMessage{
+				Type:    "titleUpdate",
+				Payload: title,
+			}
+		}()
+	}
+
 	event := c.session.HandleInput(payload)
 
 	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
@@ -339,6 +358,57 @@ func (c *Client) handleDeleteMessage(index int) {
 	c.session.DeleteMessages([]int{index})
 }
 
+func (c *Client) handleListHistory() {
+	items, err := c.session.GetHistoryManager().ListConversations()
+	if err != nil {
+		log.Printf("Error listing history: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: "Failed to list conversation history.",
+		}
+		return
+	}
+	c.send <- ServerToClientMessage{
+		Type:    "historyList",
+		Payload: items,
+	}
+}
+
+func (c *Client) handleLoadConversation(filename string) {
+	err := c.session.LoadConversation(filename)
+	if err != nil {
+		log.Printf("Error loading conversation: %v", err)
+		c.send <- ServerToClientMessage{
+			Type:    "error",
+			Payload: fmt.Sprintf("Failed to load conversation: %v", err),
+		}
+		return
+	}
+
+	messages := c.session.GetMessages()
+
+	payloadMessages := make([]MessagePayload, len(messages))
+	for i, msg := range messages {
+		payloadMessages[i] = MessagePayload{
+			Type:    messageTypeToString(msg.Type),
+			Content: msg.Content,
+		}
+	}
+
+	tokenCount := token.CountTokens(c.session.GetPromptForTokenCount())
+
+	c.send <- ServerToClientMessage{
+		Type: "sessionLoaded",
+		Payload: map[string]interface{}{
+			"messages":   payloadMessages,
+			"title":      c.session.GetTitle(),
+			"mode":       string(c.session.GetConfig().AppMode),
+			"model":      c.session.GetConfig().Generation.ModelCode,
+			"tokenCount": tokenCount,
+		},
+	}
+}
+
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -380,6 +450,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		Type: "initialState",
 		Payload: map[string]interface{}{
 			"cwd":             getShortCwd(),
+			"title":           sess.GetTitle(),
 			"mode":            string(cfg.AppMode),
 			"model":           cfg.Generation.ModelCode,
 			"tokenCount":      initialTokenCount,

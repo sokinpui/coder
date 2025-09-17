@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Message } from '../types';
+import type { Message, HistoryItem } from '../types';
 
 export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
+  const [title, setTitle] = useState<string>('New Chat')
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tokenCount, setTokenCount] = useState<number>(0)
@@ -10,6 +11,7 @@ export function useWebSocket(url: string) {
   const [model, setModel] = useState<string>('');
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export function useWebSocket(url: string) {
       switch (msg.type) {
         case "initialState":
           setCwd(msg.payload.cwd || '');
+          setTitle(msg.payload.title || 'New Chat');
           setTokenCount(msg.payload.tokenCount || 0)
           setMode(msg.payload.mode || '');
           setModel(msg.payload.model || '');
@@ -67,6 +70,20 @@ export function useWebSocket(url: string) {
           break;
         case "truncateMessages":
           setMessages(prev => prev.slice(0, msg.payload));
+          break;
+        case "titleUpdate":
+          setTitle(msg.payload);
+          break;
+        case "historyList":
+          setHistory(msg.payload || []);
+          break;
+        case "sessionLoaded":
+          setMessages(msg.payload.messages.map((m: { type: any; content: any; }) => ({ sender: m.type, content: m.content })));
+          setTitle(msg.payload.title);
+          setMode(msg.payload.mode);
+          setModel(msg.payload.model);
+          setTokenCount(msg.payload.tokenCount);
+          setIsGenerating(false);
           break;
         case "error":
           setMessages(prev => [...prev, { sender: 'Error', content: msg.payload }]);
@@ -196,8 +213,25 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   };
 
+  const listHistory = () => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "listHistory" }));
+  };
+
+  const loadConversation = (filename: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    ws.current.send(JSON.stringify({ type: "loadConversation", payload: filename }));
+  };
+
   return {
 		messages,
+		title,
 		sendMessage,
 		cwd,
 		tokenCount,
@@ -212,5 +246,8 @@ export function useWebSocket(url: string) {
 		editMessage,
 		branchFrom,
 		deleteMessage,
+		history,
+		listHistory,
+		loadConversation,
 	};
 }

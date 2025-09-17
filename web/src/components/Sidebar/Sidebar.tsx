@@ -11,16 +11,17 @@ import {
   Typography,
   useTheme,
 } from '@mui/material'
-import { AddComment as AddCommentIcon, Code as CodeIcon } from '@mui/icons-material'
+import { AddComment as AddCommentIcon, Code as CodeIcon, History as HistoryIcon } from '@mui/icons-material'
 import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 
 interface SidebarProps {
   open: boolean
   onNewChat: () => void
   isGenerating: boolean
+  onHistoryOpen: () => void
 }
 
-export function Sidebar({ open, onNewChat, isGenerating }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -77,6 +78,30 @@ export function Sidebar({ open, onNewChat, isGenerating }: SidebarProps) {
                 <AddCommentIcon />
               </ListItemIcon>
               <ListItemText primary="New Chat" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={onHistoryOpen}
+              disabled={isGenerating}
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                <HistoryIcon />
+              </ListItemIcon>
+              <ListItemText primary="History" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>
