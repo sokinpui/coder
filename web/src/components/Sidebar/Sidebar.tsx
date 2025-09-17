@@ -11,7 +11,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material'
-import { AddComment as AddCommentIcon, Code as CodeIcon, History as HistoryIcon, Folder as FolderIcon } from '@mui/icons-material'
+import { AddComment as AddCommentIcon, Chat as ChatIcon, Code as CodeIcon, History as HistoryIcon, Folder as FolderIcon } from '@mui/icons-material'
 import { drawerWidth, getCollapsedDrawerWidth } from './constants'
 
 interface SidebarProps {
@@ -19,10 +19,11 @@ interface SidebarProps {
   onNewChat: () => void
   isGenerating: boolean
   onHistoryOpen: () => void
+  onChatViewOpen: () => void
   onCodeBrowserOpen: () => void
 }
 
-export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onCodeBrowserOpen }: SidebarProps) {
+export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onChatViewOpen, onCodeBrowserOpen }: SidebarProps) {
   const theme = useTheme()
   const collapsedDrawerWidth = getCollapsedDrawerWidth(theme)
   const currentDrawerWidth = open ? drawerWidth : collapsedDrawerWidth
@@ -58,6 +59,32 @@ export function Sidebar({ open, onNewChat, isGenerating, onHistoryOpen, onCodeBr
       </Toolbar>
       <Divider />
       <Box>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={onChatViewOpen}
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+                mx: 1,
+                width: 'auto',
+                borderRadius: (theme) => theme.shape.borderRadius,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                <ChatIcon />
+              </ListItemIcon>
+              <ListItemText primary="Chat" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+        </List>
         <List>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton

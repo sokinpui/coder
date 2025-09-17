@@ -56,6 +56,10 @@ function App() {
 		setView('chat')
   }
 
+  const handleChatViewOpen = () => {
+    setView('chat')
+  }
+
   const handleHistoryOpen = () => {
     listHistory()
     setHistoryDialogOpen(true)
@@ -68,6 +72,7 @@ function App() {
   const handleLoadConversation = (filename: string) => {
     loadConversation(filename)
     handleHistoryClose()
+    setView('chat')
   }
 
   const handleRenameOpen = () => {
@@ -131,6 +136,7 @@ function App() {
         onNewChat={handleNewChat}
         isGenerating={isGenerating}
         onHistoryOpen={handleHistoryOpen}
+        onChatViewOpen={handleChatViewOpen}
         onCodeBrowserOpen={handleSourceBrowserOpen}
       />
       <Box
