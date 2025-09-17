@@ -187,7 +187,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	isViewportNavKey := false
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.Type {
-		case tea.KeyRunes:
+		case tea.KeyRunes, tea.KeySpace:
 			isRuneKey = true
 		case tea.KeyUp, tea.KeyDown, tea.KeyLeft, tea.KeyRight,
 			tea.KeyPgUp, tea.KeyPgDown, tea.KeyHome, tea.KeyEnd:
