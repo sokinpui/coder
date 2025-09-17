@@ -133,9 +133,14 @@ export function GitGraph({ log, onCommitSelect }: GitGraphProps) {
                   textDecoration: 'none',
                   '&:hover': { textDecoration: 'underline' },
                   whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  minWidth: 0,
                 }}
               >
-                {commit.subject}
+                {commit.subject.length > 80
+                  ? `${commit.subject.substring(0, 80)}...`
+                  : commit.subject}
               </Link>
               <Chip label={commit.hash.substring(0, 7)} size="small" variant="outlined" />
               {commit.refs?.map(ref => (
