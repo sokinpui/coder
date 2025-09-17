@@ -8,7 +8,6 @@ import {
   IconButton,
   Tooltip,
   TextField,
-  useTheme,
 } from "@mui/material";
 import {
   Replay as ReplayIcon,
@@ -47,8 +46,6 @@ export function MessageList({
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
-
-  const theme = useTheme();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -323,9 +320,9 @@ export function MessageList({
                   {msg.sender === "AI" || msg.sender === "User" ? (
                     <ReactMarkdown
                       components={{
-                        code({ node, inline, className, children, ...props }) {
+                        code({ node, className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
-                          if (!inline && match) {
+                          if (match) {
                             return (
                               <CodeBlock language={match[1]}>{children}</CodeBlock>
                             );

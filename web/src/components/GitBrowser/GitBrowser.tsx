@@ -4,7 +4,6 @@ import {
   Box,
   List,
   Button,
-  ListItem,
   ListItemButton,
   ListItemText,
   Typography,
@@ -28,11 +27,10 @@ import { GitGraph } from "../GitGraph";
 
 interface GitBrowserProps {
   log: GitGraphLogEntry[];
-  getCommitDiff: (hash: string) => void;
   commitDiff: { hash: string; diff: string } | null;
 }
 
-export function GitBrowser({ log, getCommitDiff, commitDiff }: GitBrowserProps) {
+export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
   const { '*': selectedCommit } = useParams();
   const navigate = useNavigate();
   const [view, setView] = useState<'graph' | 'list'>('list');

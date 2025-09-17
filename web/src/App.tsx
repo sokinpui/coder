@@ -55,7 +55,11 @@ function App() {
   const location = useLocation();
 
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const view = pathParts[0] || 'chat';
+  let view: 'chat' | 'code' | 'git' = 'chat';
+  const firstPart = pathParts[0];
+  if (firstPart === 'code' || firstPart === 'git') {
+    view = firstPart;
+  }
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen)
@@ -218,11 +222,10 @@ function App() {
               activeFile={activeFile}
               onFileSelect={handleFileSelect}
               showLineNumbers={showLineNumbers}
-              cwd={cwd}
             />
           } />
           <Route path="/git/*" element={
-            <GitBrowser log={gitGraphLog} getCommitDiff={getCommitDiff} commitDiff={commitDiff} />
+            <GitBrowser log={gitGraphLog} commitDiff={commitDiff} />
           } />
           <Route path="/*" element={
             <>

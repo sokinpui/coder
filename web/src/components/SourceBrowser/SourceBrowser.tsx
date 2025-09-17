@@ -2,7 +2,6 @@ import {
   Box,
   Typography,
   List,
-  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
@@ -52,7 +51,6 @@ interface SourceBrowserProps {
   activeFile: { path: string; content: string } | null;
   onFileSelect: (path: string) => void;
   showLineNumbers: boolean;
-  cwd: string;
 }
 
 interface TreeNodeProps {
@@ -160,7 +158,6 @@ export function SourceBrowser({
   activeFile,
   onFileSelect,
   showLineNumbers,
-  cwd,
 }: SourceBrowserProps) {
   const { codeTheme } = useContext(AppContext);
   const muiTheme = useTheme();
@@ -486,9 +483,9 @@ export function SourceBrowser({
               >
                 <ReactMarkdown
                   components={{
-                    code({ node, inline, className, children, ...props }) {
+                    code({ node, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
-                      if (!inline && match) {
+                      if (match) {
                         return (
                           <CodeBlock language={match[1]}>{children}</CodeBlock>
                         );
