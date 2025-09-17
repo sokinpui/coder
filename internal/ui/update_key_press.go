@@ -65,11 +65,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.historySelectCursor++
 					m.viewport.SetContent(m.historyView())
 				}
+				return m, nil, false
 			case "k":
 				if m.historySelectCursor > 0 {
 					m.historySelectCursor--
 					m.viewport.SetContent(m.historyView())
 				}
+				return m, nil, false
 			}
 		}
 		return m, nil, true
