@@ -61,7 +61,7 @@ export function TopBar({
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="h6" noWrap component="div" sx={{ ml: 1, mr: 2 }}>
+        <Typography variant="subtitle1" noWrap component="div" sx={{ ml: 1, mr: 2, fontWeight: 'bold' }}>
           {title}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
