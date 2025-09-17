@@ -5,7 +5,6 @@ import (
 	"coder/internal/core"
 	"coder/internal/utils"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -185,18 +184,26 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 // LoadConversation reads a history file from disk and parses it.
 func (m *Manager) LoadConversation(filename string) (*Metadata, []core.Message, error) {
 	filePath := filepath.Join(m.historyPath, filename)
-	file, err := os.Open(filePath)
+	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not open history file %s: %w", filename, err)
+		return nil, nil, fmt.Errorf("could not stat history file %s: %w", filename, err)
 	}
-	defer file.Close()
 
-	content, err := io.ReadAll(file)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not read history file %s: %w", filename, err)
 	}
 
-	return ParseConversation(content)
+	metadata, messages, err := ParseConversation(content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if metadata.CreatedAt.IsZero() {
+		metadata.CreatedAt = fileInfo.ModTime()
+	}
+
+	return metadata, messages, nil
 }
 
 // ListConversations scans the history directory and returns info for each conversation.
