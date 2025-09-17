@@ -181,6 +181,7 @@ function App() {
 						activeFile={activeFile}
 						onFileSelect={getFileContent}
 						showLineNumbers={showLineNumbers}
+						cwd={cwd}
 					/>
 				)}
       </Box>

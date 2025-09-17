@@ -9,6 +9,7 @@ import {
   Collapse,
   CircularProgress,
   IconButton,
+  useTheme,
 } from "@mui/material";
 import {
   Folder as FolderIcon,
@@ -28,9 +29,9 @@ import {
 } from "react";
 import type { SourceNode } from "../../types";
 import { AppContext } from "../../AppContext";
-import { CopyButton } from '../CopyButton'
-import CodeMirror from "@uiw/react-codemirror";
-import { EditorView, lineNumbers } from '@codemirror/view'
+import { CopyButton } from "../CopyButton";
+import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
+import { EditorView, lineNumbers } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { githubLight } from "@uiw/codemirror-theme-github";
 import { go } from "@codemirror/lang-go";
@@ -45,6 +46,7 @@ interface SourceBrowserProps {
   activeFile: { path: string; content: string } | null;
   onFileSelect: (path: string) => void;
   showLineNumbers: boolean;
+  cwd: string;
 }
 
 interface TreeNodeProps {
@@ -146,8 +148,10 @@ export function SourceBrowser({
   activeFile,
   onFileSelect,
   showLineNumbers,
+  cwd,
 }: SourceBrowserProps) {
   const { codeTheme } = useContext(AppContext);
+  const muiTheme = useTheme();
   const [treeWidth, setTreeWidth] = useState(300);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -196,7 +200,21 @@ export function SourceBrowser({
   const langExtension = activeFile
     ? getLanguageExtension(activeFile.path)
     : undefined;
-  const extensions = [EditorView.lineWrapping, readOnlyTheme];
+
+  const customBgTheme = EditorView.theme({
+    "&": {
+      backgroundColor: muiTheme.palette.background.paper,
+    },
+    ".cm-gutters": {
+      backgroundColor: muiTheme.palette.background.paper,
+    },
+  });
+
+  const extensions: ReactCodeMirrorProps["extensions"] = [
+    EditorView.lineWrapping,
+    readOnlyTheme,
+    customBgTheme,
+  ];
   if (langExtension) {
     extensions.push(langExtension);
   }
@@ -207,7 +225,12 @@ export function SourceBrowser({
   return (
     <Box
       ref={containerRef}
-      sx={{ display: "flex", height: "100%", overflow: "hidden" }}
+      sx={{
+        display: "flex",
+        height: "100%",
+        overflow: "hidden",
+        bgcolor: "background.paper",
+      }}
     >
       {!isCollapsed && (
         <Box
@@ -235,7 +258,15 @@ export function SourceBrowser({
               flexShrink: 0,
             }}
           >
-            <Typography variant="caption">Project Files</Typography>
+            <Typography
+              variant="subtitle2"
+              noWrap
+              sx={{
+                fontWeight: "bold",
+              }}
+            >
+              {cwd}
+            </Typography>
             <IconButton onClick={toggleCollapse} size="small">
               <ChevronLeft />
             </IconButton>
