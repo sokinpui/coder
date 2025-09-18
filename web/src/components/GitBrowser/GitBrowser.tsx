@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, useMemo } from "react";
+import { useState, type MouseEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -14,7 +14,6 @@ import {
   Tooltip,
   ToggleButtonGroup,
   ToggleButton,
-  TextField,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ViewDayIcon from "@mui/icons-material/ViewDay";
@@ -36,7 +35,6 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
   const navigate = useNavigate();
   const [view, setView] = useState<'graph' | 'list'>('list');
   const [diffView, setDiffView] = useState<"side-by-side" | "unified">("side-by-side");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleCommitSelect = (hash: string) => {
     navigate(`/git/${hash}`);
@@ -55,19 +53,6 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
       setView(newView);
     }
   };
-
-  const filteredLog = useMemo(() => {
-    if (!searchQuery) {
-      return log;
-    }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return log.filter(
-      (entry) =>
-        entry.subject.toLowerCase().includes(lowerCaseQuery) ||
-        entry.authorName.toLowerCase().includes(lowerCaseQuery) ||
-        entry.hash.toLowerCase().includes(lowerCaseQuery)
-    );
-  }, [log, searchQuery]);
 
   if (log.length === 0) {
     return (
@@ -118,19 +103,7 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
 
   return (
     <Box sx={{ height: "100%", display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {view === 'list' ? (
-          <TextField
-            variant="standard"
-            size="small"
-            placeholder="Search commits..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ flexGrow: 1, mr: 2 }}
-          />
-        ) : (
-          <Box sx={{ flexGrow: 1 }} />
-        )}
+      <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
         <ToggleButtonGroup value={view} exclusive onChange={handleViewChange} size="small">
           <ToggleButton value="graph" aria-label="graph view">
             <AccountTreeIcon />
@@ -145,7 +118,7 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
           <GitGraph log={log} onCommitSelect={handleCommitSelect} />
         ) : (
           <List sx={{ height: '100%', overflowY: 'auto' }}>
-            {filteredLog.map((entry) => (
+            {log.map((entry) => (
               <div key={entry.hash}>
                 <ListItemButton onClick={() => handleCommitSelect(entry.hash)}>
                   <ListItemText
