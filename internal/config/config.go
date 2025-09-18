@@ -28,7 +28,7 @@ type Generation struct {
 	ModelCode    string
 	Temperature  float32
 	TopP         float32
-	TopK         int32
+	TopK         float32
 	OutputLength int32
 }
 
@@ -43,7 +43,7 @@ type Config struct {
 func Default() *Config {
 	temp := float32(0)
 	topP := float32(0.95)
-	topK := int32(0) // disabled
+	topK := float32(0) // disabled
 	outputLength := int32(65536)
 
 	return &Config{

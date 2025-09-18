@@ -4,41 +4,36 @@ import (
 	"coder/internal/config"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 
-	pb "coder/grpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/sokinpui/synapse.go/client"
 )
 
 // Generator handles communication with the code generation gRPC service.
 type Generator struct {
-	client pb.GenerateClient
+	client client.Client
 	Config config.Generation
 }
 
 // New creates a new Generator.
 func New(cfg *config.Config) (*Generator, error) {
-	conn, err := grpc.Dial(cfg.GRPC.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	c, err := client.New(cfg.GRPC.Addr)
 	if err != nil {
-		return nil, fmt.Errorf("did not connect: %w", err)
+		return nil, fmt.Errorf("could not create synapse client: %w", err)
 	}
-
-	client := pb.NewGenerateClient(conn)
-	return &Generator{client: client, Config: cfg.Generation}, nil
+	return &Generator{client: c, Config: cfg.Generation}, nil
 }
 
 // GenerateTask sends a prompt to the generation service and streams the response.
 func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan chan<- string) {
 	defer close(streamChan)
 
-	req := &pb.Request{
+	req := &client.GenerateRequest{
 		Prompt:    prompt,
 		ModelCode: g.Config.ModelCode,
 		Stream:    true,
-		Config: &pb.GenerationConfig{
+		Config: &client.GenerationConfig{
 			Temperature:  &g.Config.Temperature,
 			TopP:         &g.Config.TopP,
 			TopK:         &g.Config.TopK,
@@ -46,31 +41,26 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 		},
 	}
 
-	stream, err := g.client.GenerateTask(ctx, req)
+	resultChan, err := g.client.GenerateTask(ctx, req)
 	if err != nil {
 		log.Printf("GenerateTask failed: %v", err)
 		streamChan <- fmt.Sprintf("Error: Could not connect to generation service: %v", err)
 		return
 	}
 
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			// If context is cancelled, grpc will return a status error with code Canceled.
+	for result := range resultChan {
+		if result.Err != nil {
+			// If context is cancelled, the client will return a context error.
 			if ctx.Err() != nil {
 				log.Printf("Generation cancelled: %v", ctx.Err())
 				break
 			}
-			log.Printf("Stream recv failed: %v", err)
-			streamChan <- fmt.Sprintf("Error: Stream failed: %v", err)
+			log.Printf("Stream recv failed: %v", result.Err)
+			streamChan <- fmt.Sprintf("Error: Stream failed: %v", result.Err)
 			break
 		}
-		chunk := resp.GetOutputString()
-		log.Printf("Received raw chunk from server: %q", chunk)
-		streamChan <- chunk
+		log.Printf("Received raw chunk from server: %q", result.Text)
+		streamChan <- result.Text
 	}
 }
 
@@ -78,13 +68,13 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
 	// A smaller output length for titles.
 	outputLength := int32(256)
-	temp := float32(0.2) // A bit of creativity for titles
+	temp := float32(0.2)
 
-	req := &pb.Request{
+	req := &client.GenerateRequest{
 		Prompt:    prompt,
 		ModelCode: "gemini-2.0-flash-lite",
-		Stream:    false, // We want a single response
-		Config: &pb.GenerationConfig{
+		Stream:    false,
+		Config: &client.GenerationConfig{
 			Temperature:  &temp,
 			TopP:         &g.Config.TopP,
 			TopK:         &g.Config.TopK,
@@ -92,22 +82,17 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 		},
 	}
 
-	stream, err := g.client.GenerateTask(ctx, req)
+	resultChan, err := g.client.GenerateTask(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("GenerateTitle failed: %w", err)
 	}
 
-	// For non-streaming, we expect one response, then EOF.
 	var fullResponse strings.Builder
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
+	for result := range resultChan {
+		if result.Err != nil {
+			return "", fmt.Errorf("stream recv failed during title generation: %w", result.Err)
 		}
-		if err != nil {
-			return "", fmt.Errorf("stream recv failed during title generation: %w", err)
-		}
-		fullResponse.WriteString(resp.GetOutputString())
+		fullResponse.WriteString(result.Text)
 	}
 
 	return strings.TrimSpace(fullResponse.String()), nil
