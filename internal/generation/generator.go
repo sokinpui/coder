@@ -68,7 +68,7 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
 	// A smaller output length for titles.
 	outputLength := int32(256)
-	temp := float32(0.2)
+	temp := float32(1.0)
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
