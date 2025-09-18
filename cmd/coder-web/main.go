@@ -3,6 +3,7 @@ package main
 import (
 	"coder/internal/logger"
 	"coder/internal/server"
+	"coder/internal/utils"
 	"coder/web"
 	"flag"
 	"fmt"
@@ -10,21 +11,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"strings"
 )
 
-func isGitRepository() bool {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	output, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-	return strings.TrimSpace(string(output)) == "true"
-}
-
 func main() {
-	if !isGitRepository() {
+	if _, err := utils.FindRepoRoot(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error: This application must be run from within a git repository.")
 		os.Exit(1)
 	}
