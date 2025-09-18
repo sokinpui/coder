@@ -1,16 +1,21 @@
 package main
 
 import (
+	"embed"
 	"coder/internal/logger"
 	"coder/internal/server"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 )
+
+//go:embed all:../../web/dist
+var webAssets embed.FS
 
 func isGitRepository() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
@@ -34,12 +39,14 @@ func main() {
 	http.HandleFunc("/ws", server.HandleConnections)
 
 	// Serve static files for the web UI
-	fs := http.FileServer(http.Dir("./web/dist"))
-	http.Handle("/", fs)
+	distFS, err := fs.Sub(webAssets, "web/dist")
+	if err != nil {
+		log.Fatalf("failed to create sub filesystem for web assets: %v", err)
+	}
+	http.Handle("/", http.FileServer(http.FS(distFS)))
 
 	log.Printf("Starting web server on %s", *addr)
-	err := http.ListenAndServe(*addr, nil)
-	if err != nil {
+	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatalf("ListenAndServe: %v", err)
 	}
 }
