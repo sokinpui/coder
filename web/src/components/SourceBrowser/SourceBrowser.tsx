@@ -8,6 +8,7 @@ import {
   Collapse,
   CircularProgress,
   IconButton,
+  TextField,
   Tooltip,
   Link,
   useTheme,
@@ -29,6 +30,7 @@ import {
   useCallback,
   useEffect,
   memo,
+  useMemo,
 } from "react";
 import type { SourceNode } from "../../types";
 import { AppContext } from "../../AppContext";
@@ -114,6 +116,38 @@ const TreeNode = memo(function TreeNode({
   );
 });
 
+const filterTree = (
+  nodes: SourceNode[],
+  query: string,
+): SourceNode[] => {
+  if (!query) {
+    return nodes;
+  }
+  const lowerCaseQuery = query.toLowerCase();
+
+  const filter = (node: SourceNode): SourceNode | null => {
+    // If the node name itself matches, include it and all its children.
+    if (node.name.toLowerCase().includes(lowerCaseQuery)) {
+      return node;
+    }
+
+    // If it's a directory, check its children even if the directory name doesn't match.
+    if (node.type === "directory") {
+      const filteredChildren = node.children
+        ?.map(filter)
+        .filter((n): n is SourceNode => n !== null);
+
+      // If any children matched, include this directory but only with the matching children.
+      if (filteredChildren && filteredChildren.length > 0) {
+        return { ...node, children: filteredChildren };
+      }
+    }
+    return null;
+  };
+
+  return nodes.map(filter).filter((n): n is SourceNode => n !== null);
+};
+
 const getLanguageExtension = (filePath: string) => {
   const extension = filePath.split(".").pop() || "";
   switch (extension) {
@@ -160,6 +194,7 @@ export function SourceBrowser({
   const [treeWidth, setTreeWidth] = useState(300);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +273,11 @@ export function SourceBrowser({
   const handleCollapseAll = () => {
     setExpandedNodes(new Set());
   };
+
+  const displayedTree = useMemo(() => {
+    if (!tree) return [];
+    return filterTree(tree.children || [], searchQuery);
+  }, [tree, searchQuery]);
 
   useEffect(() => {
     if (tree) {
@@ -335,14 +375,22 @@ export function SourceBrowser({
           <Box
             sx={{
               p: 1,
-              borderBottom: 1,
-              borderColor: "divider",
               display: "flex",
               alignItems: "center",
-              justifyContent: "flex-end",
+              justifyContent: "space-between",
               flexShrink: 0,
+              borderBottom: 1,
+              borderColor: 'divider',
             }}
           >
+            <TextField
+              variant="standard"
+              size="small"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ flexGrow: 1, mr: 1 }}
+            />
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Tooltip title="Expand All">
                 <IconButton onClick={handleExpandAll} size="small">
@@ -369,7 +417,7 @@ export function SourceBrowser({
           >
             {tree ? (
               <List dense>
-                {tree.children?.map((node) => (
+                {displayedTree.map((node) => (
                   <TreeNode
                     key={node.path}
                     node={node}
