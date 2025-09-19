@@ -15,11 +15,9 @@ output changes of files in unified diff format.
 --- a/path/to/file
 +++ b/path/to/file
 @@ -line,line +line,line @@
-...
  context line
 -removed line
 +added line
-...
 ```
 
 ## File Create:
@@ -37,6 +35,23 @@ file content
 ## File Delete:
 
 list the name of the files that are deleted.
+`path/to/file`
+
+```
+file content
+```
+
+## if User ask you to print files, follow the instructions below
+
+output the content of the file.
+
+`path/to/file`
+
+```
+...
+file content
+...
+```
 
 ## Order of output
 
