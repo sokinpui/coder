@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"coder/internal/core"
+	"coder/internal/session"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -465,6 +466,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyCtrlJ:
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
+
+		case tea.KeyCtrlA:
+			// Equivalent to typing ":itf" and pressing enter.
+			event := m.session.HandleInput(":itf")
+			if event.Type == session.MessagesUpdated {
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+			}
+			return m, nil, true
 		}
 	}
 	return m, nil, false
