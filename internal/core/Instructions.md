@@ -3,6 +3,7 @@
 1. output changes of files in unified diff format. except files that are deleted and created.
 2. Use Markdown code block per file:
 3. code generation should always base on the latest version
+4. you should always refer to the version provided in `# PROJECT SOURCE CODE`
 
 ## File Modify:
 
@@ -14,9 +15,11 @@ output changes of files in unified diff format.
 --- a/path/to/file
 +++ b/path/to/file
 @@ -line,line +line,line @@
+...
  context line
--changed line
-+new line
+-removed line
++added line
+...
 ```
 
 ## File Create:
@@ -26,7 +29,9 @@ output the content of the file.
 `path/to/file`
 
 ```
-print("file content")
+...
+file content
+...
 ```
 
 ## File Delete:
