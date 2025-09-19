@@ -259,6 +259,12 @@ func (s *Session) SetTitle(title string) {
 	s.titleGenerated = true // Mark as manually set/generated
 }
 
+// GetHistoryFilename returns the filename for the current conversation in history.
+// It returns an empty string if the session hasn't been saved yet.
+func (s *Session) GetHistoryFilename() string {
+	return s.historyFilename
+}
+
 // GetHistoryManager returns the session's history manager.
 func (s *Session) GetHistoryManager() *history.Manager {
 	return s.historyManager

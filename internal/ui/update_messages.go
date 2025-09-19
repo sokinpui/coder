@@ -141,9 +141,24 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
 		}
 		m.historyItems = msg.items
-		m.historySelectCursor = 0
+
+		currentFilename := m.session.GetHistoryFilename()
+		initialCursorPos := 0
+		if currentFilename != "" {
+			for i, item := range msg.items {
+				if item.Filename == currentFilename {
+					initialCursorPos = i
+					break
+				}
+			}
+		}
+		m.historySelectCursor = initialCursorPos
+
 		m.viewport.SetContent(m.historyView())
-		m.viewport.GotoTop()
+		// Center the selected item in the viewport
+		const headerHeight = 2 // "Select a conversation...\n\n"
+		targetOffset := (initialCursorPos + headerHeight) - (m.viewport.Height / 2)
+		m.viewport.SetYOffset(targetOffset)
 		return m, nil, true
 
 	case conversationLoadedMsg:

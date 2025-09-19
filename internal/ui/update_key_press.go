@@ -64,7 +64,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "j":
 				if m.historySelectCursor < len(m.historyItems)-1 {
 					m.historySelectCursor++
-					headerHeight := 10 // "Select a conversation...\n\n"
+					headerHeight := 10 // offset to bottom
 					cursorLine := m.historySelectCursor + headerHeight
 					if cursorLine >= m.viewport.YOffset+m.viewport.Height {
 						m.viewport.LineDown(1)
@@ -75,7 +75,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "k":
 				if m.historySelectCursor > 0 {
 					m.historySelectCursor--
-					headerHeight := -10 // "Select a conversation...\n\n"
+					headerHeight := -10 // offset to top
 					cursorLine := m.historySelectCursor + headerHeight
 					if cursorLine < m.viewport.YOffset {
 						m.viewport.LineUp(1)
