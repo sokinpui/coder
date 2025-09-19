@@ -64,7 +64,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "j":
 				if m.historySelectCursor < len(m.historyItems)-1 {
 					m.historySelectCursor++
-					headerHeight := 10
+					headerHeight := 10 // "Select a conversation...\n\n"
 					cursorLine := m.historySelectCursor + headerHeight
 					if cursorLine >= m.viewport.YOffset+m.viewport.Height {
 						m.viewport.LineDown(1)
@@ -75,7 +75,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "k":
 				if m.historySelectCursor > 0 {
 					m.historySelectCursor--
-					headerHeight := -10
+					headerHeight := -10 // "Select a conversation...\n\n"
 					cursorLine := m.historySelectCursor + headerHeight
 					if cursorLine < m.viewport.YOffset {
 						m.viewport.LineUp(1)
@@ -364,8 +364,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 
 		case tea.KeyEscape:
-			if m.textArea.Value() == "" {
-				// Enter visual mode, keeping text area content.
+			val := m.textArea.Value()
+			if val == "" {
+				// Enter visual mode.
 				m.state = stateVisualSelect
 				m.visualMode = visualModeNone
 				m.visualIsSelecting = false
@@ -378,6 +379,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.viewport.GotoBottom()
 				return m, nil, true
 			}
+
+			if strings.HasPrefix(val, ":") {
+				m.textArea.Reset()
+			}
+			// For normal prompts, do nothing.
+			// In both cases, we've handled the event.
+			return m, nil, true
 
 		case tea.KeyTab, tea.KeyShiftTab:
 			m.isCyclingCompletions = true
