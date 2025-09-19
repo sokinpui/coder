@@ -64,15 +64,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case "j":
 				if m.historySelectCursor < len(m.historyItems)-1 {
 					m.historySelectCursor++
-					m.viewport.SetContent(m.historyView())
+					headerHeight := 10
+					cursorLine := m.historySelectCursor + headerHeight
+					if cursorLine >= m.viewport.YOffset+m.viewport.Height {
+						m.viewport.LineDown(1)
+					}
+					m.viewport.SetContent(m.historyView()) // Re-render to update selection highlight
 				}
-				return m, nil, false
+				return m, nil, true
 			case "k":
 				if m.historySelectCursor > 0 {
 					m.historySelectCursor--
-					m.viewport.SetContent(m.historyView())
+					headerHeight := -10
+					cursorLine := m.historySelectCursor + headerHeight
+					if cursorLine < m.viewport.YOffset {
+						m.viewport.LineUp(1)
+					}
+					m.viewport.SetContent(m.historyView()) // Re-render to update selection highlight
 				}
-				return m, nil, false
+				return m, nil, true
 			}
 		}
 		return m, nil, true
@@ -457,6 +467,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			// Otherwise, fall through to let the textarea handle the newline.
 			return m, nil, false
+
+		case tea.KeyCtrlH:
+			m.state = stateHistorySelect
+			m.textArea.Reset()
+			m.textArea.SetHeight(1)
+			m.textArea.Blur()
+			return m, listHistoryCmd(m.session.GetHistoryManager()), true
 
 		case tea.KeyCtrlE:
 			if m.textArea.Focused() {
