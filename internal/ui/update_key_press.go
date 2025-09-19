@@ -353,18 +353,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 
 		case tea.KeyEscape:
-			// Enter visual mode, keeping text area content.
-			m.state = stateVisualSelect
-			m.visualMode = visualModeNone
-			m.visualIsSelecting = false
-			m.selectableBlocks = groupMessages(m.session.GetMessages())
-			if len(m.selectableBlocks) > 0 {
-				m.visualSelectCursor = len(m.selectableBlocks) - 1
+			if m.textArea.Value() == "" {
+				// Enter visual mode, keeping text area content.
+				m.state = stateVisualSelect
+				m.visualMode = visualModeNone
+				m.visualIsSelecting = false
+				m.selectableBlocks = groupMessages(m.session.GetMessages())
+				if len(m.selectableBlocks) > 0 {
+					m.visualSelectCursor = len(m.selectableBlocks) - 1
+				}
+				m.textArea.Blur()
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+				return m, nil, true
 			}
-			m.textArea.Blur()
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
-			return m, nil, true
 
 		case tea.KeyTab, tea.KeyShiftTab:
 			m.isCyclingCompletions = true
