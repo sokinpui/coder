@@ -11,3 +11,4 @@ You should follow instruction below when write code
 - apply Guard Clauses to reduce nesting.
 
 unless specified, you do not need to modify files in `# RELATED DOCUMENTS`
+User may not adopt the changes you make, you should refer to the code given at `# PROJECT SOURCE CODE` whenever
