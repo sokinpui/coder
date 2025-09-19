@@ -52,7 +52,7 @@ func Default() *Config {
 			Addr: "localhost:50051",
 		},
 		Generation: Generation{
-			ModelCode:    AvailableModels[1],
+			ModelCode:    AvailableModels[0],
 			Temperature:  temp,
 			TopP:         topP,
 			TopK:         topK,
