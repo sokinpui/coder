@@ -233,23 +233,12 @@ func (m Model) statusView() string {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	var titlePart string
-	if m.animatingTitle {
-		titlePart = statusBarTitleStyle.Render(m.displayedTitle)
-	} else {
-		titlePart = statusBarTitleStyle.Render(m.session.GetTitle())
+	// Handle modes that take over the status bar
+	if m.state == stateHistorySelect {
+		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
 	}
 
-	var status string
-	switch m.state {
-	case stateThinking, stateGenerating:
-		// This is now handled on the right side
-		status = ""
-	case stateCancelling:
-		return generatingStatusStyle.Render("Cancelling...")
-	case stateHistorySelect:
-		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
-	case stateVisualSelect:
+	if m.state == stateVisualSelect {
 		var modeStr string
 		var helpStr string
 		if m.visualMode == visualModeGenerate {
@@ -269,9 +258,29 @@ func (m Model) statusView() string {
 				helpStr = "j/k: move | v: start selection | esc: cancel"
 			}
 		}
-		status = fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr)
+		return statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s\n", modeStr, helpStr))
+	}
+
+	// Line 1: Title
+	var title string
+	if m.animatingTitle {
+		title = m.displayedTitle
+	} else {
+		title = m.session.GetTitle()
+	}
+	titlePart := statusBarTitleStyle.MaxWidth(m.width).Render(title)
+
+	// Line 2: Status
+	var statusTextPart string
+	switch m.state {
+	case stateThinking, stateGenerating:
+		// This is now handled on the right side
+		statusTextPart = ""
+	case stateCancelling:
+		statusTextPart = generatingStatusStyle.Render("Cancelling...")
+	// stateHistorySelect and stateVisualSelect are handled above
 	default: // stateIdle
-		status = ""
+		statusTextPart = ""
 	}
 
 	modeInfo := fmt.Sprintf("Mode: %s", m.session.GetConfig().AppMode)
@@ -284,8 +293,6 @@ func (m Model) statusView() string {
 		tokenInfo = fmt.Sprintf("Tokens: %d", m.tokenCount)
 	}
 
-	statusTextPart := statusStyle.Render(status)
-	leftSide := lipgloss.JoinHorizontal(lipgloss.Top, titlePart, " ", statusTextPart)
 	modePart := modelInfoStyle.Render(modeInfo)
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
@@ -300,12 +307,18 @@ func (m Model) statusView() string {
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, generatingPart, " | ", rightSide)
 	}
 
-	spacing := m.width - lipgloss.Width(leftSide) - lipgloss.Width(rightSide)
-	if spacing < 1 {
-		spacing = 1
+	var statusLine string
+	if statusTextPart != "" {
+		spacing := m.width - lipgloss.Width(statusTextPart) - lipgloss.Width(rightSide)
+		if spacing < 1 {
+			spacing = 1
+		}
+		statusLine = lipgloss.JoinHorizontal(lipgloss.Top, statusTextPart, strings.Repeat(" ", spacing), rightSide)
+	} else {
+		statusLine = rightSide
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftSide, strings.Repeat(" ", spacing), rightSide)
+	return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)
 }
 
 func (m Model) View() string {
