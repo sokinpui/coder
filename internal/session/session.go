@@ -24,6 +24,16 @@ const (
 	MessagesUpdated
 	// GenerationStarted indicates a new AI generation task has begun.
 	GenerationStarted
+	// VisualModeStarted indicates the UI should enter visual mode.
+	VisualModeStarted
+	// GenerateModeStarted indicates the UI should enter visual generate mode.
+	GenerateModeStarted
+	// EditModeStarted indicates the UI should enter visual edit mode.
+	EditModeStarted
+	// BranchModeStarted indicates the UI should enter visual branch mode.
+	BranchModeStarted
+	// HistoryModeStarted indicates the UI should enter history browsing mode.
+	HistoryModeStarted
 	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
 )
@@ -417,20 +427,33 @@ func (s *Session) HandleInput(input string) Event {
 		return Event{Type: MessagesUpdated}
 	}
 
-	cmdResult, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
+	cmdOutput, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
 	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
 
-	if cmdSuccess && cmdResult == core.NewSessionResult {
-		s.newSession()
-		return Event{Type: NewSessionStarted}
+	if cmdSuccess {
+		switch cmdOutput.Type {
+		case core.CommandResultNewSession:
+			s.newSession()
+			return Event{Type: NewSessionStarted}
+		case core.CommandResultVisualMode:
+			return Event{Type: VisualModeStarted}
+		case core.CommandResultGenerateMode:
+			return Event{Type: GenerateModeStarted}
+		case core.CommandResultEditMode:
+			return Event{Type: EditModeStarted}
+		case core.CommandResultBranchMode:
+			return Event{Type: BranchModeStarted}
+		case core.CommandResultHistoryMode:
+			return Event{Type: HistoryModeStarted}
+		}
 	}
 
 	s.generator.Config = s.config.Generation
 	s.messages = append(s.messages, core.Message{Type: core.CommandMessage, Content: input})
 	if cmdSuccess {
-		s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdResult})
+		s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdOutput.Payload})
 	} else {
-		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdResult})
+		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdOutput.Payload})
 	}
 	return Event{Type: MessagesUpdated}
 }

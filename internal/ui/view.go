@@ -105,10 +105,6 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
-			// Don't render the special result messages that trigger visual modes.
-			if currentMsg.Content == core.GenerateModeResult || currentMsg.Content == core.EditModeResult || currentMsg.Content == core.VisualModeResult || currentMsg.Content == core.BranchModeResult || currentMsg.Content == core.HistoryModeResult {
-				continue
-			}
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ActionErrorResultMessage:

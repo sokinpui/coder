@@ -74,73 +74,30 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	event := m.session.HandleInput(input)
 
+	enterVisualMode := func(mode visualMode) (tea.Model, tea.Cmd) {
+		m.visualIsSelecting = true // For single-item selection modes
+
+		m.state = stateVisualSelect
+		m.visualMode = mode
+		m.selectableBlocks = groupMessages(m.session.GetMessages())
+		if len(m.selectableBlocks) > 0 {
+			m.visualSelectCursor = len(m.selectableBlocks) - 1
+			m.visualSelectStart = m.visualSelectCursor
+		}
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		m.textArea.Blur()
+		originalOffset := m.viewport.YOffset
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.SetYOffset(originalOffset)
+		return m, nil
+	}
+
 	switch event.Type {
 	case session.NoOp:
 		return m, nil
 
 	case session.MessagesUpdated:
-		messages := m.session.GetMessages()
-		if len(messages) > 0 {
-			lastMsg := messages[len(messages)-1]
-			if lastMsg.Type == core.CommandResultMessage && len(messages) >= 2 {
-				enterVisualMode := func(mode visualMode) (tea.Model, tea.Cmd) {
-					// Remove the command that triggered visual mode from the session.
-					// This prevents it from being part of the copy/delete operations or being displayed.
-					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
-					m.visualIsSelecting = true // For single-item selection modes
-
-					m.state = stateVisualSelect
-					m.visualMode = mode
-					m.selectableBlocks = groupMessages(m.session.GetMessages()) // Use updated messages
-					if len(m.selectableBlocks) > 0 {
-						m.visualSelectCursor = len(m.selectableBlocks) - 1
-						m.visualSelectStart = m.visualSelectCursor
-					}
-					m.textArea.Reset()
-					m.textArea.SetHeight(1)
-					m.textArea.Blur()
-					originalOffset := m.viewport.YOffset
-					m.viewport.SetContent(m.renderConversation()) // Render with updated messages
-					m.viewport.SetYOffset(originalOffset)
-					return m, nil
-				}
-
-				switch lastMsg.Content {
-				case core.VisualModeResult:
-					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
-					m.state = stateVisualSelect
-					m.visualMode = visualModeNone
-					m.visualIsSelecting = false
-					m.selectableBlocks = groupMessages(m.session.GetMessages())
-					if len(m.selectableBlocks) > 0 {
-						m.visualSelectCursor = len(m.selectableBlocks) - 1
-					}
-					m.textArea.Reset()
-					m.textArea.SetHeight(1)
-					m.textArea.Blur()
-					originalOffset := m.viewport.YOffset
-					m.viewport.SetContent(m.renderConversation())
-					m.viewport.SetYOffset(originalOffset)
-					return m, nil
-				case core.GenerateModeResult:
-					return enterVisualMode(visualModeGenerate)
-				case core.EditModeResult:
-					return enterVisualMode(visualModeEdit)
-				case core.BranchModeResult:
-					return enterVisualMode(visualModeBranch)
-				case core.HistoryModeResult:
-					// Remove the command that triggered history mode.
-					m.session.DeleteMessages([]int{len(messages) - 2, len(messages) - 1})
-					m.state = stateHistorySelect
-					m.textArea.Reset()
-					m.textArea.SetHeight(1)
-					m.textArea.Blur()
-					return m, listHistoryCmd(m.session.GetHistoryManager())
-
-				}
-			}
-		}
-
 		m.viewport.SetContent(m.renderConversation())
 		m.viewport.GotoBottom()
 		m.textArea.Reset()
@@ -154,6 +111,35 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m, cmd := m.startGeneration(event)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
+
+	case session.VisualModeStarted:
+		m.state = stateVisualSelect
+		m.visualMode = visualModeNone
+		m.visualIsSelecting = false
+		m.selectableBlocks = groupMessages(m.session.GetMessages())
+		if len(m.selectableBlocks) > 0 {
+			m.visualSelectCursor = len(m.selectableBlocks) - 1
+		}
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		m.textArea.Blur()
+		originalOffset := m.viewport.YOffset
+		m.viewport.SetContent(m.renderConversation())
+		m.viewport.SetYOffset(originalOffset)
+		return m, nil
+
+	case session.GenerateModeStarted:
+		return enterVisualMode(visualModeGenerate)
+	case session.EditModeStarted:
+		return enterVisualMode(visualModeEdit)
+	case session.BranchModeStarted:
+		return enterVisualMode(visualModeBranch)
+	case session.HistoryModeStarted:
+		m.state = stateHistorySelect
+		m.textArea.Reset()
+		m.textArea.SetHeight(1)
+		m.textArea.Blur()
+		return m, listHistoryCmd(m.session.GetHistoryManager())
 	}
 
 	return m, nil

@@ -8,24 +8,23 @@ import (
 	"coder/internal/config"
 )
 
-// NewSessionResult is a special string returned by the /new command
-// to signal the UI to start a new session.
-const NewSessionResult = "---_NEW_SESSION_---"
+type CommandResultType int
 
-// GenerateModeResult signals the UI to enter visual generate mode.
-const GenerateModeResult = "---_GENERATE_MODE_---"
+const (
+	CommandResultString CommandResultType = iota
+	CommandResultNewSession
+	CommandResultGenerateMode
+	CommandResultVisualMode
+	CommandResultEditMode
+	CommandResultBranchMode
+	CommandResultHistoryMode
+)
 
-// VisualModeResult signals the UI to enter visual mode.
-const VisualModeResult = "---_VISUAL_MODE_---"
-
-// EditModeResult signals the UI to enter visual edit mode.
-const EditModeResult = "---_EDIT_MODE_---"
-
-// BranchModeResult signals the UI to enter visual branch mode.
-const BranchModeResult = "---_BRANCH_MODE_---"
-
-// HistoryModeResult signals the UI to enter history browsing mode.
-const HistoryModeResult = "---_HISTORY_MODE_---"
+// CommandOutput is the structured result of a command execution.
+type CommandOutput struct {
+	Type    CommandResultType
+	Payload string
+}
 
 // SessionChanger is an interface that allows commands to modify session state
 // without creating a circular dependency between core and session packages.
@@ -33,18 +32,18 @@ type SessionChanger interface {
 	SetTitle(title string)
 }
 
-type commandFunc func(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool)
+type commandFunc func(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool)
 
 var commands = map[string]commandFunc{
-	"model":  modelCmd,
-	"itf":    itfCmd,
-	"new":    newCmd,
-	"mode":   modeCmd,
-	"gen":    genCmd,
-	"edit":   editModeCmd,
-	"visual": visualCmd,
-	"branch": branchCmd,
-	"rename": renameCmd,
+	"model":   modelCmd,
+	"itf":     itfCmd,
+	"new":     newCmd,
+	"mode":    modeCmd,
+	"gen":     genCmd,
+	"edit":    editModeCmd,
+	"visual":  visualCmd,
+	"branch":  branchCmd,
+	"rename":  renameCmd,
 	"history": historyCmd,
 }
 
@@ -96,40 +95,40 @@ func hasSelectableMessages(messages []Message) bool {
 	return false
 }
 
-func newCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
-	return NewSessionResult, true
+func newCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+	return CommandOutput{Type: CommandResultNewSession}, true
 }
 
-func genCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func genCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if !hasSelectableMessages(messages) {
-		return "Cannot enter generate mode: no messages to select.", false
+		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter generate mode: no messages to select."}, false
 	}
-	return GenerateModeResult, true
+	return CommandOutput{Type: CommandResultGenerateMode}, true
 }
 
-func editModeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func editModeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if !hasSelectableMessages(messages) {
-		return "Cannot enter edit mode: no messages to select.", false
+		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter edit mode: no messages to select."}, false
 	}
-	return EditModeResult, true
+	return CommandOutput{Type: CommandResultEditMode}, true
 }
 
-func visualCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func visualCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if !hasSelectableMessages(messages) {
-		return "Cannot enter visual mode: no messages to select.", false
+		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter visual mode: no messages to select."}, false
 	}
-	return VisualModeResult, true
+	return CommandOutput{Type: CommandResultVisualMode}, true
 }
 
-func branchCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func branchCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if !hasSelectableMessages(messages) {
-		return "Cannot enter branch mode: no messages to select.", false
+		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter branch mode: no messages to select."}, false
 	}
-	return BranchModeResult, true
+	return CommandOutput{Type: CommandResultBranchMode}, true
 }
 
-func historyCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
-	return HistoryModeResult, true
+func historyCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+	return CommandOutput{Type: CommandResultHistoryMode}, true
 }
 
 // ExecuteItf runs the 'itf' command with the given content as stdin.
@@ -144,7 +143,7 @@ func ExecuteItf(content string, args string) (string, bool) {
 	return string(output), true
 }
 
-func itfCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func itfCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	var lastAIResponse string
 	found := false
 	for i := len(messages) - 1; i >= 0; i-- {
@@ -156,13 +155,14 @@ func itfCmd(args string, messages []Message, cfg *config.Config, sess SessionCha
 	}
 
 	if !found {
-		return "No AI response found to pipe to itf.", false
+		return CommandOutput{Type: CommandResultString, Payload: "No AI response found to pipe to itf."}, false
 	}
 
-	return ExecuteItf(lastAIResponse, args)
+	result, success := ExecuteItf(lastAIResponse, args)
+	return CommandOutput{Type: CommandResultString, Payload: result}, success
 }
 
-func modelCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func modelCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current model: %s\n", cfg.Generation.ModelCode)
@@ -171,20 +171,20 @@ func modelCmd(args string, messages []Message, cfg *config.Config, sess SessionC
 			fmt.Fprintf(&b, "- %s\n", m)
 		}
 		fmt.Fprint(&b, "Usage: :model <model_name>")
-		return b.String(), true
+		return CommandOutput{Type: CommandResultString, Payload: b.String()}, true
 	}
 
 	for _, m := range config.AvailableModels {
 		if m == args {
 			cfg.Generation.ModelCode = args
-			return fmt.Sprintf("Switched model to: %s", args), true
+			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 		}
 	}
 
-	return fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args), false
+	return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args)}, false
 }
 
-func modeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func modeCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current mode: %s\n", cfg.AppMode)
@@ -193,38 +193,38 @@ func modeCmd(args string, messages []Message, cfg *config.Config, sess SessionCh
 			fmt.Fprintf(&b, "- %s\n", m)
 		}
 		fmt.Fprint(&b, "Usage: :mode <mode_name>")
-		return b.String(), true
+		return CommandOutput{Type: CommandResultString, Payload: b.String()}, true
 	}
 
 	requestedMode := config.AppMode(args)
 	for _, m := range config.AvailableAppModes {
 		if m == requestedMode {
 			cfg.AppMode = requestedMode
-			return fmt.Sprintf("Switched mode to: %s", args), true
+			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Switched mode to: %s", args)}, true
 		}
 	}
 
-	return fmt.Sprintf("Error: mode '%s' not found. Use ':mode' to see available modes.", args), false
+	return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error: mode '%s' not found. Use ':mode' to see available modes.", args)}, false
 }
 
-func renameCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (string, bool) {
+func renameCmd(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
 	if args == "" {
-		return "Usage: :rename <new title>", false
+		return CommandOutput{Type: CommandResultString, Payload: "Usage: :rename <new title>"}, false
 	}
 	sess.SetTitle(args)
-	return fmt.Sprintf("Session title renamed to: %s", args), true
+	return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Session title renamed to: %s", args)}, true
 }
 
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
-func ProcessCommand(input string, messages []Message, cfg *config.Config, sess SessionChanger) (result string, isCmd bool, success bool) {
+func ProcessCommand(input string, messages []Message, cfg *config.Config, sess SessionChanger) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
-		return "", false, false
+		return CommandOutput{}, false, false
 	}
 
 	parts := strings.Fields(strings.TrimPrefix(input, ":"))
 	if len(parts) == 0 {
-		return "Invalid command syntax. Use :<command> [args]", true, false
+		return CommandOutput{Type: CommandResultString, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false
 	}
 
 	cmdName := parts[0]
@@ -232,7 +232,7 @@ func ProcessCommand(input string, messages []Message, cfg *config.Config, sess S
 
 	cmd, exists := commands[cmdName]
 	if !exists {
-		return fmt.Sprintf("Unknown command: %s", cmdName), true, false
+		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
 	}
 
 	result, success = cmd(args, messages, cfg, sess)
