@@ -94,6 +94,7 @@ type Model struct {
 	animatingMeme            bool
 	fullMemeText             string
 	displayedMemeText        string
+	currentUserPrompt        string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -182,5 +183,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		animatingMeme:            false,
 		fullMemeText:             "",
 		displayedMemeText:        "",
+		currentUserPrompt:        "",
 	}, nil
 }

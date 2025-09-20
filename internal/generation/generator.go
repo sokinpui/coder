@@ -106,7 +106,7 @@ func (g *Generator) GenerateMeme(ctx context.Context, prompt string) (string, er
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
-		ModelCode: config.AvailableModels[4],
+		ModelCode: config.AvailableModels[5],
 		Stream:    false,
 		Config: &client.GenerationConfig{
 			Temperature:  &temp,

@@ -217,7 +217,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case nextMemeTriggerMsg:
 		if m.state == stateThinking || m.state == stateGenerating {
-			return m, generateMemeCmd(m.session), true
+			return m, generateMemeCmd(m.session, m.currentUserPrompt, m.fullMemeText), true
 		}
 		return m, nil, true
 

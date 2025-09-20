@@ -23,6 +23,7 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	// Reset UI and state flags.
 	m.lastInteractionFailed = false
 	m.lastRenderedAIPart = ""
+	m.currentUserPrompt = ""
 	m.textArea.Reset()
 	m.textArea.SetHeight(1)
 	m.textArea.Focus()
@@ -56,7 +57,20 @@ func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
 
 	prompt := m.session.GetPromptForTokenCount()
 	m.isCountingTokens = true
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt), generateMemeCmd(m.session))
+
+	messages := m.session.GetMessages()
+	var userPrompt string
+	// The user message that triggered the generation is the second to last one.
+	// The last one is the AI's placeholder message.
+	if len(messages) > 1 {
+		userMsg := messages[len(messages)-2]
+		if userMsg.Type == core.UserMessage {
+			userPrompt = userMsg.Content
+		}
+	}
+	m.currentUserPrompt = userPrompt
+
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt), generateMemeCmd(m.session, userPrompt, m.fullMemeText))
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
