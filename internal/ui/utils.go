@@ -75,13 +75,13 @@ func animateMemeTick() tea.Cmd {
 	})
 }
 
-func generateMemeCmd(sess *session.Session, userPrompt, lastMeme string) tea.Cmd {
+func generateMemeCmd(sess *session.Session, userPrompt string, previousMemes []string) tea.Cmd {
 	return func() tea.Msg {
 		if userPrompt == "" {
 			// Don't generate a meme if there's no user prompt context.
 			return memeGeneratedMsg{meme: ""}
 		}
-		meme, err := sess.GenerateMeme(context.Background(), userPrompt, lastMeme)
+		meme, err := sess.GenerateMeme(context.Background(), userPrompt, previousMemes)
 		if err != nil {
 			// Don't show an error, just fail silently. It's not critical.
 			return memeGeneratedMsg{meme: ""}

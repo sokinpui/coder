@@ -194,6 +194,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if m.state != stateThinking && m.state != stateGenerating {
 			return m, nil, true // Don't start a new meme if generation is over
 		}
+		if msg.meme != "" {
+			m.generatedMemes = append(m.generatedMemes, msg.meme)
+		}
 		m.animatingMeme = true
 		m.fullMemeText = msg.meme
 		m.displayedMemeText = ""
@@ -217,7 +220,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case nextMemeTriggerMsg:
 		if m.state == stateThinking || m.state == stateGenerating {
-			return m, generateMemeCmd(m.session, m.currentUserPrompt, m.fullMemeText), true
+			return m, generateMemeCmd(m.session, m.currentUserPrompt, m.generatedMemes), true
 		}
 		return m, nil, true
 

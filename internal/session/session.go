@@ -219,12 +219,16 @@ func (s *Session) GetTitle() string {
 }
 
 // GenerateMeme generates a meme text.
-func (s *Session) GenerateMeme(ctx context.Context, userPrompt, lastMeme string) (string, error) {
+func (s *Session) GenerateMeme(ctx context.Context, userPrompt string, previousMemes []string) (string, error) {
 	prompt := strings.Replace(core.MemeGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
 
-	if lastMeme != "" {
-		lastMemeSection := fmt.Sprintf("\nTo avoid repetition, do not generate a meme similar to the last one:\n\"\"\"\n%s\n\"\"\"", lastMeme)
-		prompt = strings.Replace(prompt, "{{LAST_MEME_SECTION}}", lastMemeSection, 1)
+	if len(previousMemes) > 0 {
+		var sb strings.Builder
+		sb.WriteString("\nTo avoid repetition, do not generate a meme similar to any of the following:\n")
+		for _, meme := range previousMemes {
+			sb.WriteString(fmt.Sprintf("- \"%s\"\n", meme))
+		}
+		prompt = strings.Replace(prompt, "{{LAST_MEME_SECTION}}", sb.String(), 1)
 	} else {
 		prompt = strings.Replace(prompt, "{{LAST_MEME_SECTION}}", "", 1)
 	}

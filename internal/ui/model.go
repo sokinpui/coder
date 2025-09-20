@@ -95,6 +95,7 @@ type Model struct {
 	fullMemeText             string
 	displayedMemeText        string
 	currentUserPrompt        string
+	generatedMemes           []string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -184,5 +185,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		fullMemeText:             "",
 		displayedMemeText:        "",
 		currentUserPrompt:        "",
+		generatedMemes:           []string{},
 	}, nil
 }

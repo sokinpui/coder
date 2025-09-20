@@ -24,6 +24,7 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	m.lastInteractionFailed = false
 	m.lastRenderedAIPart = ""
 	m.currentUserPrompt = ""
+	m.generatedMemes = []string{}
 	m.textArea.Reset()
 	m.textArea.SetHeight(1)
 	m.textArea.Focus()
@@ -70,7 +71,7 @@ func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
 	}
 	m.currentUserPrompt = userPrompt
 
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt), generateMemeCmd(m.session, userPrompt, m.fullMemeText))
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt), generateMemeCmd(m.session, userPrompt, m.generatedMemes))
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
