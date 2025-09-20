@@ -15,9 +15,8 @@ Full documentation for the project can be found in the `docs/` directory.
 
 ## Quick Start
 
-1.  **Prerequisites:** Ensure you have Go, Git, `protoc`, `pcat`, and `ripgrep` installed.
+1.  **Prerequisites:** Ensure you have Go, Git, `fd`, `pcat`, and `itf` installed.
 2.  **Clone:** `git clone https://github.com/your-org/coder.git && cd coder`
 3.  **Install Dependencies:** `go mod tidy`
-4.  **Generate gRPC Code:** `./gen.sh`
-5.  **Build:** `go build -o coder cmd/coder/main.go`
-6.  **Run:** `./coder` (must be run from within a Git repository)
+4.  **Build:** `go build -o coder ./cmd/coder`
+5.  **Run:** `./coder` (must be run from within a Git repository)
