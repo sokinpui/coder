@@ -2,8 +2,8 @@ package ui
 
 import (
 	"coder/internal/config"
-	"coder/internal/history"
 	"coder/internal/core"
+	"coder/internal/history"
 	"coder/internal/session"
 	"fmt"
 	"os"
@@ -54,43 +54,43 @@ type messageBlock struct {
 }
 
 type Model struct {
-	textArea                textarea.Model
-	viewport                viewport.Model
-	spinner                 spinner.Model
-	session                 *session.Session
-	streamSub               chan string
-	state                   state
-	quitting                bool
-	height                  int
-	width                   int
-	glamourRenderer         *glamour.TermRenderer
-	isStreaming             bool
-	lastRenderedAIPart      string
-	ctrlCPressed            bool
-	tokenCount              int
-	isCountingTokens        bool
-	showPalette             bool
-	availableActions        []string
-	availableCommands       []string
-	paletteFilteredActions  []string
-	paletteFilteredCommands []string
-	paletteCursor           int
-	lastInteractionFailed   bool
+	textArea                 textarea.Model
+	viewport                 viewport.Model
+	spinner                  spinner.Model
+	session                  *session.Session
+	streamSub                chan string
+	state                    state
+	quitting                 bool
+	height                   int
+	width                    int
+	glamourRenderer          *glamour.TermRenderer
+	isStreaming              bool
+	lastRenderedAIPart       string
+	ctrlCPressed             bool
+	tokenCount               int
+	isCountingTokens         bool
+	showPalette              bool
+	availableActions         []string
+	availableCommands        []string
+	paletteFilteredActions   []string
+	paletteFilteredCommands  []string
+	paletteCursor            int
+	lastInteractionFailed    bool
 	paletteFilteredArguments []string
-	isCyclingCompletions    bool
-	clearedInputBuffer      string
-	visualMode              visualMode
-	visualIsSelecting       bool
-	selectableBlocks        []messageBlock
-	visualSelectCursor      int
-	visualSelectStart       int
-	statusBarMessage        string
-	animatingTitle          bool
-	fullGeneratedTitle      string
-	displayedTitle          string
-	editingMessageIndex     int
-	historyItems            []history.ConversationInfo
-	historySelectCursor     int
+	isCyclingCompletions     bool
+	clearedInputBuffer       string
+	visualMode               visualMode
+	visualIsSelecting        bool
+	selectableBlocks         []messageBlock
+	visualSelectCursor       int
+	visualSelectStart        int
+	statusBarMessage         string
+	animatingTitle           bool
+	fullGeneratedTitle       string
+	displayedTitle           string
+	editingMessageIndex      int
+	historyItems             []history.ConversationInfo
+	historySelectCursor      int
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -100,8 +100,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 
 	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Spinner = spinner.Ellipsis
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt..."
@@ -143,38 +143,38 @@ func NewModel(cfg *config.Config) (Model, error) {
 	sort.Strings(commands)
 
 	return Model{
-		textArea:                ta,
-		viewport:                vp,
-		spinner:                 s,
-		session:                 sess,
-		state:                   stateIdle,
-		glamourRenderer:         renderer,
-		isStreaming:             false,
-		lastRenderedAIPart:      "",
-		ctrlCPressed:            false,
-		tokenCount:              0,
-		isCountingTokens:        false,
-		showPalette:             false,
-		availableActions:        actions,
-		availableCommands:       commands,
-		paletteFilteredActions:  []string{},
-		paletteFilteredCommands: []string{},
-		paletteCursor:           0,
-		lastInteractionFailed:   false,
+		textArea:                 ta,
+		viewport:                 vp,
+		spinner:                  s,
+		session:                  sess,
+		state:                    stateIdle,
+		glamourRenderer:          renderer,
+		isStreaming:              false,
+		lastRenderedAIPart:       "",
+		ctrlCPressed:             false,
+		tokenCount:               0,
+		isCountingTokens:         false,
+		showPalette:              false,
+		availableActions:         actions,
+		availableCommands:        commands,
+		paletteFilteredActions:   []string{},
+		paletteFilteredCommands:  []string{},
+		paletteCursor:            0,
+		lastInteractionFailed:    false,
 		paletteFilteredArguments: []string{},
-		isCyclingCompletions:    false,
-		clearedInputBuffer:      "",
-		visualMode:              visualModeNone,
-		visualIsSelecting:       false,
-		selectableBlocks:        []messageBlock{},
-		visualSelectCursor:      0,
-		visualSelectStart:       0,
-		statusBarMessage:        "",
-		animatingTitle:          false,
-		fullGeneratedTitle:      "",
-		displayedTitle:          "",
-		editingMessageIndex:     -1,
-		historyItems:            nil,
-		historySelectCursor:     0,
+		isCyclingCompletions:     false,
+		clearedInputBuffer:       "",
+		visualMode:               visualModeNone,
+		visualIsSelecting:        false,
+		selectableBlocks:         []messageBlock{},
+		visualSelectCursor:       0,
+		visualSelectStart:        0,
+		statusBarMessage:         "",
+		animatingTitle:           false,
+		fullGeneratedTitle:       "",
+		displayedTitle:           "",
+		editingMessageIndex:      -1,
+		historyItems:             nil,
+		historySelectCursor:      0,
 	}, nil
 }
