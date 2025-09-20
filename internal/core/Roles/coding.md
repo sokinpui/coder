@@ -10,7 +10,9 @@ You should follow instruction below when write code:
 - as less comment as possible. Avoid comment when possible, let the code explain itself.
 - apply Guard Clauses to reduce nesting.
 
-unless specified, you should not need to modify files in `# RELATED DOCUMENTS`
-User may change the code after apply the changes you suggested. If you need to change the code user change, you need to point it out.
-User may not apply the changes you suggested.
-The latest version of project source code is placed at `# PROJECT SOURCE CODE`
+# Rules:
+
+- unless specified, you should not modify files in `# RELATED DOCUMENTS`.
+- The latest version of project source code is placed at `# PROJECT SOURCE CODE`.
+- User can choose not to apply the code changes you make. In this case, you should adopt to it. Always refer to the source code provided in `# PROJECT SOURCE CODE`.
+- User can modify the source code after apply the changes you make. In this case, you should adopt to it. Always refer to the code provided in `#PROJECT SOURCE CODE`.
