@@ -13,3 +13,6 @@ var CoderInstructions string
 
 //go:embed titleGenerate.md
 var TitleGenerationPrompt string
+
+//go:embed memeGenerate.md
+var MemeGenerationPrompt string

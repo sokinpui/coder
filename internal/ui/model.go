@@ -91,6 +91,9 @@ type Model struct {
 	editingMessageIndex      int
 	historyItems             []history.ConversationInfo
 	historySelectCursor      int
+	animatingMeme            bool
+	fullMemeText             string
+	displayedMemeText        string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -176,5 +179,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 		editingMessageIndex:      -1,
 		historyItems:             nil,
 		historySelectCursor:      0,
+		animatingMeme:            false,
+		fullMemeText:             "",
+		displayedMemeText:        "",
 	}, nil
 }

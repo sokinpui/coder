@@ -56,6 +56,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.lastInteractionFailed = true
 		}
 
+		// Stop any meme generation loops
+		m.animatingMeme = false
+		m.fullMemeText = ""
+		m.displayedMemeText = ""
+
 		wasAtBottom := m.viewport.AtBottom()
 		m.viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
@@ -184,6 +189,37 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.fullGeneratedTitle = msg.title
 		m.displayedTitle = ""
 		return m, animateTitleTick(), true
+
+	case memeGeneratedMsg:
+		if m.state != stateThinking && m.state != stateGenerating {
+			return m, nil, true // Don't start a new meme if generation is over
+		}
+		m.animatingMeme = true
+		m.fullMemeText = msg.meme
+		m.displayedMemeText = ""
+		return m, animateMemeTick(), true
+
+	case animateMemeTickMsg:
+		if !m.animatingMeme {
+			return m, nil, true
+		}
+
+		if len(m.displayedMemeText) < len(m.fullMemeText) {
+			// Use rune-safe slicing to handle multi-byte characters
+			m.displayedMemeText = string([]rune(m.fullMemeText)[:len([]rune(m.displayedMemeText))+1])
+			m.viewport.SetContent(m.renderConversation()) // Re-render on each character
+			return m, animateMemeTick(), true
+		}
+
+		// Animation finished
+		m.animatingMeme = false
+		return m, nextMemeTriggerCmd(), true
+
+	case nextMemeTriggerMsg:
+		if m.state == stateThinking || m.state == stateGenerating {
+			return m, generateMemeCmd(m.session), true
+		}
+		return m, nil, true
 
 	case animateTitleTickMsg:
 		if !m.animatingTitle {

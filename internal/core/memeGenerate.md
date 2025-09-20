@@ -1,0 +1,1 @@
+Generate a short, witty, one-line meme, joke, or phrase related to coding, software engineering, Linux, or programming languages. The output should be a single line of text only. Do not add any extra formatting or explanation.

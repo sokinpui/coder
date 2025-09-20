@@ -218,6 +218,18 @@ func (s *Session) GetTitle() string {
 	return s.title
 }
 
+// GenerateMeme generates a meme text.
+func (s *Session) GenerateMeme(ctx context.Context) (string, error) {
+	prompt := core.MemeGenerationPrompt
+	meme, err := s.generator.GenerateMeme(ctx, prompt)
+	if err != nil {
+		log.Printf("Error generating meme: %v", err)
+		return "", err
+	}
+
+	return meme, nil
+}
+
 // IsTitleGenerated checks if a title has been generated for the session.
 func (s *Session) IsTitleGenerated() bool {
 	return s.titleGenerated

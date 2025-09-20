@@ -97,3 +97,37 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 
 	return strings.TrimSpace(fullResponse.String()), nil
 }
+
+// GenerateMeme sends a prompt to the generation service and gets a single response for a meme.
+func (g *Generator) GenerateMeme(ctx context.Context, prompt string) (string, error) {
+	// A smaller output length for memes.
+	outputLength := int32(128)
+	temp := float32(2.0) // Higher temperature for more creative/random memes
+
+	req := &client.GenerateRequest{
+		Prompt:    prompt,
+		ModelCode: config.AvailableModels[4],
+		Stream:    false,
+		Config: &client.GenerationConfig{
+			Temperature:  &temp,
+			TopP:         &g.Config.TopP,
+			TopK:         &g.Config.TopK,
+			OutputLength: &outputLength,
+		},
+	}
+
+	resultChan, err := g.client.GenerateTask(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("GenerateMeme failed: %w", err)
+	}
+
+	var fullResponse strings.Builder
+	for result := range resultChan {
+		if result.Err != nil {
+			return "", fmt.Errorf("stream recv failed during meme generation: %w", result.Err)
+		}
+		fullResponse.WriteString(result.Text)
+	}
+
+	return strings.TrimSpace(fullResponse.String()), nil
+}

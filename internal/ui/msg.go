@@ -27,6 +27,9 @@ type (
 	}
 	clearStatusBarMsg struct{}
 	titleGeneratedMsg   struct{ title string }
+	memeGeneratedMsg    struct{ meme string }
+	animateMemeTickMsg  struct{}
+	nextMemeTriggerMsg  struct{}
 	animateTitleTickMsg struct{}
 	historyListResultMsg struct {
 		items []history.ConversationInfo

@@ -154,6 +154,9 @@ func (m Model) renderConversation() string {
 
 	if m.state == stateThinking {
 		thinkingMsg := fmt.Sprintf("I am thinking%s", m.spinner.View())
+		if m.fullMemeText != "" {
+			thinkingMsg += "\n\n" + m.displayedMemeText
+		}
 		block := thinkingStyle.Render(thinkingMsg)
 		parts = append(parts, block)
 	}

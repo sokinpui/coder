@@ -69,6 +69,29 @@ func animateTitleTick() tea.Cmd {
 	})
 }
 
+func animateMemeTick() tea.Cmd {
+	return tea.Tick(25*time.Millisecond, func(t time.Time) tea.Msg {
+		return animateMemeTickMsg{}
+	})
+}
+
+func generateMemeCmd(sess *session.Session) tea.Cmd {
+	return func() tea.Msg {
+		meme, err := sess.GenerateMeme(context.Background())
+		if err != nil {
+			// Don't show an error, just fail silently. It's not critical.
+			return memeGeneratedMsg{meme: ""}
+		}
+		return memeGeneratedMsg{meme: meme}
+	}
+}
+
+func nextMemeTriggerCmd() tea.Cmd {
+	return tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return nextMemeTriggerMsg{}
+	})
+}
+
 func ctrlCTimeout() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return ctrlCTimeoutMsg{}

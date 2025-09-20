@@ -47,13 +47,16 @@ func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
 
 	m.lastRenderedAIPart = ""
 	m.lastInteractionFailed = false
+	m.animatingMeme = false
+	m.fullMemeText = ""
+	m.displayedMemeText = ""
 
 	m.viewport.SetContent(m.renderConversation())
 	m.viewport.GotoBottom()
 
 	prompt := m.session.GetPromptForTokenCount()
 	m.isCountingTokens = true
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
+	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt), generateMemeCmd(m.session))
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
