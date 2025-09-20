@@ -66,7 +66,7 @@ func LoadProjectSource(mode config.AppMode) (string, error) {
 	}
 
 	// Exclude markdown files for non-documenting modes.
-	if mode != config.DocumentingMode {
+	if mode != config.DocumentingMode && mode != config.AutoMode {
 		exclusions = append(exclusions, "*.md")
 	}
 

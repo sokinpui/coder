@@ -169,6 +169,8 @@ func (s *Session) getCurrentRole() string {
 	switch s.config.AppMode {
 	case config.DocumentingMode:
 		return core.DocumentingRole
+	case config.AutoMode:
+		return core.AutoRole
 	case config.CodingMode:
 		fallthrough
 	default:
