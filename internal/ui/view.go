@@ -304,7 +304,7 @@ func (m Model) statusView() string {
 
 	if m.state == stateThinking || m.state == stateGenerating {
 		generatingPart := statusStyle.Render("Generating...")
-		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, generatingPart, " | ", rightSide)
+		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, rightSide, " | ", generatingPart)
 	}
 
 	var statusLine string
