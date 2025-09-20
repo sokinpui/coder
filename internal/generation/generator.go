@@ -72,7 +72,7 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
-		ModelCode: "gemini-2.0-flash-lite",
+		ModelCode: config.AvailableModels[4],
 		Stream:    false,
 		Config: &client.GenerationConfig{
 			Temperature:  &temp,
