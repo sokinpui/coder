@@ -6,8 +6,6 @@ on:
     paths:
       - 'cmd/coder/**'
       - 'internal/**'
-      - 'protos/**'
-      - 'gen.sh'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/go-tui.yml'
@@ -16,8 +14,6 @@ on:
     paths:
       - 'cmd/coder/**'
       - 'internal/**'
-      - 'protos/**'
-      - 'gen.sh'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/go-tui.yml'
@@ -35,20 +31,6 @@ jobs:
       with:
         go-version: '^1.24'
         cache-dependency-path: go.sum
-
-    - name: Install protoc
-      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
-
-    - name: Install Go gRPC plugins
-      run: |
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-    - name: Generate gRPC code
-      run: |
-        chmod +x gen.sh
-        ./gen.sh
 
     - name: Build Coder TUI
       run: go build -v ./cmd/coder
