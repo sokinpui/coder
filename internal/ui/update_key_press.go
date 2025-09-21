@@ -478,8 +478,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		case tea.KeyCtrlH:
 			m.state = stateHistorySelect
-			m.textArea.Reset()
-			m.textArea.SetHeight(1)
 			m.textArea.Blur()
 			return m, listHistoryCmd(m.session.GetHistoryManager()), true
 

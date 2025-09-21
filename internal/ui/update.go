@@ -136,8 +136,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return enterVisualMode(visualModeBranch)
 	case session.HistoryModeStarted:
 		m.state = stateHistorySelect
-		m.textArea.Reset()
-		m.textArea.SetHeight(1)
 		m.textArea.Blur()
 		return m, listHistoryCmd(m.session.GetHistoryManager())
 	}
