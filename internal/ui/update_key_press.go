@@ -53,6 +53,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				return newModel, cmd, true
 			}
 			return m, nil, true
+		case tea.KeyCtrlB:
+			event := m.session.HandleInput(":branch")
+			if event.Type == session.BranchModeStarted {
+				m.visualIsSelecting = true
+				m.state = stateVisualSelect
+				m.visualMode = visualModeBranch
+				m.selectableBlocks = groupMessages(m.session.GetMessages())
+				if len(m.selectableBlocks) > 0 {
+					m.visualSelectCursor = len(m.selectableBlocks) - 1
+					m.visualSelectStart = m.visualSelectCursor
+				}
+				m.textArea.Reset()
+				m.textArea.Blur()
+				originalOffset := m.viewport.YOffset
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.SetYOffset(originalOffset)
+			} else if event.Type == session.MessagesUpdated {
+				// This handles the case where branching is not possible (e.g., no messages)
+				// and an error message was added to the session.
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+			}
+			return m, nil, true
 		case tea.KeyCtrlH:
 			m.state = stateHistorySelect
 			m.textArea.Blur()
@@ -611,6 +634,28 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if event.Type == session.NewSessionStarted {
 				newModel, cmd := m.newSession()
 				return newModel, cmd, true
+			}
+			return m, nil, true
+
+		case tea.KeyCtrlB:
+			event := m.session.HandleInput(":branch")
+			if event.Type == session.BranchModeStarted {
+				m.visualIsSelecting = true
+				m.state = stateVisualSelect
+				m.visualMode = visualModeBranch
+				m.selectableBlocks = groupMessages(m.session.GetMessages())
+				if len(m.selectableBlocks) > 0 {
+					m.visualSelectCursor = len(m.selectableBlocks) - 1
+					m.visualSelectStart = m.visualSelectCursor
+				}
+				m.textArea.Reset()
+				m.textArea.Blur()
+				originalOffset := m.viewport.YOffset
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.SetYOffset(originalOffset)
+			} else if event.Type == session.MessagesUpdated {
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
 			}
 			return m, nil, true
 
