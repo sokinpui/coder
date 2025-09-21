@@ -1,6 +1,7 @@
 package main
 
 import (
+	"coder/internal/browser"
 	"coder/internal/logger"
 	"coder/internal/server"
 	"coder/internal/utils"
@@ -20,6 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 	addr := flag.String("addr", ":0", "http service address. Defaults to a random unused port.")
+	noBrowser := flag.Bool("no-browser", false, "Do not open the browser automatically.")
 	flag.Parse()
 
 	logger.Init()
@@ -49,6 +51,12 @@ func main() {
 	serverURL := fmt.Sprintf("http://%s:%d", host, port)
 	log.Printf("Starting web server on %s", serverURL)
 	fmt.Printf("Coder-web is running on: %s\n", serverURL)
+
+	if !*noBrowser {
+		if err := browser.Open(serverURL); err != nil {
+			log.Printf("failed to open browser: %v", err)
+		}
+	}
 
 	if err := http.Serve(listener, nil); err != nil {
 		log.Fatalf("ListenAndServe: %v", err)
