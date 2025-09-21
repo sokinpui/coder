@@ -107,6 +107,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.viewport.SetContent(m.renderConversation())
 				return m, nil, true
 			}
+			var cmd tea.Cmd = textarea.Blink
 			if m.isStreaming {
 				messages := m.session.GetMessages()
 				// Check if the last message is an empty AI message, which indicates 'thinking' state.
@@ -115,6 +116,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					m.state = stateGenerating
 				}
+				cmd = tea.Batch(cmd, m.spinner.Tick)
 			} else {
 				m.state = stateIdle
 			}
@@ -122,7 +124,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.textArea.Focus()
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
-			return m, textarea.Blink, true
+			return m, cmd, true
 
 		case tea.KeyEnter:
 			if m.visualSelectCursor >= len(m.selectableBlocks) {
