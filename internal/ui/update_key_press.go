@@ -40,6 +40,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.session.CancelGeneration()
 				m.state = stateCancelling
 			}
+		case tea.KeyEscape:
+			// Allow entering visual mode even during generation.
+			m.state = stateVisualSelect
+			m.visualMode = visualModeNone
+			m.visualIsSelecting = false
+			m.selectableBlocks = groupMessages(m.session.GetMessages())
+			if len(m.selectableBlocks) > 0 {
+				m.visualSelectCursor = len(m.selectableBlocks) - 1
+			}
+			m.textArea.Blur()
+			m.viewport.SetContent(m.renderConversation())
+			m.viewport.GotoBottom()
 		}
 		return m, nil, true
 
@@ -95,7 +107,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.viewport.SetContent(m.renderConversation())
 				return m, nil, true
 			}
-			m.state = stateIdle
+			if m.isStreaming {
+				messages := m.session.GetMessages()
+				// Check if the last message is an empty AI message, which indicates 'thinking' state.
+				if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+					m.state = stateThinking
+				} else {
+					m.state = stateGenerating
+				}
+			} else {
+				m.state = stateIdle
+			}
 			m.visualMode = visualModeNone
 			m.textArea.Focus()
 			m.viewport.SetContent(m.renderConversation())
@@ -123,6 +145,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 
 				if userMsgIndex != -1 {
+					if m.isStreaming {
+						m.session.CancelGeneration()
+						m.isStreaming = false
+						m.streamSub = nil
+					}
+
 					// Exit visual mode before starting generation
 					m.state = stateIdle
 					m.visualMode = visualModeNone
@@ -158,6 +186,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			case visualModeBranch:
 				block := m.selectableBlocks[m.visualSelectCursor]
 				endMessageIndex := block.endIdx
+
+				if m.isStreaming {
+					m.session.CancelGeneration()
+					m.isStreaming = false
+					m.streamSub = nil
+				}
 
 				newSess, err := m.session.Branch(endMessageIndex)
 				if err != nil {
@@ -252,6 +286,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					}
 
 					if userMsgIndex != -1 {
+						if m.isStreaming {
+							m.session.CancelGeneration()
+							m.isStreaming = false
+							m.streamSub = nil
+						}
+
 						// Exit visual mode before starting generation
 						m.state = stateIdle
 						m.visualMode = visualModeNone
@@ -323,6 +363,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 						for j := block.startIdx; j <= block.endIdx; j++ {
 							selectedIndices = append(selectedIndices, j)
 						}
+					}
+
+					isDeletingCurrentAIMessage := false
+					if m.isStreaming && len(m.session.GetMessages()) > 0 {
+						lastMessageIndex := len(m.session.GetMessages()) - 1
+						for _, idx := range selectedIndices {
+							if idx == lastMessageIndex {
+								isDeletingCurrentAIMessage = true
+								break
+							}
+						}
+					}
+					if isDeletingCurrentAIMessage {
+						m.session.CancelGeneration()
+						m.isStreaming = false
+						m.streamSub = nil
 					}
 					m.session.DeleteMessages(selectedIndices)
 					m.statusBarMessage = "Deleted selected messages."

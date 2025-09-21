@@ -229,11 +229,21 @@ func (m Model) statusView() string {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	// Handle modes that take over the status bar
 	if m.state == stateHistorySelect {
 		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
 	}
 
+	// Line 1: Title
+	var title string
+	if m.animatingTitle {
+		title = m.displayedTitle
+	} else {
+		title = m.session.GetTitle()
+	}
+	titlePart := statusBarTitleStyle.MaxWidth(m.width).Render(title)
+
+	// Line 2: Status
+	var leftStatus string
 	if m.state == stateVisualSelect {
 		var modeStr string
 		var helpStr string
@@ -254,29 +264,9 @@ func (m Model) statusView() string {
 				helpStr = "j/k: move | v: start selection | esc: cancel"
 			}
 		}
-		return statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s\n", modeStr, helpStr))
-	}
-
-	// Line 1: Title
-	var title string
-	if m.animatingTitle {
-		title = m.displayedTitle
-	} else {
-		title = m.session.GetTitle()
-	}
-	titlePart := statusBarTitleStyle.MaxWidth(m.width).Render(title)
-
-	// Line 2: Status
-	var statusTextPart string
-	switch m.state {
-	case stateThinking, stateGenerating:
-		// This is now handled on the right side
-		statusTextPart = ""
-	case stateCancelling:
-		statusTextPart = generatingStatusStyle.Render("Cancelling...")
-	// stateHistorySelect and stateVisualSelect are handled above
-	default: // stateIdle
-		statusTextPart = ""
+		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
+	} else if m.state == stateCancelling {
+		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
 	modeInfo := fmt.Sprintf("Mode: %s", m.session.GetConfig().AppMode)
@@ -293,28 +283,28 @@ func (m Model) statusView() string {
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
-	rightSide := lipgloss.JoinHorizontal(lipgloss.Top, modePart, " | ", modelPart)
+	rightStatusItems := []string{}
 	if tokenPart != "" {
-		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", rightSide)
+		rightStatusItems = append(rightStatusItems, tokenPart)
 	}
+	rightStatusItems = append(rightStatusItems, modePart, modelPart)
 
 	if m.state == stateThinking {
-		thinkingPart := statusStyle.Render("Thinking...")
-		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, rightSide, " | ", thinkingPart)
+		rightStatusItems = append(rightStatusItems, statusStyle.Render("Thinking..."))
 	} else if m.state == stateGenerating {
-		generatingPart := statusStyle.Render("Generating...")
-		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, rightSide, " | ", generatingPart)
+		rightStatusItems = append(rightStatusItems, statusStyle.Render("Generating..."))
 	}
+	rightStatus := strings.Join(rightStatusItems, " | ")
 
 	var statusLine string
-	if statusTextPart != "" {
-		spacing := m.width - lipgloss.Width(statusTextPart) - lipgloss.Width(rightSide)
+	if leftStatus != "" {
+		spacing := m.width - lipgloss.Width(leftStatus) - lipgloss.Width(rightStatus)
 		if spacing < 1 {
 			spacing = 1
 		}
-		statusLine = lipgloss.JoinHorizontal(lipgloss.Top, statusTextPart, strings.Repeat(" ", spacing), rightSide)
+		statusLine = lipgloss.JoinHorizontal(lipgloss.Top, leftStatus, strings.Repeat(" ", spacing), rightStatus)
 	} else {
-		statusLine = rightSide
+		statusLine = rightStatus
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)

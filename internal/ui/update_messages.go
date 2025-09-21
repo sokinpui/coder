@@ -44,6 +44,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, listenForStream(m.streamSub), true
 
 	case streamFinishedMsg:
+		if !m.isStreaming {
+			return m, nil, true
+		}
+
 		m.isStreaming = false
 		messages := m.session.GetMessages()
 
