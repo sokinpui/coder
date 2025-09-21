@@ -134,7 +134,7 @@ func historyCmd(args string, messages []Message, cfg *config.Config, sess Sessio
 // ExecuteItf runs the 'itf' command with the given content as stdin.
 func ExecuteItf(content string, args string) (string, bool) {
 	argSlice := strings.Fields(args)
-	cmd := exec.Command("itf", argSlice...)
+	cmd := exec.Command("itf --no-animation", argSlice...)
 	cmd.Stdin = strings.NewReader(content)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
