@@ -202,11 +202,6 @@ func (s *Session) GetInitialPromptForTokenCount() string {
 
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
-	// Don't save empty sessions.
-	if len(s.messages) == 0 {
-		return nil
-	}
-
 	if s.historyFilename == "" {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}

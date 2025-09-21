@@ -66,16 +66,29 @@ func NewManager() (*Manager, error) {
 // SaveConversation saves the conversation to a markdown file.
 // It includes YAML frontmatter for metadata.
 func (m *Manager) SaveConversation(data *ConversationData) error {
-	content := core.BuildPrompt(data.Role, data.SystemInstructions, data.RelatedDocuments, data.ProjectSourceCode, data.Messages)
+	historyContent := core.BuildHistorySnippet(data.Messages)
 
-	// The prompt builder adds a trailing "AI Assistant:\n" which we don't want in the saved file.
-	content = strings.TrimSuffix(content, "AI Assistant:\n")
-	content = strings.TrimSpace(content)
-
-	if content == "" && data.Title == "New Chat" {
+	if historyContent == "" && data.Title == "New Chat" {
 		return nil
 	}
 
+	headers := core.BuildPrompt(data.Role, data.SystemInstructions, data.RelatedDocuments, data.ProjectSourceCode, nil)
+	trimmedHeaders := strings.TrimSpace(headers)
+
+	var contentBuilder strings.Builder
+	if trimmedHeaders != "" {
+		contentBuilder.WriteString(trimmedHeaders)
+	}
+
+	if historyContent != "" {
+		if contentBuilder.Len() > 0 {
+			contentBuilder.WriteString("\n\n---\n\n")
+		}
+		contentBuilder.WriteString("# CONVERSATION HISTORY\n\n")
+		contentBuilder.WriteString(historyContent)
+	}
+
+	content := contentBuilder.String()
 	var fileBuf bytes.Buffer
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
