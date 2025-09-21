@@ -32,3 +32,19 @@ docs/
 - The latest version of project source code is placed at `# PROJECT SOURCE CODE`.
 - User can choose not to apply the code changes you make. In this case, you should adopt to it. Always refer to the source code provided in `# PROJECT SOURCE CODE`.
 - User can modify the source code after apply the changes you make. In this case, you should adopt to it. Always refer to the code provided in `#PROJECT SOURCE CODE`.
+
+# Instructions when generate Markdown files
+
+If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
+
+`file1.md`
+
+````markdown
+...
+
+```python
+...
+```
+
+...
+````
