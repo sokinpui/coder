@@ -298,7 +298,10 @@ func (m Model) statusView() string {
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, tokenPart, " | ", rightSide)
 	}
 
-	if m.state == stateThinking || m.state == stateGenerating {
+	if m.state == stateThinking {
+		thinkingPart := statusStyle.Render("Thinking...")
+		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, rightSide, " | ", thinkingPart)
+	} else if m.state == stateGenerating {
 		generatingPart := statusStyle.Render("Generating...")
 		rightSide = lipgloss.JoinHorizontal(lipgloss.Top, rightSide, " | ", generatingPart)
 	}
