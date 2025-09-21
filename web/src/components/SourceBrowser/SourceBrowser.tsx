@@ -22,6 +22,8 @@ import {
   ChevronRight,
   UnfoldMore as UnfoldMoreIcon,
   UnfoldLess as UnfoldLessIcon,
+  Code as CodeIcon,
+  Visibility as PreviewIcon,
 } from "@mui/icons-material";
 import {
   useContext,
@@ -169,6 +171,7 @@ export function SourceBrowser({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isResizing, setIsResizing] = useState(false);
+  const [markdownViewMode, setMarkdownViewMode] = useState<'render' | 'source'>('render');
   const containerRef = useRef<HTMLDivElement>(null);
   const [langExtension, setLangExtension] = useState<Extension | undefined>();
 
@@ -264,6 +267,13 @@ export function SourceBrowser({
       activeFile.path,
     );
     description?.load().then(setLangExtension).catch(console.error);
+  }, [activeFile]);
+
+  useEffect(() => {
+    // Reset view mode when file changes to a non-markdown file
+    if (activeFile && !activeFile.path.toLowerCase().endsWith('.md')) {
+      setMarkdownViewMode('render');
+    }
   }, [activeFile]);
 
   useEffect(() => {
@@ -492,11 +502,24 @@ export function SourceBrowser({
               </Typography>
             )}
           </Box>
-          {activeFile && <CopyButton content={activeFile.content} />}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {isMarkdown && (
+              <Tooltip title={markdownViewMode === 'render' ? 'View source' : 'Render markdown'} enterDelay={1000}>
+                <IconButton
+                  onClick={() => setMarkdownViewMode(prev => prev === 'render' ? 'source' : 'render')}
+                  size="small"
+                  sx={{ mr: 0.5 }}
+                >
+                  {markdownViewMode === 'render' ? <CodeIcon fontSize="small" /> : <PreviewIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+            )}
+            {activeFile && <CopyButton content={activeFile.content} />}
+          </Box>
         </Box>
         <Box sx={{ overflow: "auto", flexGrow: 1 }}>
           {activeFile ? (
-            isMarkdown ? (
+            isMarkdown && markdownViewMode === 'render' ? (
               <Box
                 sx={{
                   p: 2,
