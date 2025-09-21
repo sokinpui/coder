@@ -41,12 +41,9 @@ import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { EditorView, lineNumbers } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { githubLight } from "@uiw/codemirror-theme-github";
-import { go } from "@codemirror/lang-go";
-import { javascript } from "@codemirror/lang-javascript";
-import { json } from "@codemirror/lang-json";
-import { markdown } from "@codemirror/lang-markdown";
-import { html } from "@codemirror/lang-html";
-import { css } from "@codemirror/lang-css";
+import { LanguageDescription } from "@codemirror/language";
+import { languages } from "@codemirror/language-data";
+import { type Extension } from "@codemirror/state";
 
 interface SourceBrowserProps {
   tree: SourceNode | null;
@@ -94,7 +91,8 @@ const TreeNode = memo(function TreeNode({
           primary={node.name}
           primaryTypographyProps={{ variant: "caption", noWrap: true }}
         />
-        {node.type === "directory" && (isExpanded ? <ExpandLess /> : <ExpandMore />)}
+        {node.type === "directory" &&
+          (isExpanded ? <ExpandLess /> : <ExpandMore />)}
       </ListItemButton>
       {node.type === "directory" && (
         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
@@ -116,10 +114,7 @@ const TreeNode = memo(function TreeNode({
   );
 });
 
-const filterTree = (
-  nodes: SourceNode[],
-  query: string,
-): SourceNode[] => {
+const filterTree = (nodes: SourceNode[], query: string): SourceNode[] => {
   if (!query) {
     return nodes;
   }
@@ -148,29 +143,6 @@ const filterTree = (
   return nodes.map(filter).filter((n): n is SourceNode => n !== null);
 };
 
-const getLanguageExtension = (filePath: string) => {
-  const extension = filePath.split(".").pop() || "";
-  switch (extension) {
-    case "go":
-      return go();
-    case "js":
-    case "jsx":
-    case "ts":
-    case "tsx":
-      return javascript({ jsx: true, typescript: true });
-    case "json":
-      return json();
-    case "md":
-      return markdown();
-    case "html":
-      return html();
-    case "css":
-      return css();
-    default:
-      return undefined;
-  }
-};
-
 // Custom theme to make the editor look like a static viewer
 const readOnlyTheme = EditorView.theme({
   // Hide the cursor
@@ -197,6 +169,7 @@ export function SourceBrowser({
   const [searchQuery, setSearchQuery] = useState("");
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [langExtension, setLangExtension] = useState<Extension | undefined>();
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -274,10 +247,23 @@ export function SourceBrowser({
     setExpandedNodes(new Set());
   };
 
-  const displayedTree = useMemo(() => {
-    if (!tree) return [];
-    return filterTree(tree.children || [], searchQuery);
-  }, [tree, searchQuery]);
+  const displayedTree = useMemo(
+    () => {
+      if (!tree) return [];
+      return filterTree(tree.children || [], searchQuery);
+    },
+    [tree, searchQuery],
+  );
+
+  useEffect(() => {
+    if (!activeFile) {
+      setLangExtension(undefined);
+      return;
+    }
+
+    const description = LanguageDescription.matchFilename(languages, activeFile.path);
+    description?.load().then(setLangExtension).catch(console.error);
+  }, [activeFile]);
 
   useEffect(() => {
     if (tree) {
@@ -320,10 +306,6 @@ export function SourceBrowser({
     setIsCollapsed(!isCollapsed);
   };
 
-  const langExtension = activeFile
-    ? getLanguageExtension(activeFile.path)
-    : undefined;
-
   const isMarkdown = activeFile?.path.toLowerCase().endsWith(".md");
 
   const customBgTheme = EditorView.theme({
@@ -335,17 +317,20 @@ export function SourceBrowser({
     },
   });
 
-  const extensions: ReactCodeMirrorProps["extensions"] = [
-    EditorView.lineWrapping,
-    readOnlyTheme,
-    customBgTheme,
-  ];
-  if (langExtension) {
-    extensions.push(langExtension);
-  }
-  if (showLineNumbers) {
-    extensions.push(lineNumbers());
-  }
+  const extensions = useMemo(() => {
+    const exts: Extension[] = [
+      EditorView.lineWrapping,
+      readOnlyTheme,
+      customBgTheme,
+    ];
+    if (langExtension) {
+      exts.push(langExtension);
+    }
+    if (showLineNumbers) {
+      exts.push(lineNumbers());
+    }
+    return exts;
+  }, [langExtension, showLineNumbers, customBgTheme]);
 
   return (
     <Box
@@ -380,7 +365,7 @@ export function SourceBrowser({
               justifyContent: "space-between",
               flexShrink: 0,
               borderBottom: 1,
-              borderColor: 'divider',
+              borderColor: "divider",
             }}
           >
             <TextField
@@ -491,7 +476,11 @@ export function SourceBrowser({
           >
             {isCollapsed && (
               <Tooltip title="Expand panel" enterDelay={1000}>
-                <IconButton onClick={toggleCollapse} size="small" sx={{ mr: 1 }}>
+                <IconButton
+                  onClick={toggleCollapse}
+                  size="small"
+                  sx={{ mr: 1 }}
+                >
                   <ChevronRight />
                 </IconButton>
               </Tooltip>
