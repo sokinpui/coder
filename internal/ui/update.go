@@ -203,8 +203,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	inputHeight := min(m.textArea.LineCount(), m.height/4) + 1
-	m.textArea.SetHeight(inputHeight)
+	visibleLines := calculateVisibleLines(m.textArea.Value(), m.textArea.Width())
+	inputHeight := min(visibleLines+1, m.height/4)
+	m.textArea.SetHeight(max(1, inputHeight))
 
 	// After textarea update, check for palette
 	if !m.isCyclingCompletions {

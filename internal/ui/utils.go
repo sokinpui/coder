@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"context"
 	"coder/internal/history"
 	"coder/internal/session"
 	"coder/internal/token"
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // listenForStream waits for the next message from the generation stream.
@@ -130,4 +131,29 @@ func editInEditorCmd(content string) tea.Cmd {
 
 		return editorFinishedMsg{content: string(newContent)}
 	})
+}
+
+// calculateVisibleLines calculates the number of lines a text block will occupy
+// in the textarea, considering word wrapping.
+func calculateVisibleLines(text string, width int) int {
+	if width <= 0 {
+		// Avoid division by zero and handle cases where width is not yet set.
+		return 1
+	}
+	if text == "" {
+		return 1
+	}
+
+	lines := strings.Split(text, "\n")
+	visibleLineCount := 0
+	for _, line := range lines {
+		lineWidth := lipgloss.Width(line)
+		if lineWidth == 0 {
+			visibleLineCount++ // Empty line still takes up one line.
+		} else {
+			// Integer division to calculate wrapped lines.
+			visibleLineCount += (lineWidth-1)/width + 1
+		}
+	}
+	return visibleLineCount
 }
