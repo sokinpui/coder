@@ -112,6 +112,14 @@ function App() {
     navigate('/git');
   }
 
+  const handleReload = () => {
+    if (view === 'code') {
+      getSourceTree();
+    } else if (view === 'git') {
+      getGitGraphLog();
+    }
+  };
+
 	const handleToggleLineNumbers = () => {
 		setShowLineNumbers((prev) => !prev)
 	}
@@ -230,6 +238,7 @@ function App() {
           isGenerating={isGenerating}
 					showLineNumbers={showLineNumbers}
 					onToggleLineNumbers={handleToggleLineNumbers}
+          onReload={handleReload}
         />
         <Routes>
           <Route path="/code/*" element={

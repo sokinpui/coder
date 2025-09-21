@@ -19,6 +19,7 @@ import {
   Edit as EditIcon,
   Palette as PaletteIcon,
   FormatListNumbered as FormatListNumberedIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material'
 import { AppContext } from '../../AppContext'
 
@@ -38,6 +39,7 @@ interface TopBarProps {
 	view: 'chat' | 'code' | 'git'
 	showLineNumbers: boolean
 	onToggleLineNumbers: () => void
+	onReload: () => void
 }
 
 export function TopBar({
@@ -56,6 +58,7 @@ export function TopBar({
 	view,
 	showLineNumbers,
 	onToggleLineNumbers,
+	onReload,
 }: TopBarProps) {
   const theme = useTheme()
   const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
@@ -147,11 +150,16 @@ export function TopBar({
 						</FormControl>
 					</>
 				)}
-				{view === 'code' && (
-					<IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
-						<FormatListNumberedIcon />
-					</IconButton>
-				)}
+        {(view === 'code' || view === 'git') && (
+          <IconButton onClick={onReload} color="inherit">
+            <RefreshIcon />
+          </IconButton>
+        )}
+        {view === 'code' && (
+          <IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
+            <FormatListNumberedIcon />
+          </IconButton>
+        )}
         <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
           <PaletteIcon />
         </IconButton>
