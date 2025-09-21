@@ -37,7 +37,7 @@ import { AppContext } from "../../AppContext";
 import ReactMarkdown from "react-markdown";
 import { CodeBlock } from "../CodeBlock";
 import { CopyButton } from "../CopyButton";
-import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
+import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, lineNumbers } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { githubLight } from "@uiw/codemirror-theme-github";
@@ -247,13 +247,10 @@ export function SourceBrowser({
     setExpandedNodes(new Set());
   };
 
-  const displayedTree = useMemo(
-    () => {
-      if (!tree) return [];
-      return filterTree(tree.children || [], searchQuery);
-    },
-    [tree, searchQuery],
-  );
+  const displayedTree = useMemo(() => {
+    if (!tree) return [];
+    return filterTree(tree.children || [], searchQuery);
+  }, [tree, searchQuery]);
 
   useEffect(() => {
     if (!activeFile) {
@@ -261,7 +258,10 @@ export function SourceBrowser({
       return;
     }
 
-    const description = LanguageDescription.matchFilename(languages, activeFile.path);
+    const description = LanguageDescription.matchFilename(
+      languages,
+      activeFile.path,
+    );
     description?.load().then(setLangExtension).catch(console.error);
   }, [activeFile]);
 
