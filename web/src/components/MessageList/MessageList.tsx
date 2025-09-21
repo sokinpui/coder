@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Box,
   Paper,
@@ -291,6 +292,21 @@ export function MessageList({
                   border: (theme) => `1px solid ${theme.palette.divider}`,
                   borderRadius: (theme) => `${theme.shape.borderRadius}px`,
                 },
+                "& table": {
+                  borderCollapse: "collapse",
+                  my: 1,
+                  "& th, & td": {
+                    border: (theme) => `1px solid ${theme.palette.divider}`,
+                    p: 1,
+                  },
+                  "& th": {
+                    fontWeight: "bold",
+                    textAlign: "left",
+                  },
+                  "& thead": {
+                    backgroundColor: "action.hover",
+                  },
+                },
                 px: 1.5,
                 pb: 1.5,
               }}
@@ -331,6 +347,7 @@ export function MessageList({
                 <>
                   {msg.sender === "AI" || msg.sender === "User" ? (
                     <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
                         code({ className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");

@@ -34,6 +34,7 @@ import {
 } from "react";
 import type { SourceNode } from "../../types";
 import { AppContext } from "../../AppContext";
+import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { CodeBlock } from "../CodeBlock";
 import { CopyButton } from "../CopyButton";
@@ -507,18 +508,37 @@ export function SourceBrowser({
                   "& code": {
                     fontFamily: "monospace",
                     backgroundColor: "action.hover",
-                    px: 0.5,
-                    borderRadius: (theme) => theme.shape.borderRadius / 2,
+                    border: (theme) => `1px solid ${theme.palette.divider}`,
+                    borderRadius: (theme) => `${theme.shape.borderRadius / 3}px`,
+                    px: "4px",
+                    py: "2px",
                   },
                   "& pre > code": {
                     display: "block",
                     p: 1,
-                    backgroundColor: "action.selected",
-                    borderRadius: (theme) => theme.shape.borderRadius / 2,
+                    backgroundColor: "action.hover",
+                    border: (theme) => `1px solid ${theme.palette.divider}`,
+                    borderRadius: (theme) => `${theme.shape.borderRadius}px`,
+                  },
+                  "& table": {
+                    borderCollapse: "collapse",
+                    my: 1,
+                    "& th, & td": {
+                      border: (theme) => `1px solid ${theme.palette.divider}`,
+                      p: 1,
+                    },
+                    "& th": {
+                      fontWeight: "bold",
+                      textAlign: "left",
+                    },
+                    "& thead": {
+                      backgroundColor: "action.hover",
+                    },
                   },
                 }}
               >
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     code({ className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
