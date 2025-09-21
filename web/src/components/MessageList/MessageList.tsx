@@ -47,6 +47,19 @@ export function MessageList({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
 
+  const handleRegenerate = (currentIndex: number) => {
+    let userMessageIndex = -1;
+    for (let i = currentIndex; i >= 0; i--) {
+      if (messages[i].sender === "User") {
+        userMessageIndex = i;
+        break;
+      }
+    }
+    if (userMessageIndex !== -1) {
+      onRegenerate(userMessageIndex);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -213,30 +226,26 @@ export function MessageList({
                     </IconButton>
                   </Tooltip>
                 )}
-                {(isUser ||
-                  (isAI &&
-                    index > 0 &&
-                    messages[index - 1].sender === "User")) &&
-                  !isGenerating && (
-                    <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => onRegenerate(isUser ? index : index - 1)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          mr: 0.5,
+                {(isUser || isAI) && !isGenerating && (
+                  <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
+                    <IconButton
+                      onClick={() => handleRegenerate(index)}
+                      size="small"
+                      color="inherit"
+                      sx={{
+                        mr: 0.5,
+                        backgroundColor: (theme) =>
+                          theme.palette.action.hover,
+                        "&:hover": {
                           backgroundColor: (theme) =>
-                            theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <ReplayIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                            theme.palette.action.selected,
+                        },
+                      }}
+                    >
+                      <ReplayIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <CopyButton content={msg.content} />
                 {!isGenerating && (
                   <Tooltip title="Delete" placement="left" enterDelay={1000}>
