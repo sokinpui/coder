@@ -2,6 +2,12 @@
 
 This guide explains how to use the Coder TUI and Web UI applications. Both applications must be run from within a Git repository.
 
+## Application Modes
+
+Coder provides different modes to tailor the AI's behavior for specific tasks like coding or writing documentation. You can switch modes using the `:mode` command in the TUI or the mode selector in the Web UI.
+
+For a detailed explanation of each mode and how it affects the AI's context and responses, see the [Modes Guide](./Modes.md).
+
 ## TUI (`coder`)
 
 The TUI provides a keyboard-centric interface for interacting with the AI.
