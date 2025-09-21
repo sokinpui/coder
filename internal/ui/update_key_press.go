@@ -40,6 +40,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.session.CancelGeneration()
 				m.state = stateCancelling
 			}
+		case tea.KeyCtrlN:
+			if m.isStreaming {
+				m.session.CancelGeneration()
+				m.isStreaming = false
+				m.streamSub = nil
+			}
+			event := m.session.HandleInput(":new")
+			if event.Type == session.NewSessionStarted {
+				newModel, cmd := m.newSession()
+				newModel.state = stateIdle
+				return newModel, cmd, true
+			}
+			return m, nil, true
+		case tea.KeyCtrlH:
+			m.state = stateHistorySelect
+			m.textArea.Blur()
+			return m, listHistoryCmd(m.session.GetHistoryManager()), true
 		case tea.KeyEscape:
 			// Allow entering visual mode even during generation.
 			m.state = stateVisualSelect
@@ -58,17 +75,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case stateHistorySelect:
 		switch msg.Type {
 		case tea.KeyEsc, tea.KeyCtrlC:
-			m.state = stateIdle
 			m.historyItems = nil
-			m.textArea.Focus()
-			m.viewport.SetContent(m.renderConversation())
-			return m, textarea.Blink, true
+			if m.isStreaming {
+				// Return to the generation view
+				messages := m.session.GetMessages()
+				if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+					m.state = stateThinking
+				} else {
+					m.state = stateGenerating
+				}
+				m.viewport.SetContent(m.renderConversation())
+				// Re-issue commands needed for generation state
+				return m, tea.Batch(listenForStream(m.streamSub), renderTick(), m.spinner.Tick), true
+			} else {
+				// Return to idle
+				m.state = stateIdle
+				m.textArea.Focus()
+				m.viewport.SetContent(m.renderConversation())
+				return m, textarea.Blink, true
+			}
 
 		case tea.KeyEnter:
 			if len(m.historyItems) == 0 || m.historySelectCursor >= len(m.historyItems) {
 				return m, nil, true
 			}
 			selectedItem := m.historyItems[m.historySelectCursor]
+			if m.isStreaming {
+				m.session.CancelGeneration()
+				m.isStreaming = false // Prevent streamFinishedMsg from running
+				m.streamSub = nil
+			}
 			return m, loadConversationCmd(m.session, selectedItem.Filename), true
 
 		case tea.KeyRunes:
@@ -264,6 +300,28 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.visualSelectStart = m.visualSelectCursor
 					m.viewport.SetContent(m.renderConversation())
 				}
+			case "b":
+				if !m.visualIsSelecting && m.visualMode == visualModeNone {
+					m.visualMode = visualModeBranch
+					m.visualIsSelecting = true // branch is a single-selection mode
+					m.viewport.SetContent(m.renderConversation())
+					return m, nil, true
+				}
+			case "n":
+				if m.isStreaming {
+					m.session.CancelGeneration()
+					m.isStreaming = false
+					m.streamSub = nil
+				}
+				event := m.session.HandleInput(":new")
+				if event.Type == session.NewSessionStarted {
+					newModel, cmd := m.newSession()
+					newModel.state = stateIdle
+					newModel.visualMode = visualModeNone
+					newModel.visualIsSelecting = false
+					return newModel, cmd, true
+				}
+				return m, nil, true
 			case "i":
 				m.state = stateIdle
 				m.visualMode = visualModeNone
@@ -547,6 +605,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyCtrlJ:
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
+
+		case tea.KeyCtrlN:
+			event := m.session.HandleInput(":new")
+			if event.Type == session.NewSessionStarted {
+				newModel, cmd := m.newSession()
+				return newModel, cmd, true
+			}
+			return m, nil, true
 
 		case tea.KeyCtrlA:
 			// Equivalent to typing ":itf" and pressing enter.
