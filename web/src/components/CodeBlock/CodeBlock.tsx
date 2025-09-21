@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { Box, Typography, useTheme, IconButton } from '@mui/material'
+import { Box, Typography, useTheme, IconButton, Tooltip } from '@mui/material'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { CopyButton } from '../CopyButton';
@@ -33,9 +33,11 @@ export function CodeBlock({ language, children }: CodeBlockProps) {
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" sx={{ p: 0 }}>
-            {isCollapsed ? <KeyboardArrowDown fontSize="small" /> : <KeyboardArrowUp fontSize="small" />}
-          </IconButton>
+          <Tooltip title={isCollapsed ? 'Expand code' : 'Collapse code'} enterDelay={1000}>
+            <IconButton size="small" sx={{ p: 0 }}>
+              {isCollapsed ? <KeyboardArrowDown fontSize="small" /> : <KeyboardArrowUp fontSize="small" />}
+            </IconButton>
+          </Tooltip>
           <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'lowercase' }}>
             {language}
           </Typography>

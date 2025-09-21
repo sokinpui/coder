@@ -392,19 +392,21 @@ export function SourceBrowser({
               sx={{ flexGrow: 1, mr: 1 }}
             />
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Tooltip title="Expand All">
+              <Tooltip title="Expand All" enterDelay={1000}>
                 <IconButton onClick={handleExpandAll} size="small">
                   <UnfoldMoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Collapse All">
+              <Tooltip title="Collapse All" enterDelay={1000}>
                 <IconButton onClick={handleCollapseAll} size="small">
                   <UnfoldLessIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <IconButton onClick={toggleCollapse} size="small">
-                <ChevronLeft />
-              </IconButton>
+              <Tooltip title="Collapse panel" enterDelay={1000}>
+                <IconButton onClick={toggleCollapse} size="small">
+                  <ChevronLeft />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
           <Box
@@ -488,9 +490,11 @@ export function SourceBrowser({
             }}
           >
             {isCollapsed && (
-              <IconButton onClick={toggleCollapse} size="small" sx={{ mr: 1 }}>
-                <ChevronRight />
-              </IconButton>
+              <Tooltip title="Expand panel" enterDelay={1000}>
+                <IconButton onClick={toggleCollapse} size="small" sx={{ mr: 1 }}>
+                  <ChevronRight />
+                </IconButton>
+              </Tooltip>
             )}
             {activeFile && (
               <Typography variant="caption" noWrap>

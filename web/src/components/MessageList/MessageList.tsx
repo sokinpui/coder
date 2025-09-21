@@ -157,7 +157,7 @@ export function MessageList({
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 {isUser && !isGenerating && !isEditing && (
-                  <Tooltip title="Edit" placement="left">
+                  <Tooltip title="Edit" placement="left" enterDelay={1000}>
                     <IconButton
                       onClick={() => handleEditStart(index, msg.content)}
                       size="small"
@@ -176,7 +176,7 @@ export function MessageList({
                   </Tooltip>
                 )}
                 {isAI && !isGenerating && (
-                  <Tooltip title="Apply" placement="left">
+                  <Tooltip title="Apply" placement="left" enterDelay={1000}>
                     <IconButton
                       onClick={() => onApplyItf(msg.content)}
                       size="small"
@@ -195,7 +195,7 @@ export function MessageList({
                   </Tooltip>
                 )}
                 {(isUser || isAI) && !isGenerating && (
-                  <Tooltip title="Branch from here" placement="left">
+                  <Tooltip title="Branch from here" placement="left" enterDelay={1000}>
                     <IconButton
                       onClick={() => onBranchFrom(index)}
                       size="small"
@@ -218,7 +218,7 @@ export function MessageList({
                     index > 0 &&
                     messages[index - 1].sender === "User")) &&
                   !isGenerating && (
-                    <Tooltip title="Regenerate" placement="left">
+                    <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
                       <IconButton
                         onClick={() => onRegenerate(isUser ? index : index - 1)}
                         size="small"
@@ -239,7 +239,7 @@ export function MessageList({
                   )}
                 <CopyButton content={msg.content} />
                 {!isGenerating && (
-                  <Tooltip title="Delete" placement="left">
+                  <Tooltip title="Delete" placement="left" enterDelay={1000}>
                     <IconButton
                       onClick={() => onDeleteMessage(index)}
                       size="small"

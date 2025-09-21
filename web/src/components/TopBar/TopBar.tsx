@@ -10,6 +10,7 @@ import {
   Select,
   MenuItem,
   useTheme,
+  Tooltip,
   type SelectChangeEvent,
 } from '@mui/material'
 import {
@@ -89,9 +90,11 @@ export function TopBar({
             {title}
           </Typography>
 					{view === 'chat' && (
-						<IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
-							<EditIcon fontSize="small" />
-						</IconButton>
+            <Tooltip title="Rename conversation" enterDelay={1000}>
+						  <IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
+							  <EditIcon fontSize="small" />
+						  </IconButton>
+            </Tooltip>
 					)}
         </Box>
         <Box sx={{ flexGrow: 1 }} />
@@ -151,21 +154,29 @@ export function TopBar({
 					</>
 				)}
         {(view === 'code' || view === 'git') && (
-          <IconButton onClick={onReload} color="inherit">
-            <RefreshIcon />
-          </IconButton>
+          <Tooltip title="Reload" enterDelay={1000}>
+            <IconButton onClick={onReload} color="inherit">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
         )}
         {view === 'code' && (
-          <IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
-            <FormatListNumberedIcon />
-          </IconButton>
+          <Tooltip title="Toggle line numbers" enterDelay={1000}>
+            <IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
+              <FormatListNumberedIcon />
+            </IconButton>
+          </Tooltip>
         )}
-        <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
-          <PaletteIcon />
-        </IconButton>
-        <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
-          {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-        </IconButton>
+        <Tooltip title="Toggle code theme" enterDelay={1000}>
+          <IconButton sx={{ ml: 1 }} onClick={toggleCodeTheme} color="inherit">
+            <PaletteIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={theme.palette.mode === 'dark' ? 'Light mode' : 'Dark mode'} enterDelay={1000}>
+          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
+            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   )

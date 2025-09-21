@@ -22,7 +22,7 @@ export function CopyButton({ content }: CopyButtonProps) {
   }
 
   return (
-    <Tooltip title={copied ? 'Copied!' : 'Copy'} placement="left">
+    <Tooltip title={copied ? 'Copied!' : 'Copy'} placement="left" enterDelay={1000}>
       <IconButton
         onClick={handleCopy}
         size="small"

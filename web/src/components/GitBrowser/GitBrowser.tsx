@@ -78,7 +78,7 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
               </Typography>
             </Box>
           )}
-          <Tooltip title={diffView === "side-by-side" ? "Unified view" : "Side-by-side view"}>
+          <Tooltip title={diffView === "side-by-side" ? "Unified view" : "Side-by-side view"} enterDelay={1000}>
             <IconButton onClick={handleToggleDiffView}>
               {diffView === "side-by-side" ? <ViewDayIcon /> : <VerticalSplitIcon />}
             </IconButton>
@@ -105,12 +105,16 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
     <Box sx={{ height: "100%", display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
         <ToggleButtonGroup value={view} exclusive onChange={handleViewChange} size="small">
-          <ToggleButton value="graph" aria-label="graph view">
-            <AccountTreeIcon />
-          </ToggleButton>
-          <ToggleButton value="list" aria-label="list view">
-            <ListIcon />
-          </ToggleButton>
+          <Tooltip title="Graph view" enterDelay={1000}>
+            <ToggleButton value="graph" aria-label="graph view">
+              <AccountTreeIcon />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="List view" enterDelay={1000}>
+            <ToggleButton value="list" aria-label="list view">
+              <ListIcon />
+            </ToggleButton>
+          </Tooltip>
         </ToggleButtonGroup>
       </Box>
       <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
