@@ -65,7 +65,16 @@ export function TopBar({
   const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
 
   return (
-    <AppBar position="static" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+    <AppBar
+      position="static"
+      elevation={0}
+      color="default"
+      sx={{
+        borderBottom: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
       <Toolbar variant="dense">
         <IconButton
           color="inherit"
@@ -104,13 +113,13 @@ export function TopBar({
 							{`Tokens: ${tokenCount}`}
 						</Typography>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', md: 'block' } }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, display: { xs: 'none', md: 'block' } }} />
 
 						<Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', lg: 'block' } }}>
 							{cwd}
 						</Typography>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)', display: { xs: 'none', lg: 'block' } }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, display: { xs: 'none', lg: 'block' } }} />
 
 						<FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }} disabled={isGenerating}>
 							<Select
@@ -118,11 +127,11 @@ export function TopBar({
 								onChange={onModeChange}
 								sx={{
 									color: 'inherit',
-									'.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
-									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
-									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+									'.MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'text.primary' },
 									'.MuiSvgIcon-root': { color: 'inherit' },
-									borderRadius: '20px',
+									borderRadius: (theme) => theme.shape.borderRadius,
 								}}
 							>
 								{availableModes.map((m) => (
@@ -131,7 +140,7 @@ export function TopBar({
 							</Select>
 						</FormControl>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1 }} />
 
 						<FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }} disabled={isGenerating}>
 							<Select
@@ -139,11 +148,11 @@ export function TopBar({
 								onChange={onModelChange}
 								sx={{
 									color: 'inherit',
-									'.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
-									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'inherit' },
-									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+									'.MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'text.primary' },
 									'.MuiSvgIcon-root': { color: 'inherit' },
-									borderRadius: '20px',
+									borderRadius: (theme) => theme.shape.borderRadius,
 								}}
 							>
 								{availableModels.map((m) => (
