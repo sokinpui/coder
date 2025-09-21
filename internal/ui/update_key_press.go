@@ -403,9 +403,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if m.textArea.Value() != "" {
 				m.clearedInputBuffer = m.textArea.Value()
 				m.textArea.Reset()
-				m.textArea.SetHeight(2) // initial height is 2
 				m.ctrlCPressed = false
-				return m, nil, true
+				return m, nil, false // Allow layout recalculation in the same update cycle
 			}
 			if m.ctrlCPressed {
 				m.quitting = true
