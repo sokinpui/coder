@@ -56,19 +56,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyCtrlB:
 			event := m.session.HandleInput(":branch")
 			if event.Type == session.BranchModeStarted {
-				m.visualIsSelecting = true
-				m.state = stateVisualSelect
-				m.visualMode = visualModeBranch
-				m.selectableBlocks = groupMessages(m.session.GetMessages())
-				if len(m.selectableBlocks) > 0 {
-					m.visualSelectCursor = len(m.selectableBlocks) - 1
-					m.visualSelectStart = m.visualSelectCursor
-				}
-				m.textArea.Reset()
-				m.textArea.Blur()
-				originalOffset := m.viewport.YOffset
-				m.viewport.SetContent(m.renderConversation())
-				m.viewport.SetYOffset(originalOffset)
+				model, cmd := m.enterVisualMode(visualModeBranch)
+				return model, cmd, true
 			} else if event.Type == session.MessagesUpdated {
 				// This handles the case where branching is not possible (e.g., no messages)
 				// and an error message was added to the session.
@@ -82,16 +71,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, listHistoryCmd(m.session.GetHistoryManager()), true
 		case tea.KeyEscape:
 			// Allow entering visual mode even during generation.
-			m.state = stateVisualSelect
-			m.visualMode = visualModeNone
-			m.visualIsSelecting = false
-			m.selectableBlocks = groupMessages(m.session.GetMessages())
-			if len(m.selectableBlocks) > 0 {
-				m.visualSelectCursor = len(m.selectableBlocks) - 1
-			}
-			m.textArea.Blur()
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
+			m, _ = m.enterVisualMode(visualModeNone)
 		}
 		return m, nil, true
 
@@ -318,11 +298,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				// Allow the viewport to handle the key press for scrolling
 				return m, nil, false
 			case "v", "V":
-				if !m.visualIsSelecting {
+				if m.visualIsSelecting {
+					m.visualIsSelecting = false
+				} else {
 					m.visualIsSelecting = true
 					m.visualSelectStart = m.visualSelectCursor
-					m.viewport.SetContent(m.renderConversation())
 				}
+				m.viewport.SetContent(m.renderConversation())
+				return m, nil, true
 			case "b":
 				if !m.visualIsSelecting && m.visualMode == visualModeNone {
 					m.visualMode = visualModeBranch
@@ -505,18 +488,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyEscape:
 			val := m.textArea.Value()
 			if val == "" {
-				// Enter visual mode.
-				m.state = stateVisualSelect
-				m.visualMode = visualModeNone
-				m.visualIsSelecting = false
-				m.selectableBlocks = groupMessages(m.session.GetMessages())
-				if len(m.selectableBlocks) > 0 {
-					m.visualSelectCursor = len(m.selectableBlocks) - 1
-				}
-				m.textArea.Blur()
-				m.viewport.SetContent(m.renderConversation())
-				m.viewport.GotoBottom()
-				return m, nil, true
+				model, cmd := m.enterVisualMode(visualModeNone)
+				return model, cmd, true
 			}
 
 			if strings.HasPrefix(val, ":") {
@@ -640,19 +613,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyCtrlB:
 			event := m.session.HandleInput(":branch")
 			if event.Type == session.BranchModeStarted {
-				m.visualIsSelecting = true
-				m.state = stateVisualSelect
-				m.visualMode = visualModeBranch
-				m.selectableBlocks = groupMessages(m.session.GetMessages())
-				if len(m.selectableBlocks) > 0 {
-					m.visualSelectCursor = len(m.selectableBlocks) - 1
-					m.visualSelectStart = m.visualSelectCursor
-				}
-				m.textArea.Reset()
-				m.textArea.Blur()
-				originalOffset := m.viewport.YOffset
-				m.viewport.SetContent(m.renderConversation())
-				m.viewport.SetYOffset(originalOffset)
+				model, cmd := m.enterVisualMode(visualModeBranch)
+				return model, cmd, true
 			} else if event.Type == session.MessagesUpdated {
 				m.viewport.SetContent(m.renderConversation())
 				m.viewport.GotoBottom()

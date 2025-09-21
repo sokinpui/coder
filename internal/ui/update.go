@@ -33,6 +33,38 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
 }
 
+func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
+	m.state = stateVisualSelect
+	m.visualMode = mode
+	m.selectableBlocks = groupMessages(m.session.GetMessages())
+
+	isSelectionMode := mode != visualModeNone
+	m.visualIsSelecting = isSelectionMode
+
+	if len(m.selectableBlocks) > 0 {
+		m.visualSelectCursor = len(m.selectableBlocks) - 1
+		if isSelectionMode {
+			m.visualSelectStart = m.visualSelectCursor
+		}
+	}
+
+	if isSelectionMode {
+		m.textArea.Reset()
+	}
+	m.textArea.Blur()
+
+	originalOffset := m.viewport.YOffset
+	m.viewport.SetContent(m.renderConversation())
+
+	if isSelectionMode {
+		m.viewport.SetYOffset(originalOffset)
+	} else {
+		m.viewport.GotoBottom()
+	}
+
+	return m, nil
+}
+
 func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
 	if event.Type != session.GenerationStarted {
 		return m, nil // Should not happen
@@ -72,24 +104,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	event := m.session.HandleInput(input)
 
-	enterVisualMode := func(mode visualMode) (tea.Model, tea.Cmd) {
-		m.visualIsSelecting = true // For single-item selection modes
-
-		m.state = stateVisualSelect
-		m.visualMode = mode
-		m.selectableBlocks = groupMessages(m.session.GetMessages())
-		if len(m.selectableBlocks) > 0 {
-			m.visualSelectCursor = len(m.selectableBlocks) - 1
-			m.visualSelectStart = m.visualSelectCursor
-		}
-		m.textArea.Reset()
-		m.textArea.Blur()
-		originalOffset := m.viewport.YOffset
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.SetYOffset(originalOffset)
-		return m, nil
-	}
-
 	switch event.Type {
 	case session.NoOp:
 		return m, nil
@@ -109,26 +123,14 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case session.VisualModeStarted:
-		m.state = stateVisualSelect
-		m.visualMode = visualModeNone
-		m.visualIsSelecting = false
-		m.selectableBlocks = groupMessages(m.session.GetMessages())
-		if len(m.selectableBlocks) > 0 {
-			m.visualSelectCursor = len(m.selectableBlocks) - 1
-		}
-		m.textArea.Reset()
-		m.textArea.Blur()
-		originalOffset := m.viewport.YOffset
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.SetYOffset(originalOffset)
-		return m, nil
+		return m.enterVisualMode(visualModeNone)
 
 	case session.GenerateModeStarted:
-		return enterVisualMode(visualModeGenerate)
+		return m.enterVisualMode(visualModeGenerate)
 	case session.EditModeStarted:
-		return enterVisualMode(visualModeEdit)
+		return m.enterVisualMode(visualModeEdit)
 	case session.BranchModeStarted:
-		return enterVisualMode(visualModeBranch)
+		return m.enterVisualMode(visualModeBranch)
 	case session.HistoryModeStarted:
 		m.state = stateHistorySelect
 		m.textArea.Blur()
