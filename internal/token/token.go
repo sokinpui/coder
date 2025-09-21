@@ -3,26 +3,27 @@ package token
 import (
 	"log"
 
-	"github.com/tiktoken-go/tokenizer"
+	vgenai "cloud.google.com/go/vertexai/genai"
+	"cloud.google.com/go/vertexai/genai/tokenizer"
 )
 
-var codec tokenizer.Codec
+var tok *tokenizer.Tokenizer
 
 func init() {
 	var err error
-	// Using cl100k_base as a general-purpose encoder for good approximation.
-	codec, err = tokenizer.Get(tokenizer.Cl100kBase)
+	// The tokenizer is compatible across Gemini models.
+	tok, err = tokenizer.New("gemini-1.5-flash")
 	if err != nil {
 		log.Fatalf("could not load tokenizer: %v", err)
 	}
 }
 
-// CountTokens provides a more accurate token count using the tiktoken library.
 func CountTokens(text string) int {
-	ids, _, err := codec.Encode(text)
+	ntoks, err := tok.CountTokens(vgenai.Text(text))
 	if err != nil {
 		// Fallback to a rough character-based estimate on encoding failure.
+		log.Printf("token counting failed, falling back to estimate: %v", err)
 		return len(text) / 4
 	}
-	return len(ids)
+	return int(ntoks.TotalTokens)
 }
