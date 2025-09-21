@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Message, HistoryItem, SourceNode, GitGraphLogEntry } from '../types';
 
 export function useWebSocket(url: string) {
@@ -6,6 +6,7 @@ export function useWebSocket(url: string) {
   const [title, setTitle] = useState<string>('New Chat')
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnimatingTitle, setIsAnimatingTitle] = useState(false);
   const [tokenCount, setTokenCount] = useState<number>(0)
   const [mode, setMode] = useState<string>('');
   const [model, setModel] = useState<string>('');
@@ -39,6 +40,7 @@ export function useWebSocket(url: string) {
         case "initialState":
           setCwd(msg.payload.cwd || '');
           setTitle(msg.payload.title || 'New Chat');
+          setIsAnimatingTitle(false);
           setTokenCount(msg.payload.tokenCount || 0)
           setMode(msg.payload.mode || '');
           setModel(msg.payload.model || '');
@@ -78,6 +80,7 @@ export function useWebSocket(url: string) {
           break;
         case "titleUpdate":
           setTitle(msg.payload);
+          setIsAnimatingTitle(true);
           break;
         case "historyList":
           setHistory(msg.payload || []);
@@ -85,6 +88,7 @@ export function useWebSocket(url: string) {
         case "sessionLoaded":
           setMessages(msg.payload.messages.map((m: { type: Message['sender']; content: string; }) => ({ sender: m.type, content: m.content })));
           setTitle(msg.payload.title);
+          setIsAnimatingTitle(false);
           setMode(msg.payload.mode);
           setModel(msg.payload.model);
           setTokenCount(msg.payload.tokenCount);
@@ -136,6 +140,7 @@ export function useWebSocket(url: string) {
     if (payload.startsWith(':rename ')) {
         const newTitle = payload.substring(8);
         setTitle(newTitle);
+        setIsAnimatingTitle(true);
     }
     if (!payload.startsWith(':')) {
       setIsGenerating(true);
@@ -148,6 +153,8 @@ export function useWebSocket(url: string) {
     };
     ws.current.send(JSON.stringify(wsMsg));
   };
+
+  const onTitleAnimationEnd = useCallback(() => setIsAnimatingTitle(false), []);
 
   const cancelGeneration = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
@@ -295,6 +302,8 @@ export function useWebSocket(url: string) {
   return {
 		messages,
 		title,
+    isAnimatingTitle,
+    onTitleAnimationEnd,
 		sendMessage,
 		cwd,
 		tokenCount,

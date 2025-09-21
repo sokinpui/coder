@@ -18,7 +18,9 @@ import { GitBrowser } from './components/GitBrowser';
 function App() {
   const {
 		messages,
-		title,
+		title: finalTitle,
+    isAnimatingTitle,
+    onTitleAnimationEnd,
 		sendMessage,
 		cwd,
 		isGenerating,
@@ -48,9 +50,29 @@ function App() {
 	} = useWebSocket(`ws://${window.location.host}/ws`)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
-	const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [displayedTitle, setDisplayedTitle] = useState(finalTitle);
 	const [inputValue, setInputValue] = useState('')
 	const [showLineNumbers, setShowLineNumbers] = useState(false)
+
+  useEffect(() => {
+    if (isAnimatingTitle) {
+      setDisplayedTitle(''); // Reset for animation
+      let i = 0;
+      const interval = setInterval(() => {
+        i++;
+        if (i > finalTitle.length) {
+          clearInterval(interval);
+          onTitleAnimationEnd();
+        } else {
+          setDisplayedTitle(finalTitle.substring(0, i));
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    } else {
+      setDisplayedTitle(finalTitle);
+    }
+  }, [finalTitle, isAnimatingTitle, onTitleAnimationEnd]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -225,7 +247,7 @@ function App() {
         <TopBar
           onSidebarToggle={handleSidebarToggle}
 					view={view}
-					title={view === 'code' ? 'Code' : view === 'git' ? 'Git' : title}
+					title={view === 'code' ? 'Code' : view === 'git' ? 'Git' : displayedTitle}
           onTitleRename={handleRenameOpen}
           tokenCount={tokenCount}
           cwd={cwd}
@@ -278,7 +300,7 @@ function App() {
         open={renameDialogOpen}
         onClose={() => setRenameDialogOpen(false)}
         onSave={handleRenameSave}
-        currentTitle={title}
+        currentTitle={finalTitle}
       />
     </Box>
   )
