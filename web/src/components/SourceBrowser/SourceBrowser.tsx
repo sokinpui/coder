@@ -1,4 +1,5 @@
 import {
+  Popper,
   Box,
   Typography,
   List,
@@ -11,6 +12,7 @@ import {
   TextField,
   Tooltip,
   Link,
+  Fade,
   useTheme,
 } from "@mui/material";
 import {
@@ -40,6 +42,7 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { CodeBlock } from "../CodeBlock";
 import { CopyButton } from "../CopyButton";
+import { HighlightMenu } from "../HighlightMenu";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, lineNumbers } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -173,7 +176,54 @@ export function SourceBrowser({
   const [isResizing, setIsResizing] = useState(false);
   const [markdownViewMode, setMarkdownViewMode] = useState<'render' | 'source'>('render');
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentBoxRef = useRef<HTMLDivElement>(null);
   const [langExtension, setLangExtension] = useState<Extension | undefined>();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [highlightMenuState, setHighlightMenuState] = useState<{
+    open: boolean;
+    anchorEl: { getBoundingClientRect: () => DOMRect } | null;
+    selectedText: string;
+  }>({
+    open: false,
+    anchorEl: null,
+    selectedText: "",
+  });
+
+  const handleCloseHighlightMenu = useCallback(() => {
+    setHighlightMenuState((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  const handleMouseUp = (event: React.MouseEvent) => {
+    if (menuRef.current && menuRef.current.contains(event.target as Node)) {
+      return;
+    }
+
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim().length > 0) {
+        const range = selection.getRangeAt(0);
+
+        const virtualEl = {
+          getBoundingClientRect: () => range.getBoundingClientRect(),
+        };
+
+        setHighlightMenuState({
+          open: true,
+          anchorEl: virtualEl,
+          selectedText: selection.toString(),
+        });
+      } else {
+        handleCloseHighlightMenu();
+      }
+    }, 10);
+  };
+
+  const handleCopySuccess = () => {
+    setTimeout(() => {
+      handleCloseHighlightMenu();
+      window.getSelection()?.removeAllRanges();
+    }, 500);
+  };
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -218,7 +268,7 @@ export function SourceBrowser({
     setIsResizing(true);
   }, []);
 
-  const handleMouseUp = useCallback(() => {
+  const handleResizeMouseUp = useCallback(() => {
     setIsResizing(false);
   }, []);
 
@@ -305,13 +355,25 @@ export function SourceBrowser({
   useEffect(() => {
     if (isResizing) {
       document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("mouseup", handleResizeMouseUp);
     }
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mouseup", handleResizeMouseUp);
     };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+  }, [isResizing, handleMouseMove, handleResizeMouseUp]);
+
+  useEffect(() => {
+    const container = contentBoxRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (highlightMenuState.open) handleCloseHighlightMenu();
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [highlightMenuState.open, handleCloseHighlightMenu]);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -344,15 +406,16 @@ export function SourceBrowser({
   }, [langExtension, showLineNumbers, customBgTheme]);
 
   return (
-    <Box
-      ref={containerRef}
-      sx={{
-        display: "flex",
-        height: "100%",
-        overflow: "hidden",
-        bgcolor: "background.paper",
-      }}
-    >
+    <>
+      <Box
+        ref={containerRef}
+        sx={{
+          display: "flex",
+          height: "100%",
+          overflow: "hidden",
+          bgcolor: "background.paper",
+        }}
+      >
       {!isCollapsed && (
         <Box
           sx={{
@@ -517,7 +580,7 @@ export function SourceBrowser({
             {activeFile && <CopyButton content={activeFile.content} />}
           </Box>
         </Box>
-        <Box sx={{ overflow: "auto", flexGrow: 1 }}>
+        <Box sx={{ overflow: "auto", flexGrow: 1 }} ref={contentBoxRef} onMouseUp={handleMouseUp}>
           {activeFile ? (
             isMarkdown && markdownViewMode === 'render' ? (
               <Box
@@ -624,6 +687,25 @@ export function SourceBrowser({
           )}
         </Box>
       </Box>
-    </Box>
+      </Box>
+      <Popper
+        open={highlightMenuState.open}
+        anchorEl={highlightMenuState.anchorEl}
+        placement="top"
+        transition
+        sx={{ zIndex: 1300 }}
+      >
+        {({ TransitionProps }) => (
+          <Fade {...TransitionProps} timeout={150}>
+            <div ref={menuRef}>
+              <HighlightMenu
+                selectedText={highlightMenuState.selectedText}
+                onCopySuccess={handleCopySuccess}
+              />
+            </div>
+          </Fade>
+        )}
+      </Popper>
+    </>
   );
 }

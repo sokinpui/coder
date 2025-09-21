@@ -3,18 +3,20 @@ import { IconButton, Tooltip, useTheme } from '@mui/material'
 import { ContentCopy as ContentCopyIcon, Check as CheckIcon } from '@mui/icons-material'
 
 interface CopyButtonProps {
-  content: string
+  content: string;
+  onCopy?: () => void;
 }
 
-export function CopyButton({ content }: CopyButtonProps) {
+export function CopyButton({ content, onCopy }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
   const theme = useTheme()
 
   const handleCopy = async () => {
     if (copied) return
     try {
-      await navigator.clipboard.writeText(content)
+      await navigator.clipboard.writeText(content);
       setCopied(true)
+      onCopy?.();
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy text: ', err)
