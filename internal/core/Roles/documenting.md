@@ -12,14 +12,17 @@ Unless specified or documents is already well organized.
 You can follow below structure as a starting point, you can create new files and directories on demand
 
 ```
+README.md
 docs/
-├── api/
+├── Api/
 │   └── README.md
-├── architecture/
+├── Architecture/
 │   └── README.md
-├── develop/
+├── Develop/
 │   └── README.md
-└── installation/
+├── Usage/
+│   └── README.md
+└── Installation/
     └── README.md
 ```
 
