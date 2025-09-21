@@ -245,7 +245,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalPadding())
+		m.textArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalFrameSize())
 		m.viewport.Width = msg.Width
 
 		renderer, err := glamour.NewTermRenderer(

@@ -77,19 +77,19 @@ func (m Model) renderConversation() string {
 		var renderedMsg string
 		switch currentMsg.Type {
 		case core.InitMessage:
-			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.DirectoryMessage:
-			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.UserMessage:
-			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalFrameSize()
 			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ActionMessage:
-			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalFrameSize()
 			renderedMsg = actionInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandMessage:
-			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.AIMessage:
 			if currentMsg.Content == "" {
@@ -102,16 +102,16 @@ func (m Model) renderConversation() string {
 				renderedMsg = renderedAI
 			}
 		case core.ActionResultMessage:
-			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalFrameSize()
 			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
-			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ActionErrorResultMessage:
-			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = actionErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandErrorResultMessage:
-			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalPadding()
+			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		}
 
