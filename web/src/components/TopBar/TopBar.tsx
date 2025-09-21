@@ -1,4 +1,4 @@
-import { useContext } from 'react'
+import { useContext } from "react";
 import {
   AppBar,
   Toolbar,
@@ -12,7 +12,7 @@ import {
   useTheme,
   Tooltip,
   type SelectChangeEvent,
-} from '@mui/material'
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   Brightness4 as Brightness4Icon,
@@ -21,26 +21,26 @@ import {
   Palette as PaletteIcon,
   FormatListNumbered as FormatListNumberedIcon,
   Refresh as RefreshIcon,
-} from '@mui/icons-material'
-import { AppContext } from '../../AppContext'
+} from "@mui/icons-material";
+import { AppContext } from "../../AppContext";
 
 interface TopBarProps {
-  onSidebarToggle: () => void
-  title: string
-  onTitleRename: () => void
-  tokenCount: number
-  cwd: string
-  mode: string
-  onModeChange: (event: SelectChangeEvent) => void
-  availableModes: string[]
-  model: string
-  onModelChange: (event: SelectChangeEvent) => void
-  availableModels: string[]
-  isGenerating: boolean
-	view: 'chat' | 'code' | 'git'
-	showLineNumbers: boolean
-	onToggleLineNumbers: () => void
-	onReload: () => void
+  onSidebarToggle: () => void;
+  title: string;
+  onTitleRename: () => void;
+  tokenCount: number;
+  cwd: string;
+  mode: string;
+  onModeChange: (event: SelectChangeEvent) => void;
+  availableModes: string[];
+  model: string;
+  onModelChange: (event: SelectChangeEvent) => void;
+  availableModels: string[];
+  isGenerating: boolean;
+  view: "chat" | "code" | "git";
+  showLineNumbers: boolean;
+  onToggleLineNumbers: () => void;
+  onReload: () => void;
 }
 
 export function TopBar({
@@ -56,13 +56,13 @@ export function TopBar({
   onModelChange,
   availableModels,
   isGenerating,
-	view,
-	showLineNumbers,
-	onToggleLineNumbers,
-	onReload,
+  view,
+  showLineNumbers,
+  onToggleLineNumbers,
+  onReload,
 }: TopBarProps) {
-  const theme = useTheme()
-  const { toggleColorMode, toggleCodeTheme } = useContext(AppContext)
+  const theme = useTheme();
+  const { toggleColorMode, toggleCodeTheme } = useContext(AppContext);
 
   return (
     <AppBar
@@ -71,8 +71,8 @@ export function TopBar({
       color="default"
       sx={{
         borderBottom: 1,
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
+        borderColor: "divider",
+        bgcolor: "background.paper",
       }}
     >
       <Toolbar variant="dense">
@@ -86,92 +86,143 @@ export function TopBar({
         </IconButton>
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             ml: 1,
             mr: 2,
-            '&:hover .rename-button': {
+            "&:hover .rename-button": {
               opacity: 1,
             },
           }}
         >
-          <Typography variant="subtitle1" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+          <Typography
+            variant="subtitle1"
+            noWrap
+            component="div"
+            sx={{ fontWeight: "bold" }}
+          >
             {title}
           </Typography>
-					{view === 'chat' && (
+          {view === "chat" && (
             <Tooltip title="Rename conversation" enterDelay={1000}>
-						  <IconButton onClick={onTitleRename} size="small" className="rename-button" sx={{ ml: 0.5, opacity: 0, transition: 'opacity 0.2s' }}>
-							  <EditIcon fontSize="small" />
-						  </IconButton>
+              <IconButton
+                onClick={onTitleRename}
+                size="small"
+                className="rename-button"
+                sx={{ ml: 0.5, opacity: 0, transition: "opacity 0.2s" }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
             </Tooltip>
-					)}
+          )}
         </Box>
         <Box sx={{ flexGrow: 1 }} />
-				{view === 'chat' && (
-					<>
-						<Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', md: 'block' } }}>
-							{`Tokens: ${tokenCount}`}
-						</Typography>
+        {view === "chat" && (
+          <>
+            <Typography
+              variant="body2"
+              sx={{ color: "inherit", display: { xs: "none", md: "block" } }}
+            >
+              {`Tokens: ${tokenCount}`}
+            </Typography>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, display: { xs: 'none', md: 'block' } }} />
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 1.5, my: 1, display: { xs: "none", md: "block" } }}
+            />
 
-						<Typography variant="body2" sx={{ color: 'inherit', display: { xs: 'none', lg: 'block' } }}>
-							{cwd}
-						</Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "inherit", display: { xs: "none", lg: "block" } }}
+            >
+              {cwd}
+            </Typography>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1, display: { xs: 'none', lg: 'block' } }} />
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 1.5, my: 1, display: { xs: "none", lg: "block" } }}
+            />
 
-						<FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }} disabled={isGenerating}>
-							<Select
-								value={mode}
-								onChange={onModeChange}
-								sx={{
-									color: 'inherit',
-									'.MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
-									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'text.primary' },
-									'.MuiSvgIcon-root': { color: 'inherit' },
-									borderRadius: (theme) => theme.shape.borderRadius,
-								}}
-							>
-								{availableModes.map((m) => (
-									<MenuItem key={m} value={m}>{m}</MenuItem>
-								))}
-							</Select>
-						</FormControl>
+            <FormControl
+              size="small"
+              sx={{ minWidth: { xs: 100, sm: 120 } }}
+              disabled={isGenerating}
+            >
+              <Select
+                value={mode}
+                onChange={onModeChange}
+                sx={{
+                  color: "inherit",
+                  ".MuiOutlinedInput-notchedOutline": {
+                    borderColor: "divider",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "text.primary",
+                  },
+                  ".MuiSvgIcon-root": { color: "inherit" },
+                  borderRadius: (theme) => theme.shape.borderRadius,
+                }}
+              >
+                {availableModes.map((m) => (
+                  <MenuItem key={m} value={m}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-						<Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1 }} />
+            <Divider orientation="vertical" flexItem sx={{ mx: 1.5, my: 1 }} />
 
-						<FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }} disabled={isGenerating}>
-							<Select
-								value={model}
-								onChange={onModelChange}
-								sx={{
-									color: 'inherit',
-									'.MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-									'&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
-									'&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'text.primary' },
-									'.MuiSvgIcon-root': { color: 'inherit' },
-									borderRadius: (theme) => theme.shape.borderRadius,
-								}}
-							>
-								{availableModels.map((m) => (
-									<MenuItem key={m} value={m}>{m}</MenuItem>
-								))}
-							</Select>
-						</FormControl>
-					</>
-				)}
-        {(view === 'code' || view === 'git') && (
+            <FormControl
+              size="small"
+              sx={{ minWidth: { xs: 120, sm: 160, md: 200 } }}
+              disabled={isGenerating}
+            >
+              <Select
+                value={model}
+                onChange={onModelChange}
+                sx={{
+                  color: "inherit",
+                  ".MuiOutlinedInput-notchedOutline": {
+                    borderColor: "divider",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "text.primary",
+                  },
+                  ".MuiSvgIcon-root": { color: "inherit" },
+                  borderRadius: (theme) => theme.shape.borderRadius,
+                }}
+              >
+                {availableModels.map((m) => (
+                  <MenuItem key={m} value={m}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </>
+        )}
+        {(view === "code" || view === "git") && (
           <Tooltip title="Reload" enterDelay={1000}>
             <IconButton onClick={onReload} color="inherit">
               <RefreshIcon />
             </IconButton>
           </Tooltip>
         )}
-        {view === 'code' && (
+        {view === "code" && (
           <Tooltip title="Toggle line numbers" enterDelay={1000}>
-            <IconButton onClick={onToggleLineNumbers} color={showLineNumbers ? 'secondary' : 'inherit'}>
+            <IconButton
+              onClick={onToggleLineNumbers}
+              color={showLineNumbers ? "secondary" : "inherit"}
+            >
               <FormatListNumberedIcon />
             </IconButton>
           </Tooltip>
@@ -181,12 +232,19 @@ export function TopBar({
             <PaletteIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title={theme.palette.mode === 'dark' ? 'Light mode' : 'Dark mode'} enterDelay={1000}>
+        <Tooltip
+          title={theme.palette.mode === "dark" ? "Light mode" : "Dark mode"}
+          enterDelay={1000}
+        >
           <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
-            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            {theme.palette.mode === "dark" ? (
+              <Brightness7Icon />
+            ) : (
+              <Brightness4Icon />
+            )}
           </IconButton>
         </Tooltip>
       </Toolbar>
     </AppBar>
-  )
+  );
 }
