@@ -56,6 +56,7 @@ interface SourceBrowserProps {
   activeFile: { path: string; content: string } | null;
   onFileSelect: (path: string) => void;
   showLineNumbers: boolean;
+  onAskAI: (text: string) => void;
 }
 
 interface TreeNodeProps {
@@ -161,11 +162,12 @@ const readOnlyTheme = EditorView.theme({
   },
 });
 
-export function SourceBrowser({
+function SourceBrowserComponent({
   tree,
   activeFile,
   onFileSelect,
   showLineNumbers,
+  onAskAI,
 }: SourceBrowserProps) {
   const { codeTheme } = useContext(AppContext);
   const muiTheme = useTheme();
@@ -223,6 +225,11 @@ export function SourceBrowser({
       handleCloseHighlightMenu();
       window.getSelection()?.removeAllRanges();
     }, 500);
+  };
+
+  const handleAskAI = (text: string) => {
+    onAskAI(text);
+    handleCloseHighlightMenu();
   };
 
   const handleLinkClick = (
@@ -701,6 +708,7 @@ export function SourceBrowser({
               <HighlightMenu
                 selectedText={highlightMenuState.selectedText}
                 onCopySuccess={handleCopySuccess}
+                onAskAI={handleAskAI}
               />
             </div>
           </Fade>
@@ -709,3 +717,5 @@ export function SourceBrowser({
     </>
   );
 }
+
+export const SourceBrowser = memo(SourceBrowserComponent);

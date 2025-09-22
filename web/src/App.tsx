@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   CssBaseline,
@@ -14,6 +14,7 @@ import { HistoryDialog } from './components/HistoryDialog';
 import { RenameDialog } from './components/RenameDialog';
 import { SourceBrowser } from './components/SourceBrowser';
 import { GitBrowser } from './components/GitBrowser';
+import { FloatingChatWindow } from './components/FloatingChatWindow';
 
 function App() {
   const {
@@ -53,6 +54,7 @@ function App() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [displayedTitle, setDisplayedTitle] = useState(finalTitle);
 	const [inputValue, setInputValue] = useState('')
+	const [floatingChat, setFloatingChat] = useState<{ open: boolean; context: string }>({ open: false, context: '' });
 	const [showLineNumbers, setShowLineNumbers] = useState(false)
 
   useEffect(() => {
@@ -84,104 +86,112 @@ function App() {
     view = firstPart;
   }
 
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen)
-  }
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarOpen(prev => !prev)
+  }, []);
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     sendMessage(':new')
     setInputValue('')
 		navigate('/');
-  }
+  }, [sendMessage, navigate]);
 
-  const handleChatViewOpen = () => {
+  const handleChatViewOpen = useCallback(() => {
     navigate('/');
-  }
+  }, [navigate]);
 
-  const handleHistoryOpen = () => {
+  const handleHistoryOpen = useCallback(() => {
     listHistory()
     setHistoryDialogOpen(true)
-  }
+  }, [listHistory]);
 
-  const handleHistoryClose = () => {
+  const handleHistoryClose = useCallback(() => {
     setHistoryDialogOpen(false)
-  }
+  }, []);
 
-  const handleLoadConversation = (filename: string) => {
+  const handleLoadConversation = useCallback((filename: string) => {
     loadConversation(filename)
     handleHistoryClose()
     navigate('/');
-  }
+  }, [loadConversation, handleHistoryClose, navigate]);
 
-  const handleRenameOpen = () => {
+  const handleRenameOpen = useCallback(() => {
     setRenameDialogOpen(true)
-  }
+  }, []);
 
-  const handleRenameSave = (newTitle: string) => {
+  const handleRenameSave = useCallback((newTitle: string) => {
     sendMessage(`:rename ${newTitle}`)
     setRenameDialogOpen(false)
-  }
+  }, [sendMessage]);
 
-  const handleSourceBrowserOpen = () => {
+  const handleSourceBrowserOpen = useCallback(() => {
     if (!sourceTree) {
       getSourceTree()
     }
 		navigate('/code');
-  }
+  }, [sourceTree, getSourceTree, navigate]);
 
-  const handleGitBrowserOpen = () => {
+  const handleGitBrowserOpen = useCallback(() => {
     getGitGraphLog()
     navigate('/git');
-  }
+  }, [getGitGraphLog, navigate]);
 
-  const handleReload = () => {
+  const handleReload = useCallback(() => {
     if (view === 'code') {
       getSourceTree();
     } else if (view === 'git') {
       getGitGraphLog();
     }
-  };
+  }, [view, getSourceTree, getGitGraphLog]);
 
-	const handleToggleLineNumbers = () => {
-		setShowLineNumbers((prev) => !prev)
-	}
+	const handleToggleLineNumbers = useCallback(() => {
+		setShowLineNumbers(prev => !prev)
+	}, []);
 
-	const handleModeChange = (event: SelectChangeEvent) => {
+	const handleModeChange = useCallback((event: SelectChangeEvent) => {
 		sendMessage(`:mode ${event.target.value}`)
-	}
+	}, [sendMessage]);
 
-	const handleModelChange = (event: SelectChangeEvent) => {
+	const handleModelChange = useCallback((event: SelectChangeEvent) => {
 		sendMessage(`:model ${event.target.value}`)
-  }
+  }, [sendMessage]);
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = useCallback((message: string) => {
     sendMessage(message)
     setInputValue('')
-  }
+  }, [sendMessage]);
 
-  const handleRegenerate = (index: number) => {
+  const handleRegenerate = useCallback((index: number) => {
     regenerateFrom(index)
-  }
+  }, [regenerateFrom]);
 
-  const handleApplyItf = (content: string) => {
+  const handleApplyItf = useCallback((content: string) => {
     applyItf(content)
-  }
+  }, [applyItf]);
 
-  const handleEditMessage = (index: number, content: string) => {
+  const handleEditMessage = useCallback((index: number, content: string) => {
     editMessage(index, content)
-  }
+  }, [editMessage]);
 
-  const handleBranchFrom = (index: number) => {
+  const handleBranchFrom = useCallback((index: number) => {
     branchFrom(index)
-  }
+  }, [branchFrom]);
 
-  const handleDeleteMessage = (index: number) => {
+  const handleDeleteMessage = useCallback((index: number) => {
     deleteMessage(index)
-  }
+  }, [deleteMessage]);
 
-  const handleFileSelect = (path: string) => {
+  const handleAskAI = useCallback((text: string) => {
+    setFloatingChat({ open: true, context: text });
+  }, []);
+
+  const handleCloseFloatingChat = useCallback(() => {
+    setFloatingChat({ open: false, context: '' });
+  }, []);
+
+  const handleFileSelect = useCallback((path: string) => {
     navigate(`/code/${path}`);
-  };
+  }, [navigate]);
 
   // Effect for deep linking into code browser and showing README by default
   useEffect(() => {
@@ -268,12 +278,11 @@ function App() {
               tree={sourceTree}
               activeFile={activeFile}
               onFileSelect={handleFileSelect}
+              onAskAI={handleAskAI}
               showLineNumbers={showLineNumbers}
             />
           } />
-          <Route path="/git/*" element={
-            <GitBrowser log={gitGraphLog} commitDiff={commitDiff} />
-          } />
+          <Route path="/git/*" element={<GitBrowser log={gitGraphLog} commitDiff={commitDiff} onAskAI={handleAskAI} />} />
           <Route path="/*" element={
             <>
               <MessageList
@@ -284,6 +293,7 @@ function App() {
                 onEditMessage={handleEditMessage}
                 onBranchFrom={handleBranchFrom}
                 onDeleteMessage={handleDeleteMessage}
+                onAskAI={handleAskAI}
               />
               <ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
             </>
@@ -301,6 +311,11 @@ function App() {
         onClose={() => setRenameDialogOpen(false)}
         onSave={handleRenameSave}
         currentTitle={finalTitle}
+      />
+      <FloatingChatWindow
+        open={floatingChat.open}
+        onClose={handleCloseFloatingChat}
+        context={floatingChat.context}
       />
     </Box>
   )

@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, useRef, useCallback } from "react";
+import { useState, type MouseEvent, useRef, useCallback, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -31,9 +31,10 @@ import { HighlightMenu } from "../HighlightMenu";
 interface GitBrowserProps {
   log: GitGraphLogEntry[];
   commitDiff: { hash: string; diff: string } | null;
+  onAskAI: (text: string) => void;
 }
 
-export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
+function GitBrowserComponent({ log, commitDiff, onAskAI }: GitBrowserProps) {
   const { '*': selectedCommit } = useParams();
   const navigate = useNavigate();
   const [view, setView] = useState<'graph' | 'list'>('list');
@@ -84,6 +85,11 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
       handleCloseHighlightMenu();
       window.getSelection()?.removeAllRanges();
     }, 500);
+  };
+
+  const handleAskAI = (text: string) => {
+    onAskAI(text);
+    handleCloseHighlightMenu();
   };
 
   // Note: The scroll-to-close behavior is not implemented here due to multiple
@@ -166,6 +172,7 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
                 <HighlightMenu
                   selectedText={highlightMenuState.selectedText}
                   onCopySuccess={handleCopySuccess}
+                  onAskAI={handleAskAI}
                 />
               </div>
             </Fade>
@@ -243,6 +250,7 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
               <HighlightMenu
                 selectedText={highlightMenuState.selectedText}
                 onCopySuccess={handleCopySuccess}
+                onAskAI={handleAskAI}
               />
             </div>
           </Fade>
@@ -251,3 +259,5 @@ export function GitBrowser({ log, commitDiff }: GitBrowserProps) {
     </>
   );
 }
+
+export const GitBrowser = memo(GitBrowserComponent);

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -34,9 +34,10 @@ interface MessageListProps {
   onEditMessage: (index: number, content: string) => void;
   onBranchFrom: (messageIndex: number) => void;
   onDeleteMessage: (index: number) => void;
+  onAskAI: (text: string) => void;
 }
 
-export function MessageList({
+function MessageListComponent({
   messages,
   isGenerating,
   onRegenerate,
@@ -44,6 +45,7 @@ export function MessageList({
   onEditMessage,
   onBranchFrom,
   onDeleteMessage,
+  onAskAI,
 }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -126,6 +128,11 @@ export function MessageList({
       handleCloseHighlightMenu();
       window.getSelection()?.removeAllRanges();
     }, 500);
+  };
+
+  const handleAskAI = (text: string) => {
+    onAskAI(text);
+    handleCloseHighlightMenu();
   };
 
   useEffect(() => {
@@ -473,6 +480,7 @@ export function MessageList({
               <HighlightMenu
                 selectedText={highlightMenuState.selectedText}
                 onCopySuccess={handleCopySuccess}
+                onAskAI={handleAskAI}
               />
             </div>
           </Fade>
@@ -481,3 +489,5 @@ export function MessageList({
     </>
   );
 }
+
+export const MessageList = memo(MessageListComponent);

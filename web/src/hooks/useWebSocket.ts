@@ -132,7 +132,7 @@ export function useWebSocket(url: string) {
     };
   }, [url]);
 
-  const sendMessage = (payload: string) => {
+  const sendMessage = useCallback((payload: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -152,11 +152,11 @@ export function useWebSocket(url: string) {
       payload: payload
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
   const onTitleAnimationEnd = useCallback(() => setIsAnimatingTitle(false), []);
 
-  const cancelGeneration = () => {
+  const cancelGeneration = useCallback(() => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -167,9 +167,9 @@ export function useWebSocket(url: string) {
     };
     ws.current.send(JSON.stringify(wsMsg));
     setIsGenerating(false);
-  };
+  }, []);
 
-  const regenerateFrom = (userMessageIndex: number) => {
+  const regenerateFrom = useCallback((userMessageIndex: number) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -180,9 +180,9 @@ export function useWebSocket(url: string) {
       payload: userMessageIndex
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
-  const applyItf = (content: string) => {
+  const applyItf = useCallback((content: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -192,9 +192,9 @@ export function useWebSocket(url: string) {
       payload: content
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
-  const editMessage = (index: number, content: string) => {
+  const editMessage = useCallback((index: number, content: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -213,9 +213,9 @@ export function useWebSocket(url: string) {
       payload: { index, content }
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
-  const branchFrom = (messageIndex: number) => {
+  const branchFrom = useCallback((messageIndex: number) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -225,9 +225,9 @@ export function useWebSocket(url: string) {
       payload: messageIndex
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
-  const deleteMessage = (index: number) => {
+  const deleteMessage = useCallback((index: number) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
@@ -240,33 +240,33 @@ export function useWebSocket(url: string) {
       payload: index
     };
     ws.current.send(JSON.stringify(wsMsg));
-  };
+  }, []);
 
-  const listHistory = () => {
+  const listHistory = useCallback(() => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
     ws.current.send(JSON.stringify({ type: "listHistory" }));
-  };
+  }, []);
 
-  const loadConversation = (filename: string) => {
+  const loadConversation = useCallback((filename: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
     ws.current.send(JSON.stringify({ type: "loadConversation", payload: filename }));
-  };
+  }, []);
 
-  const getSourceTree = () => {
+  const getSourceTree = useCallback(() => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
     ws.current.send(JSON.stringify({ type: "getSourceTree" }));
-  };
+  }, []);
 
-  const getFileContent = (path: string) => {
+  const getFileContent = useCallback((path: string) => {
     if (fileCache.current.has(path)) {
       setActiveFile({ path, content: fileCache.current.get(path)! });
       return;
@@ -277,27 +277,27 @@ export function useWebSocket(url: string) {
       return;
     }
     ws.current.send(JSON.stringify({ type: "getFileContent", payload: path }));
-  };
+  }, []);
 
-  const clearActiveFile = () => {
+  const clearActiveFile = useCallback(() => {
     setActiveFile(null);
-  };
+  }, []);
 
-  const getGitGraphLog = () => {
+  const getGitGraphLog = useCallback(() => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
     ws.current.send(JSON.stringify({ type: "getGitGraphLog" }));
-  };
+  }, []);
 
-  const getCommitDiff = (hash: string) => {
+  const getCommitDiff = useCallback((hash: string) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open.");
       return;
     }
     ws.current.send(JSON.stringify({ type: "getCommitDiff", payload: hash }));
-  };
+  }, []);
 
   return {
 		messages,
