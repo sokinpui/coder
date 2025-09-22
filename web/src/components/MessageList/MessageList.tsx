@@ -10,6 +10,7 @@ import {
   Fade,
 } from "@mui/material";
 import type { Message } from "../../types";
+import { TypingIndicator } from "../TypingIndicator";
 import { HighlightMenu } from "../HighlightMenu";
 import { MessageItem } from "../MessageItem";
 
@@ -192,9 +193,9 @@ function MessageListComponent({
                 color: "text.primary",
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <CircularProgress size={20} sx={{ mr: 1.5 }} />
-                <Typography variant="body2">AI is thinking...</Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body2">I am Thinking</Typography>
+                <TypingIndicator />
               </Box>
             </Paper>
           )}
