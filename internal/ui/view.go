@@ -149,8 +149,15 @@ func (m Model) renderConversation() string {
 	}
 
 	if m.state == stateThinking {
-		thinkingMsg := fmt.Sprintf("I am thinking%s", m.spinner.View())
-		block := thinkingStyle.Render(thinkingMsg)
+		// The spinner has its own colors, so we can't render it with the same style as the text.
+		thinkingText := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244")).
+			Italic(true).
+			Render("I am thinking ")
+
+		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.spinner.View())
+		// Apply padding to the container.
+		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 		parts = append(parts, block)
 	}
 	return strings.Join(parts, "\n")

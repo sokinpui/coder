@@ -14,7 +14,6 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/lipgloss"
 )
 
 const welcomeMessage = `Welcome to Coder!
@@ -107,8 +106,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 
 	s := spinner.New()
-	s.Spinner = spinner.Ellipsis
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	s.Spinner = typingSpinner
 
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt..."
