@@ -13,17 +13,12 @@ interface MessageEditorProps {
   initialContent: string;
   onSave: (newContent: string) => void;
   onCancel: () => void;
+  onChange: (newContent: string) => void;
 }
 
-export function MessageEditor({ initialContent, onSave, onCancel }: MessageEditorProps) {
-  const [content, setContent] = useState(initialContent);
-
+export function MessageEditor({ initialContent, onSave, onCancel, onChange }: MessageEditorProps) {
   const theme = useTheme();
   const { codeTheme } = useContext(AppContext);
-
-  const handleSave = () => {
-    onSave(content);
-  };
 
   const customBgTheme = EditorView.theme({
     "&": {
@@ -37,8 +32,8 @@ export function MessageEditor({ initialContent, onSave, onCancel }: MessageEdito
   return (
     <Box sx={{ pt: 1 }}>
       <CodeMirror
-        value={content}
-        onChange={(val) => setContent(val)}
+        value={initialContent}
+        onChange={onChange}
         height="auto"
         minHeight="100px"
         maxHeight="400px"
@@ -61,7 +56,7 @@ export function MessageEditor({ initialContent, onSave, onCancel }: MessageEdito
         <IconButton onClick={onCancel} size="small">
           <CloseIcon />
         </IconButton>
-        <IconButton onClick={handleSave} size="small" color="primary">
+        <IconButton onClick={() => onSave(initialContent)} size="small" color="primary">
           <CheckIcon />
         </IconButton>
       </Box>

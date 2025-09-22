@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -42,6 +42,12 @@ function MessageItemComponent({
   onDeleteMessage,
 }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(message.content);
+
+  // Update editedContent if the original message content changes (e.g., after an external edit or load)
+  useEffect(() => {
+    setEditedContent(message.content);
+  }, [message.content]);
 
   const handleEditStart = () => {
     setIsEditing(true);
@@ -49,11 +55,21 @@ function MessageItemComponent({
 
   const handleEditSave = (newContent: string) => {
     onEditMessage(index, newContent);
+    setEditedContent(newContent); // Update local state after save
     setIsEditing(false);
   };
 
   const handleEditCancel = () => {
+    setEditedContent(message.content); // Revert to original content on cancel
     setIsEditing(false);
+  };
+
+  const handleRegenerateClick = () => {
+    if (isEditing) {
+      onEditMessage(index, editedContent); // Save the current edited content before regenerating
+      setIsEditing(false); // Exit editing mode
+    }
+    onRegenerate(); // Then trigger regeneration
   };
 
   const isUser = message.sender === 'User';
@@ -155,8 +171,8 @@ function MessageItemComponent({
           )}
           {(isUser || isAI) && !isGenerating && (
             <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
-              <IconButton
-                onClick={onRegenerate}
+              <IconButton // Modified: Use handleRegenerateClick
+                onClick={handleRegenerateClick}
                 size="small"
                 color="inherit"
                 sx={{
@@ -239,9 +255,10 @@ function MessageItemComponent({
       >
         {isEditing ? (
           <MessageEditor
-            initialContent={message.content}
+            initialContent={editedContent} // Pass editedContent
             onSave={handleEditSave}
             onCancel={handleEditCancel}
+            onChange={setEditedContent} // New prop for MessageEditor to update editedContent
           />
         ) : (
           <>
