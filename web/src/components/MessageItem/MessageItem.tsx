@@ -29,6 +29,7 @@ interface MessageItemProps {
   onEditMessage: (index: number, content: string) => void;
   onBranchFrom: (index: number) => void;
   onDeleteMessage: (index: number) => void;
+  isFloatingChat?: boolean;
 }
 
 function MessageItemComponent({
@@ -40,6 +41,7 @@ function MessageItemComponent({
   onEditMessage,
   onBranchFrom,
   onDeleteMessage,
+  isFloatingChat = false,
 }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
@@ -131,7 +133,7 @@ function MessageItemComponent({
               </IconButton>
             </Tooltip>
           )}
-          {isAI && !isGenerating && (
+          {isAI && !isGenerating && !isFloatingChat && (
             <Tooltip title="Apply" placement="left" enterDelay={1000}>
               <IconButton
                 onClick={() => onApplyItf(message.content)}
@@ -150,7 +152,7 @@ function MessageItemComponent({
               </IconButton>
             </Tooltip>
           )}
-          {(isUser || isAI) && !isGenerating && (
+          {(isUser || isAI) && !isGenerating && !isFloatingChat && (
             <Tooltip title="Branch from here" placement="left" enterDelay={1000}>
               <IconButton
                 onClick={() => onBranchFrom(index)}
@@ -169,7 +171,7 @@ function MessageItemComponent({
               </IconButton>
             </Tooltip>
           )}
-          {(isUser || isAI) && !isGenerating && (
+          {(isUser || isAI) && !isGenerating && !isFloatingChat && (
             <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
               <IconButton // Modified: Use handleRegenerateClick
                 onClick={handleRegenerateClick}
@@ -190,7 +192,7 @@ function MessageItemComponent({
             </Tooltip>
           )}
           <CopyButton content={message.content} />
-          {!isGenerating && (
+          {!isGenerating && !isFloatingChat && (
             <Tooltip title="Delete" placement="left" enterDelay={1000}>
               <IconButton
                 onClick={() => onDeleteMessage(index)}

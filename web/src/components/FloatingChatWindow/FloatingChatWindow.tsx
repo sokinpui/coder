@@ -209,6 +209,7 @@ export function FloatingChatWindow({
             onEditMessage={noOp}
             onBranchFrom={noOp}
             onDeleteMessage={noOp}
+            isFloatingChat={true}
             onAskAI={noOp}
           />
           <ChatInput

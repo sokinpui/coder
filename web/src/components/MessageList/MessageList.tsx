@@ -22,6 +22,7 @@ interface MessageListProps {
   onEditMessage: (index: number, content: string) => void;
   onBranchFrom: (messageIndex: number) => void;
   onDeleteMessage: (index: number) => void;
+  isFloatingChat?: boolean;
   onAskAI: (text: string) => void;
 }
 
@@ -33,6 +34,7 @@ function MessageListComponent({
   onEditMessage,
   onBranchFrom,
   onDeleteMessage,
+  isFloatingChat = false,
   onAskAI,
 }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -176,6 +178,7 @@ function MessageListComponent({
               onEditMessage={onEditMessage}
               onBranchFrom={onBranchFrom}
               onDeleteMessage={onDeleteMessage}
+              isFloatingChat={isFloatingChat}
             />
           );
         })}
