@@ -78,12 +78,13 @@ export function FloatingChatWindow({
             maxHeight: "80vh",
             borderRadius: 2,
             overflow: "hidden",
-            width: isMinimized ? 250 : 400,
-            height: isMinimized ? "auto" : 500,
+            width: isMinimized ? 250 : 600,
+            height: isMinimized ? "auto" : 700,
             transition: (theme) =>
               theme.transitions.create(["width", "height"]),
             display: "flex",
             flexDirection: "column",
+            resize: "none",
           },
         } as any
       }
