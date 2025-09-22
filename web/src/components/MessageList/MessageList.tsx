@@ -22,8 +22,8 @@ interface MessageListProps {
   onEditMessage: (index: number, content: string) => void;
   onBranchFrom: (messageIndex: number) => void;
   onDeleteMessage: (index: number) => void;
-  isFloatingChat?: boolean;
-  onAskAI: (text: string) => void;
+  isFloatingChat?: boolean; // Already exists
+  onAskAI?: (text: string) => void; // Make optional
 }
 
 function MessageListComponent({
@@ -34,8 +34,8 @@ function MessageListComponent({
   onEditMessage,
   onBranchFrom,
   onDeleteMessage,
-  isFloatingChat = false,
-  onAskAI,
+  isFloatingChat = false, // Already exists
+  onAskAI, // Now optional
 }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -116,7 +116,9 @@ function MessageListComponent({
   };
 
   const handleAskAI = (text: string) => {
-    onAskAI(text);
+    if (onAskAI) {
+      onAskAI(text);
+    }
     handleCloseHighlightMenu();
   };
 
@@ -217,7 +219,7 @@ function MessageListComponent({
               <HighlightMenu
                 selectedText={highlightMenuState.selectedText}
                 onCopySuccess={handleCopySuccess}
-                onAskAI={handleAskAI}
+                onAskAI={onAskAI ? handleAskAI : undefined}
               />
             </div>
           </Fade>

@@ -294,7 +294,8 @@ function App() {
                 onEditMessage={handleEditMessage}
                 onBranchFrom={handleBranchFrom}
                 onDeleteMessage={handleDeleteMessage}
-                onAskAI={handleAskAI}
+                // Disable Ask AI in main chat view
+                onAskAI={view === 'chat' ? undefined : handleAskAI}
               />
               <ChatInput key={sessionKey} sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
             </>
