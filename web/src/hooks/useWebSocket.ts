@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Message, HistoryItem, SourceNode, GitGraphLogEntry } from '../types';
 
+interface AskAIParams {
+  onChunk: (chunk: string) => void;
+  onEnd: () => void;
+  onError: (error: string) => void;
+}
+
 export function useWebSocket(url: string) {
   const [cwd, setCwd] = useState<string>('')
   const [title, setTitle] = useState<string>('New Chat')
@@ -19,6 +25,7 @@ export function useWebSocket(url: string) {
   const [commitDiff, setCommitDiff] = useState<{ hash: string; diff: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const fileCache = useRef<Map<string, string>>(new Map());
+  const requestCallbacks = useRef<Map<string, AskAIParams>>(new Map());
 
   useEffect(() => {
     let ignore = false;
@@ -35,6 +42,26 @@ export function useWebSocket(url: string) {
       if (ignore) return;
       const msg = JSON.parse(event.data);
       console.log("Received:", msg);
+
+      if (msg.requestId) {
+        const callbacks = requestCallbacks.current.get(msg.requestId);
+        if (callbacks) {
+          switch (msg.type) {
+            case 'generationChunk':
+              callbacks.onChunk(msg.payload);
+              break;
+            case 'generationEnd':
+              callbacks.onEnd();
+              requestCallbacks.current.delete(msg.requestId);
+              break;
+            case 'error':
+              callbacks.onError(msg.payload);
+              requestCallbacks.current.delete(msg.requestId);
+              break;
+          }
+          return; // Message handled, don't process further
+        }
+      }
 
       switch (msg.type) {
         case "initialState":
@@ -150,6 +177,32 @@ export function useWebSocket(url: string) {
     const wsMsg = {
       type: "userInput",
       payload: payload
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  }, []);
+
+  const askAI = useCallback((params: { context: string; question: string; history: Message[] } & AskAIParams) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      params.onError("WebSocket is not connected.");
+      return;
+    }
+
+    const requestId = crypto.randomUUID();
+    requestCallbacks.current.set(requestId, {
+      onChunk: params.onChunk,
+      onEnd: params.onEnd,
+      onError: params.onError,
+    });
+
+    const wsMsg = {
+      type: "askAI",
+      payload: {
+        context: params.context,
+        question: params.question,
+        history: params.history,
+      },
+      requestId: requestId,
     };
     ws.current.send(JSON.stringify(wsMsg));
   }, []);
@@ -304,6 +357,7 @@ export function useWebSocket(url: string) {
 		title,
     isAnimatingTitle,
     onTitleAnimationEnd,
+		askAI,
 		sendMessage,
 		cwd,
 		tokenCount,

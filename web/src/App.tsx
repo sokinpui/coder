@@ -48,6 +48,7 @@ function App() {
 		getGitGraphLog,
 		commitDiff,
 		getCommitDiff,
+		askAI,
 	} = useWebSocket(`ws://${window.location.host}/ws`)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
@@ -316,6 +317,7 @@ function App() {
         open={floatingChat.open}
         onClose={handleCloseFloatingChat}
         context={floatingChat.context}
+        askAI={askAI}
       />
     </Box>
   )
