@@ -1,10 +1,8 @@
 package ui
 
 import (
-	"strings"
-
 	"coder/internal/core"
-	"coder/internal/session"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,131 +11,6 @@ import (
 
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.session))
-}
-
-func (m Model) newSession() (Model, tea.Cmd) {
-	// The session handles saving and clearing messages.
-	// The UI just needs to reset its state.
-	m.session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
-
-	// Reset UI and state flags.
-	m.lastInteractionFailed = false
-	m.lastRenderedAIPart = ""
-	m.textArea.Reset()
-	m.textArea.Focus()
-	m.viewport.GotoTop()
-	m.viewport.SetContent(m.renderConversation())
-
-	// Recalculate the token count for the base context.
-	m.isCountingTokens = true
-	return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
-}
-
-func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
-	m.state = stateVisualSelect
-	m.visualMode = mode
-	m.selectableBlocks = groupMessages(m.session.GetMessages())
-
-	isSelectionMode := mode != visualModeNone
-	m.visualIsSelecting = isSelectionMode
-
-	if len(m.selectableBlocks) > 0 {
-		m.visualSelectCursor = len(m.selectableBlocks) - 1
-		if isSelectionMode {
-			m.visualSelectStart = m.visualSelectCursor
-		}
-	}
-
-	if isSelectionMode {
-		m.textArea.Reset()
-	}
-	m.textArea.Blur()
-
-	originalOffset := m.viewport.YOffset
-	m.viewport.SetContent(m.renderConversation())
-
-	if isSelectionMode {
-		m.viewport.SetYOffset(originalOffset)
-	} else {
-		m.viewport.GotoBottom()
-	}
-
-	return m, nil
-}
-
-func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
-	if event.Type != session.GenerationStarted {
-		return m, nil // Should not happen
-	}
-	m.state = stateThinking
-	m.isStreaming = true
-	m.streamSub = event.Data.(chan string)
-	m.textArea.Blur()
-	m.textArea.Reset()
-
-	m.lastRenderedAIPart = ""
-	m.lastInteractionFailed = false
-
-	m.viewport.SetContent(m.renderConversation())
-	m.viewport.GotoBottom()
-
-	prompt := m.session.GetPromptForTokenCount()
-	m.isCountingTokens = true
-	return m, tea.Batch(listenForStream(m.streamSub), m.spinner.Tick, countTokensCmd(prompt))
-}
-
-func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
-	input := m.textArea.Value()
-
-	// If the last interaction failed, the user is likely retrying.
-	// Clear the previous failed attempt before submitting the new prompt.
-	if !strings.HasPrefix(input, ":") && m.lastInteractionFailed {
-		m.session.RemoveLastInteraction()
-		m.lastInteractionFailed = false
-	}
-
-	var cmds []tea.Cmd
-	shouldGenerateTitle := !strings.HasPrefix(input, ":") && !m.session.IsTitleGenerated()
-	if shouldGenerateTitle {
-		cmds = append(cmds, generateTitleCmd(m.session, input))
-	}
-
-	event := m.session.HandleInput(input)
-
-	switch event.Type {
-	case session.NoOp:
-		return m, nil
-
-	case session.MessagesUpdated:
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.GotoBottom()
-		m.textArea.Reset()
-		return m, tea.Batch(cmds...)
-
-	case session.NewSessionStarted:
-		return m.newSession()
-
-	case session.GenerationStarted:
-		m, cmd := m.startGeneration(event)
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
-
-	case session.VisualModeStarted:
-		return m.enterVisualMode(visualModeNone)
-
-	case session.GenerateModeStarted:
-		return m.enterVisualMode(visualModeGenerate)
-	case session.EditModeStarted:
-		return m.enterVisualMode(visualModeEdit)
-	case session.BranchModeStarted:
-		return m.enterVisualMode(visualModeBranch)
-	case session.HistoryModeStarted:
-		m.state = stateHistorySelect
-		m.textArea.Blur()
-		return m, listHistoryCmd(m.session.GetHistoryManager())
-	}
-
-	return m, nil
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
