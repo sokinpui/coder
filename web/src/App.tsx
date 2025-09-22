@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   CssBaseline,
-	type SelectChangeEvent,
+  type SelectChangeEvent,
 } from '@mui/material'
 import { useWebSocket } from './hooks/useWebSocket'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
@@ -53,8 +53,8 @@ function App() {
 	const [sidebarOpen, setSidebarOpen] = useState(false)
 	const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
-  const [displayedTitle, setDisplayedTitle] = useState(finalTitle);
-	const [inputValue, setInputValue] = useState('')
+  const [displayedTitle, setDisplayedTitle] = useState(finalTitle)
+	const [sessionKey, setSessionKey] = useState(() => Date.now().toString())
 	const [floatingChat, setFloatingChat] = useState<{ open: boolean; context: string }>({ open: false, context: '' });
 	const [showLineNumbers, setShowLineNumbers] = useState(false)
 
@@ -93,7 +93,7 @@ function App() {
 
   const handleNewChat = useCallback(() => {
     sendMessage(':new')
-    setInputValue('')
+    setSessionKey(Date.now().toString())
 		navigate('/');
   }, [sendMessage, navigate]);
 
@@ -112,6 +112,7 @@ function App() {
 
   const handleLoadConversation = useCallback((filename: string) => {
     loadConversation(filename)
+    setSessionKey(filename)
     handleHistoryClose()
     navigate('/');
   }, [loadConversation, handleHistoryClose, navigate]);
@@ -159,7 +160,6 @@ function App() {
 
   const handleSendMessage = useCallback((message: string) => {
     sendMessage(message)
-    setInputValue('')
   }, [sendMessage]);
 
   const handleRegenerate = useCallback((index: number) => {
@@ -296,7 +296,7 @@ function App() {
                 onDeleteMessage={handleDeleteMessage}
                 onAskAI={handleAskAI}
               />
-              <ChatInput sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} value={inputValue} onChange={setInputValue} />
+              <ChatInput key={sessionKey} sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
             </>
           } />
         </Routes>

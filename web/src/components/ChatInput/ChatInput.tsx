@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Box, TextField, IconButton, Button, CircularProgress } from '@mui/material'
 import { Send as SendIcon } from '@mui/icons-material'
 
@@ -5,11 +6,10 @@ interface ChatInputProps {
   isGenerating: boolean
   sendMessage: (message: string) => void
   cancelGeneration: () => void
-  value: string
-  onChange: (value: string) => void
 }
 
-export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, onChange }: ChatInputProps) {
+export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatInputProps) {
+  const [value, setValue] = useState('')
   const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault()
     if (!value.trim()) {
@@ -17,6 +17,7 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, 
     }
 
     sendMessage(value)
+    setValue('')
   }
 
   return (
@@ -29,7 +30,7 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration, value, 
         fullWidth
         variant="outlined"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && e.shiftKey) {
             e.preventDefault()

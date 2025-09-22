@@ -44,7 +44,6 @@ export function FloatingChatWindow({
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export function FloatingChatWindow({
     } else {
       // Reset state on close
       setMessages([]);
-      setInputValue("");
       setIsGenerating(false);
     }
   }, [open, context]);
@@ -76,7 +74,6 @@ export function FloatingChatWindow({
       if (!question.trim()) return;
 
       setIsGenerating(true);
-      setInputValue("");
       setMessages((prev) => [...prev, { sender: "User", content: question }]);
 
       // The history sent to backend should not include the system message
@@ -218,8 +215,6 @@ export function FloatingChatWindow({
             sendMessage={handleSendMessage}
             cancelGeneration={noOp} // Cancellation not implemented for askAI yet
             isGenerating={isGenerating}
-            value={inputValue}
-            onChange={setInputValue}
           />
         </DialogContent>
       )}

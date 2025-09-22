@@ -1,30 +1,16 @@
-import { useRef, useEffect, useState, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Box,
-  Paper,
   Typography,
   CircularProgress,
-  IconButton,
-  Tooltip,
-  TextField,
   Popper,
   Fade,
 } from "@mui/material";
-import {
-  Replay as ReplayIcon,
-  PlaylistAddCheck as PlaylistAddCheckIcon,
-  Edit as EditIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  CallSplit as CallSplitIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
 import type { Message } from "../../types";
-import { CopyButton } from "../CopyButton";
-import { CodeBlock } from "../CodeBlock";
 import { HighlightMenu } from "../HighlightMenu";
+import { MessageItem } from "../MessageItem";
 
 interface MessageListProps {
   messages: Message[];
@@ -50,9 +36,6 @@ function MessageListComponent({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
   const [highlightMenuState, setHighlightMenuState] = useState<{
     open: boolean;
     anchorEl: { getBoundingClientRect: () => DOMRect } | null;
@@ -63,7 +46,7 @@ function MessageListComponent({
     selectedText: "",
   });
 
-  const handleRegenerate = (currentIndex: number) => {
+  const findUserMessageIndex = (currentIndex: number) => {
     let userMessageIndex = -1;
     for (let i = currentIndex; i >= 0; i--) {
       if (messages[i].sender === "User") {
@@ -71,9 +54,7 @@ function MessageListComponent({
         break;
       }
     }
-    if (userMessageIndex !== -1) {
-      onRegenerate(userMessageIndex);
-    }
+    return userMessageIndex;
   };
 
   const scrollToBottom = () => {
@@ -147,24 +128,6 @@ function MessageListComponent({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [highlightMenuState.open, handleCloseHighlightMenu]);
 
-  const handleEditStart = (index: number, content: string) => {
-    setEditingIndex(index);
-    setEditText(content);
-  };
-
-  const handleEditSave = () => {
-    if (editingIndex !== null) {
-      onEditMessage(editingIndex, editText);
-    }
-    setEditingIndex(null);
-    setEditText("");
-  };
-
-  const handleEditCancel = () => {
-    setEditingIndex(null);
-    setEditText("");
-  };
-
   return (
     <>
       <Box
@@ -197,252 +160,21 @@ function MessageListComponent({
             );
           }
 
-          const isUser = msg.sender === "User";
-          const isError = msg.sender === "Error";
-          const isAI = msg.sender === "AI";
-          const isEditing = editingIndex === index;
-
           return (
-            <Paper
+            <MessageItem
               key={index}
-              elevation={1}
-              sx={{
-                position: "relative",
-                mb: 1.5,
-                ...(index === 0 && { mt: 2 }),
-                maxWidth: "100%",
-                width: isEditing || !isUser ? "100%" : "auto",
-                alignSelf: isUser ? "flex-end" : "flex-start",
-                bgcolor: "background.paper",
-                color: isError ? "error.main" : "text.primary",
-                borderTopLeftRadius: !isUser ? 0 : undefined,
-                borderTopRightRadius: isUser ? 0 : undefined,
+              message={msg}
+              index={index}
+              isGenerating={isGenerating}
+              onRegenerate={() => {
+                const userMsgIndex = findUserMessageIndex(index);
+                if (userMsgIndex !== -1) onRegenerate(userMsgIndex);
               }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
-                  bgcolor: "background.default",
-                  py: 0.5,
-                  px: 1.5,
-                  borderTopLeftRadius: (theme) =>
-                    !isUser ? 0 : theme.shape.borderRadius,
-                  borderTopRightRadius: (theme) =>
-                    isUser ? 0 : theme.shape.borderRadius,
-                }}
-              >
-                <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-                  {msg.sender}
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center" }}>
-                  {isUser && !isGenerating && !isEditing && (
-                    <Tooltip title="Edit" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => handleEditStart(index, msg.content)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          mr: 0.5,
-                          backgroundColor: (theme) => theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  {isAI && !isGenerating && (
-                    <Tooltip title="Apply" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => onApplyItf(msg.content)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          mr: 0.5,
-                          backgroundColor: (theme) => theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <PlaylistAddCheckIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  {(isUser || isAI) && !isGenerating && (
-                    <Tooltip title="Branch from here" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => onBranchFrom(index)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          mr: 0.5,
-                          backgroundColor: (theme) => theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <CallSplitIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  {(isUser || isAI) && !isGenerating && (
-                    <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => handleRegenerate(index)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          mr: 0.5,
-                          backgroundColor: (theme) =>
-                            theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <ReplayIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  <CopyButton content={msg.content} />
-                  {!isGenerating && (
-                    <Tooltip title="Delete" placement="left" enterDelay={1000}>
-                      <IconButton
-                        onClick={() => onDeleteMessage(index)}
-                        size="small"
-                        color="inherit"
-                        sx={{
-                          ml: 0.5,
-                          backgroundColor: (theme) => theme.palette.action.hover,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.action.selected,
-                          },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Box>
-              </Box>
-              <Box
-                className="message-content"
-                sx={{
-                  "& pre": {
-                    whiteSpace: "pre-wrap",
-                    wordWrap: "break-word",
-                    fontFamily: "monospace",
-                  },
-                  "& code": {
-                    fontFamily: "monospace",
-                    backgroundColor: "action.hover",
-                    border: (theme) => `1px solid ${theme.palette.divider}`,
-                    borderRadius: (theme) => `${theme.shape.borderRadius / 3}px`,
-                    px: "4px",
-                    py: "2px",
-                  },
-                  "& pre > code": {
-                    display: "block",
-                    p: 1,
-                    backgroundColor: "action.hover",
-                    border: (theme) => `1px solid ${theme.palette.divider}`,
-                    borderRadius: (theme) => `${theme.shape.borderRadius}px`,
-                  },
-                  "& table": {
-                    borderCollapse: "collapse",
-                    my: 1,
-                    "& th, & td": {
-                      border: (theme) => `1px solid ${theme.palette.divider}`,
-                      p: 1,
-                    },
-                    "& th": {
-                      fontWeight: "bold",
-                      textAlign: "left",
-                    },
-                    "& thead": {
-                      backgroundColor: "action.hover",
-                    },
-                  },
-                  px: 1.5,
-                  pb: 1.5,
-                }}
-              >
-                {isEditing ? (
-                  <Box sx={{ pt: 1 }}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      maxRows={20}
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      variant="outlined"
-                      size="small"
-                      autoFocus
-                    />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        mt: 1,
-                        gap: 1,
-                      }}
-                    >
-                      <IconButton onClick={handleEditCancel} size="small">
-                        <CloseIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={handleEditSave}
-                        size="small"
-                        color="primary"
-                      >
-                        <CheckIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                ) : (
-                  <>
-                    {msg.sender === "AI" || msg.sender === "User" ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || "");
-                            if (match) {
-                              return (
-                                <CodeBlock language={match[1]}>{children}</CodeBlock>
-                              );
-                            }
-                            return (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    ) : (
-                      <Typography component="pre">{msg.content}</Typography>
-                    )}
-                  </>
-                )}
-              </Box>
-            </Paper>
+              onApplyItf={onApplyItf}
+              onEditMessage={onEditMessage}
+              onBranchFrom={onBranchFrom}
+              onDeleteMessage={onDeleteMessage}
+            />
           );
         })}
         {isGenerating &&
