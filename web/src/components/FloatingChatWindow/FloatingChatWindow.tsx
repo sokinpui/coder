@@ -125,7 +125,7 @@ export function FloatingChatWindow({
           <Draggable
             nodeRef={nodeRef}
             handle="#draggable-dialog-title"
-            cancel={'[class*="MuiDialogContent-root"]'}
+            cancel={'[class*="MuiDialogContent-root"], .MuiButtonBase-root'}
             position={position}
             onDrag={handleDrag}
           >
