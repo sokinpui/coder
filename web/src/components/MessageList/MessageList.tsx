@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, memo } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   Box,
   Typography,
@@ -87,14 +88,23 @@ function MessageListComponent({
               <Typography
                 key={index}
                 variant="caption"
+                component="div"
                 sx={{
                   alignSelf: "center",
                   fontStyle: "italic",
                   color: "text.secondary",
                   mb: 1.5,
+                  '& blockquote': {
+                    borderLeft: (theme) => `4px solid ${theme.palette.divider}`,
+                    pl: 1.5,
+                    m: 0,
+                    fontStyle: 'normal',
+                  },
                 }}
               >
-                {msg.content}
+                <ReactMarkdown>
+                  {msg.content}
+                </ReactMarkdown>
               </Typography>
             );
           }

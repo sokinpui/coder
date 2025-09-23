@@ -45,10 +45,11 @@ export function FloatingChatWindow({
   useEffect(() => {
     if (open) {
       setIsMinimized(false);
+      const quotedContext = context.split('\n').map(line => `> ${line}`).join('\n');
       setMessages([
         {
           sender: "System",
-          content: `Asking about the following snippet:\n\n---\n${context}\n---\n\nWhat is your question?`,
+          content: `Asking about the following snippet:\n\n${quotedContext}\n\nWhat is your question?`,
         },
       ]);
     } else {
