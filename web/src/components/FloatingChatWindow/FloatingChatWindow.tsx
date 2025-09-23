@@ -48,6 +48,7 @@ export function FloatingChatWindow({
 
   useEffect(() => {
     if (open) {
+      setIsMinimized(false);
       setMessages([
         {
           sender: "System",
