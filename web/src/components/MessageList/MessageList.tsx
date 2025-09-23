@@ -1,17 +1,11 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useRef, useEffect, useCallback, memo } from "react";
 import {
   Box,
   Typography,
-  CircularProgress,
   Paper,
-  Popper,
-  Fade,
 } from "@mui/material";
 import type { Message } from "../../types";
 import { TypingIndicator } from "../TypingIndicator";
-import { HighlightMenu } from "../HighlightMenu";
 import { MessageItem } from "../MessageItem";
 
 interface MessageListProps {
@@ -23,7 +17,6 @@ interface MessageListProps {
   onBranchFrom: (messageIndex: number) => void;
   onDeleteMessage: (index: number) => void;
   isFloatingChat?: boolean; // Already exists
-  onAskAI?: (text: string) => void; // Make optional
 }
 
 function MessageListComponent({
@@ -35,31 +28,9 @@ function MessageListComponent({
   onBranchFrom,
   onDeleteMessage,
   isFloatingChat = false, // Already exists
-  onAskAI, // Now optional
 }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [highlightMenuState, setHighlightMenuState] = useState<{
-    open: boolean;
-    anchorEl: { getBoundingClientRect: () => DOMRect } | null;
-    selectedText: string;
-  }>({
-    open: false,
-    anchorEl: null,
-    selectedText: "",
-  });
-
-  const findUserMessageIndex = (currentIndex: number) => {
-    let userMessageIndex = -1;
-    for (let i = currentIndex; i >= 0; i--) {
-      if (messages[i].sender === "User") {
-        userMessageIndex = i;
-        break;
-      }
-    }
-    return userMessageIndex;
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,66 +50,28 @@ function MessageListComponent({
     if (isScrolledToBottom) scrollToBottom();
   }, [messages]);
 
-  const handleCloseHighlightMenu = useCallback(() => {
-    setHighlightMenuState((prev) => ({ ...prev, open: false }));
-  }, []);
-
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (menuRef.current && menuRef.current.contains(event.target as Node)) {
-      return;
-    }
-
-    setTimeout(() => {
-      const selection = window.getSelection();
-      if (selection && selection.toString().trim().length > 0) {
-        const range = selection.getRangeAt(0);
-
-        const virtualEl = {
-          getBoundingClientRect: () => range.getBoundingClientRect(),
-        };
-
-        setHighlightMenuState({
-          open: true,
-          anchorEl: virtualEl,
-          selectedText: selection.toString(),
-        });
-      } else {
-        handleCloseHighlightMenu();
-      }
-    }, 10);
-  };
-
-  const handleCopySuccess = () => {
-    setTimeout(() => {
-      handleCloseHighlightMenu();
-      window.getSelection()?.removeAllRanges();
-    }, 500);
-  };
-
-  const handleAskAI = (text: string) => {
-    if (onAskAI) {
-      onAskAI(text);
-    }
-    handleCloseHighlightMenu();
-  };
-
+  const messagesRef = useRef(messages);
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    messagesRef.current = messages;
+  }, [messages]);
 
-    const handleScroll = () => {
-      if (highlightMenuState.open) handleCloseHighlightMenu();
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [highlightMenuState.open, handleCloseHighlightMenu]);
+  const handleRegenerate = useCallback((currentIndex: number) => {
+    let userMessageIndex = -1;
+    for (let i = currentIndex; i >= 0; i--) {
+      if (messagesRef.current[i].sender === "User") {
+        userMessageIndex = i;
+        break;
+      }
+    }
+    if (userMessageIndex !== -1) {
+      onRegenerate(userMessageIndex);
+    }
+  }, [onRegenerate]);
 
   return (
     <>
       <Box
         ref={scrollContainerRef}
-        onMouseUp={handleMouseUp}
         sx={{
           flexGrow: 1,
           overflowY: "auto",
@@ -172,10 +105,7 @@ function MessageListComponent({
               message={msg}
               index={index}
               isGenerating={isGenerating}
-              onRegenerate={() => {
-                const userMsgIndex = findUserMessageIndex(index);
-                if (userMsgIndex !== -1) onRegenerate(userMsgIndex);
-              }}
+              onRegenerate={handleRegenerate}
               onApplyItf={onApplyItf}
               onEditMessage={onEditMessage}
               onBranchFrom={onBranchFrom}
@@ -206,25 +136,6 @@ function MessageListComponent({
           )}
         <div ref={messagesEndRef} />
       </Box>
-      <Popper
-        open={highlightMenuState.open}
-        anchorEl={highlightMenuState.anchorEl}
-        placement="top"
-        transition
-        sx={{ zIndex: 1300 }}
-      >
-        {({ TransitionProps }) => (
-          <Fade {...TransitionProps} timeout={150}>
-            <div ref={menuRef}>
-              <HighlightMenu
-                selectedText={highlightMenuState.selectedText}
-                onCopySuccess={handleCopySuccess}
-                onAskAI={onAskAI ? handleAskAI : undefined}
-              />
-            </div>
-          </Fade>
-        )}
-      </Popper>
     </>
   );
 }

@@ -21,6 +21,7 @@ import {
   Palette as PaletteIcon,
   FormatListNumbered as FormatListNumberedIcon,
   Refresh as RefreshIcon,
+  Psychology as PsychologyIcon,
 } from "@mui/icons-material";
 import { AppContext } from "../../AppContext";
 
@@ -41,6 +42,7 @@ interface TopBarProps {
   showLineNumbers: boolean;
   onToggleLineNumbers: () => void;
   onReload: () => void;
+  onAskAI: () => void;
 }
 
 export function TopBar({
@@ -60,6 +62,7 @@ export function TopBar({
   showLineNumbers,
   onToggleLineNumbers,
   onReload,
+  onAskAI,
 }: TopBarProps) {
   const theme = useTheme();
   const { toggleColorMode, toggleCodeTheme } = useContext(AppContext);
@@ -211,11 +214,18 @@ export function TopBar({
           </>
         )}
         {(view === "code" || view === "git") && (
-          <Tooltip title="Reload" enterDelay={1000}>
-            <IconButton onClick={onReload} color="inherit">
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+          <>
+            <Tooltip title="Ask AI about selection" enterDelay={1000}>
+              <IconButton onClick={onAskAI} color="inherit">
+                <PsychologyIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Reload" enterDelay={1000}>
+              <IconButton onClick={onReload} color="inherit">
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </>
         )}
         {view === "code" && (
           <Tooltip title="Toggle line numbers" enterDelay={1000}>

@@ -1,5 +1,4 @@
 import {
-  Popper,
   Box,
   Typography,
   List,
@@ -12,7 +11,6 @@ import {
   TextField,
   Tooltip,
   Link,
-  Fade,
   useTheme,
 } from "@mui/material";
 import {
@@ -41,8 +39,7 @@ import { AppContext } from "../../AppContext";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { CodeBlock } from "../CodeBlock";
-import { CopyButton } from "../CopyButton";
-import { HighlightMenu } from "../HighlightMenu";
+import { CopyButton } from '../CopyButton';
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, lineNumbers } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -56,7 +53,6 @@ interface SourceBrowserProps {
   activeFile: { path: string; content: string } | null;
   onFileSelect: (path: string) => void;
   showLineNumbers: boolean;
-  onAskAI: (text: string) => void;
 }
 
 interface TreeNodeProps {
@@ -167,7 +163,6 @@ function SourceBrowserComponent({
   activeFile,
   onFileSelect,
   showLineNumbers,
-  onAskAI,
 }: SourceBrowserProps) {
   const { codeTheme } = useContext(AppContext);
   const muiTheme = useTheme();
@@ -180,57 +175,6 @@ function SourceBrowserComponent({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentBoxRef = useRef<HTMLDivElement>(null);
   const [langExtension, setLangExtension] = useState<Extension | undefined>();
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [highlightMenuState, setHighlightMenuState] = useState<{
-    open: boolean;
-    anchorEl: { getBoundingClientRect: () => DOMRect } | null;
-    selectedText: string;
-  }>({
-    open: false,
-    anchorEl: null,
-    selectedText: "",
-  });
-
-  const handleCloseHighlightMenu = useCallback(() => {
-    setHighlightMenuState((prev) => ({ ...prev, open: false }));
-  }, []);
-
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (menuRef.current && menuRef.current.contains(event.target as Node)) {
-      return;
-    }
-
-    setTimeout(() => {
-      const selection = window.getSelection();
-      if (selection && selection.toString().trim().length > 0) {
-        const range = selection.getRangeAt(0);
-
-        const virtualEl = {
-          getBoundingClientRect: () => range.getBoundingClientRect(),
-        };
-
-        setHighlightMenuState({
-          open: true,
-          anchorEl: virtualEl,
-          selectedText: selection.toString(),
-        });
-      } else {
-        handleCloseHighlightMenu();
-      }
-    }, 10);
-  };
-
-  const handleCopySuccess = () => {
-    setTimeout(() => {
-      handleCloseHighlightMenu();
-      window.getSelection()?.removeAllRanges();
-    }, 500);
-  };
-
-  const handleAskAI = (text: string) => {
-    onAskAI(text);
-    handleCloseHighlightMenu();
-  };
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -369,18 +313,6 @@ function SourceBrowserComponent({
       document.removeEventListener("mouseup", handleResizeMouseUp);
     };
   }, [isResizing, handleMouseMove, handleResizeMouseUp]);
-
-  useEffect(() => {
-    const container = contentBoxRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      if (highlightMenuState.open) handleCloseHighlightMenu();
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [highlightMenuState.open, handleCloseHighlightMenu]);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -587,7 +519,7 @@ function SourceBrowserComponent({
             {activeFile && <CopyButton content={activeFile.content} />}
           </Box>
         </Box>
-        <Box sx={{ overflow: "auto", flexGrow: 1 }} ref={contentBoxRef} onMouseUp={handleMouseUp}>
+        <Box sx={{ overflow: "auto", flexGrow: 1 }} ref={contentBoxRef}>
           {activeFile ? (
             isMarkdown && markdownViewMode === 'render' ? (
               <Box
@@ -695,25 +627,6 @@ function SourceBrowserComponent({
         </Box>
       </Box>
       </Box>
-      <Popper
-        open={highlightMenuState.open}
-        anchorEl={highlightMenuState.anchorEl}
-        placement="top"
-        transition
-        sx={{ zIndex: 1300 }}
-      >
-        {({ TransitionProps }) => (
-          <Fade {...TransitionProps} timeout={150}>
-            <div ref={menuRef}>
-              <HighlightMenu
-                selectedText={highlightMenuState.selectedText}
-                onCopySuccess={handleCopySuccess}
-                onAskAI={handleAskAI}
-              />
-            </div>
-          </Fade>
-        )}
-      </Popper>
     </>
   );
 }

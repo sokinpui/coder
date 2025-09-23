@@ -24,7 +24,7 @@ interface MessageItemProps {
   message: Message;
   index: number;
   isGenerating: boolean;
-  onRegenerate: () => void;
+  onRegenerate: (index: number) => void;
   onApplyItf: (content: string) => void;
   onEditMessage: (index: number, content: string) => void;
   onBranchFrom: (index: number) => void;
@@ -71,7 +71,7 @@ function MessageItemComponent({
       onEditMessage(index, editedContent); // Save the current edited content before regenerating
       setIsEditing(false); // Exit editing mode
     }
-    onRegenerate(); // Then trigger regeneration
+    onRegenerate(index); // Then trigger regeneration
   };
 
   const isUser = message.sender === 'User';

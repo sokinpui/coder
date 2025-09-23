@@ -182,14 +182,18 @@ function App() {
     deleteMessage(index)
   }, [deleteMessage]);
 
-  const handleAskAI = useCallback((text: string) => {
-    setFloatingChat({ open: true, context: text });
+  const handleAskAIFromSelection = useCallback(() => {
+    const selection = window.getSelection();
+    const selectedText = selection ? selection.toString().trim() : '';
+    if (selectedText) {
+      setFloatingChat({ open: true, context: selectedText });
+      selection?.removeAllRanges();
+    }
   }, []);
 
   const handleCloseFloatingChat = useCallback(() => {
     setFloatingChat({ open: false, context: '' });
   }, []);
-
   const handleFileSelect = useCallback((path: string) => {
     navigate(`/code/${path}`);
   }, [navigate]);
@@ -272,6 +276,7 @@ function App() {
 					showLineNumbers={showLineNumbers}
 					onToggleLineNumbers={handleToggleLineNumbers}
           onReload={handleReload}
+          onAskAI={handleAskAIFromSelection}
         />
         <Routes>
           <Route path="/code/*" element={
@@ -279,11 +284,10 @@ function App() {
               tree={sourceTree}
               activeFile={activeFile}
               onFileSelect={handleFileSelect}
-              onAskAI={handleAskAI}
               showLineNumbers={showLineNumbers}
             />
           } />
-          <Route path="/git/*" element={<GitBrowser log={gitGraphLog} commitDiff={commitDiff} onAskAI={handleAskAI} />} />
+          <Route path="/git/*" element={<GitBrowser log={gitGraphLog} commitDiff={commitDiff} />} />
           <Route path="/*" element={
             <>
               <MessageList
@@ -294,8 +298,6 @@ function App() {
                 onEditMessage={handleEditMessage}
                 onBranchFrom={handleBranchFrom}
                 onDeleteMessage={handleDeleteMessage}
-                // Disable Ask AI in main chat view
-                onAskAI={view === 'chat' ? undefined : handleAskAI}
               />
               <ChatInput key={sessionKey} sendMessage={handleSendMessage} cancelGeneration={cancelGeneration} isGenerating={isGenerating} />
             </>
