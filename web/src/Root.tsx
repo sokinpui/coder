@@ -1,26 +1,26 @@
-import { useMemo, useState } from 'react'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { BrowserRouter } from 'react-router-dom'
-import CssBaseline from '@mui/material/CssBaseline'
-import App from './App.tsx'
-import { AppContext, type AppContextType } from './AppContext.ts'
+import { useMemo, useState } from "react";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { BrowserRouter } from "react-router-dom";
+import CssBaseline from "@mui/material/CssBaseline";
+import App from "./App.tsx";
+import { AppContext, type AppContextType } from "./AppContext.ts";
 
 export function Root() {
-  const [mode, setMode] = useState<'light' | 'dark'>('light')
-  const [codeTheme, setCodeTheme] = useState<'light' | 'dark'>('light')
+  const [mode, setMode] = useState<"light" | "dark">("light");
+  const [codeTheme, setCodeTheme] = useState<"light" | "dark">("light");
 
   const appContext = useMemo<AppContextType>(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'))
+        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
       },
       codeTheme,
       toggleCodeTheme: () => {
-        setCodeTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'))
+        setCodeTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
       },
     }),
     [codeTheme],
-  )
+  );
 
   const theme = useMemo(
     () =>
@@ -30,23 +30,23 @@ export function Root() {
         },
         palette: {
           mode,
-          ...(mode === 'light'
+          ...(mode === "light"
             ? {
                 background: {
-                  default: '#f4f6f8',
-                  paper: '#ffffff',
+                  default: "#f4f6f8",
+                  paper: "#ffffff",
                 },
               }
             : {
                 background: {
-                  default: '#121212',
-                  paper: '#1e1e1e',
+                  default: "#121212",
+                  paper: "#1e1e1e",
                 },
               }),
         },
       }),
     [mode],
-  )
+  );
 
   return (
     <AppContext.Provider value={appContext}>
@@ -57,5 +57,5 @@ export function Root() {
         </BrowserRouter>
       </ThemeProvider>
     </AppContext.Provider>
-  )
+  );
 }
