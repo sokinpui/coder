@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import Draggable, {
-  type DraggableData,
-  type DraggableEvent,
-} from "react-draggable";
+import Draggable from "react-draggable";
 import {
   Dialog,
   DialogTitle,
@@ -42,7 +39,6 @@ export function FloatingChatWindow({
   askAI,
 }: FloatingChatWindowProps) {
   const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -64,10 +60,6 @@ export function FloatingChatWindow({
 
   const handleMinimizeToggle = () => {
     setIsMinimized(!isMinimized);
-  };
-
-  const handleDrag = (_e: DraggableEvent, data: DraggableData) => {
-    setPosition({ x: data.x, y: data.y });
   };
 
   const handleSendMessage = useCallback(
@@ -126,9 +118,7 @@ export function FloatingChatWindow({
           <Draggable
             nodeRef={nodeRef}
             handle="#draggable-dialog-title"
-            cancel={'[class*="MuiDialogContent-root"], .MuiButtonBase-root'}
-            position={position}
-            onDrag={handleDrag}
+            cancel={'[class*="MuiDialogContent-root"]'}
           >
             <Paper ref={nodeRef} {...props} />
           </Draggable>
@@ -177,6 +167,7 @@ export function FloatingChatWindow({
         <Box>
           <IconButton
             onClick={handleMinimizeToggle}
+            onMouseDown={(e) => e.stopPropagation()}
             size="small"
             sx={{ mr: 0.5 }}
           >
@@ -186,7 +177,7 @@ export function FloatingChatWindow({
               <MinimizeIcon fontSize="small" />
             )}
           </IconButton>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} onMouseDown={(e) => e.stopPropagation()} size="small">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
