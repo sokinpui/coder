@@ -39,18 +39,14 @@ var (
 	userInputStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("244")).
-			Padding(0, 1).
-			BorderLeft(false).
-			BorderRight(false)
+			Padding(0, 1)
 	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
 	actionInputStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
-				Padding(0, 1).
-				BorderLeft(false).
-				BorderRight(false)
+				Padding(0, 1)
 	actionResultStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
@@ -69,9 +65,7 @@ var (
 	commandInputStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
-				Padding(0, 1).
-				BorderLeft(false).
-				BorderRight(false)
+				Padding(0, 1)
 	commandResultStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
