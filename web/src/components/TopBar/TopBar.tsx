@@ -213,19 +213,19 @@ export function TopBar({
             </FormControl>
           </>
         )}
+        {view === "code" && (
+          <Tooltip title="Ask AI about selection" enterDelay={1000}>
+            <IconButton onClick={onAskAI} color="inherit">
+              <PsychologyIcon />
+            </IconButton>
+          </Tooltip>
+        )}
         {(view === "code" || view === "git") && (
-          <>
-            <Tooltip title="Ask AI about selection" enterDelay={1000}>
-              <IconButton onClick={onAskAI} color="inherit">
-                <PsychologyIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Reload" enterDelay={1000}>
-              <IconButton onClick={onReload} color="inherit">
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </>
+          <Tooltip title="Reload" enterDelay={1000}>
+            <IconButton onClick={onReload} color="inherit">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
         )}
         {view === "code" && (
           <Tooltip title="Toggle line numbers" enterDelay={1000}>
