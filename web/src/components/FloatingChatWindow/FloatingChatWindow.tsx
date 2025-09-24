@@ -41,6 +41,7 @@ export function FloatingChatWindow({
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const nodeRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -113,18 +114,15 @@ export function FloatingChatWindow({
     <Dialog
       open={open}
       onClose={onClose}
-      PaperComponent={(props: PaperProps) => {
-        const nodeRef = useRef(null);
-        return (
-          <Draggable
-            nodeRef={nodeRef}
-            handle="#draggable-dialog-title"
-            cancel={'[class*="MuiDialogContent-root"]'}
-          >
-            <Paper ref={nodeRef} {...props} />
-          </Draggable>
-        );
-      }}
+      PaperComponent={(props: PaperProps) => (
+        <Draggable
+          nodeRef={nodeRef}
+          handle="#draggable-dialog-title"
+          cancel={'[class*="MuiDialogContent-root"]'}
+        >
+          <Paper ref={nodeRef} {...props} />
+        </Draggable>
+      )}
       PaperProps={
         {
           sx: {
