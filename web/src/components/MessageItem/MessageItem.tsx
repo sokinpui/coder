@@ -75,33 +75,10 @@ function MessageItemComponent({
   };
 
   const isUser = message.sender === 'User';
+  const isFromUser = message.sender === 'User' || message.sender === 'Image';
   const isError = message.sender === 'Error';
   const isAI = message.sender === 'AI';
   const isImage = message.sender === 'Image';
-
-  if (isImage) {
-    return (
-      <Paper
-        elevation={1}
-        sx={{
-          p: 1,
-          mb: 1.5,
-          maxWidth: '50%',
-          alignSelf: 'flex-end', // Images are from user, so align right
-          bgcolor: 'background.paper',
-        }}
-      >
-        <img
-          src={message.dataURL || `/files/${message.content}`} // Use dataURL if available, else fallback to file path
-          alt={message.content}
-          style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-        />
-        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
-          {message.content.split('/').pop()}
-        </Typography>
-      </Paper>
-    );
-  }
 
   return (
     <Paper
@@ -109,13 +86,13 @@ function MessageItemComponent({
       sx={{
         position: 'relative',
         mb: 1.5,
-        maxWidth: '100%',
-        width: isEditing || !isUser ? '100%' : 'auto',
-        alignSelf: isUser ? 'flex-end' : 'flex-start',
+        maxWidth: isImage ? '50%' : '100%',
+        width: isEditing || !isFromUser ? '100%' : 'auto',
+        alignSelf: isFromUser ? 'flex-end' : 'flex-start',
         bgcolor: 'background.paper',
         color: isError ? 'error.main' : 'text.primary',
-        borderTopLeftRadius: !isUser ? 0 : undefined,
-        borderTopRightRadius: isUser ? 0 : undefined,
+        borderTopLeftRadius: !isFromUser ? 0 : undefined,
+        borderTopRightRadius: isFromUser ? 0 : undefined,
       }}
     >
       <Box
@@ -130,9 +107,9 @@ function MessageItemComponent({
           py: 0.5,
           px: 1.5,
           borderTopLeftRadius: (theme) =>
-            !isUser ? 0 : theme.shape.borderRadius,
+            !isFromUser ? 0 : theme.shape.borderRadius,
           borderTopRightRadius: (theme) =>
-            isUser ? 0 : theme.shape.borderRadius,
+            isFromUser ? 0 : theme.shape.borderRadius,
         }}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
@@ -216,7 +193,7 @@ function MessageItemComponent({
               </IconButton>
             </Tooltip>
           )}
-          <CopyButton content={message.content} />
+          {!isImage && <CopyButton content={message.content} />}
           {!isGenerating && !isFloatingChat && (
             <Tooltip title="Delete" placement="left" enterDelay={1000}>
               <IconButton
@@ -289,7 +266,18 @@ function MessageItemComponent({
           />
         ) : (
           <>
-            {message.sender === 'AI' || message.sender === 'User' ? (
+            {isImage ? (
+              <>
+                <img
+                  src={message.dataURL || `/files/${message.content}`}
+                  alt={message.content}
+                  style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                />
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
+                  {message.content.split('/').pop()}
+                </Typography>
+              </>
+            ) : message.sender === 'AI' || message.sender === 'User' ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{

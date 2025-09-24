@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -136,9 +137,34 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 
+	repoRoot, err := utils.FindRepoRoot()
+	if err != nil {
+		log.Printf("Error finding repo root for deleting image: %v", err)
+		// We can still proceed to delete the message from history, but log the error.
+		repoRoot = ""
+	}
+
 	toDelete := make(map[int]struct{})
 	for _, idx := range indices {
+		if idx < 0 || idx >= len(s.messages) {
+			continue
+		}
 		toDelete[idx] = struct{}{}
+
+		msg := s.messages[idx]
+		if msg.Type == core.ImageMessage && repoRoot != "" {
+			imagePath := filepath.Join(repoRoot, msg.Content)
+			// Security check to prevent path traversal
+			if !strings.HasPrefix(imagePath, filepath.Join(repoRoot, ".coder", "images")) {
+				log.Printf("Skipping deletion of potential path traversal: %s", msg.Content)
+				continue
+			}
+
+			err := os.Remove(imagePath)
+			if err != nil && !os.IsNotExist(err) {
+				log.Printf("Failed to delete image file %s: %v", imagePath, err)
+			}
+		}
 	}
 
 	newMessages := make([]core.Message, 0, len(s.messages)-len(indices))
