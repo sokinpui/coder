@@ -1,10 +1,6 @@
 import { useRef, useEffect, useCallback, memo } from "react";
 import ReactMarkdown from "react-markdown";
-import {
-  Box,
-  Typography,
-  Paper,
-} from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 import type { Message } from "../../types";
 import { TypingIndicator } from "../TypingIndicator";
 import { MessageItem } from "../MessageItem";
@@ -56,18 +52,21 @@ function MessageListComponent({
     messagesRef.current = messages;
   }, [messages]);
 
-  const handleRegenerate = useCallback((currentIndex: number) => {
-    let userMessageIndex = -1;
-    for (let i = currentIndex; i >= 0; i--) {
-      if (messagesRef.current[i].sender === "User") {
-        userMessageIndex = i;
-        break;
+  const handleRegenerate = useCallback(
+    (currentIndex: number) => {
+      let userMessageIndex = -1;
+      for (let i = currentIndex; i >= 0; i--) {
+        if (messagesRef.current[i].sender === "User") {
+          userMessageIndex = i;
+          break;
+        }
       }
-    }
-    if (userMessageIndex !== -1) {
-      onRegenerate(userMessageIndex);
-    }
-  }, [onRegenerate]);
+      if (userMessageIndex !== -1) {
+        onRegenerate(userMessageIndex);
+      }
+    },
+    [onRegenerate],
+  );
 
   return (
     <>
@@ -94,17 +93,15 @@ function MessageListComponent({
                   fontStyle: "italic",
                   color: "text.secondary",
                   mb: 1.5,
-                  '& blockquote': {
+                  "& blockquote": {
                     borderLeft: (theme) => `4px solid ${theme.palette.divider}`,
                     pl: 1.5,
                     m: 0,
-                    fontStyle: 'normal',
+                    fontStyle: "normal",
                   },
                 }}
               >
-                <ReactMarkdown>
-                  {msg.content}
-                </ReactMarkdown>
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
               </Typography>
             );
           }
@@ -139,7 +136,7 @@ function MessageListComponent({
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body2">I am Thinking</Typography>
+                <Typography variant="body2">Thinking</Typography>
                 <TypingIndicator />
               </Box>
             </Paper>

@@ -153,7 +153,7 @@ func (m Model) renderConversation() string {
 		thinkingText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
 			Italic(true).
-			Render("I am thinking ")
+			Render("Thinking ")
 
 		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.spinner.View())
 		// Apply padding to the container.
