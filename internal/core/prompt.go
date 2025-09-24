@@ -63,6 +63,10 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 				sb.WriteString("User:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
+			case ImageMessage:
+				sb.WriteString("Image:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
 			case ActionMessage:
 				if i+1 >= len(messages) {
 					continue

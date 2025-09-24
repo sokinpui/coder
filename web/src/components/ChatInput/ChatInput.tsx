@@ -5,10 +5,11 @@ import { Send as SendIcon } from '@mui/icons-material'
 interface ChatInputProps {
   isGenerating: boolean
   sendMessage: (message: string) => void
+  uploadImage: (dataURL: string) => void
   cancelGeneration: () => void
 }
 
-export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatInputProps) {
+export function ChatInput({ isGenerating, sendMessage, uploadImage, cancelGeneration }: ChatInputProps) {
   const [value, setValue] = useState('')
   const handleSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault()
@@ -19,6 +20,26 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatI
     sendMessage(value)
     setValue('')
   }
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              uploadImage(event.target.result as string);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        e.preventDefault(); // Prevent pasting image data as text
+        return;
+      }
+    }
+  };
 
   return (
     <Box
@@ -31,6 +52,7 @@ export function ChatInput({ isGenerating, sendMessage, cancelGeneration }: ChatI
         variant="outlined"
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onPaste={handlePaste}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && e.shiftKey) {
             e.preventDefault()

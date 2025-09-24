@@ -36,7 +36,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'npm' # TODO: not working
         cache-dependency-path: 'web/package-lock.json'
 
     - name: Build frontend

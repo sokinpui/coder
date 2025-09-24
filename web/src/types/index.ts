@@ -1,5 +1,5 @@
 export interface Message {
-  sender: "User" | "AI" | "System" | "Command" | "Result" | "Error";
+  sender: "User" | "AI" | "System" | "Command" | "Result" | "Error" | "Image";
   content: string;
 }
 

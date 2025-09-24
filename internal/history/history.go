@@ -106,6 +106,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 var roleToMessageType = map[string]core.MessageType{
 	"User:":                   core.UserMessage,
 	"AI Assistant:":           core.AIMessage,
+	"Image:":                  core.ImageMessage,
 	"Action Execute:":         core.ActionMessage,
 	"Action Execute Result:":  core.ActionResultMessage,
 	"Action Execute Error:":   core.ActionErrorResultMessage,

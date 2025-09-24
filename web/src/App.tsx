@@ -19,6 +19,7 @@ function App() {
     isAnimatingTitle,
     onTitleAnimationEnd,
     sendMessage,
+    uploadImage,
     cwd,
     isGenerating,
     tokenCount,
@@ -354,6 +355,7 @@ function App() {
                 <ChatInput
                   key={sessionKey}
                   sendMessage={handleSendMessage}
+                  uploadImage={uploadImage}
                   cancelGeneration={cancelGeneration}
                   isGenerating={isGenerating}
                 />

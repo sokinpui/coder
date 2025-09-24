@@ -77,6 +77,31 @@ function MessageItemComponent({
   const isUser = message.sender === 'User';
   const isError = message.sender === 'Error';
   const isAI = message.sender === 'AI';
+  const isImage = message.sender === 'Image';
+
+  if (isImage) {
+    return (
+      <Paper
+        elevation={1}
+        sx={{
+          p: 1,
+          mb: 1.5,
+          maxWidth: '50%',
+          alignSelf: 'flex-end', // Images are from user, so align right
+          bgcolor: 'background.paper',
+        }}
+      >
+        <img
+          src={`/files/${message.content}`}
+          alt={message.content}
+          style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+        />
+        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
+          {message.content.split('/').pop()}
+        </Typography>
+      </Paper>
+    );
+  }
 
   return (
     <Paper

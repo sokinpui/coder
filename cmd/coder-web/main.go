@@ -16,17 +16,24 @@ import (
 )
 
 func main() {
-	if _, err := utils.FindRepoRoot(); err != nil {
+	repoRoot, err := utils.FindRepoRoot()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error: This application must be run from within a git repository.")
 		os.Exit(1)
 	}
+
 	addr := flag.String("addr", ":0", "http service address. Defaults to a random unused port.")
 	noBrowser := flag.Bool("no-browser", false, "Do not open the browser automatically.")
 	flag.Parse()
 
 	logger.Init()
 
+	// WebSocket handler
 	http.HandleFunc("/ws", server.HandleConnections)
+
+	// Serve project files (e.g., for images in .coder/images)
+	// This allows the frontend to request /files/.coder/images/some-image.png
+	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(repoRoot))))
 
 	// Serve static files for the web UI
 	distFS, err := fs.Sub(web.Assets, "dist")

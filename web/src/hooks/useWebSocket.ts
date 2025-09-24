@@ -207,6 +207,18 @@ export function useWebSocket(url: string) {
     ws.current.send(JSON.stringify(wsMsg));
   }, []);
 
+  const uploadImage = useCallback((dataURL: string) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not open.");
+      return;
+    }
+    const wsMsg = {
+      type: "imageUpload",
+      payload: dataURL,
+    };
+    ws.current.send(JSON.stringify(wsMsg));
+  }, []);
+
   const onTitleAnimationEnd = useCallback(() => setIsAnimatingTitle(false), []);
 
   const cancelGeneration = useCallback(() => {
@@ -358,6 +370,7 @@ export function useWebSocket(url: string) {
     isAnimatingTitle,
     onTitleAnimationEnd,
 		askAI,
+		uploadImage,
 		sendMessage,
 		cwd,
 		tokenCount,
