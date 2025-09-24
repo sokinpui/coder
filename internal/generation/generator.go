@@ -72,7 +72,7 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
-		ModelCode: config.AvailableModels[4],
+		ModelCode: config.AvailableModels[2],
 		Stream:    false,
 		Config: &client.GenerationConfig{
 			Temperature:  &temp,
