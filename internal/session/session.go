@@ -7,9 +7,11 @@ import (
 	"coder/internal/generation"
 	"coder/internal/history"
 	"coder/internal/source"
+	"coder/internal/utils"
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -400,6 +402,22 @@ func (s *Session) startGeneration() Event {
 	// Reverse the slice to maintain the original order of images.
 	for i, j := 0, len(imgPaths)-1; i < j; i, j = i+1, j-1 {
 		imgPaths[i], imgPaths[j] = imgPaths[j], imgPaths[i]
+	}
+
+	// Convert relative image paths to absolute paths for the generation server.
+	if len(imgPaths) > 0 {
+		repoRoot, err := utils.FindRepoRoot()
+		if err != nil {
+			log.Printf("Error finding repo root for image paths: %v", err)
+			s.messages = append(s.messages, core.Message{
+				Type:    core.CommandErrorResultMessage,
+				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
+			})
+			return Event{Type: MessagesUpdated}
+		}
+		for i, p := range imgPaths {
+			imgPaths[i] = filepath.Join(repoRoot, p)
+		}
 	}
 
 	streamChan := make(chan string)
