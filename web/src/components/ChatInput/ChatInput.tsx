@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Box, TextField, IconButton, Button, CircularProgress } from '@mui/material'
 import { Send as SendIcon } from '@mui/icons-material'
+import { fileToDataUrl, processImage } from '../../utils/image'
 
 interface ChatInputProps {
   isGenerating: boolean
@@ -20,41 +21,24 @@ export function ChatInput({ isGenerating, sendMessage, uploadImage, cancelGenera
     sendMessage(value)
     setValue('')
   }
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile()
-        if (file) {
-          const reader = new FileReader()
-          reader.onload = (event) => {
-            if (event.target?.result) {
-              const img = new Image()
-              img.onload = () => {
-                const canvas = document.createElement('canvas')
-                canvas.width = img.width
-                canvas.height = img.height
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                  ctx.drawImage(img, 0, 0)
-                  const dataUrl = canvas.toDataURL('image/jpeg', 0.9) // 0.9 is quality
-                  uploadImage(dataUrl)
-                } else {
-                  console.error('Failed to get 2D context for canvas. Image upload aborted.');
-                }
-              }
-              img.onerror = () => {
-                console.error('Failed to load image into canvas. Image upload aborted.');
-              }
-              img.src = event.target.result as string
-            }
-          }
-          reader.readAsDataURL(file)
-        }
-        e.preventDefault() // Prevent pasting image data as text
-        return
-      }
+  
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const imageFile = Array.from(e.clipboardData.items)
+      .find((item) => item.type.includes('image'))
+      ?.getAsFile()
+  
+    if (!imageFile) {
+      return
+    }
+  
+    e.preventDefault()
+  
+    try {
+      const dataUrl = await fileToDataUrl(imageFile)
+      const processedDataUrl = await processImage(dataUrl)
+      uploadImage(processedDataUrl)
+    } catch (error) {
+      console.error('Failed to process pasted image:', error)
     }
   }
 

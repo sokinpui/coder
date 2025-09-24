@@ -5,20 +5,11 @@ import {
   Box,
   Paper,
   Typography,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
-import {
-  Replay as ReplayIcon,
-  PlaylistAddCheck as PlaylistAddCheckIcon,
-  Edit as EditIcon,
-  CallSplit as CallSplitIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
 import type { Message } from '../../types';
-import { CopyButton } from '../CopyButton';
 import { CodeBlock } from '../CodeBlock';
 import { MessageEditor } from '../MessageEditor';
+import { MessageActions } from '../MessageActions';
 
 interface MessageItemProps {
   message: Message;
@@ -75,10 +66,10 @@ function MessageItemComponent({
   };
 
   const isUser = message.sender === 'User';
-  const isFromUser = message.sender === 'User' || message.sender === 'Image';
   const isError = message.sender === 'Error';
   const isAI = message.sender === 'AI';
   const isImage = message.sender === 'Image';
+  const isFromUser = isUser || isImage;
 
   return (
     <Paper
@@ -115,105 +106,20 @@ function MessageItemComponent({
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
           {message.sender}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isUser && !isGenerating && !isEditing && (
-            <Tooltip title="Edit" placement="left" enterDelay={1000}>
-              <IconButton
-                onClick={handleEditStart}
-                size="small"
-                color="inherit"
-                sx={{
-                  mr: 0.5,
-                  backgroundColor: (theme) => theme.palette.action.hover,
-                  '&:hover': {
-                    backgroundColor: (theme) =>
-                      theme.palette.action.selected,
-                  },
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {isAI && !isGenerating && !isFloatingChat && (
-            <Tooltip title="Apply" placement="left" enterDelay={1000}>
-              <IconButton
-                onClick={() => onApplyItf(message.content)}
-                size="small"
-                color="inherit"
-                sx={{
-                  mr: 0.5,
-                  backgroundColor: (theme) => theme.palette.action.hover,
-                  '&:hover': {
-                    backgroundColor: (theme) =>
-                      theme.palette.action.selected,
-                  },
-                }}
-              >
-                <PlaylistAddCheckIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {(isUser || isAI) && !isGenerating && !isFloatingChat && (
-            <Tooltip title="Branch from here" placement="left" enterDelay={1000}>
-              <IconButton
-                onClick={() => onBranchFrom(index)}
-                size="small"
-                color="inherit"
-                sx={{
-                  mr: 0.5,
-                  backgroundColor: (theme) => theme.palette.action.hover,
-                  '&:hover': {
-                    backgroundColor: (theme) =>
-                      theme.palette.action.selected,
-                  },
-                }}
-              >
-                <CallSplitIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {(isUser || isAI) && !isGenerating && !isFloatingChat && (
-            <Tooltip title="Regenerate" placement="left" enterDelay={1000}>
-              <IconButton // Modified: Use handleRegenerateClick
-                onClick={handleRegenerateClick}
-                size="small"
-                color="inherit"
-                sx={{
-                  mr: 0.5,
-                  backgroundColor: (theme) =>
-                    theme.palette.action.hover,
-                  '&:hover': {
-                    backgroundColor: (theme) =>
-                      theme.palette.action.selected,
-                  },
-                }}
-              >
-                <ReplayIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-          {!isImage && <CopyButton content={message.content} />}
-          {!isGenerating && !isFloatingChat && (
-            <Tooltip title="Delete" placement="left" enterDelay={1000}>
-              <IconButton
-                onClick={() => onDeleteMessage(index)}
-                size="small"
-                color="inherit"
-                sx={{
-                  ml: 0.5,
-                  backgroundColor: (theme) => theme.palette.action.hover,
-                  '&:hover': {
-                    backgroundColor: (theme) =>
-                      theme.palette.action.selected,
-                  },
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
+        <MessageActions
+          isUser={isUser}
+          isAI={isAI}
+          isImage={isImage}
+          isGenerating={isGenerating}
+          isEditing={isEditing}
+          isFloatingChat={isFloatingChat}
+          messageContent={message.content}
+          onEditStart={handleEditStart}
+          onApplyItf={() => onApplyItf(message.content)}
+          onBranchFrom={() => onBranchFrom(index)}
+          onRegenerate={handleRegenerateClick}
+          onDelete={() => onDeleteMessage(index)}
+        />
       </Box>
       <Box
         className="message-content"
