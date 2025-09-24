@@ -291,8 +291,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 
 				if userMsgIndex != -1 {
-					m.state = stateIdle
-					m.visualMode = visualModeNone
 					m.editingMessageIndex = userMsgIndex
 					originalContent := m.session.GetMessages()[userMsgIndex].Content
 					return m, editInEditorCmd(originalContent), true
@@ -316,7 +314,17 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.statusBarMessage = "Copied to clipboard."
 					cmd = clearStatusBarCmd(2 * time.Second)
 				}
-				m.state = stateIdle
+				if m.isStreaming {
+					messages := m.session.GetMessages()
+					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+						m.state = stateThinking
+					} else {
+						m.state = stateGenerating
+					}
+					cmd = tea.Batch(cmd, m.spinner.Tick)
+				} else {
+					m.state = stateIdle
+				}
 				m.visualMode = visualModeNone
 				m.visualIsSelecting = false
 				m.textArea.Focus()
@@ -356,7 +364,17 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.session.DeleteMessages(selectedIndices)
 				m.statusBarMessage = "Deleted selected messages."
 				cmd = clearStatusBarCmd(2 * time.Second)
-				m.state = stateIdle
+				if m.isStreaming {
+					messages := m.session.GetMessages()
+					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+						m.state = stateThinking
+					} else {
+						m.state = stateGenerating
+					}
+					cmd = tea.Batch(cmd, m.spinner.Tick)
+				} else {
+					m.state = stateIdle
+				}
 				m.visualMode = visualModeNone
 				m.visualIsSelecting = false
 				m.textArea.Focus()

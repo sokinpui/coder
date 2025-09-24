@@ -100,12 +100,26 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
 			}
 
-			m.textArea.Focus()
+			var cmd tea.Cmd
+			if m.isStreaming {
+				messages := m.session.GetMessages()
+				if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+					m.state = stateThinking
+				} else {
+					m.state = stateGenerating
+				}
+				cmd = m.spinner.Tick
+			} else {
+				m.state = stateIdle
+				m.textArea.Focus()
+				cmd = textarea.Blink
+			}
+
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
 
 			m.editingMessageIndex = -1 // Reset on success or failure
-			return m, textarea.Blink, true
+			return m, cmd, true
 		}
 
 		// This is for Ctrl+E on the text area.
