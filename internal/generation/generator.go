@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/sokinpui/synapse.go/client"
+	"github.com/sokinpui/synapse.go/v2/client"
 )
 
 // Generator handles communication with the code generation gRPC service.
@@ -26,11 +26,12 @@ func New(cfg *config.Config) (*Generator, error) {
 }
 
 // GenerateTask sends a prompt to the generation service and streams the response.
-func (g *Generator) GenerateTask(ctx context.Context, prompt string, streamChan chan<- string) {
+func (g *Generator) GenerateTask(ctx context.Context, prompt string, imgPaths []string, streamChan chan<- string) {
 	defer close(streamChan)
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
+		ImgPaths:  imgPaths,
 		ModelCode: g.Config.ModelCode,
 		Stream:    true,
 		Config: &client.GenerationConfig{

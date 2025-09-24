@@ -389,7 +389,7 @@ func (s *Session) startGeneration() Event {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancelGeneration = cancel
 
-	go s.generator.GenerateTask(ctx, prompt, streamChan)
+	go s.generator.GenerateTask(ctx, prompt, nil, streamChan)
 
 	s.messages = append(s.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
 
