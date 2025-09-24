@@ -92,7 +92,7 @@ function MessageItemComponent({
         }}
       >
         <img
-          src={`/files/${message.content}`}
+          src={message.dataURL || `/files/${message.content}`} // Use dataURL if available, else fallback to file path
           alt={message.content}
           style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
         />

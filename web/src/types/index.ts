@@ -1,6 +1,7 @@
 export interface Message {
   sender: "User" | "AI" | "System" | "Command" | "Result" | "Error" | "Image";
   content: string;
+  dataURL?: string; // Optional: for image base64 data
 }
 
 export interface HistoryItem {

@@ -320,10 +320,10 @@ func (c *Client) handleImageUpload(dataURL string) {
 		return
 	}
 
-	// Use ToSlash for consistent path separators for URLs
-	displayPath := filepath.ToSlash(filepath.Join(".coder", "images", filename))
-
-	imgMsg := core.Message{Type: core.ImageMessage, Content: displayPath}
+	imgMsg := core.Message{
+		Type:    core.ImageMessage,
+		Content: filepath.ToSlash(filepath.Join(".coder", "images", filename)), // Store path for model context
+		DataURL: dataURL} // Store base64 for UI rendering
 	c.session.AddMessage(imgMsg)
 
 	c.send <- ServerToClientMessage{Type: "messageUpdate", Payload: MessagePayload{Type: messageTypeToString(imgMsg.Type), Content: imgMsg.Content}}

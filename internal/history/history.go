@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -115,6 +116,21 @@ var roleToMessageType = map[string]core.MessageType{
 	"Command Execute Error:":  core.CommandErrorResultMessage,
 }
 
+var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
+
+// processMessageContent trims whitespace and handles special message content parsing,
+// like extracting the path from a markdown image link for ImageMessages.
+func processMessageContent(msg *core.Message, rawContent string) {
+	content := strings.TrimSpace(rawContent)
+	if msg.Type == core.ImageMessage {
+		matches := imageMarkdownRegex.FindStringSubmatch(content)
+		if len(matches) > 1 {
+			content = matches[1]
+		}
+	}
+	msg.Content = content
+}
+
 // ParseConversation parses the content of a history file into its metadata and messages.
 func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	parts := bytes.SplitN(content, []byte("---\n"), 3)
@@ -171,7 +187,7 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 		for role, msgType := range roleToMessageType {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
-					currentMessage.Content = strings.TrimSpace(contentBuilder.String())
+					processMessageContent(currentMessage, contentBuilder.String())
 					messages = append(messages, *currentMessage)
 				}
 				contentBuilder.Reset()
@@ -188,7 +204,7 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	}
 
 	if currentMessage != nil {
-		currentMessage.Content = strings.TrimSpace(contentBuilder.String())
+		processMessageContent(currentMessage, contentBuilder.String())
 		messages = append(messages, *currentMessage)
 	}
 

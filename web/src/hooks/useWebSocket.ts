@@ -80,7 +80,7 @@ export function useWebSocket(url: string) {
           setModel(msg.payload.model);
           break;
         case "messageUpdate":
-          setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content }]);
+          setMessages(prev => [...prev, { sender: msg.payload.type, content: msg.payload.content, dataURL: msg.payload.dataURL }]);
           break;
         case "generationChunk":
           setMessages(prev => {
@@ -114,7 +114,7 @@ export function useWebSocket(url: string) {
           break;
         case "sessionLoaded":
           setMessages(msg.payload.messages.map((m: { type: Message['sender']; content: string; }) => ({ sender: m.type, content: m.content })));
-          setTitle(msg.payload.title);
+          setTitle(msg.payload.title); // Note: dataURL is not loaded from history for now
           setIsAnimatingTitle(false);
           setMode(msg.payload.mode);
           setModel(msg.payload.model);

@@ -41,11 +41,11 @@ export function ChatInput({ isGenerating, sendMessage, uploadImage, cancelGenera
                   const dataUrl = canvas.toDataURL('image/jpeg', 0.9) // 0.9 is quality
                   uploadImage(dataUrl)
                 } else {
-                  uploadImage(event.target!.result as string)
+                  console.error('Failed to get 2D context for canvas. Image upload aborted.');
                 }
               }
               img.onerror = () => {
-                uploadImage(event.target!.result as string)
+                console.error('Failed to load image into canvas. Image upload aborted.');
               }
               img.src = event.target.result as string
             }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"strings"
+	"fmt"
 )
 
 const (
@@ -64,7 +65,6 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 			case ImageMessage:
-				sb.WriteString("Image:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
 			case ActionMessage:
@@ -111,6 +111,9 @@ func BuildHistorySnippet(messages []Message) string {
 		case UserMessage:
 			sb.WriteString("User:\n")
 			sb.WriteString(msg.Content)
+		case ImageMessage:
+			sb.WriteString("Image:\n")
+			sb.WriteString(fmt.Sprintf("![image](%s)", msg.Content))
 		case AIMessage:
 			if msg.Content == "" {
 				continue
