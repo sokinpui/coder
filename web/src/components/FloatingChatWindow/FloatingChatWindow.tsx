@@ -203,10 +203,10 @@ export function FloatingChatWindow({
             onBranchFrom={noOp}
             onDeleteMessage={noOp}
             isFloatingChat={true} // Keep this to hide other buttons
-            onAskAI={undefined} // Explicitly disable Ask AI in floating chat
           />
           <ChatInput
             sendMessage={handleSendMessage}
+            uploadImage={noOp}
             cancelGeneration={noOp} // Cancellation not implemented for askAI yet
             isGenerating={isGenerating}
           />

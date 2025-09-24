@@ -22,24 +22,41 @@ export function ChatInput({ isGenerating, sendMessage, uploadImage, cancelGenera
   }
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items;
+    const items = e.clipboardData.items
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
+        const file = items[i].getAsFile()
         if (file) {
-          const reader = new FileReader();
+          const reader = new FileReader()
           reader.onload = (event) => {
             if (event.target?.result) {
-              uploadImage(event.target.result as string);
+              const img = new Image()
+              img.onload = () => {
+                const canvas = document.createElement('canvas')
+                canvas.width = img.width
+                canvas.height = img.height
+                const ctx = canvas.getContext('2d')
+                if (ctx) {
+                  ctx.drawImage(img, 0, 0)
+                  const dataUrl = canvas.toDataURL('image/jpeg', 0.9) // 0.9 is quality
+                  uploadImage(dataUrl)
+                } else {
+                  uploadImage(event.target!.result as string)
+                }
+              }
+              img.onerror = () => {
+                uploadImage(event.target!.result as string)
+              }
+              img.src = event.target.result as string
             }
-          };
-          reader.readAsDataURL(file);
+          }
+          reader.readAsDataURL(file)
         }
-        e.preventDefault(); // Prevent pasting image data as text
-        return;
+        e.preventDefault() // Prevent pasting image data as text
+        return
       }
     }
-  };
+  }
 
   return (
     <Box
