@@ -113,8 +113,8 @@ export function useWebSocket(url: string) {
           setHistory(msg.payload || []);
           break;
         case "sessionLoaded":
-          setMessages(msg.payload.messages.map((m: { type: Message['sender']; content: string; }) => ({ sender: m.type, content: m.content })));
-          setTitle(msg.payload.title); // Note: dataURL is not loaded from history for now
+          setMessages(msg.payload.messages.map((m: { type: Message['sender']; content: string; dataURL?: string }) => ({ sender: m.type, content: m.content, dataURL: m.dataURL })));
+          setTitle(msg.payload.title);
           setIsAnimatingTitle(false);
           setMode(msg.payload.mode);
           setModel(msg.payload.model);

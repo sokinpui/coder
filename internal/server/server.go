@@ -11,8 +11,8 @@ import (
 	"coder/internal/token"
 	"coder/internal/utils"
 	"context"
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,15 +32,15 @@ const (
 )
 
 type ClientToServerMessage struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-	RequestID string    `json:"requestId,omitempty"`
+	Type      string      `json:"type"`
+	Payload   interface{} `json:"payload"`
+	RequestID string      `json:"requestId,omitempty"`
 }
 
 type ServerToClientMessage struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-	RequestID string    `json:"requestId,omitempty"`
+	Type      string      `json:"type"`
+	Payload   interface{} `json:"payload"`
+	RequestID string      `json:"requestId,omitempty"`
 }
 
 func getShortCwd() string {
@@ -58,6 +58,7 @@ func getShortCwd() string {
 type MessagePayload struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
+	DataURL string `json:"dataURL,omitempty"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -242,6 +243,7 @@ func (c *Client) handleUserInput(payload string) {
 			Payload: MessagePayload{
 				Type:    messageTypeToString(lastMsg.Type),
 				Content: utils.StripAnsi(lastMsg.Content),
+				DataURL: lastMsg.DataURL,
 			},
 		}
 
@@ -323,10 +325,10 @@ func (c *Client) handleImageUpload(dataURL string) {
 	imgMsg := core.Message{
 		Type:    core.ImageMessage,
 		Content: filepath.ToSlash(filepath.Join(".coder", "images", filename)), // Store path for model context
-		DataURL: dataURL} // Store base64 for UI rendering
+		DataURL: dataURL}                                                       // Store base64 for UI rendering
 	c.session.AddMessage(imgMsg)
 
-	c.send <- ServerToClientMessage{Type: "messageUpdate", Payload: MessagePayload{Type: messageTypeToString(imgMsg.Type), Content: imgMsg.Content}}
+	c.send <- ServerToClientMessage{Type: "messageUpdate", Payload: MessagePayload{Type: messageTypeToString(imgMsg.Type), Content: imgMsg.Content, DataURL: imgMsg.DataURL}}
 }
 
 func (c *Client) handleRegenerate(userMessageIndex int) {
@@ -354,6 +356,7 @@ func (c *Client) handleRegenerate(userMessageIndex int) {
 			Payload: MessagePayload{
 				Type:    messageTypeToString(lastMsg.Type),
 				Content: utils.StripAnsi(lastMsg.Content),
+				DataURL: lastMsg.DataURL,
 			},
 		}
 
@@ -491,9 +494,25 @@ func (c *Client) handleLoadConversation(filename string) {
 
 	payloadMessages := make([]MessagePayload, len(messages))
 	for i, msg := range messages {
+		dataURL := msg.DataURL
+		if msg.Type == core.ImageMessage && dataURL == "" {
+			repoRoot, err := utils.FindRepoRoot()
+			if err == nil {
+				imagePath := filepath.Join(repoRoot, msg.Content)
+				imageData, err := os.ReadFile(imagePath)
+				if err == nil {
+					mimeType := http.DetectContentType(imageData)
+					dataURL = "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(imageData)
+				} else {
+					log.Printf("Failed to read image file %s for history: %v", imagePath, err)
+				}
+			}
+		}
+
 		payloadMessages[i] = MessagePayload{
 			Type:    messageTypeToString(msg.Type),
 			Content: utils.StripAnsi(msg.Content),
+			DataURL: dataURL,
 		}
 	}
 
