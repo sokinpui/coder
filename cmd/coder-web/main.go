@@ -23,7 +23,7 @@ func main() {
 	}
 
 	addr := flag.String("addr", ":0", "http service address. Defaults to a random unused port.")
-	noBrowser := flag.Bool("no-browser", false, "Do not open the browser automatically.")
+	openBrowser := flag.Bool("open-browser", false, "Open the browser automatically.")
 	flag.Parse()
 
 	logger.Init()
@@ -59,7 +59,7 @@ func main() {
 	log.Printf("Starting web server on %s", serverURL)
 	fmt.Printf("Coder-web is running on: %s\n", serverURL)
 
-	if !*noBrowser {
+	if *openBrowser {
 		if err := browser.Open(serverURL); err != nil {
 			log.Printf("failed to open browser: %v", err)
 		}
