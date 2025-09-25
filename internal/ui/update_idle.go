@@ -120,8 +120,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		m.isCyclingCompletions = true
-
 		numActions := len(m.paletteFilteredActions)
 		numCommands := len(m.paletteFilteredCommands)
 		numArgs := len(m.paletteFilteredArguments)
@@ -131,14 +129,28 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		if msg.Type == tea.KeyTab {
-			m.paletteCursor = (m.paletteCursor + 1) % totalItems
-		} else { // Shift+Tab
-			m.paletteCursor--
-			if m.paletteCursor < 0 {
+		// On the first Tab press, we just want to complete with the current selection (cursor 0).
+		// On subsequent Tab presses, we cycle.
+		// `isCyclingCompletions` tracks if we are in a cycle.
+		if !m.isCyclingCompletions {
+			// This is the first Tab/Shift+Tab press.
+			if msg.Type == tea.KeyShiftTab {
+				// If it's Shift+Tab, start from the end.
 				m.paletteCursor = totalItems - 1
 			}
+			// For a normal Tab, cursor is already 0, so we do nothing.
+		} else {
+			// We are already in a completion cycle.
+			if msg.Type == tea.KeyTab {
+				m.paletteCursor = (m.paletteCursor + 1) % totalItems
+			} else { // Shift+Tab
+				m.paletteCursor--
+				if m.paletteCursor < 0 {
+					m.paletteCursor = totalItems - 1
+				}
+			}
 		}
+		m.isCyclingCompletions = true
 
 		var selectedItem string
 		isArgument := false
