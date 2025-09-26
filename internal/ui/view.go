@@ -69,7 +69,7 @@ func (m Model) renderConversation() string {
 		currentMsg := msg // Make a copy to modify content for visual mode
 		if m.state == stateVisualSelect {
 			switch currentMsg.Type {
-			case core.UserMessage, core.AIMessage, core.ActionResultMessage, core.CommandResultMessage, core.ActionErrorResultMessage, core.CommandErrorResultMessage:
+			case core.UserMessage, core.AIMessage, core.CommandResultMessage, core.CommandErrorResultMessage:
 				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
 			}
 		}
