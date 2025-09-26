@@ -85,9 +85,6 @@ func (m Model) renderConversation() string {
 		case core.UserMessage:
 			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalFrameSize()
 			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.ActionMessage:
-			blockWidth := m.viewport.Width - actionInputStyle.GetHorizontalFrameSize()
-			renderedMsg = actionInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandMessage:
 			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
@@ -101,15 +98,9 @@ func (m Model) renderConversation() string {
 				}
 				renderedMsg = renderedAI
 			}
-		case core.ActionResultMessage:
-			blockWidth := m.viewport.Width - actionResultStyle.GetHorizontalFrameSize()
-			renderedMsg = actionResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandResultMessage:
 			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.ActionErrorResultMessage:
-			blockWidth := m.viewport.Width - actionErrorStyle.GetHorizontalFrameSize()
-			renderedMsg = actionErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandErrorResultMessage:
 			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
@@ -164,36 +155,18 @@ func (m Model) renderConversation() string {
 }
 
 func (m Model) paletteView() string {
-	if !m.showPalette || (len(m.paletteFilteredActions) == 0 && len(m.paletteFilteredCommands) == 0 && len(m.paletteFilteredArguments) == 0) {
+	if !m.showPalette || (len(m.paletteFilteredCommands) == 0 && len(m.paletteFilteredArguments) == 0) {
 		return ""
 	}
 
 	var b strings.Builder
-	numActions := len(m.paletteFilteredActions)
 	numCommands := len(m.paletteFilteredCommands)
-
-	if numActions > 0 {
-		b.WriteString(paletteHeaderStyle.Render("Actions"))
-		b.WriteString("\n")
-		for i, action := range m.paletteFilteredActions {
-			if i == m.paletteCursor {
-				b.WriteString(paletteSelectedItemStyle.Render("▸ " + action))
-			} else {
-				b.WriteString(paletteItemStyle.Render("  " + action))
-			}
-			b.WriteString("\n")
-		}
-	}
-
-	if numActions > 0 && numCommands > 0 {
-		b.WriteString("\n")
-	}
 
 	if numCommands > 0 {
 		b.WriteString(paletteHeaderStyle.Render("Commands"))
 		b.WriteString("\n")
 		for i, cmd := range m.paletteFilteredCommands {
-			cursorIndex := i + numActions
+			cursorIndex := i
 			if cursorIndex == m.paletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + cmd))
 			} else {
@@ -203,7 +176,7 @@ func (m Model) paletteView() string {
 		}
 	}
 
-	if (numActions > 0 || numCommands > 0) && len(m.paletteFilteredArguments) > 0 {
+	if numCommands > 0 && len(m.paletteFilteredArguments) > 0 {
 		b.WriteString("\n")
 	}
 
@@ -211,7 +184,7 @@ func (m Model) paletteView() string {
 		b.WriteString(paletteHeaderStyle.Render("Arguments"))
 		b.WriteString("\n")
 		for i, arg := range m.paletteFilteredArguments {
-			cursorIndex := i + numActions + numCommands
+			cursorIndex := i + numCommands
 			if cursorIndex == m.paletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + arg))
 			} else {

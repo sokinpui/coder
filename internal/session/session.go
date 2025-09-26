@@ -471,17 +471,6 @@ func (s *Session) HandleInput(input string) Event {
 		return s.startGeneration()
 	}
 
-	actionResult, isAction, actionSuccess := core.ProcessAction(input)
-	if isAction {
-		s.messages = append(s.messages, core.Message{Type: core.ActionMessage, Content: input})
-		if actionSuccess {
-			s.messages = append(s.messages, core.Message{Type: core.ActionResultMessage, Content: actionResult})
-		} else {
-			s.messages = append(s.messages, core.Message{Type: core.ActionErrorResultMessage, Content: actionResult})
-		}
-		return Event{Type: MessagesUpdated}
-	}
-
 	cmdOutput, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
 	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
 

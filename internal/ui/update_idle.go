@@ -120,10 +120,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		numActions := len(m.paletteFilteredActions)
 		numCommands := len(m.paletteFilteredCommands)
 		numArgs := len(m.paletteFilteredArguments)
-		totalItems := numActions + numCommands + numArgs
+		totalItems := numCommands + numArgs
 
 		if !m.showPalette || totalItems == 0 {
 			return m, nil, true
@@ -154,12 +153,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		var selectedItem string
 		isArgument := false
-		if m.paletteCursor < numActions {
-			selectedItem = m.paletteFilteredActions[m.paletteCursor]
-		} else if m.paletteCursor < numActions+numCommands {
-			selectedItem = m.paletteFilteredCommands[m.paletteCursor-numActions]
+		if m.paletteCursor < numCommands {
+			selectedItem = m.paletteFilteredCommands[m.paletteCursor]
 		} else {
-			selectedItem = m.paletteFilteredArguments[m.paletteCursor-numActions-numCommands]
+			selectedItem = m.paletteFilteredArguments[m.paletteCursor-numCommands]
 			isArgument = true
 		}
 
@@ -181,13 +178,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyEnter:
-		totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
+		totalItems := len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
 		if m.showPalette && totalItems == 1 {
 			var selectedItem string
 			isArgument := false
-			if len(m.paletteFilteredActions) == 1 {
-				selectedItem = m.paletteFilteredActions[0]
-			} else if len(m.paletteFilteredCommands) == 1 {
+			if len(m.paletteFilteredCommands) == 1 {
 				selectedItem = m.paletteFilteredCommands[0]
 			} else {
 				selectedItem = m.paletteFilteredArguments[0]

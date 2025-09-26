@@ -30,11 +30,11 @@ func messageTypeToString(msgType core.MessageType) string {
 		return "User"
 	case core.AIMessage:
 		return "AI"
-	case core.ActionMessage, core.CommandMessage:
+	case core.CommandMessage:
 		return "Command"
-	case core.ActionResultMessage, core.CommandResultMessage:
+	case core.CommandResultMessage:
 		return "Result"
-	case core.ActionErrorResultMessage, core.CommandErrorResultMessage:
+	case core.CommandErrorResultMessage:
 		return "Error"
 	case core.InitMessage, core.DirectoryMessage:
 		return "System"

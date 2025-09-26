@@ -76,9 +76,7 @@ type Model struct {
 	tokenCount               int
 	isCountingTokens         bool
 	showPalette              bool
-	availableActions         []string
 	availableCommands        []string
-	paletteFilteredActions   []string
 	paletteFilteredCommands  []string
 	paletteCursor            int
 	lastInteractionFailed    bool
@@ -141,9 +139,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 	}
 	dirMsg := fmt.Sprintf("Currently in: %s", wd)
 	sess.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
-
-	actions := core.GetActions()
-	sort.Strings(actions)
 	commands := core.GetCommands()
 	sort.Strings(commands)
 
@@ -160,9 +155,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		tokenCount:               0,
 		isCountingTokens:         false,
 		showPalette:              false,
-		availableActions:         actions,
 		availableCommands:        commands,
-		paletteFilteredActions:   []string{},
 		paletteFilteredCommands:  []string{},
 		paletteCursor:            0,
 		lastInteractionFailed:    false,

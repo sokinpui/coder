@@ -67,24 +67,6 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 			case ImageMessage:
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
-			case ActionMessage:
-				if i+1 >= len(messages) {
-					continue
-				}
-				nextMsg := messages[i+1]
-				if nextMsg.Type != ActionResultMessage {
-					continue
-				}
-
-				// only save action that was executed successfully
-				sb.WriteString("Action Execute:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-
-				sb.WriteString("Action Execute Result:\n")
-				sb.WriteString(nextMsg.Content)
-				sb.WriteString("\n")
-				i++ // Skip the result message in the next iteration
 			case AIMessage:
 				if msg.Content == "" {
 					continue
@@ -119,15 +101,6 @@ func BuildHistorySnippet(messages []Message) string {
 				continue
 			}
 			sb.WriteString("AI Assistant:\n")
-			sb.WriteString(msg.Content)
-		case ActionMessage:
-			sb.WriteString("Action Execute:\n")
-			sb.WriteString(msg.Content)
-		case ActionResultMessage:
-			sb.WriteString("Action Execute Result:\n")
-			sb.WriteString(msg.Content)
-		case ActionErrorResultMessage:
-			sb.WriteString("Action Execute Error:\n")
 			sb.WriteString(msg.Content)
 		case CommandMessage:
 			sb.WriteString("Command Execute:\n")

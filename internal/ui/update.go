@@ -80,7 +80,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// After textarea update, check for palette
 	if !m.isCyclingCompletions {
 		val := m.textArea.Value()
-		m.paletteFilteredActions = []string{}
 		m.paletteFilteredCommands = []string{}
 		m.paletteFilteredArguments = []string{}
 
@@ -95,11 +94,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(parts) == 1 && !hasTrailingSpace {
 				// Command/Action completion mode
 				prefix := strings.TrimPrefix(parts[0], ":")
-				for _, a := range m.availableActions {
-					if strings.HasPrefix(a, prefix) {
-						m.paletteFilteredActions = append(m.paletteFilteredActions, ":"+a)
-					}
-				}
 				for _, c := range m.availableCommands {
 					if strings.HasPrefix(c, prefix) {
 						m.paletteFilteredCommands = append(m.paletteFilteredCommands, ":"+c)
@@ -124,7 +118,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		totalItems := len(m.paletteFilteredActions) + len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
+		totalItems := len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
 		m.showPalette = totalItems > 0
 
 		if m.paletteCursor >= totalItems {

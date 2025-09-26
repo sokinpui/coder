@@ -23,13 +23,6 @@ func groupMessages(messages []core.Message) []messageBlock {
 					block.endIdx = i + 1
 				}
 			}
-		case core.ActionMessage:
-			if i+1 < len(messages) {
-				nextMsgType := messages[i+1].Type
-				if nextMsgType == core.ActionResultMessage || nextMsgType == core.ActionErrorResultMessage {
-					block.endIdx = i + 1
-				}
-			}
 		}
 
 		// Skip system messages from being selectable blocks
