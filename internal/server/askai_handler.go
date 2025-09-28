@@ -62,7 +62,7 @@ func (c *Client) handleAskAI(payload map[string]interface{}, requestID string) {
 	messages = append(messages, core.Message{Type: core.UserMessage, Content: question})
 
 	// Load project source, including markdown files, to provide full context.
-	projectSource, err := source.LoadProjectSource(config.AutoMode)
+	projectSource, err := source.LoadProjectSource(config.DocumentingMode)
 	if err != nil {
 		log.Printf("failed to load project source for askAI: %v", err)
 		projectSource = "" // Proceed without project source on error

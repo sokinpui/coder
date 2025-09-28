@@ -11,9 +11,6 @@ var DocumentingRole string
 //go:embed Roles/askAI.txt
 var AskAIRole string
 
-//go:embed Roles/auto-mode.txt
-var AutoRole string
-
 //go:embed Instructions.txt
 var CoderInstructions string
 

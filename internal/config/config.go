@@ -14,10 +14,9 @@ type AppMode string
 const (
 	CodingMode      AppMode = "Coding"
 	DocumentingMode AppMode = "Documenting"
-	AutoMode        AppMode = "Auto"
 )
 
-var AvailableAppModes = []AppMode{CodingMode, DocumentingMode, AutoMode}
+var AvailableAppModes = []AppMode{CodingMode, DocumentingMode}
 
 // GRPC contains gRPC server configuration.
 type GRPC struct {
