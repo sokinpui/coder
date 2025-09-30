@@ -98,6 +98,12 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 
 // LoadContext loads the initial context for the session.
 func (s *Session) LoadContext() error {
+	if s.config.AppMode == config.AgentMode {
+		s.systemInstructions = ""
+		s.relatedDocuments = ""
+		s.projectSourceCode = ""
+		return nil
+	}
 	sysInstructions, docs, ctxErr := contextdir.LoadContext()
 	if ctxErr != nil {
 		return fmt.Errorf("failed to load context directory: %w", ctxErr)
@@ -393,6 +399,10 @@ func (s *Session) RegenerateFrom(userMessageIndex int) Event {
 
 // reloadProjectSource reloads the project source code from disk.
 func (s *Session) reloadProjectSource() error {
+	if s.config.AppMode == config.AgentMode {
+		s.projectSourceCode = ""
+		return nil
+	}
 	projSource, err := source.LoadProjectSource(s.config.AppMode)
 	if err != nil {
 		return fmt.Errorf("failed to reload project source: %w", err)
