@@ -3,7 +3,6 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 // To add a new tool:
@@ -25,6 +24,13 @@ type ToolCall struct {
 	Args     map[string]any `json:"args"`
 }
 
+// ToolResult represents the result of a single tool execution.
+type ToolResult struct {
+	ToolCall ToolCall
+	Output   string
+	Error    error
+}
+
 type ToolFunc func(args map[string]any) (string, error)
 
 var registry = make(map[string]ToolFunc)
@@ -38,28 +44,27 @@ func RegisterTool(name string, fn ToolFunc) {
 	registry[name] = fn
 }
 
-func ExecuteToolCalls(toolCallsJSON string) (string, error) {
+func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 	var calls []ToolCall
 	if err := json.Unmarshal([]byte(toolCallsJSON), &calls); err != nil {
-		return "", fmt.Errorf("failed to parse tool calls JSON: %w. Ensure it is a valid JSON array of tool call objects", err)
+		return nil, fmt.Errorf("failed to parse tool calls JSON: %w. Ensure it is a valid JSON array of tool call objects", err)
 	}
 
 	if len(calls) == 0 {
-		return "No tools were called.", nil
+		return nil, nil
 	}
 
-	var results []string
+	var results []ToolResult
 	for _, call := range calls {
 		output, err := executeTool(call)
-		if err != nil {
-			output = fmt.Sprintf("Error: %v", err)
-		}
-		// Format the output for clarity before returning to the model.
-		result := fmt.Sprintf("Tool Call: %s\nTool Output:\n%s", call.ToolName, output)
-		results = append(results, result)
+		results = append(results, ToolResult{
+			ToolCall: call,
+			Output:   output,
+			Error:    err,
+		})
 	}
 
-	return strings.Join(results, "\n\n"), nil
+	return results, nil
 }
 
 func executeTool(call ToolCall) (string, error) {

@@ -23,6 +23,12 @@ func groupMessages(messages []core.Message) []messageBlock {
 					block.endIdx = i + 1
 				}
 			}
+		case core.ToolCallMessage:
+			if i+1 < len(messages) {
+				if messages[i+1].Type == core.ToolResultMessage {
+					block.endIdx = i + 1
+				}
+			}
 		}
 
 		// Skip system messages from being selectable blocks

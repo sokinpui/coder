@@ -74,6 +74,14 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 				sb.WriteString("AI Assistant:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
+			case ToolCallMessage:
+				sb.WriteString("Tool Call:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
+			case ToolResultMessage:
+				sb.WriteString("Tool Result:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
 			}
 		}
 		sb.WriteString("AI Assistant:\n")
@@ -110,6 +118,12 @@ func BuildHistorySnippet(messages []Message) string {
 			sb.WriteString(msg.Content)
 		case CommandErrorResultMessage:
 			sb.WriteString("Command Execute Error:\n")
+			sb.WriteString(msg.Content)
+		case ToolCallMessage:
+			sb.WriteString("Tool Call:\n")
+			sb.WriteString(msg.Content)
+		case ToolResultMessage:
+			sb.WriteString("Tool Result:\n")
 			sb.WriteString(msg.Content)
 		default:
 			// Skip system messages like InitMessage, DirectoryMessage
