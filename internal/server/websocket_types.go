@@ -40,6 +40,10 @@ func messageTypeToString(msgType core.MessageType) string {
 		return "System"
 	case core.ImageMessage:
 		return "Image"
+	case core.ToolCallMessage:
+		return "ToolCall"
+	case core.ToolResultMessage:
+		return "ToolResult"
 	default:
 		return "Unknown"
 	}
