@@ -1,14 +1,17 @@
 package session
 
 import (
+	"coder/internal/agent"
 	"coder/internal/config"
 	"coder/internal/contextdir"
 	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/history"
 	"coder/internal/source"
+	"coder/internal/tools"
 	"coder/internal/utils"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -510,4 +513,64 @@ func (s *Session) HandleInput(input string) Event {
 		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdOutput.Payload})
 	}
 	return Event{Type: MessagesUpdated}
+}
+
+// ContinueAgent checks the last AI message for tool calls and executes them,
+// then starts a new generation cycle.
+func (s *Session) ContinueAgent() Event {
+	if s.config.AppMode != config.AgentMode {
+		return Event{Type: NoOp}
+	}
+
+	if len(s.messages) == 0 {
+		return Event{Type: NoOp}
+	}
+	lastMsg := s.messages[len(s.messages)-1]
+	if lastMsg.Type != core.AIMessage || lastMsg.Content == "" {
+		return Event{Type: NoOp}
+	}
+
+	toolCallsJSON, _ := agent.ExtractToolCalls(lastMsg.Content)
+	if toolCallsJSON == "" {
+		return Event{Type: NoOp}
+	}
+
+	s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: toolCallsJSON})
+
+	results, err := tools.ExecuteToolCalls(toolCallsJSON)
+	if err != nil {
+		// This is likely a JSON parsing error from ExecuteToolCalls.
+		resultContent := fmt.Sprintf("Error parsing tool calls JSON: %v", err)
+		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
+		return Event{Type: MessagesUpdated}
+	}
+
+	var resultBuilder strings.Builder
+	resultBuilder.WriteString("[\n")
+	for i, res := range results {
+		var toolName string
+		if res.ToolCall.ToolName != "" {
+			toolName = res.ToolCall.ToolName
+		} else if res.ToolCall.Shell != nil {
+			toolName = "shell"
+		}
+
+		resultObj := map[string]interface{}{"tool": toolName}
+		if res.Error != nil {
+			resultObj["error"] = res.Error.Error()
+		}
+		if res.Output != "" {
+			resultObj["output"] = res.Output
+		}
+
+		jsonBytes, _ := json.MarshalIndent(resultObj, "  ", "  ")
+		resultBuilder.WriteString("  ")
+		resultBuilder.Write(jsonBytes)
+		if i < len(results)-1 {
+			resultBuilder.WriteString(",\n")
+		}
+	}
+	resultBuilder.WriteString("\n]")
+	s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
+	return s.startGeneration()
 }

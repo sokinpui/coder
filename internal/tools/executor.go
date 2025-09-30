@@ -3,6 +3,8 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"strings"
 )
 
 // To add a new tool:
@@ -20,8 +22,9 @@ import (
 //
 // ]
 type ToolCall struct {
-	ToolName string         `json:"tool"`
-	Args     map[string]any `json:"args"`
+	ToolName string         `json:"tool,omitempty"`
+	Args     map[string]any `json:"args,omitempty"`
+	Shell    any            `json:"shell,omitempty"` // Can be string or []string
 }
 
 // ToolResult represents the result of a single tool execution.
@@ -56,7 +59,16 @@ func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 
 	var results []ToolResult
 	for _, call := range calls {
-		output, err := executeTool(call)
+		var output string
+		var err error
+		if call.ToolName != "" {
+			output, err = executeTool(call)
+		} else if call.Shell != nil {
+			output, err = executeShell(call)
+		} else {
+			err = fmt.Errorf("invalid tool call object: must have 'tool' or 'shell' key")
+		}
+
 		results = append(results, ToolResult{
 			ToolCall: call,
 			Output:   output,
@@ -74,4 +86,40 @@ func executeTool(call ToolCall) (string, error) {
 	}
 
 	return toolFunc(call.Args)
+}
+
+func executeShell(call ToolCall) (string, error) {
+	var commands []string
+	switch shellCmd := call.Shell.(type) {
+	case string:
+		commands = []string{shellCmd}
+	case []interface{}:
+		for _, v := range shellCmd {
+			if s, ok := v.(string); ok {
+				commands = append(commands, s)
+			} else {
+				return "", fmt.Errorf("invalid shell command in array: not a string")
+			}
+		}
+	default:
+		return "", fmt.Errorf("invalid type for 'shell': expected string or array of strings")
+	}
+
+	if len(commands) == 0 {
+		return "", nil
+	}
+
+	var output strings.Builder
+	var firstErr error
+	for _, command := range commands {
+		// #nosec G204
+		cmd := exec.Command("bash", "-c", command)
+		out, err := cmd.CombinedOutput()
+		output.Write(out)
+		if err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("error executing '%s': %w", command, err)
+		}
+	}
+
+	return output.String(), firstErr
 }

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"coder/internal/config"
 	"coder/internal/core"
+	"coder/internal/session"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -58,6 +60,21 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			lastMsg.Type = core.CommandResultMessage // Re-use style for notification
 			m.session.ReplaceLastMessage(lastMsg)
 			m.lastInteractionFailed = true
+		}
+
+		if m.session.GetConfig().AppMode == config.AgentMode && !m.lastInteractionFailed {
+			event := m.session.ContinueAgent()
+			if event.Type == session.GenerationStarted {
+				// The session added ToolCall and ToolResult messages. We need to re-render before starting generation.
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+				model, cmd := m.startGeneration(event)
+				return model, cmd, true
+			} else if event.Type == session.MessagesUpdated {
+				// Something was updated, e.g. an error message. Re-render.
+				m.viewport.SetContent(m.renderConversation())
+				m.viewport.GotoBottom()
+			}
 		}
 
 		wasAtBottom := m.viewport.AtBottom()
