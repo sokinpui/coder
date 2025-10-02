@@ -4,7 +4,6 @@ import (
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/tools"
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -96,91 +95,59 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 		return core.Event{Type: core.NoOp}
 	}
 
-	s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: toolCallsJSON})
-
 	results, err := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
 	if err != nil {
 		resultContent := fmt.Sprintf("Error executing tool calls: %v", err)
 		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
-		return core.Event{Type: core.MessagesUpdated}
-	}
-
-	var agentRequests []AgentRequest
-	var normalResults []tools.ToolResult
-
-	for _, res := range results {
-		var req AgentRequest
-		if res.Error == nil && json.Unmarshal([]byte(res.Output), &req) == nil && req.AgentName != "" {
-			agentRequests = append(agentRequests, req)
-		} else {
-			normalResults = append(normalResults, res)
-		}
-	}
-
-	// Prioritize agent requests. If any are present, handle the first one and ignore others for this turn.
-	if len(agentRequests) > 0 {
-		req := agentRequests[0]
-		agentName := config.AgentName(req.AgentName)
-
-		genConfig, err := m.getAgentConfig(s, agentName)
-		if err != nil {
-			s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
-			return core.Event{Type: core.MessagesUpdated}
-		}
-
-		// The prompt for the sub-agent is the conversation history plus the new task.
-		tempMessages := append(s.GetMessages(), core.Message{Type: core.UserMessage, Content: req.Prompt})
-		prompt, err := m.buildAgentPrompt(tempMessages, agentName)
-		if err != nil {
-			s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
-			return core.Event{Type: core.MessagesUpdated}
-		}
-
-		streamChan := make(chan string)
-		ctx, cancel := context.WithCancel(context.Background())
-		s.SetCancelGeneration(cancel)
-		go s.GetGenerator().GenerateTask(ctx, prompt, nil, streamChan, genConfig)
-
-		s.AddMessage(core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
-
-		return core.Event{
-			Type: core.GenerationStarted,
-			Data: streamChan,
-		}
-	}
-
-	// If no agent requests, process normal tool results.
-	if len(normalResults) > 0 {
-		var resultBuilder strings.Builder
-		resultBuilder.WriteString("[\n")
-		for i, res := range normalResults {
-			var toolName string
-			if res.ToolCall.ToolName != "" {
-				toolName = res.ToolCall.ToolName
-			} else if res.ToolCall.Shell != nil {
-				toolName = "shell"
-			}
-
-			resultObj := map[string]interface{}{"tool": toolName}
-			if res.Error != nil {
-				resultObj["error"] = res.Error.Error()
-			}
-			if res.Output != "" {
-				resultObj["output"] = res.Output
-			}
-
-			jsonBytes, _ := json.MarshalIndent(resultObj, "  ", "  ")
-			resultBuilder.WriteString("  ")
-			resultBuilder.Write(jsonBytes)
-			if i < len(normalResults)-1 {
-				resultBuilder.WriteString(",\n")
-			}
-		}
-		resultBuilder.WriteString("\n]")
-		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
 		return s.StartGeneration()
 	}
-	return core.Event{Type: core.NoOp}
+
+	if len(results) == 0 {
+		return core.Event{Type: core.NoOp}
+	}
+
+	// Sequentially add each tool call and its result to the message history.
+	for _, res := range results {
+		// Add the tool call message for this specific call.
+		// We marshal the single ToolCall struct back into JSON for the message.
+		toolCallBytes, err := json.Marshal(res.ToolCall)
+		if err != nil {
+			// If marshalling fails, create an error result message and continue.
+			errorMsg := fmt.Sprintf("{\"tool\": \"%s\", \"error\": \"failed to marshal tool call: %v\"}", res.ToolCall.ToolName, err)
+			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: errorMsg})
+			continue
+		}
+		s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: string(toolCallBytes)})
+
+		// Add the tool result message.
+		var toolName string
+		if res.ToolCall.ToolName != "" {
+			toolName = res.ToolCall.ToolName
+		} else if res.ToolCall.Shell != nil {
+			toolName = "shell"
+		}
+
+		resultObj := map[string]interface{}{"tool": toolName}
+		if res.Error != nil {
+			resultObj["error"] = res.Error.Error()
+		}
+		if res.Output != "" {
+			// For agent calls, the output is the special JSON request.
+			// We treat it like any other tool output.
+			resultObj["output"] = res.Output
+		}
+
+		resultBytes, err := json.MarshalIndent(resultObj, "", "  ")
+		if err != nil {
+			errorMsg := fmt.Sprintf("{\"tool\": \"%s\", \"error\": \"failed to marshal tool result: %v\"}", toolName, err)
+			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: errorMsg})
+			continue
+		}
+		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: string(resultBytes)})
+	}
+
+	// After all tools are executed and results are appended, start a new generation.
+	return s.StartGeneration()
 }
 
 // StartGeneration begins a new AI generation task using the agent-specific logic.
