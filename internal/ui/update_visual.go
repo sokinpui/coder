@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"coder/internal/core"
-	"coder/internal/session"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -227,7 +226,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.streamSub = nil
 			}
 			event := m.session.HandleInput(":new")
-			if event.Type == session.NewSessionStarted {
+			if event.Type == core.NewSessionStarted {
 				newModel, cmd := m.newSession()
 				newModel.state = stateIdle
 				newModel.visualMode = visualModeNone

@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"coder/internal/core"
-	"coder/internal/session"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -46,33 +45,33 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	event := m.session.HandleInput(input)
 
 	switch event.Type {
-	case session.NoOp:
+	case core.NoOp:
 		return m, nil
 
-	case session.MessagesUpdated:
+	case core.MessagesUpdated:
 		m.viewport.SetContent(m.renderConversation())
 		m.viewport.GotoBottom()
 		m.textArea.Reset()
 		return m, tea.Batch(cmds...)
 
-	case session.NewSessionStarted:
+	case core.NewSessionStarted:
 		return m.newSession()
 
-	case session.GenerationStarted:
+	case core.GenerationStarted:
 		m, cmd := m.startGeneration(event)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 
-	case session.VisualModeStarted:
+	case core.VisualModeStarted:
 		return m.enterVisualMode(visualModeNone)
 
-	case session.GenerateModeStarted:
+	case core.GenerateModeStarted:
 		return m.enterVisualMode(visualModeGenerate)
-	case session.EditModeStarted:
+	case core.EditModeStarted:
 		return m.enterVisualMode(visualModeEdit)
-	case session.BranchModeStarted:
+	case core.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
-	case session.HistoryModeStarted:
+	case core.HistoryModeStarted:
 		m.state = stateHistorySelect
 		m.textArea.Blur()
 		return m, listHistoryCmd(m.session.GetHistoryManager())
@@ -231,7 +230,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlN:
 		event := m.session.HandleInput(":new")
-		if event.Type == session.NewSessionStarted {
+		if event.Type == core.NewSessionStarted {
 			newModel, cmd := m.newSession()
 			return newModel, cmd, true
 		}
@@ -239,10 +238,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlB:
 		event := m.session.HandleInput(":branch")
-		if event.Type == session.BranchModeStarted {
+		if event.Type == core.BranchModeStarted {
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		} else if event.Type == session.MessagesUpdated {
+		} else if event.Type == core.MessagesUpdated {
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
 		}
@@ -251,7 +250,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.session.HandleInput(":itf")
-		if event.Type == session.MessagesUpdated {
+		if event.Type == core.MessagesUpdated {
 			m.viewport.SetContent(m.renderConversation())
 			m.viewport.GotoBottom()
 		}

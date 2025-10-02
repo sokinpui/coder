@@ -1,13 +1,13 @@
 package ui
 
 import (
-	"coder/internal/session"
+	"coder/internal/core"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m Model) startGeneration(event session.Event) (Model, tea.Cmd) {
-	if event.Type != session.GenerationStarted {
+func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
+	if event.Type != core.GenerationStarted {
 		return m, nil // Should not happen
 	}
 	m.state = stateThinking
@@ -41,7 +41,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.streamSub = nil
 		}
 		event := m.session.HandleInput(":new")
-		if event.Type == session.NewSessionStarted {
+		if event.Type == core.NewSessionStarted {
 			newModel, cmd := m.newSession()
 			newModel.state = stateIdle
 			return newModel, cmd, true
@@ -49,10 +49,10 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		return m, nil, true
 	case tea.KeyCtrlB:
 		event := m.session.HandleInput(":branch")
-		if event.Type == session.BranchModeStarted {
+		if event.Type == core.BranchModeStarted {
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		} else if event.Type == session.MessagesUpdated {
+		} else if event.Type == core.MessagesUpdated {
 			// This handles the case where branching is not possible (e.g., no messages)
 			// and an error message was added to the session.
 			m.viewport.SetContent(m.renderConversation())

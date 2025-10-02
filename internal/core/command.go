@@ -30,6 +30,7 @@ type CommandOutput struct {
 // without creating a circular dependency between core and session packages.
 type SessionChanger interface {
 	SetTitle(title string)
+	SetMode(mode config.AppMode) error
 }
 
 type commandFunc func(args string, messages []Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool)
@@ -199,7 +200,9 @@ func modeCmd(args string, messages []Message, cfg *config.Config, sess SessionCh
 	requestedMode := config.AppMode(args)
 	for _, m := range config.AvailableAppModes {
 		if m == requestedMode {
-			cfg.AppMode = requestedMode
+			if err := sess.SetMode(requestedMode); err != nil {
+				return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error switching mode: %v", err)}, false
+			}
 			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Switched mode to: %s", args)}, true
 		}
 	}

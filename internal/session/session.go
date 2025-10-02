@@ -1,17 +1,13 @@
 package session
 
 import (
-	"coder/internal/agent"
 	"coder/internal/config"
-	"coder/internal/contextdir"
 	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/history"
-	"coder/internal/source"
-	"coder/internal/tools"
+	"coder/internal/modes"
 	"coder/internal/utils"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -19,36 +15,6 @@ import (
 	"strings"
 	"time"
 )
-
-// EventType defines the type of event returned by the session.
-type EventType int
-
-const (
-	// NoOp indicates that no significant action was taken.
-	NoOp EventType = iota
-	// MessagesUpdated indicates that the message list was updated.
-	MessagesUpdated
-	// GenerationStarted indicates a new AI generation task has begun.
-	GenerationStarted
-	// VisualModeStarted indicates the UI should enter visual mode.
-	VisualModeStarted
-	// GenerateModeStarted indicates the UI should enter visual generate mode.
-	GenerateModeStarted
-	// EditModeStarted indicates the UI should enter visual edit mode.
-	EditModeStarted
-	// BranchModeStarted indicates the UI should enter visual branch mode.
-	BranchModeStarted
-	// HistoryModeStarted indicates the UI should enter history browsing mode.
-	HistoryModeStarted
-	// NewSessionStarted indicates the session has been reset.
-	NewSessionStarted
-)
-
-// Event is returned by session methods to inform the UI about what happened.
-type Event struct {
-	Type EventType
-	Data interface{} // Can be a stream channel for GenerationStarted or an error for ErrorOccurred
-}
 
 // Session manages the state of a single conversation.
 type Session struct {
@@ -64,6 +30,7 @@ type Session struct {
 	titleGenerated     bool
 	historyFilename    string
 	createdAt          time.Time
+	modeStrategy       modes.ModeStrategy
 }
 
 // New creates a new session.
@@ -88,39 +55,36 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 	copy(messages, initialMessages)
 
 	return &Session{
-		config:         cfg,
-		generator:      gen,
-		historyManager: hist,
-		messages:       messages,
-		title:          "New Chat",
-		titleGenerated: false,
-		createdAt:      time.Now(),
-		historyFilename:    "",
+		config:          cfg,
+		generator:       gen,
+		historyManager:  hist,
+		messages:        messages,
+		title:           "New Chat",
+		titleGenerated:  false,
+		createdAt:       time.Now(),
+		historyFilename: "",
+		modeStrategy:    modes.NewStrategy(cfg.AppMode),
 	}, nil
 }
 
-// LoadContext loads the initial context for the session.
+// LoadContext loads the initial context for the session using the current mode strategy.
 func (s *Session) LoadContext() error {
-	if s.config.AppMode == config.AgentMode {
-		s.systemInstructions = ""
-		s.relatedDocuments = ""
-		s.projectSourceCode = ""
-		return nil
-	}
-	sysInstructions, docs, ctxErr := contextdir.LoadContext()
-	if ctxErr != nil {
-		return fmt.Errorf("failed to load context directory: %w", ctxErr)
-	}
-
-	projSource, srcErr := source.LoadProjectSource(s.config.AppMode)
-	if srcErr != nil {
-		return fmt.Errorf("failed to load project source: %w", srcErr)
+	sysInstructions, docs, projSource, err := s.modeStrategy.LoadContext()
+	if err != nil {
+		return err
 	}
 
 	s.systemInstructions = sysInstructions
 	s.relatedDocuments = docs
 	s.projectSourceCode = projSource
 	return nil
+}
+
+// SetMode changes the application mode and reloads the context.
+func (s *Session) SetMode(appMode config.AppMode) error {
+	s.config.AppMode = appMode
+	s.modeStrategy = modes.NewStrategy(appMode)
+	return s.LoadContext()
 }
 
 // GetMessages returns the current conversation messages.
@@ -212,28 +176,15 @@ func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
-func (s *Session) getCurrentRole() string {
-	switch s.config.AppMode {
-	case config.DocumentingMode:
-		return core.DocumentingRole
-	case config.AgentMode:
-		return core.AgentRole
-	case config.CodingMode:
-		fallthrough
-	default:
-		return core.CodingRole
-	}
-}
-
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	role := s.getCurrentRole()
+	role := s.modeStrategy.GetRolePrompt()
 	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	role := s.getCurrentRole()
+	role := s.modeStrategy.GetRolePrompt()
 	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
 }
 
@@ -243,16 +194,16 @@ func (s *Session) SaveConversation() error {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}
 
-	role := s.getCurrentRole()
+	role := s.modeStrategy.GetRolePrompt()
 	data := &history.ConversationData{
-		Filename:          s.historyFilename,
-		Title:             s.title,
-		CreatedAt:         s.createdAt,
-		Messages:          s.messages,
-		Role:              role,
+		Filename:           s.historyFilename,
+		Title:              s.title,
+		CreatedAt:          s.createdAt,
+		Messages:           s.messages,
+		Role:               role,
 		SystemInstructions: s.systemInstructions,
-		RelatedDocuments:  s.relatedDocuments,
-		ProjectSourceCode: s.projectSourceCode,
+		RelatedDocuments:   s.relatedDocuments,
+		ProjectSourceCode:  s.projectSourceCode,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -334,10 +285,8 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 
-	if err := s.reloadProjectSource(); err != nil {
-		log.Printf("Error reloading project source after loading conversation: %v", err)
-	}
-	return nil
+	// The context, including project source, is loaded based on the current mode.
+	return s.LoadContext()
 }
 
 // CancelGeneration cancels any ongoing AI generation.
@@ -387,41 +336,31 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 // RegenerateFrom truncates the message history to the specified user message
 // and starts a new generation.
-func (s *Session) RegenerateFrom(userMessageIndex int) Event {
+func (s *Session) RegenerateFrom(userMessageIndex int) core.Event {
 	if userMessageIndex < 0 || userMessageIndex >= len(s.messages) || s.messages[userMessageIndex].Type != core.UserMessage {
 		s.messages = append(s.messages, core.Message{
 			Type:    core.CommandErrorResultMessage,
 			Content: "Invalid index for regeneration.",
 		})
-		return Event{Type: MessagesUpdated}
+		return core.Event{Type: core.MessagesUpdated}
 	}
 
 	s.messages = s.messages[:userMessageIndex+1]
-	return s.startGeneration()
+	return s.StartGeneration()
 }
 
-// reloadProjectSource reloads the project source code from disk.
-func (s *Session) reloadProjectSource() error {
-	if s.config.AppMode == config.AgentMode {
-		s.projectSourceCode = ""
-		return nil
-	}
-	projSource, err := source.LoadProjectSource(s.config.AppMode)
-	if err != nil {
-		return fmt.Errorf("failed to reload project source: %w", err)
-	}
-	s.projectSourceCode = projSource
-	return nil
-}
-
-func (s *Session) startGeneration() Event {
-	if err := s.reloadProjectSource(); err != nil {
-		log.Printf("Error reloading project source for generation: %v", err)
+// StartGeneration prepares and begins a new AI generation task.
+// It is part of the modes.SessionController interface.
+func (s *Session) StartGeneration() core.Event {
+	// Reload context, which includes project source, before every generation
+	// to pick up any file changes.
+	if err := s.LoadContext(); err != nil {
+		log.Printf("Error reloading context for generation: %v", err)
 		s.messages = append(s.messages, core.Message{
 			Type:    core.CommandErrorResultMessage,
-			Content: fmt.Sprintf("Failed to reload project source before generation:\n%v", err),
+			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
 		})
-		return Event{Type: MessagesUpdated}
+		return core.Event{Type: core.MessagesUpdated}
 	}
 
 	prompt := s.GetPromptForTokenCount()
@@ -452,7 +391,7 @@ func (s *Session) startGeneration() Event {
 				Type:    core.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
 			})
-			return Event{Type: MessagesUpdated}
+			return core.Event{Type: core.MessagesUpdated}
 		}
 		for i, p := range imgPaths {
 			imgPaths[i] = filepath.Join(repoRoot, p)
@@ -466,22 +405,22 @@ func (s *Session) startGeneration() Event {
 
 	s.messages = append(s.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
 
-	return Event{
-		Type: GenerationStarted,
+	return core.Event{
+		Type: core.GenerationStarted,
 		Data: streamChan,
 	}
 }
 
 // HandleInput processes user input (prompts, commands, actions).
-func (s *Session) HandleInput(input string) Event {
+func (s *Session) HandleInput(input string) core.Event {
 	if strings.TrimSpace(input) == "" {
-		return Event{Type: NoOp}
+		return core.Event{Type: core.NoOp}
 	}
 
 	if !strings.HasPrefix(input, ":") {
 		// This is a new user prompt.
 		s.messages = append(s.messages, core.Message{Type: core.UserMessage, Content: input})
-		return s.startGeneration()
+		return s.StartGeneration()
 	}
 
 	cmdOutput, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
@@ -491,17 +430,17 @@ func (s *Session) HandleInput(input string) Event {
 		switch cmdOutput.Type {
 		case core.CommandResultNewSession:
 			s.newSession()
-			return Event{Type: NewSessionStarted}
+			return core.Event{Type: core.NewSessionStarted}
 		case core.CommandResultVisualMode:
-			return Event{Type: VisualModeStarted}
+			return core.Event{Type: core.VisualModeStarted}
 		case core.CommandResultGenerateMode:
-			return Event{Type: GenerateModeStarted}
+			return core.Event{Type: core.GenerateModeStarted}
 		case core.CommandResultEditMode:
-			return Event{Type: EditModeStarted}
+			return core.Event{Type: core.EditModeStarted}
 		case core.CommandResultBranchMode:
-			return Event{Type: BranchModeStarted}
+			return core.Event{Type: core.BranchModeStarted}
 		case core.CommandResultHistoryMode:
-			return Event{Type: HistoryModeStarted}
+			return core.Event{Type: core.HistoryModeStarted}
 		}
 	}
 
@@ -512,65 +451,10 @@ func (s *Session) HandleInput(input string) Event {
 	} else {
 		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdOutput.Payload})
 	}
-	return Event{Type: MessagesUpdated}
+	return core.Event{Type: core.MessagesUpdated}
 }
 
-// ContinueAgent checks the last AI message for tool calls and executes them,
-// then starts a new generation cycle.
-func (s *Session) ContinueAgent() Event {
-	if s.config.AppMode != config.AgentMode {
-		return Event{Type: NoOp}
-	}
-
-	if len(s.messages) == 0 {
-		return Event{Type: NoOp}
-	}
-	lastMsg := s.messages[len(s.messages)-1]
-	if lastMsg.Type != core.AIMessage || lastMsg.Content == "" {
-		return Event{Type: NoOp}
-	}
-
-	toolCallsJSON, _ := agent.ExtractToolCalls(lastMsg.Content)
-	if toolCallsJSON == "" {
-		return Event{Type: NoOp}
-	}
-
-	s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: toolCallsJSON})
-
-	results, err := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
-	if err != nil {
-		// This is likely a JSON parsing error from ExecuteToolCalls.
-		resultContent := fmt.Sprintf("Error parsing tool calls JSON: %v", err)
-		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
-		return Event{Type: MessagesUpdated}
-	}
-
-	var resultBuilder strings.Builder
-	resultBuilder.WriteString("[\n")
-	for i, res := range results {
-		var toolName string
-		if res.ToolCall.ToolName != "" {
-			toolName = res.ToolCall.ToolName
-		} else if res.ToolCall.Shell != nil {
-			toolName = "shell"
-		}
-
-		resultObj := map[string]interface{}{"tool": toolName}
-		if res.Error != nil {
-			resultObj["error"] = res.Error.Error()
-		}
-		if res.Output != "" {
-			resultObj["output"] = res.Output
-		}
-
-		jsonBytes, _ := json.MarshalIndent(resultObj, "  ", "  ")
-		resultBuilder.WriteString("  ")
-		resultBuilder.Write(jsonBytes)
-		if i < len(results)-1 {
-			resultBuilder.WriteString(",\n")
-		}
-	}
-	resultBuilder.WriteString("\n]")
-	s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
-	return s.startGeneration()
+// ProcessAIResponse delegates to the current mode strategy to process the AI response.
+func (s *Session) ProcessAIResponse() core.Event {
+	return s.modeStrategy.ProcessAIResponse(s)
 }
