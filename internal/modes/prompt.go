@@ -9,13 +9,14 @@ const (
 	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
 	relatedDocumentsHeader    = "# RELATED DOCUMENTS\n\n"
 	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
+	externalToolsHeader       = "# EXTERNAL TOOLS\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	separator                 = "\n\n---\n\n"
 )
 
 // BuildPrompt constructs the full prompt from its components.
 // This is a generic builder used by mode strategies and other parts of the application.
-func BuildPrompt(role, instructions, systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+func BuildPrompt(role, instructions, systemInstructions, relatedDocuments, projectSourceCode, toolDocs string, messages []core.Message) string {
 	var sb strings.Builder
 
 	hasPredefinedContent := false
@@ -51,6 +52,12 @@ func BuildPrompt(role, instructions, systemInstructions, relatedDocuments, proje
 	if projectSourceCode != "" {
 		sb.WriteString(projectSourceCodeHeader)
 		sb.WriteString(projectSourceCode)
+		sb.WriteString(separator)
+	}
+
+	if toolDocs != "" {
+		sb.WriteString(externalToolsHeader)
+		sb.WriteString(toolDocs)
 		sb.WriteString(separator)
 	}
 

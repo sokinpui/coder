@@ -58,8 +58,25 @@ func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.A
 	if !ok {
 		return "", fmt.Errorf("unknown agent: %s", agentName)
 	}
+
+	agentConfig, ok := config.AgentConfigs[agentName]
+	if !ok {
+		return "", fmt.Errorf("no config for agent: %s", agentName)
+	}
+
+	var toolDocs string
+	if len(agentConfig.Tools) > 0 {
+		toolDocsJSON, err := tools.GenerateToolDocsJSONForTools(agentConfig.Tools)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate tool docs: %w", err)
+		}
+		if toolDocsJSON != "" {
+			toolDocs = strings.Replace(core.ToolCallPrompt, "{{TOOLS_DOCUMENTATION}}", toolDocsJSON, 1)
+		}
+	}
+
 	// Agent mode does not use file-based context.
-	return BuildPrompt(rolePrompt, "", "", "", "", messages), nil
+	return BuildPrompt(rolePrompt, "", "", "", "", toolDocs, messages), nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,

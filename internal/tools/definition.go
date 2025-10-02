@@ -65,3 +65,33 @@ func GenerateToolDocsJSON() (string, error) {
 	}
 	return string(bytes), nil
 }
+
+// GetToolDefinitionsByNames returns a slice of tool definitions for the given names.
+func GetToolDefinitionsByNames(names []string) []Definition {
+	defs := make([]Definition, 0, len(names))
+	for _, name := range names {
+		if tool, ok := registry[name]; ok {
+			defs = append(defs, tool.Definition)
+		}
+	}
+
+	// Sort for consistent output
+	sort.Slice(defs, func(i, j int) bool {
+		return defs[i].ToolName < defs[j].ToolName
+	})
+
+	return defs
+}
+
+// GenerateToolDocsJSONForTools generates a JSON string of specified tool definitions.
+func GenerateToolDocsJSONForTools(toolNames []string) (string, error) {
+	defs := GetToolDefinitionsByNames(toolNames)
+	if len(defs) == 0 {
+		return "", nil
+	}
+	bytes, err := json.MarshalIndent(defs, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
