@@ -19,6 +19,13 @@ type AgentRequest struct {
 	Prompt    string `json:"prompt"`
 }
 
+var agentRoles = map[config.AgentName]string{
+	config.CodingAgent:  core.AgentCodingRole,
+	config.WritingAgent: core.AgentWritingRole,
+	config.GeneralAgent: core.AgentGeneralRole,
+	config.MainAgent:    core.AgentRole,
+}
+
 // GetRolePrompt returns the agent role.
 func (m *AgentMode) GetRolePrompt() string {
 	return core.AgentRole
@@ -31,45 +38,25 @@ func (m *AgentMode) LoadContext() (string, string, string, error) {
 
 // getAgentContext returns the role prompt and generation config for a given agent.
 func (m *AgentMode) getAgentContext(s SessionController, agentName string) (string, *config.Generation, error) {
-	var rolePrompt string
-	switch agentName {
-	case "coding_agent":
-		rolePrompt = core.AgentCodingRole
-	case "writing_agent":
-		rolePrompt = core.AgentWritingRole
-	case "general_agent":
-		rolePrompt = core.AgentGeneralRole
-	case "main_agent":
-		rolePrompt = core.AgentRole
-	default:
-		return "", nil, fmt.Errorf("unknown agent '%s' called", agentName)
+	agent := config.AgentName(agentName)
+
+	rolePrompt, err := agentRoles[agent]
+	if !err {
+		return "", nil, fmt.Errorf("unknown agent: %s", agentName)
 	}
 
-	// Get base config from the session and create a copy
+	agentGenConfig, err := config.AgentConfigs[agent]
+	if !err {
+		return "", nil, fmt.Errorf("no config for agent: %s", agentName)
+	}
+
+	// Get base config from the session and create a copy to override.
 	baseConfig := s.GetGenerator().Config
-	agentConfig := baseConfig
+	newConfig := baseConfig
+	newConfig.ModelCode = agentGenConfig.ModelCode
+	newConfig.Temperature = agentGenConfig.Temperature
 
-	switch agentName {
-	case "coding_agent":
-		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
-		agentConfig.Temperature = 0.1
-		return rolePrompt, &agentConfig, nil
-	case "writing_agent":
-		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
-		agentConfig.Temperature = 0.7
-		return rolePrompt, &agentConfig, nil
-	case "general_agent":
-		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
-		agentConfig.Temperature = 0.5
-		return rolePrompt, &agentConfig, nil
-	case "main_agent":
-		agentConfig.ModelCode = config.AvailableModels[1] // gemini-2.5-flash-preview-09-2025
-		agentConfig.Temperature = 0.1
-		return rolePrompt, &agentConfig, nil
-	}
-
-	// For other agents, return nil to use session default.
-	return rolePrompt, nil, nil
+	return rolePrompt, &newConfig, nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,
