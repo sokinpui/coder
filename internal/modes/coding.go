@@ -35,3 +35,8 @@ func (m *CodingMode) LoadContext() (string, string, string, error) {
 func (m *CodingMode) ProcessAIResponse(s SessionController) core.Event {
 	return core.Event{Type: core.NoOp}
 }
+
+// StartGeneration begins a new AI generation task using the default logic.
+func (m *CodingMode) StartGeneration(s SessionController) core.Event {
+	return DefaultStartGeneration(s)
+}

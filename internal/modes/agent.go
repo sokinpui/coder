@@ -76,5 +76,10 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 	}
 	resultBuilder.WriteString("\n]")
 	s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
-	return s.StartGeneration()
+	return s.StartGeneration() // This will now delegate to AgentMode's StartGeneration
+}
+
+// StartGeneration begins a new AI generation task using the default logic.
+func (m *AgentMode) StartGeneration(s SessionController) core.Event {
+	return DefaultStartGeneration(s)
 }

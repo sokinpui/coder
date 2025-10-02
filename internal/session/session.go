@@ -176,6 +176,16 @@ func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
+// GetGenerator returns the session's generator instance.
+func (s *Session) GetGenerator() *generation.Generator {
+	return s.generator
+}
+
+// SetCancelGeneration sets the context cancel function for the current generation.
+func (s *Session) SetCancelGeneration(cancel context.CancelFunc) {
+	s.cancelGeneration = cancel
+}
+
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
 	role := s.modeStrategy.GetRolePrompt()
@@ -349,66 +359,9 @@ func (s *Session) RegenerateFrom(userMessageIndex int) core.Event {
 	return s.StartGeneration()
 }
 
-// StartGeneration prepares and begins a new AI generation task.
-// It is part of the modes.SessionController interface.
+// StartGeneration delegates to the current mode strategy to start a generation.
 func (s *Session) StartGeneration() core.Event {
-	// Reload context, which includes project source, before every generation
-	// to pick up any file changes.
-	if err := s.LoadContext(); err != nil {
-		log.Printf("Error reloading context for generation: %v", err)
-		s.messages = append(s.messages, core.Message{
-			Type:    core.CommandErrorResultMessage,
-			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
-		})
-		return core.Event{Type: core.MessagesUpdated}
-	}
-
-	prompt := s.GetPromptForTokenCount()
-
-	// Collect image paths from recent messages that precede the current user prompt.
-	var imgPaths []string
-	// Iterate backwards from the message before the last one (which is the user prompt).
-	for i := len(s.messages) - 2; i >= 0; i-- {
-		msg := s.messages[i]
-		if msg.Type == core.ImageMessage {
-			imgPaths = append(imgPaths, msg.Content)
-		} else if msg.Type == core.UserMessage || msg.Type == core.AIMessage {
-			// Stop when we hit the previous conversation turn.
-			break
-		}
-	}
-	// Reverse the slice to maintain the original order of images.
-	for i, j := 0, len(imgPaths)-1; i < j; i, j = i+1, j-1 {
-		imgPaths[i], imgPaths[j] = imgPaths[j], imgPaths[i]
-	}
-
-	// Convert relative image paths to absolute paths for the generation server.
-	if len(imgPaths) > 0 {
-		repoRoot, err := utils.FindRepoRoot()
-		if err != nil {
-			log.Printf("Error finding repo root for image paths: %v", err)
-			s.messages = append(s.messages, core.Message{
-				Type:    core.CommandErrorResultMessage,
-				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
-			})
-			return core.Event{Type: core.MessagesUpdated}
-		}
-		for i, p := range imgPaths {
-			imgPaths[i] = filepath.Join(repoRoot, p)
-		}
-	}
-
-	streamChan := make(chan string)
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancelGeneration = cancel
-	go s.generator.GenerateTask(ctx, prompt, imgPaths, streamChan)
-
-	s.messages = append(s.messages, core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
-
-	return core.Event{
-		Type: core.GenerationStarted,
-		Data: streamChan,
-	}
+	return s.modeStrategy.StartGeneration(s)
 }
 
 // HandleInput processes user input (prompts, commands, actions).
