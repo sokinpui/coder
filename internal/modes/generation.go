@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 )
 
-// DefaultStartGeneration provides a default implementation for starting a generation task.
-func DefaultStartGeneration(s SessionController) core.Event {
+// StartGeneration provides a default implementation for starting a generation task.
+func StartGeneration(s SessionController) core.Event {
 	// Reload context, which includes project source, before every generation
 	// to pick up any file changes.
 	if err := s.LoadContext(); err != nil {

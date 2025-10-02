@@ -80,7 +80,7 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 
 // StartGeneration begins a new AI generation task using the default logic.
 func (m *AgentMode) StartGeneration(s SessionController) core.Event {
-	return DefaultStartGeneration(s)
+	return StartGeneration(s)
 }
 
 // BuildPrompt constructs the prompt for agent mode.
