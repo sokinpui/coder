@@ -34,14 +34,24 @@ const (
 type AgentGenerationConfig struct {
 	ModelCode   string
 	Temperature float32
+	Tools       []string
 }
 
 // AgentConfigs holds the specific generation configurations for each agent.
 var AgentConfigs = map[AgentName]AgentGenerationConfig{
-	CodingAgent:  {ModelCode: "gemini-2.5-pro", Temperature: 0.1},
-	WritingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.7},
-	GeneralAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.5},
-	MainAgent:    {ModelCode: "gemini-2.5-flash-preview-09-2025", Temperature: 0.1},
+	CodingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.1, Tools: []string{
+		"upsert_files",
+	}},
+	WritingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.7, Tools: []string{
+		"upsert_files",
+	}},
+	GeneralAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.5, Tools: []string{}},
+	MainAgent: {ModelCode: "gemini-2.5-flash-preview-09-2025", Temperature: 0.1, Tools: []string{
+		"coding_agent",
+		"writing_agent",
+		"general_agent",
+		"read_files",
+	}},
 }
 
 // GRPC contains gRPC server configuration.
