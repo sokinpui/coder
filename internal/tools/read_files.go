@@ -7,7 +7,19 @@ import (
 )
 
 func init() {
-	RegisterTool("read_files", readFiles)
+	RegisterTool(
+		Definition{
+			ToolName:    "read_files",
+			Description: "Reads the content of files given an array of path.",
+			Args: []ArgumentDefinition{
+				{
+					Name:        "paths",
+					Type:        "array",
+					Description: "An array of relative file paths to read.",
+				},
+			},
+		},
+		readFiles)
 }
 
 // readFiles reads the content of one or more files using pcat and returns the formatted output.

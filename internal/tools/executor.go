@@ -9,8 +9,8 @@ import (
 
 // To add a new tool:
 // 1. Create a new file in the `tools` directory (e.g., `my_tool.go`).
-// 2. In that file, define a function that matches the `ToolFunc` signature.
-// 3. In an `init()` function in the same file, call `RegisterTool` to make it available.
+// 2. Define a function that matches the `ToolFunc` signature.
+// 3. In an `init()` function, call `RegisterTool` with the tool's `Definition` and the function.
 
 // ToolCall represents a single tool call from the model.
 // The model is expected to return a JSON array of these objects.
@@ -35,17 +35,6 @@ type ToolResult struct {
 }
 
 type ToolFunc func(args map[string]any) (string, error)
-
-var registry = make(map[string]ToolFunc)
-
-// RegisterTool adds a new tool to the registry. This is not thread-safe
-// and should be called from `init()` functions only.
-func RegisterTool(name string, fn ToolFunc) {
-	if _, exists := registry[name]; exists {
-		panic(fmt.Sprintf("tool with name '%s' is already registered", name))
-	}
-	registry[name] = fn
-}
 
 func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 	var calls []ToolCall
@@ -80,12 +69,12 @@ func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 }
 
 func executeTool(call ToolCall) (string, error) {
-	toolFunc, exists := registry[call.ToolName]
+	tool, exists := registry[call.ToolName]
 	if !exists {
 		return "", fmt.Errorf("tool '%s' not found", call.ToolName)
 	}
 
-	return toolFunc(call.Args)
+	return tool.Function(call.Args)
 }
 
 func executeShell(call ToolCall) (string, error) {
