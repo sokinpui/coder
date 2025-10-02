@@ -3,13 +3,22 @@ package modes
 import (
 	"coder/internal/core"
 	"coder/internal/tools"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/sokinpui/synapse.go/v2/client"
 )
 
 // AgentMode is the strategy for the agent/tool-using mode.
 type AgentMode struct{}
+
+// AgentRequest represents the parsed JSON from a special agent tool call.
+type AgentRequest struct {
+	AgentName string `json:"_special_agent_request"`
+	Prompt    string `json:"prompt"`
+}
 
 // GetRolePrompt returns the agent role.
 func (m *AgentMode) GetRolePrompt() string {
@@ -19,6 +28,61 @@ func (m *AgentMode) GetRolePrompt() string {
 // LoadContext does not load any context for agent mode.
 func (m *AgentMode) LoadContext() (string, string, string, error) {
 	return "", "", "", nil
+}
+
+// getAgentContext returns the role prompt and generation config for a given agent.
+func (m *AgentMode) getAgentContext(s SessionController, agentName string) (string, *client.GenerationConfig, error) {
+	var rolePrompt string
+	switch agentName {
+	case "coding_agent":
+		rolePrompt = core.AgentCodingRole
+	case "writing_agent":
+		rolePrompt = core.AgentWritingRole
+	case "general_agent":
+		rolePrompt = core.AgentGeneralRole
+	case "main_agent":
+		rolePrompt = core.AgentRole
+	default:
+		return "", nil, fmt.Errorf("unknown agent '%s' called", agentName)
+	}
+
+	// Get base config from the session
+	baseConfig := s.GetGenerator().Config
+	temperature := baseConfig.Temperature
+	topP := baseConfig.TopP
+	topK := baseConfig.TopK
+	outputLength := baseConfig.OutputLength
+
+	var genConfig *client.GenerationConfig
+
+	switch agentName {
+	case "coding_agent":
+		temperature = 0.1
+		genConfig = &client.GenerationConfig{
+			Temperature:  &temperature,
+			TopP:         &topP,
+			TopK:         &topK,
+			OutputLength: &outputLength,
+		}
+	case "writing_agent":
+		temperature = 0.7
+		genConfig = &client.GenerationConfig{
+			Temperature:  &temperature,
+			TopP:         &topP,
+			TopK:         &topK,
+			OutputLength: &outputLength,
+		}
+	case "general_agent":
+		temperature = 0.5
+		genConfig = &client.GenerationConfig{
+			Temperature:  &temperature,
+			TopP:         &topP,
+			TopK:         &topK,
+			OutputLength: &outputLength,
+		}
+	}
+
+	return rolePrompt, genConfig, nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,
@@ -42,40 +106,83 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 
 	results, err := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
 	if err != nil {
-		// This is likely a JSON parsing error from ExecuteToolCalls.
-		resultContent := fmt.Sprintf("Error parsing tool calls JSON: %v", err)
+		resultContent := fmt.Sprintf("Error executing tool calls: %v", err)
 		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
 		return core.Event{Type: core.MessagesUpdated}
 	}
 
-	var resultBuilder strings.Builder
-	resultBuilder.WriteString("[\n")
-	for i, res := range results {
-		var toolName string
-		if res.ToolCall.ToolName != "" {
-			toolName = res.ToolCall.ToolName
-		} else if res.ToolCall.Shell != nil {
-			toolName = "shell"
-		}
+	var agentRequests []AgentRequest
+	var normalResults []tools.ToolResult
 
-		resultObj := map[string]interface{}{"tool": toolName}
-		if res.Error != nil {
-			resultObj["error"] = res.Error.Error()
-		}
-		if res.Output != "" {
-			resultObj["output"] = res.Output
-		}
-
-		jsonBytes, _ := json.MarshalIndent(resultObj, "  ", "  ")
-		resultBuilder.WriteString("  ")
-		resultBuilder.Write(jsonBytes)
-		if i < len(results)-1 {
-			resultBuilder.WriteString(",\n")
+	for _, res := range results {
+		var req AgentRequest
+		if res.Error == nil && json.Unmarshal([]byte(res.Output), &req) == nil && req.AgentName != "" {
+			agentRequests = append(agentRequests, req)
+		} else {
+			normalResults = append(normalResults, res)
 		}
 	}
-	resultBuilder.WriteString("\n]")
-	s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
-	return s.StartGeneration() // This will now delegate to AgentMode's StartGeneration
+
+	// Prioritize agent requests. If any are present, handle the first one and ignore others for this turn.
+	if len(agentRequests) > 0 {
+		req := agentRequests[0]
+
+		rolePrompt, genConfig, err := m.getAgentContext(s, req.AgentName)
+		if err != nil {
+			s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
+			return core.Event{Type: core.MessagesUpdated}
+		}
+
+		// The prompt for the sub-agent is the conversation history plus the new task.
+		// We create a temporary message to represent the task for prompt building.
+		tempMessages := append(s.GetMessages(), core.Message{Type: core.UserMessage, Content: req.Prompt})
+		prompt := BuildPrompt(rolePrompt, "", "", "", "", tempMessages)
+
+		streamChan := make(chan string)
+		ctx, cancel := context.WithCancel(context.Background())
+		s.SetCancelGeneration(cancel)
+		go s.GetGenerator().GenerateTask(ctx, prompt, nil, streamChan, genConfig)
+
+		s.AddMessage(core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
+
+		return core.Event{
+			Type: core.GenerationStarted,
+			Data: streamChan,
+		}
+	}
+
+	// If no agent requests, process normal tool results.
+	if len(normalResults) > 0 {
+		var resultBuilder strings.Builder
+		resultBuilder.WriteString("[\n")
+		for i, res := range normalResults {
+			var toolName string
+			if res.ToolCall.ToolName != "" {
+				toolName = res.ToolCall.ToolName
+			} else if res.ToolCall.Shell != nil {
+				toolName = "shell"
+			}
+
+			resultObj := map[string]interface{}{"tool": toolName}
+			if res.Error != nil {
+				resultObj["error"] = res.Error.Error()
+			}
+			if res.Output != "" {
+				resultObj["output"] = res.Output
+			}
+
+			jsonBytes, _ := json.MarshalIndent(resultObj, "  ", "  ")
+			resultBuilder.WriteString("  ")
+			resultBuilder.Write(jsonBytes)
+			if i < len(normalResults)-1 {
+				resultBuilder.WriteString(",\n")
+			}
+		}
+		resultBuilder.WriteString("\n]")
+		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultBuilder.String()})
+		return s.StartGeneration()
+	}
+	return core.Event{Type: core.NoOp}
 }
 
 // StartGeneration begins a new AI generation task using the default logic.

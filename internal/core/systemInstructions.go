@@ -11,6 +11,15 @@ var DocumentingRole string
 //go:embed Roles/agent.md
 var AgentRole string
 
+//go:embed Roles/agent_coding.md
+var AgentCodingRole string
+
+//go:embed Roles/agent_writing.md
+var AgentWritingRole string
+
+//go:embed Roles/agent_general.md
+var AgentGeneralRole string
+
 //go:embed Roles/askAI.md
 var AskAIRole string
 
