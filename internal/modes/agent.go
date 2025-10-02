@@ -26,9 +26,9 @@ var agentRoles = map[config.AgentName]string{
 	config.MainAgent:    core.AgentRole,
 }
 
-// GetRolePrompt returns the agent role.
+// GetRolePrompt returns the main agent role.
 func (m *AgentMode) GetRolePrompt() string {
-	return core.AgentRole
+	return agentRoles[config.MainAgent]
 }
 
 // LoadContext does not load any context for agent mode.
@@ -36,18 +36,11 @@ func (m *AgentMode) LoadContext() (string, string, string, error) {
 	return "", "", "", nil
 }
 
-// getAgentContext returns the role prompt and generation config for a given agent.
-func (m *AgentMode) getAgentContext(s SessionController, agentName string) (string, *config.Generation, error) {
-	agent := config.AgentName(agentName)
-
-	rolePrompt, err := agentRoles[agent]
-	if !err {
-		return "", nil, fmt.Errorf("unknown agent: %s", agentName)
-	}
-
-	agentGenConfig, err := config.AgentConfigs[agent]
-	if !err {
-		return "", nil, fmt.Errorf("no config for agent: %s", agentName)
+// getAgentConfig returns the generation config for a given agent.
+func (m *AgentMode) getAgentConfig(s SessionController, agentName config.AgentName) (*config.Generation, error) {
+	agentGenConfig, ok := config.AgentConfigs[agentName]
+	if !ok {
+		return nil, fmt.Errorf("no config for agent: %s", agentName)
 	}
 
 	// Get base config from the session and create a copy to override.
@@ -56,7 +49,17 @@ func (m *AgentMode) getAgentContext(s SessionController, agentName string) (stri
 	newConfig.ModelCode = agentGenConfig.ModelCode
 	newConfig.Temperature = agentGenConfig.Temperature
 
-	return rolePrompt, &newConfig, nil
+	return &newConfig, nil
+}
+
+// buildAgentPrompt constructs a prompt for a specific agent and message history.
+func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.AgentName) (string, error) {
+	rolePrompt, ok := agentRoles[agentName]
+	if !ok {
+		return "", fmt.Errorf("unknown agent: %s", agentName)
+	}
+	// Agent mode does not use file-based context.
+	return BuildPrompt(rolePrompt, "", "", "", "", messages), nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,
@@ -100,17 +103,21 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 	// Prioritize agent requests. If any are present, handle the first one and ignore others for this turn.
 	if len(agentRequests) > 0 {
 		req := agentRequests[0]
+		agentName := config.AgentName(req.AgentName)
 
-		rolePrompt, genConfig, err := m.getAgentContext(s, req.AgentName)
+		genConfig, err := m.getAgentConfig(s, agentName)
 		if err != nil {
 			s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
 			return core.Event{Type: core.MessagesUpdated}
 		}
 
 		// The prompt for the sub-agent is the conversation history plus the new task.
-		// We create a temporary message to represent the task for prompt building.
 		tempMessages := append(s.GetMessages(), core.Message{Type: core.UserMessage, Content: req.Prompt})
-		prompt := BuildPrompt(rolePrompt, "", "", "", "", tempMessages)
+		prompt, err := m.buildAgentPrompt(tempMessages, agentName)
+		if err != nil {
+			s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
+			return core.Event{Type: core.MessagesUpdated}
+		}
 
 		streamChan := make(chan string)
 		ctx, cancel := context.WithCancel(context.Background())
@@ -161,7 +168,7 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 
 // StartGeneration begins a new AI generation task using the agent-specific logic.
 func (m *AgentMode) StartGeneration(s SessionController) core.Event {
-	_, genConfig, err := m.getAgentContext(s, "main_agent")
+	genConfig, err := m.getAgentConfig(s, config.MainAgent)
 	if err != nil {
 		s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
 		return core.Event{Type: core.MessagesUpdated}
@@ -172,5 +179,7 @@ func (m *AgentMode) StartGeneration(s SessionController) core.Event {
 // BuildPrompt constructs the prompt for agent mode.
 func (m *AgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
 	// Agent mode does not use file-based context.
-	return BuildPrompt(m.GetRolePrompt(), "", "", "", "", messages)
+	// This will never fail as MainAgent is always in the map.
+	prompt, _ := m.buildAgentPrompt(messages, config.MainAgent)
+	return prompt
 }
