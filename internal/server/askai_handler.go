@@ -79,7 +79,7 @@ func (c *Client) handleAskAI(payload map[string]interface{}, requestID string) {
 	c.askAICancels[requestID] = cancel
 	c.mu.Unlock()
 
-	go generator.GenerateTask(ctx, prompt, nil, streamChan)
+	go generator.GenerateTask(ctx, prompt, nil, streamChan, nil)
 
 	// Stream results back to client
 	go func() {

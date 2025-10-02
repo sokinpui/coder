@@ -26,20 +26,24 @@ func New(cfg *config.Config) (*Generator, error) {
 }
 
 // GenerateTask sends a prompt to the generation service and streams the response.
-func (g *Generator) GenerateTask(ctx context.Context, prompt string, imgPaths []string, streamChan chan<- string) {
+func (g *Generator) GenerateTask(ctx context.Context, prompt string, imgPaths []string, streamChan chan<- string, config *client.GenerationConfig) {
 	defer close(streamChan)
+
+	if config == nil {
+		config = &client.GenerationConfig{
+			Temperature:  &g.Config.Temperature,
+			TopP:         &g.Config.TopP,
+			TopK:         &g.Config.TopK,
+			OutputLength: &g.Config.OutputLength,
+		}
+	}
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
 		ImgPaths:  imgPaths,
 		ModelCode: g.Config.ModelCode,
 		Stream:    true,
-		Config: &client.GenerationConfig{
-			Temperature:  &g.Config.Temperature,
-			TopP:         &g.Config.TopP,
-			TopK:         &g.Config.TopK,
-			OutputLength: &g.Config.OutputLength,
-		},
+		Config:    config,
 	}
 
 	resultChan, err := g.client.GenerateTask(ctx, req)

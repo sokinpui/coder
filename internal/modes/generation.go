@@ -61,7 +61,7 @@ func DefaultStartGeneration(s SessionController) core.Event {
 	streamChan := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
-	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan)
+	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, nil)
 
 	s.AddMessage(core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
 
