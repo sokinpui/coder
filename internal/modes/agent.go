@@ -3,12 +3,8 @@ package modes
 import (
 	"coder/internal/core"
 	"coder/internal/tools"
-	"coder/internal/utils"
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"path/filepath"
 	"strings"
 )
 
