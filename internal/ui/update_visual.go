@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"coder/internal/core"
+	"coder/internal/history"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -308,7 +309,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 						selectedMessages = append(selectedMessages, m.session.GetMessages()[j])
 					}
 				}
-				content := core.BuildHistorySnippet(selectedMessages)
+				content := history.BuildHistorySnippet(selectedMessages)
 				if err := clipboard.WriteAll(content); err == nil {
 					m.statusBarMessage = "Copied to clipboard."
 					cmd = clearStatusBarCmd(2 * time.Second)

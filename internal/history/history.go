@@ -37,10 +37,7 @@ type ConversationData struct {
 	Title              string
 	CreatedAt          time.Time
 	Messages           []core.Message
-	Role               string
-	SystemInstructions string
-	RelatedDocuments   string
-	ProjectSourceCode  string
+	Preamble           string
 }
 
 // Manager handles saving conversation history.
@@ -67,14 +64,13 @@ func NewManager() (*Manager, error) {
 // SaveConversation saves the conversation to a markdown file.
 // It includes YAML frontmatter for metadata.
 func (m *Manager) SaveConversation(data *ConversationData) error {
-	historyContent := core.BuildHistorySnippet(data.Messages)
+	historyContent := BuildHistorySnippet(data.Messages)
 
 	if historyContent == "" && data.Title == "New Chat" {
 		return nil
 	}
 
-	headers := core.BuildPrompt(data.Role, data.SystemInstructions, data.RelatedDocuments, data.ProjectSourceCode, nil)
-	trimmedHeaders := strings.TrimSpace(headers)
+	trimmedHeaders := strings.TrimSpace(data.Preamble)
 
 	var contentBuilder strings.Builder
 	if trimmedHeaders != "" {
@@ -272,4 +268,49 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	})
 
 	return conversations, nil
+}
+
+// BuildHistorySnippet constructs a string representation of a list of messages for copying.
+func BuildHistorySnippet(messages []core.Message) string {
+	var sb strings.Builder
+
+	for i := 0; i < len(messages); i++ {
+		msg := messages[i]
+
+		switch msg.Type {
+		case core.UserMessage:
+			sb.WriteString("User:\n")
+			sb.WriteString(msg.Content)
+		case core.ImageMessage:
+			sb.WriteString("Image:\n")
+			sb.WriteString(fmt.Sprintf("![image](%s)", msg.Content))
+		case core.AIMessage:
+			if msg.Content == "" {
+				continue
+			}
+			sb.WriteString("AI Assistant:\n")
+			sb.WriteString(msg.Content)
+		case core.CommandMessage:
+			sb.WriteString("Command Execute:\n")
+			sb.WriteString(msg.Content)
+		case core.CommandResultMessage:
+			sb.WriteString("Command Execute Result:\n")
+			sb.WriteString(msg.Content)
+		case core.CommandErrorResultMessage:
+			sb.WriteString("Command Execute Error:\n")
+			sb.WriteString(msg.Content)
+		case core.ToolCallMessage:
+			sb.WriteString("Tool Call:\n")
+			sb.WriteString(msg.Content)
+		case core.ToolResultMessage:
+			sb.WriteString("Tool Result:\n")
+			sb.WriteString(msg.Content)
+		default:
+			// Skip system messages like InitMessage, DirectoryMessage
+			continue
+		}
+		sb.WriteString("\n\n")
+	}
+
+	return strings.TrimSpace(sb.String())
 }

@@ -1,8 +1,8 @@
-package core
+package modes
 
 import (
+	"coder/internal/core"
 	"strings"
-	"fmt"
 )
 
 const (
@@ -13,8 +13,9 @@ const (
 	separator                 = "\n\n---\n\n"
 )
 
-// BuildPrompt constructs the full prompt with conversation history.
-func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode string, messages []Message) string {
+// BuildPrompt constructs the full prompt from its components.
+// This is a generic builder used by mode strategies and other parts of the application.
+func BuildPrompt(role, instructions, systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
 	var sb strings.Builder
 
 	hasPredefinedContent := false
@@ -23,8 +24,8 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 		hasPredefinedContent = true
 	}
 
-	if CoderInstructions != "" {
-		sb.WriteString(CoderInstructions)
+	if instructions != "" {
+		sb.WriteString(instructions)
 		hasPredefinedContent = true
 	}
 
@@ -60,25 +61,25 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 			msg := messages[i]
 
 			switch msg.Type {
-			case UserMessage:
+			case core.UserMessage:
 				sb.WriteString("User:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
-			case ImageMessage:
+			case core.ImageMessage:
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
-			case AIMessage:
+			case core.AIMessage:
 				if msg.Content == "" {
 					continue
 				}
 				sb.WriteString("AI Assistant:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
-			case ToolCallMessage:
+			case core.ToolCallMessage:
 				sb.WriteString("Tool Call:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
-			case ToolResultMessage:
+			case core.ToolResultMessage:
 				sb.WriteString("Tool Result:\n")
 				sb.WriteString(msg.Content)
 				sb.WriteString("\n")
@@ -88,49 +89,4 @@ func BuildPrompt(role, systemInstructions, relatedDocuments, projectSourceCode s
 	}
 
 	return sb.String()
-}
-
-// BuildHistorySnippet constructs a string representation of a list of messages for copying.
-func BuildHistorySnippet(messages []Message) string {
-	var sb strings.Builder
-
-	for i := 0; i < len(messages); i++ {
-		msg := messages[i]
-
-		switch msg.Type {
-		case UserMessage:
-			sb.WriteString("User:\n")
-			sb.WriteString(msg.Content)
-		case ImageMessage:
-			sb.WriteString("Image:\n")
-			sb.WriteString(fmt.Sprintf("![image](%s)", msg.Content))
-		case AIMessage:
-			if msg.Content == "" {
-				continue
-			}
-			sb.WriteString("AI Assistant:\n")
-			sb.WriteString(msg.Content)
-		case CommandMessage:
-			sb.WriteString("Command Execute:\n")
-			sb.WriteString(msg.Content)
-		case CommandResultMessage:
-			sb.WriteString("Command Execute Result:\n")
-			sb.WriteString(msg.Content)
-		case CommandErrorResultMessage:
-			sb.WriteString("Command Execute Error:\n")
-			sb.WriteString(msg.Content)
-		case ToolCallMessage:
-			sb.WriteString("Tool Call:\n")
-			sb.WriteString(msg.Content)
-		case ToolResultMessage:
-			sb.WriteString("Tool Result:\n")
-			sb.WriteString(msg.Content)
-		default:
-			// Skip system messages like InitMessage, DirectoryMessage
-			continue
-		}
-		sb.WriteString("\n\n")
-	}
-
-	return strings.TrimSpace(sb.String())
 }

@@ -4,6 +4,7 @@ import (
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/generation"
+	"coder/internal/modes"
 	"coder/internal/source"
 	"context"
 	"fmt"
@@ -69,7 +70,7 @@ func (c *Client) handleAskAI(payload map[string]interface{}, requestID string) {
 	}
 
 	// Build the prompt
-	prompt := core.BuildPrompt(core.AskAIRole, "", preamble, projectSource, messages)
+	prompt := modes.BuildPrompt(core.AskAIRole, "", "", preamble, projectSource, messages)
 
 	streamChan := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())

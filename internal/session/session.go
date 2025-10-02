@@ -188,14 +188,12 @@ func (s *Session) SetCancelGeneration(cancel context.CancelFunc) {
 
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	role := s.modeStrategy.GetRolePrompt()
-	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
+	return s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	role := s.modeStrategy.GetRolePrompt()
-	return core.BuildPrompt(role, s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
+	return s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
 }
 
 // SaveConversation saves the current conversation to history.
@@ -204,16 +202,13 @@ func (s *Session) SaveConversation() error {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}
 
-	role := s.modeStrategy.GetRolePrompt()
+	preamble := s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
 	data := &history.ConversationData{
 		Filename:           s.historyFilename,
 		Title:              s.title,
 		CreatedAt:          s.createdAt,
 		Messages:           s.messages,
-		Role:               role,
-		SystemInstructions: s.systemInstructions,
-		RelatedDocuments:   s.relatedDocuments,
-		ProjectSourceCode:  s.projectSourceCode,
+		Preamble:           preamble,
 	}
 	return s.historyManager.SaveConversation(data)
 }

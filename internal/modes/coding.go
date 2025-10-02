@@ -40,3 +40,8 @@ func (m *CodingMode) ProcessAIResponse(s SessionController) core.Event {
 func (m *CodingMode) StartGeneration(s SessionController) core.Event {
 	return DefaultStartGeneration(s)
 }
+
+// BuildPrompt constructs the prompt for coding mode.
+func (m *CodingMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+	return BuildPrompt(m.GetRolePrompt(), core.CoderInstructions, systemInstructions, relatedDocuments, projectSourceCode, messages)
+}

@@ -3,8 +3,12 @@ package modes
 import (
 	"coder/internal/core"
 	"coder/internal/tools"
+	"coder/internal/utils"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"path/filepath"
 	"strings"
 )
 
@@ -81,4 +85,10 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 // StartGeneration begins a new AI generation task using the default logic.
 func (m *AgentMode) StartGeneration(s SessionController) core.Event {
 	return DefaultStartGeneration(s)
+}
+
+// BuildPrompt constructs the prompt for agent mode.
+func (m *AgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+	// Agent mode does not use file-based context.
+	return BuildPrompt(m.GetRolePrompt(), "", "", "", "", messages)
 }

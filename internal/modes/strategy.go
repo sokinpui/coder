@@ -17,4 +17,7 @@ type ModeStrategy interface {
 
 	// StartGeneration prepares and begins a new AI generation task.
 	StartGeneration(s SessionController) core.Event
+
+	// BuildPrompt constructs the full prompt for the model.
+	BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string
 }

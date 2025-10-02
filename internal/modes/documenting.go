@@ -40,3 +40,8 @@ func (m *DocumentingMode) ProcessAIResponse(s SessionController) core.Event {
 func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
 	return DefaultStartGeneration(s)
 }
+
+// BuildPrompt constructs the prompt for documenting mode.
+func (m *DocumentingMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+	return BuildPrompt(m.GetRolePrompt(), core.CoderInstructions, systemInstructions, relatedDocuments, projectSourceCode, messages)
+}
