@@ -38,7 +38,7 @@ func (m *DocumentingMode) ProcessAIResponse(s SessionController) core.Event {
 
 // StartGeneration begins a new AI generation task using the default logic.
 func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
-	return StartGeneration(s)
+	return StartGeneration(s, nil)
 }
 
 // BuildPrompt constructs the prompt for documenting mode.

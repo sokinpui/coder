@@ -1,6 +1,7 @@
 package modes
 
 import (
+	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/utils"
 	"context"
@@ -9,8 +10,9 @@ import (
 	"path/filepath"
 )
 
-// StartGeneration provides a default implementation for starting a generation task.
-func StartGeneration(s SessionController) core.Event {
+// StartGeneration provides a default implementation for starting a generation task,
+// optionally allowing a specific generation config to be used.
+func StartGeneration(s SessionController, generationConfig *config.Generation) core.Event {
 	// Reload context, which includes project source, before every generation
 	// to pick up any file changes.
 	if err := s.LoadContext(); err != nil {
@@ -61,7 +63,7 @@ func StartGeneration(s SessionController) core.Event {
 	streamChan := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
-	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, nil)
+	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, generationConfig)
 
 	s.AddMessage(core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
 

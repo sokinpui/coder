@@ -26,25 +26,32 @@ func New(cfg *config.Config) (*Generator, error) {
 }
 
 // GenerateTask sends a prompt to the generation service and streams the response.
-func (g *Generator) GenerateTask(ctx context.Context, prompt string, imgPaths []string, streamChan chan<- string, config *client.GenerationConfig) {
+func (g *Generator) GenerateTask(ctx context.Context, prompt string, imgPaths []string, streamChan chan<- string, generationConfig *config.Generation) {
 	defer close(streamChan)
 
-	if config == nil {
-		config = &client.GenerationConfig{
-			Temperature:  &g.Config.Temperature,
-			TopP:         &g.Config.TopP,
-			TopK:         &g.Config.TopK,
-			OutputLength: &g.Config.OutputLength,
-		}
+	// Use generator's default config if none is provided.
+	genConfig := g.Config
+	if generationConfig != nil {
+		genConfig = *generationConfig
+	}
+
+	// Convert to the client's generation config type.
+	clientConfig := &client.GenerationConfig{
+		Temperature:  &genConfig.Temperature,
+		TopP:         &genConfig.TopP,
+		TopK:         &genConfig.TopK,
+		OutputLength: &genConfig.OutputLength,
 	}
 
 	req := &client.GenerateRequest{
 		Prompt:    prompt,
 		ImgPaths:  imgPaths,
-		ModelCode: g.Config.ModelCode,
+		ModelCode: genConfig.ModelCode,
 		Stream:    true,
-		Config:    config,
+		Config:    clientConfig,
 	}
+
+	log.Printf("Generating with model: %s", genConfig.ModelCode)
 
 	resultChan, err := g.client.GenerateTask(ctx, req)
 	if err != nil {
@@ -86,6 +93,8 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 			OutputLength: &outputLength,
 		},
 	}
+
+	log.Printf("Generating title with model: %s", req.ModelCode)
 
 	resultChan, err := g.client.GenerateTask(ctx, req)
 	if err != nil {

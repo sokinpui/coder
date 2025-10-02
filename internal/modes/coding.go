@@ -38,7 +38,7 @@ func (m *CodingMode) ProcessAIResponse(s SessionController) core.Event {
 
 // StartGeneration begins a new AI generation task using the default logic.
 func (m *CodingMode) StartGeneration(s SessionController) core.Event {
-	return StartGeneration(s)
+	return StartGeneration(s, nil)
 }
 
 // BuildPrompt constructs the prompt for coding mode.

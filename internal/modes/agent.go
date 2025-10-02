@@ -1,14 +1,13 @@
 package modes
 
 import (
+	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/tools"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/sokinpui/synapse.go/v2/client"
 )
 
 // AgentMode is the strategy for the agent/tool-using mode.
@@ -31,7 +30,7 @@ func (m *AgentMode) LoadContext() (string, string, string, error) {
 }
 
 // getAgentContext returns the role prompt and generation config for a given agent.
-func (m *AgentMode) getAgentContext(s SessionController, agentName string) (string, *client.GenerationConfig, error) {
+func (m *AgentMode) getAgentContext(s SessionController, agentName string) (string, *config.Generation, error) {
 	var rolePrompt string
 	switch agentName {
 	case "coding_agent":
@@ -46,43 +45,31 @@ func (m *AgentMode) getAgentContext(s SessionController, agentName string) (stri
 		return "", nil, fmt.Errorf("unknown agent '%s' called", agentName)
 	}
 
-	// Get base config from the session
+	// Get base config from the session and create a copy
 	baseConfig := s.GetGenerator().Config
-	temperature := baseConfig.Temperature
-	topP := baseConfig.TopP
-	topK := baseConfig.TopK
-	outputLength := baseConfig.OutputLength
-
-	var genConfig *client.GenerationConfig
+	agentConfig := baseConfig
 
 	switch agentName {
 	case "coding_agent":
-		temperature = 0.1
-		genConfig = &client.GenerationConfig{
-			Temperature:  &temperature,
-			TopP:         &topP,
-			TopK:         &topK,
-			OutputLength: &outputLength,
-		}
+		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
+		agentConfig.Temperature = 0.1
+		return rolePrompt, &agentConfig, nil
 	case "writing_agent":
-		temperature = 0.7
-		genConfig = &client.GenerationConfig{
-			Temperature:  &temperature,
-			TopP:         &topP,
-			TopK:         &topK,
-			OutputLength: &outputLength,
-		}
+		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
+		agentConfig.Temperature = 0.7
+		return rolePrompt, &agentConfig, nil
 	case "general_agent":
-		temperature = 0.5
-		genConfig = &client.GenerationConfig{
-			Temperature:  &temperature,
-			TopP:         &topP,
-			TopK:         &topK,
-			OutputLength: &outputLength,
-		}
+		agentConfig.ModelCode = config.AvailableModels[0] // gemini-2.5-pro
+		agentConfig.Temperature = 0.5
+		return rolePrompt, &agentConfig, nil
+	case "main_agent":
+		agentConfig.ModelCode = config.AvailableModels[1] // gemini-2.5-flash-preview-09-2025
+		agentConfig.Temperature = 0.1
+		return rolePrompt, &agentConfig, nil
 	}
 
-	return rolePrompt, genConfig, nil
+	// For other agents, return nil to use session default.
+	return rolePrompt, nil, nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,
@@ -185,9 +172,14 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 	return core.Event{Type: core.NoOp}
 }
 
-// StartGeneration begins a new AI generation task using the default logic.
+// StartGeneration begins a new AI generation task using the agent-specific logic.
 func (m *AgentMode) StartGeneration(s SessionController) core.Event {
-	return StartGeneration(s)
+	_, genConfig, err := m.getAgentContext(s, "main_agent")
+	if err != nil {
+		s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
+		return core.Event{Type: core.MessagesUpdated}
+	}
+	return StartGeneration(s, genConfig)
 }
 
 // BuildPrompt constructs the prompt for agent mode.
