@@ -23,7 +23,7 @@ func init() {
 }
 
 // readFiles reads the content of one or more files using pcat and returns the formatted output.
-func readFiles(args map[string]interface{}) (string, error) {
+func readFiles(args map[string]interface{}, lastAIResponse string) (string, error) {
 	pathsArg, ok := args["paths"]
 	if !ok {
 		return "", fmt.Errorf("missing required argument: paths")

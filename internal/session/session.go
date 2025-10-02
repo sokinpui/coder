@@ -537,7 +537,7 @@ func (s *Session) ContinueAgent() Event {
 
 	s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: toolCallsJSON})
 
-	results, err := tools.ExecuteToolCalls(toolCallsJSON)
+	results, err := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
 	if err != nil {
 		// This is likely a JSON parsing error from ExecuteToolCalls.
 		resultContent := fmt.Sprintf("Error parsing tool calls JSON: %v", err)

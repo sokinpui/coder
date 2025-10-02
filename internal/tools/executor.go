@@ -34,9 +34,9 @@ type ToolResult struct {
 	Error    error
 }
 
-type ToolFunc func(args map[string]any) (string, error)
+type ToolFunc func(args map[string]any, lastAIResponse string) (string, error)
 
-func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
+func ExecuteToolCalls(toolCallsJSON string, lastAIResponse string) ([]ToolResult, error) {
 	var calls []ToolCall
 	if err := json.Unmarshal([]byte(toolCallsJSON), &calls); err != nil {
 		return nil, fmt.Errorf("failed to parse tool calls JSON: %w. Ensure it is a valid JSON array of tool call objects", err)
@@ -51,7 +51,7 @@ func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 		var output string
 		var err error
 		if call.ToolName != "" {
-			output, err = executeTool(call)
+			output, err = executeTool(call, lastAIResponse)
 		} else if call.Shell != nil {
 			output, err = executeShell(call)
 		} else {
@@ -68,13 +68,13 @@ func ExecuteToolCalls(toolCallsJSON string) ([]ToolResult, error) {
 	return results, nil
 }
 
-func executeTool(call ToolCall) (string, error) {
+func executeTool(call ToolCall, lastAIResponse string) (string, error) {
 	tool, exists := registry[call.ToolName]
 	if !exists {
 		return "", fmt.Errorf("tool '%s' not found", call.ToolName)
 	}
 
-	return tool.Function(call.Args)
+	return tool.Function(call.Args, lastAIResponse)
 }
 
 func executeShell(call ToolCall) (string, error) {
