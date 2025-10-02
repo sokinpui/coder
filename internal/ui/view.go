@@ -105,11 +105,9 @@ func (m Model) renderConversation() string {
 			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ToolCallMessage:
-			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalFrameSize()
-			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
+			continue
 		case core.ToolResultMessage:
-			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalFrameSize()
-			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
+			continue
 		}
 
 		if blockIndex, isStart := blockStarts[i]; m.state == stateVisualSelect && isStart {

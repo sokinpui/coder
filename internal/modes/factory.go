@@ -1,6 +1,8 @@
 package modes
 
-import "coder/internal/config"
+import (
+	"coder/internal/config"
+)
 
 // NewStrategy creates a new mode strategy based on the AppMode.
 func NewStrategy(mode config.AppMode) ModeStrategy {
@@ -8,7 +10,7 @@ func NewStrategy(mode config.AppMode) ModeStrategy {
 	case config.DocumentingMode:
 		return &DocumentingMode{}
 	case config.AgentMode:
-		return &AgentMode{}
+		return &AgentMode{activeAgent: config.MainAgent}
 	case config.CodingMode:
 		fallthrough
 	default:

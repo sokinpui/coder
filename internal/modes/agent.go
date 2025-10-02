@@ -10,7 +10,9 @@ import (
 )
 
 // AgentMode is the strategy for the agent/tool-using mode.
-type AgentMode struct{}
+type AgentMode struct {
+	activeAgent config.AgentName
+}
 
 // AgentRequest represents the parsed JSON from a special agent tool call.
 type AgentRequest struct {
@@ -27,7 +29,7 @@ var agentRoles = map[config.AgentName]string{
 
 // GetRolePrompt returns the main agent role.
 func (m *AgentMode) GetRolePrompt() string {
-	return agentRoles[config.MainAgent]
+	return agentRoles[m.activeAgent]
 }
 
 // LoadContext does not load any context for agent mode.
@@ -95,64 +97,51 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 		return core.Event{Type: core.NoOp}
 	}
 
-	results, err := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
-	if err != nil {
-		resultContent := fmt.Sprintf("Error executing tool calls: %v", err)
-		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
-		return s.StartGeneration()
-	}
+	results, _ := tools.ExecuteToolCalls(toolCallsJSON, lastMsg.Content)
 
-	if len(results) == 0 {
-		return core.Event{Type: core.NoOp}
-	}
+	var agentReq *AgentRequest
+	var agentToolCall *tools.ToolCall
 
-	// Sequentially add each tool call and its result to the message history.
 	for _, res := range results {
-		// Add the tool call message for this specific call.
-		// We marshal the single ToolCall struct back into JSON for the message.
-		toolCallBytes, err := json.Marshal(res.ToolCall)
-		if err != nil {
-			// If marshalling fails, create an error result message and continue.
-			errorMsg := fmt.Sprintf("{\"tool\": \"%s\", \"error\": \"failed to marshal tool call: %v\"}", res.ToolCall.ToolName, err)
-			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: errorMsg})
-			continue
+		var currentAgentReq AgentRequest
+		isAgentCall := res.Output != "" && json.Unmarshal([]byte(res.Output), &currentAgentReq) == nil && currentAgentReq.AgentName != ""
+
+		if isAgentCall {
+			agentReq = &currentAgentReq
+			tc := res.ToolCall
+			agentToolCall = &tc
+		} else {
+			toolCallBytes, _ := json.Marshal(res.ToolCall)
+			s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: string(toolCallBytes)})
+
+			resultObj := map[string]interface{}{"tool": res.ToolCall.ToolName}
+			if res.Error != nil {
+				resultObj["error"] = res.Error.Error()
+			}
+			if res.Output != "" {
+				resultObj["output"] = res.Output
+			}
+			resultBytes, _ := json.MarshalIndent(resultObj, "", "  ")
+			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: string(resultBytes)})
 		}
+	}
+
+	if agentReq != nil {
+		toolCallBytes, _ := json.Marshal(*agentToolCall)
 		s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: string(toolCallBytes)})
 
-		// Add the tool result message.
-		var toolName string
-		if res.ToolCall.ToolName != "" {
-			toolName = res.ToolCall.ToolName
-		} else if res.ToolCall.Shell != nil {
-			toolName = "shell"
-		}
+		agentName := config.AgentName(agentReq.AgentName)
+		m.activeAgent = agentName
 
-		resultObj := map[string]interface{}{"tool": toolName}
-		if res.Error != nil {
-			resultObj["error"] = res.Error.Error()
-		}
-		if res.Output != "" {
-			// For agent calls, the output is the special JSON request.
-			// We treat it like any other tool output.
-			resultObj["output"] = res.Output
-		}
-
-		resultBytes, err := json.MarshalIndent(resultObj, "", "  ")
-		if err != nil {
-			errorMsg := fmt.Sprintf("{\"tool\": \"%s\", \"error\": \"failed to marshal tool result: %v\"}", toolName, err)
-			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: errorMsg})
-			continue
-		}
-		s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: string(resultBytes)})
+		s.AddMessage(core.Message{Type: core.UserMessage, Content: agentReq.Prompt})
 	}
 
-	// After all tools are executed and results are appended, start a new generation.
 	return s.StartGeneration()
 }
 
 // StartGeneration begins a new AI generation task using the agent-specific logic.
 func (m *AgentMode) StartGeneration(s SessionController) core.Event {
-	genConfig, err := m.getAgentConfig(s, config.MainAgent)
+	genConfig, err := m.getAgentConfig(s, m.activeAgent)
 	if err != nil {
 		s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
 		return core.Event{Type: core.MessagesUpdated}
@@ -163,7 +152,6 @@ func (m *AgentMode) StartGeneration(s SessionController) core.Event {
 // BuildPrompt constructs the prompt for agent mode.
 func (m *AgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
 	// Agent mode does not use file-based context.
-	// This will never fail as MainAgent is always in the map.
-	prompt, _ := m.buildAgentPrompt(messages, config.MainAgent)
+	prompt, _ := m.buildAgentPrompt(messages, m.activeAgent)
 	return prompt
 }
