@@ -1,7 +1,6 @@
 package modes
 
 import (
-	"coder/internal/agent"
 	"coder/internal/core"
 	"coder/internal/tools"
 	"encoding/json"
@@ -34,7 +33,7 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 		return core.Event{Type: core.NoOp}
 	}
 
-	toolCallsJSON, _ := agent.ExtractToolCalls(lastMsg.Content)
+	toolCallsJSON, _ := tools.ExtractToolCalls(lastMsg.Content)
 	if toolCallsJSON == "" {
 		return core.Event{Type: core.NoOp}
 	}
