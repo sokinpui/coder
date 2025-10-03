@@ -3,7 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"github.comcom/sokinpui/pcat.go/pcat"
+	"github.com/sokinpui/pcat.go/pcat"
 )
 
 func init() {
