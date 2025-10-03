@@ -70,7 +70,12 @@ func (c *Client) handleAskAI(payload map[string]interface{}, requestID string) {
 	}
 
 	// Build the prompt
-	prompt := modes.BuildPrompt(core.AskAIRole, "", "", preamble, projectSource, "", messages)
+	prompt := modes.BuildPrompt(
+		modes.RoleSection(core.AskAIRole, ""),
+		modes.RelatedDocumentsSection(preamble),
+		modes.ProjectSourceCodeSection(projectSource),
+		modes.ConversationHistorySection(messages),
+	)
 
 	streamChan := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())

@@ -43,5 +43,11 @@ func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
 
 // BuildPrompt constructs the prompt for documenting mode.
 func (m *DocumentingMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
-	return BuildPrompt(m.GetRolePrompt(), core.CoderInstructions, systemInstructions, relatedDocuments, projectSourceCode, "", messages)
+	return BuildPrompt(
+		RoleSection(m.GetRolePrompt(), core.CoderInstructions),
+		SystemInstructionsSection(systemInstructions),
+		RelatedDocumentsSection(relatedDocuments),
+		ProjectSourceCodeSection(projectSourceCode),
+		ConversationHistorySection(messages),
+	)
 }

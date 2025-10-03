@@ -78,7 +78,11 @@ func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.A
 	}
 
 	// Agent mode does not use file-based context.
-	return BuildPrompt(rolePrompt, "", "", "", "", toolDocs, messages), nil
+	return BuildPrompt(
+		RoleSection(rolePrompt, ""),
+		ExternalToolsSection(toolDocs),
+		ConversationHistorySection(messages),
+	), nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,

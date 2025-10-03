@@ -1,8 +1,9 @@
 package modes
 
 import (
-	"coder/internal/core"
 	"strings"
+
+	"coder/internal/core"
 )
 
 const (
@@ -14,86 +15,120 @@ const (
 	separator                 = "\n\n---\n\n"
 )
 
-// BuildPrompt constructs the full prompt from its components.
-// This is a generic builder used by mode strategies and other parts of the application.
-func BuildPrompt(role, instructions, systemInstructions, relatedDocuments, projectSourceCode, toolDocs string, messages []core.Message) string {
+// PromptSection represents a distinct part of a larger prompt.
+type PromptSection struct {
+	Header  string
+	Content string
+}
+
+// BuildPrompt constructs the full prompt from a series of sections.
+func BuildPrompt(sections ...PromptSection) string {
 	var sb strings.Builder
+	hasContent := false
+	for _, section := range sections {
+		if section.Content == "" {
+			continue
+		}
 
-	hasPredefinedContent := false
-	if role != "" {
-		sb.WriteString(role)
-		hasPredefinedContent = true
-	}
-
-	if instructions != "" {
-		sb.WriteString(instructions)
-		hasPredefinedContent = true
-	}
-
-	// User-defined system instructions (with header)
-	if systemInstructions != "" {
-		if hasPredefinedContent {
+		if hasContent {
 			sb.WriteString(separator)
 		}
-		sb.WriteString(systemInstructionsHeader)
-		sb.WriteString(systemInstructions)
-		sb.WriteString(separator)
-	} else if hasPredefinedContent {
-		// If there are only predefined instructions, we still need a separator
-		sb.WriteString(separator)
-	}
 
-	if relatedDocuments != "" {
-		sb.WriteString(relatedDocumentsHeader)
-		sb.WriteString(relatedDocuments)
-		sb.WriteString(separator)
-	}
-
-	if projectSourceCode != "" {
-		sb.WriteString(projectSourceCodeHeader)
-		sb.WriteString(projectSourceCode)
-		sb.WriteString(separator)
-	}
-
-	if toolDocs != "" {
-		sb.WriteString(externalToolsHeader)
-		sb.WriteString(toolDocs)
-		sb.WriteString(separator)
-	}
-
-	if len(messages) > 0 {
-		sb.WriteString(conversationHistoryHeader)
-
-		for i := 0; i < len(messages); i++ {
-			msg := messages[i]
-
-			switch msg.Type {
-			case core.UserMessage:
-				sb.WriteString("User:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-			case core.ImageMessage:
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-			case core.AIMessage:
-				if msg.Content == "" {
-					continue
-				}
-				sb.WriteString("AI Assistant:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-			case core.ToolCallMessage:
-				sb.WriteString("Tool Call:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-			case core.ToolResultMessage:
-				sb.WriteString("Tool Result:\n")
-				sb.WriteString(msg.Content)
-				sb.WriteString("\n")
-			}
+		if section.Header != "" {
+			sb.WriteString(section.Header)
 		}
-		sb.WriteString("AI Assistant:\n")
+		sb.WriteString(section.Content)
+		hasContent = true
+	}
+	return sb.String()
+}
+
+// RoleSection creates a prompt section for the role and initial instructions.
+func RoleSection(role, instructions string) PromptSection {
+	var content strings.Builder
+	if role != "" {
+		content.WriteString(role)
+	}
+	if instructions != "" {
+		content.WriteString(instructions)
+	}
+	return PromptSection{Content: content.String()}
+}
+
+// SystemInstructionsSection creates a prompt section for user-defined system instructions.
+func SystemInstructionsSection(content string) PromptSection {
+	return PromptSection{
+		Header:  systemInstructionsHeader,
+		Content: content,
+	}
+}
+
+// RelatedDocumentsSection creates a prompt section for related documents.
+func RelatedDocumentsSection(content string) PromptSection {
+	return PromptSection{
+		Header:  relatedDocumentsHeader,
+		Content: content,
+	}
+}
+
+// ProjectSourceCodeSection creates a prompt section for project source code.
+func ProjectSourceCodeSection(content string) PromptSection {
+	return PromptSection{
+		Header:  projectSourceCodeHeader,
+		Content: content,
+	}
+}
+
+// ExternalToolsSection creates a prompt section for external tool documentation.
+func ExternalToolsSection(content string) PromptSection {
+	return PromptSection{
+		Header:  externalToolsHeader,
+		Content: content,
+	}
+}
+
+// ConversationHistorySection creates a prompt section for the conversation history.
+func ConversationHistorySection(messages []core.Message) PromptSection {
+	if len(messages) == 0 {
+		return PromptSection{}
 	}
 
+	content := buildHistoryString(messages)
+
+	return PromptSection{
+		Header:  conversationHistoryHeader,
+		Content: content,
+	}
+}
+
+func buildHistoryString(messages []core.Message) string {
+	var sb strings.Builder
+	for _, msg := range messages {
+		switch msg.Type {
+		case core.UserMessage:
+			sb.WriteString("User:\n")
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n")
+		case core.ImageMessage:
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n")
+		case core.AIMessage:
+			if msg.Content == "" {
+				continue
+			}
+			sb.WriteString("AI Assistant:\n")
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n")
+		case core.ToolCallMessage:
+			sb.WriteString("Tool Call:\n")
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n")
+		case core.ToolResultMessage:
+			sb.WriteString("Tool Result:\n")
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n")
+		}
+	}
+	sb.WriteString("AI Assistant:\n")
 	return sb.String()
 }
