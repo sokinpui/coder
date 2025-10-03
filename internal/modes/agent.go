@@ -4,9 +4,11 @@ import (
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/tools"
-	"sort"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -77,9 +79,27 @@ func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.A
 		}
 	}
 
+	// add rough directory information
+	var dirInfoBuilder strings.Builder
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "unknown"
+	}
+	dirInfoBuilder.WriteString(fmt.Sprintf("current working directory: %s\n", cwd))
+	dirInfoBuilder.WriteString("shell command> ls\n")
+
+	cmd := exec.Command("ls", "-l", "-h", "-F")
+	lsOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		dirInfoBuilder.WriteString(fmt.Sprintf("<error executing ls: %v>\n", err))
+	} else {
+		dirInfoBuilder.WriteString(string(lsOutput))
+	}
+
 	// Agent mode does not use file-based context.
 	return BuildPrompt(
 		RoleSection(rolePrompt, ""),
+		DirectoryInformationSection(dirInfoBuilder.String()),
 		ExternalToolsSection(toolDocs),
 		ConversationHistorySection(messages),
 	), nil

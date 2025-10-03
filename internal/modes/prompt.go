@@ -11,6 +11,7 @@ const (
 	relatedDocumentsHeader    = "# RELATED DOCUMENTS\n\n"
 	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
 	externalToolsHeader       = "# EXTERNAL TOOLS\n\n"
+	directoryInformationHeader = "# DIRECTORY INFORMATION\n\n"
 	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	separator                 = "\n\n---\n\n"
 )
@@ -83,6 +84,14 @@ func ProjectSourceCodeSection(content string) PromptSection {
 func ExternalToolsSection(content string) PromptSection {
 	return PromptSection{
 		Header:  externalToolsHeader,
+		Content: content,
+	}
+}
+
+// DirectoryInformationSection creates a prompt section for directory information.
+func DirectoryInformationSection(content string) PromptSection {
+	return PromptSection{
+		Header:  directoryInformationHeader,
 		Content: content,
 	}
 }
