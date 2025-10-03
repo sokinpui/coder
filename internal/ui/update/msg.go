@@ -1,4 +1,4 @@
-package ui
+package update
 
 import "coder/internal/history"
 

@@ -1,4 +1,4 @@
-package ui
+package update
 
 import (
 	"coder/internal/core"
@@ -10,7 +10,7 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.session))
+	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.Session))
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -21,7 +21,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Reset cycling flag on any key press that is not Tab.
 	if key, ok := msg.(tea.KeyMsg); ok && key.Type != tea.KeyTab && key.Type != tea.KeyShiftTab {
-		m.isCyclingCompletions = false
+		m.IsCyclingCompletions = false
 	}
 
 	if key, ok := msg.(tea.KeyMsg); ok {
@@ -57,33 +57,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// When the textarea is focused, it gets all messages.
 	// The viewport only gets messages that are not character runes.
-	if m.textArea.Focused() {
-		m.textArea, cmd = m.textArea.Update(msg)
+	if m.TextArea.Focused() {
+		m.TextArea, cmd = m.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
 
 		// Don't pass navigation keys to viewport when textarea is focused
 		if !isRuneKey && !isViewportNavKey {
-			m.viewport, cmd = m.viewport.Update(msg)
+			m.Viewport, cmd = m.Viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 	} else {
 		// When the textarea is not focused (e.g., during generation),
 		// the viewport gets all messages.
-		m.viewport, cmd = m.viewport.Update(msg)
+		m.Viewport, cmd = m.Viewport.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	visibleLines := calculateVisibleLines(m.textArea.Value(), m.textArea.Width())
-	inputHeight := min(visibleLines+1, m.height/4)
-	m.textArea.SetHeight(max(1, inputHeight))
+	visibleLines := calculateVisibleLines(m.TextArea.Value(), m.TextArea.Width())
+	inputHeight := min(visibleLines+1, m.Height/4)
+	m.TextArea.SetHeight(max(1, inputHeight))
 
 	// After textarea update, check for palette
-	if !m.isCyclingCompletions {
-		val := m.textArea.Value()
-		m.paletteFilteredCommands = []string{}
-		m.paletteFilteredArguments = []string{}
+	if !m.IsCyclingCompletions {
+		val := m.TextArea.Value()
+		m.PaletteFilteredCommands = []string{}
+		m.PaletteFilteredArguments = []string{}
 
-		if m.state == stateIdle && strings.HasPrefix(val, ":") {
+		if m.State == stateIdle && strings.HasPrefix(val, ":") {
 			parts := strings.Fields(val)
 			hasTrailingSpace := strings.HasSuffix(val, " ")
 
@@ -94,15 +94,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(parts) == 1 && !hasTrailingSpace {
 				// Command/Action completion mode
 				prefix := strings.TrimPrefix(parts[0], ":")
-				for _, c := range m.availableCommands {
+				for _, c := range m.AvailableCommands {
 					if strings.HasPrefix(c, prefix) {
-						m.paletteFilteredCommands = append(m.paletteFilteredCommands, ":"+c)
+						m.PaletteFilteredCommands = append(m.PaletteFilteredCommands, ":"+c)
 					}
 				}
 			} else if len(parts) >= 1 {
 				// Argument completion mode
 				cmdName := strings.TrimPrefix(parts[0], ":")
-				suggestions := core.GetCommandArgumentSuggestions(cmdName, m.session.GetConfig())
+				suggestions := core.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig())
 				if suggestions != nil {
 					var argPrefix string
 					if len(parts) > 1 && !hasTrailingSpace {
@@ -111,36 +111,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					for _, s := range suggestions {
 						if strings.HasPrefix(s, argPrefix) {
-							m.paletteFilteredArguments = append(m.paletteFilteredArguments, s)
+							m.PaletteFilteredArguments = append(m.PaletteFilteredArguments, s)
 						}
 					}
 				}
 			}
 		}
 
-		totalItems := len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
-		m.showPalette = totalItems > 0
+		totalItems := len(m.PaletteFilteredCommands) + len(m.PaletteFilteredArguments)
+		m.ShowPalette = totalItems > 0
 
-		if m.paletteCursor >= totalItems {
-			m.paletteCursor = 0
+		if m.PaletteCursor >= totalItems {
+			m.PaletteCursor = 0
 		}
 	}
 
 	statusViewHeight := lipgloss.Height(m.statusView())
 
 	paletteHeight := 0
-	if m.showPalette {
+	if m.ShowPalette {
 		// We need a view to calculate its height.
 		// This is a bit inefficient but necessary with lipgloss.
 		paletteHeight = lipgloss.Height(m.paletteView())
 	}
 
-	viewportHeight := m.height - m.textArea.Height() - statusViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
+	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
-
-	m.viewport.Height = viewportHeight
+	m.Viewport.Height = viewportHeight
 
 	return m, tea.Batch(cmds...)
 }

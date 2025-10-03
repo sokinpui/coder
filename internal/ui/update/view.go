@@ -1,4 +1,4 @@
-package ui
+package update
 
 import (
 	"fmt"
@@ -19,16 +19,16 @@ func truncateMessage(content string, maxLines int) string {
 }
 
 func (m Model) historyView() string {
-	if len(m.historyItems) == 0 {
+	if len(m.HistoryItems) == 0 {
 		return "No history found."
 	}
 
 	var b strings.Builder
 	b.WriteString("Select a conversation to load:\n\n")
 
-	for i, item := range m.historyItems {
+	for i, item := range m.HistoryItems {
 		line := fmt.Sprintf("  %s (%s)", item.Title, item.ModifiedAt.Format("2006-01-02 15:04"))
-		if i == m.historySelectCursor {
+		if i == m.HistorySelectCursor {
 			b.WriteString(paletteSelectedItemStyle.Render("▸" + line))
 		} else {
 			b.WriteString(paletteItemStyle.Render(" " + line))
@@ -46,18 +46,18 @@ func (m Model) renderConversation() string {
 	blockStarts := make(map[int]int)
 	selectedBlocks := make(map[int]struct{})
 
-	if m.state == stateVisualSelect {
-		for i, block := range m.selectableBlocks {
+	if m.State == stateVisualSelect {
+		for i, block := range m.SelectableBlocks {
 			blockStarts[block.startIdx] = i
 		}
 
-		if m.visualMode == visualModeNone && m.visualIsSelecting {
-			start, end := m.visualSelectStart, m.visualSelectCursor
+		if m.VisualMode == visualModeNone && m.VisualIsSelecting {
+			start, end := m.VisualSelectStart, m.VisualSelectCursor
 			if start > end {
 				start, end = end, start
 			}
 
-			if end < len(m.selectableBlocks) {
+			if end < len(m.SelectableBlocks) {
 				for i := start; i <= end; i++ {
 					selectedBlocks[i] = struct{}{}
 				}
@@ -65,9 +65,9 @@ func (m Model) renderConversation() string {
 		}
 	}
 
-	for i, msg := range m.session.GetMessages() {
+	for i, msg := range m.Session.GetMessages() {
 		currentMsg := msg // Make a copy to modify content for visual mode
-		if m.state == stateVisualSelect {
+		if m.State == stateVisualSelect {
 			switch currentMsg.Type {
 			case core.UserMessage, core.AIMessage, core.CommandResultMessage, core.CommandErrorResultMessage:
 				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
@@ -77,49 +77,49 @@ func (m Model) renderConversation() string {
 		var renderedMsg string
 		switch currentMsg.Type {
 		case core.InitMessage:
-			blockWidth := m.viewport.Width - initMessageStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - initMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.DirectoryMessage:
-			blockWidth := m.viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.UserMessage:
-			blockWidth := m.viewport.Width - userInputStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
 			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandMessage:
-			blockWidth := m.viewport.Width - commandInputStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.AIMessage:
 			if currentMsg.Content == "" {
 				continue
 			} else {
-				renderedAI, err := m.glamourRenderer.Render(currentMsg.Content)
+				renderedAI, err := m.GlamourRenderer.Render(currentMsg.Content)
 				if err != nil {
 					renderedAI = currentMsg.Content
 				}
 				renderedMsg = renderedAI
 			}
 		case core.CommandResultMessage:
-			blockWidth := m.viewport.Width - commandResultStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.CommandErrorResultMessage:
-			blockWidth := m.viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 		case core.ToolCallMessage:
-			blockWidth := m.viewport.Width - toolCallStyle.GetHorizontalFrameSize()
+			blockWidth := m.Viewport.Width - toolCallStyle.GetHorizontalFrameSize()
 			renderedMsg = toolCallStyle.Width(blockWidth).Render("Execute Tools:\n" + currentMsg.Content)
 
 			// case core.ToolResultMessage:
-			// 	blockWidth := m.viewport.Width - toolResultStyle.GetHorizontalFrameSize()
+			// 	blockWidth := m.Viewport.Width - toolResultStyle.GetHorizontalFrameSize()
 			// 	content := "Result:\n" + currentMsg.Content
 			// 	renderedMsg = toolResultStyle.Width(blockWidth).Render(content)
 
 		}
 
-		if blockIndex, isStart := blockStarts[i]; m.state == stateVisualSelect && isStart {
-			isCursorOn := (blockIndex == m.visualSelectCursor)
+		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {
+			isCursorOn := (blockIndex == m.VisualSelectCursor)
 
 			var isSelected bool
-			if m.visualMode == visualModeGenerate || m.visualMode == visualModeEdit || m.visualMode == visualModeBranch {
+			if m.VisualMode == visualModeGenerate || m.VisualMode == visualModeEdit || m.VisualMode == visualModeBranch {
 				isSelected = isCursorOn
 			} else { // visualModeNone
 				_, isSelected = selectedBlocks[blockIndex]
@@ -148,14 +148,14 @@ func (m Model) renderConversation() string {
 		parts = append(parts, renderedMsg)
 	}
 
-	if m.state == stateThinking {
+	if m.State == stateThinking {
 		// The spinner has its own colors, so we can't render it with the same style as the text.
 		thinkingText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
 			Italic(true).
 			Render("Thinking ")
 
-		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.spinner.View())
+		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Spinner.View())
 		// Apply padding to the container.
 		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 		parts = append(parts, block)
@@ -164,19 +164,19 @@ func (m Model) renderConversation() string {
 }
 
 func (m Model) paletteView() string {
-	if !m.showPalette || (len(m.paletteFilteredCommands) == 0 && len(m.paletteFilteredArguments) == 0) {
+	if !m.ShowPalette || (len(m.PaletteFilteredCommands) == 0 && len(m.PaletteFilteredArguments) == 0) {
 		return ""
 	}
 
 	var b strings.Builder
-	numCommands := len(m.paletteFilteredCommands)
+	numCommands := len(m.PaletteFilteredCommands)
 
 	if numCommands > 0 {
 		b.WriteString(paletteHeaderStyle.Render("Commands"))
 		b.WriteString("\n")
-		for i, cmd := range m.paletteFilteredCommands {
+		for i, cmd := range m.PaletteFilteredCommands {
 			cursorIndex := i
-			if cursorIndex == m.paletteCursor {
+			if cursorIndex == m.PaletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + cmd))
 			} else {
 				b.WriteString(paletteItemStyle.Render("  " + cmd))
@@ -185,16 +185,16 @@ func (m Model) paletteView() string {
 		}
 	}
 
-	if numCommands > 0 && len(m.paletteFilteredArguments) > 0 {
+	if numCommands > 0 && len(m.PaletteFilteredArguments) > 0 {
 		b.WriteString("\n")
 	}
 
-	if len(m.paletteFilteredArguments) > 0 {
+	if len(m.PaletteFilteredArguments) > 0 {
 		b.WriteString(paletteHeaderStyle.Render("Arguments"))
 		b.WriteString("\n")
-		for i, arg := range m.paletteFilteredArguments {
+		for i, arg := range m.PaletteFilteredArguments {
 			cursorIndex := i + numCommands
-			if cursorIndex == m.paletteCursor {
+			if cursorIndex == m.PaletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + arg))
 			} else {
 				b.WriteString(paletteItemStyle.Render("  " + arg))
@@ -210,62 +210,62 @@ func (m Model) paletteView() string {
 }
 
 func (m Model) statusView() string {
-	if m.statusBarMessage != "" {
-		return statusBarMsgStyle.Render(m.statusBarMessage)
+	if m.StatusBarMessage != "" {
+		return statusBarMsgStyle.Render(m.StatusBarMessage)
 	}
 
-	if m.ctrlCPressed && m.state == stateIdle && m.textArea.Value() == "" {
+	if m.CtrlCPressed && m.State == stateIdle && m.TextArea.Value() == "" {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	if m.state == stateHistorySelect {
+	if m.State == stateHistorySelect {
 		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
 	}
 
 	// Line 1: Title
 	var title string
-	if m.animatingTitle {
-		title = m.displayedTitle
+	if m.AnimatingTitle {
+		title = m.DisplayedTitle
 	} else {
-		title = m.session.GetTitle()
+		title = m.Session.GetTitle()
 	}
-	titlePart := statusBarTitleStyle.MaxWidth(m.width).Render(title)
+	titlePart := statusBarTitleStyle.MaxWidth(m.Width).Render(title)
 
 	// Line 2: Status
 	var leftStatus string
-	if m.state == stateVisualSelect {
+	if m.State == stateVisualSelect {
 		var modeStr string
 		var helpStr string
-		if m.visualMode == visualModeGenerate {
+		if m.VisualMode == visualModeGenerate {
 			modeStr = "GENERATE"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		} else if m.visualMode == visualModeEdit {
+		} else if m.VisualMode == visualModeEdit {
 			modeStr = "EDIT"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		} else if m.visualMode == visualModeBranch {
+		} else if m.VisualMode == visualModeBranch {
 			modeStr = "BRANCH"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
 		} else { // visualModeNone
 			modeStr = "VISUAL"
-			if m.visualIsSelecting {
+			if m.VisualIsSelecting {
 				helpStr = "j/k: move | y: copy | d: delete | esc: cancel selection"
 			} else {
 				helpStr = "j/k: move | v: start selection | esc: cancel"
 			}
 		}
 		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
-	} else if m.state == stateCancelling {
+	} else if m.State == stateCancelling {
 		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
-	modeInfo := fmt.Sprintf("Mode: %s", m.session.GetConfig().AppMode)
-	modelInfo := fmt.Sprintf("Model: %s", m.session.GetConfig().Generation.ModelCode)
+	modeInfo := fmt.Sprintf("Mode: %s", m.Session.GetConfig().AppMode)
+	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
 
 	var tokenInfo string
-	if m.isCountingTokens {
+	if m.IsCountingTokens {
 		tokenInfo = "Tokens: counting..."
-	} else if m.tokenCount > 0 {
-		tokenInfo = fmt.Sprintf("Tokens: %d", m.tokenCount)
+	} else if m.TokenCount > 0 {
+		tokenInfo = fmt.Sprintf("Tokens: %d", m.TokenCount)
 	}
 
 	modePart := modelInfoStyle.Render(modeInfo)
@@ -278,16 +278,16 @@ func (m Model) statusView() string {
 	}
 	rightStatusItems = append(rightStatusItems, modePart, modelPart)
 
-	if m.state == stateThinking {
+	if m.State == stateThinking {
 		rightStatusItems = append(rightStatusItems, statusStyle.Render("Thinking..."))
-	} else if m.state == stateGenerating {
+	} else if m.State == stateGenerating {
 		rightStatusItems = append(rightStatusItems, statusStyle.Render("Generating..."))
 	}
 	rightStatus := strings.Join(rightStatusItems, " | ")
 
 	var statusLine string
 	if leftStatus != "" {
-		spacing := m.width - lipgloss.Width(leftStatus) - lipgloss.Width(rightStatus)
+		spacing := m.Width - lipgloss.Width(leftStatus) - lipgloss.Width(rightStatus)
 		if spacing < 1 {
 			spacing = 1
 		}
@@ -300,21 +300,21 @@ func (m Model) statusView() string {
 }
 
 func (m Model) View() string {
-	if m.quitting {
+	if m.Quitting {
 		return ""
 	}
 
 	var b strings.Builder
-	b.WriteString(m.viewport.View())
+	b.WriteString(m.Viewport.View())
 	b.WriteString("\n")
 
-	if m.state != stateHistorySelect {
-		if m.showPalette {
+	if m.State != stateHistorySelect {
+		if m.ShowPalette {
 			b.WriteString(m.paletteView())
 			b.WriteString("\n")
 		}
 
-		b.WriteString(textAreaStyle.Render(m.textArea.View()))
+		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
 		b.WriteString("\n")
 	}
 	b.WriteString(m.statusView())

@@ -1,4 +1,4 @@
-package ui
+package update
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -6,20 +6,20 @@ import (
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	if msg.Type != tea.KeyCtrlC {
-		m.ctrlCPressed = false
+		m.CtrlCPressed = false
 	}
 
 	// Handle scrolling regardless of state.
 	switch msg.Type {
 	case tea.KeyCtrlU:
-		m.viewport.HalfViewUp()
+		m.Viewport.HalfViewUp()
 		return m, nil, true
 	case tea.KeyCtrlD:
-		m.viewport.HalfViewDown()
+		m.Viewport.HalfViewDown()
 		return m, nil, true
 	}
 
-	switch m.state {
+	switch m.State {
 	case stateThinking, stateGenerating, stateCancelling:
 		return m.handleKeyPressGenerating(msg)
 	case stateHistorySelect:

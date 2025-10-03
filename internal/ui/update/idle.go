@@ -1,4 +1,4 @@
-package ui
+package update
 
 import (
 	"strings"
@@ -11,47 +11,47 @@ import (
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
-	m.session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
+	m.Session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
 
 	// Reset UI and state flags.
-	m.lastInteractionFailed = false
-	m.lastRenderedAIPart = ""
-	m.textArea.Reset()
-	m.textArea.Focus()
-	m.viewport.GotoTop()
-	m.viewport.SetContent(m.renderConversation())
+	m.LastInteractionFailed = false
+	m.LastRenderedAIPart = ""
+	m.TextArea.Reset()
+	m.TextArea.Focus()
+	m.Viewport.GotoTop()
+	m.Viewport.SetContent(m.renderConversation())
 
 	// Recalculate the token count for the base context.
-	m.isCountingTokens = true
-	return m, countTokensCmd(m.session.GetInitialPromptForTokenCount())
+	m.IsCountingTokens = true
+	return m, countTokensCmd(m.Session.GetInitialPromptForTokenCount())
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
-	input := m.textArea.Value()
+	input := m.TextArea.Value()
 
 	// If the last interaction failed, the user is likely retrying.
 	// Clear the previous failed attempt before submitting the new prompt.
-	if !strings.HasPrefix(input, ":") && m.lastInteractionFailed {
-		m.session.RemoveLastInteraction()
-		m.lastInteractionFailed = false
+	if !strings.HasPrefix(input, ":") && m.LastInteractionFailed {
+		m.Session.RemoveLastInteraction()
+		m.LastInteractionFailed = false
 	}
 
 	var cmds []tea.Cmd
-	shouldGenerateTitle := !strings.HasPrefix(input, ":") && !m.session.IsTitleGenerated()
+	shouldGenerateTitle := !strings.HasPrefix(input, ":") && !m.Session.IsTitleGenerated()
 	if shouldGenerateTitle {
-		cmds = append(cmds, generateTitleCmd(m.session, input))
+		cmds = append(cmds, generateTitleCmd(m.Session, input))
 	}
 
-	event := m.session.HandleInput(input)
+	event := m.Session.HandleInput(input)
 
 	switch event.Type {
 	case core.NoOp:
 		return m, nil
 
 	case core.MessagesUpdated:
-		m.viewport.SetContent(m.renderConversation())
-		m.viewport.GotoBottom()
-		m.textArea.Reset()
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+		m.TextArea.Reset()
 		return m, tea.Batch(cmds...)
 
 	case core.NewSessionStarted:
@@ -72,9 +72,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	case core.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
 	case core.HistoryModeStarted:
-		m.state = stateHistorySelect
-		m.textArea.Blur()
-		return m, listHistoryCmd(m.session.GetHistoryManager())
+		m.State = stateHistorySelect
+		m.TextArea.Blur()
+		return m, listHistoryCmd(m.Session.GetHistoryManager())
 	}
 
 	return m, nil
@@ -83,83 +83,83 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		if m.textArea.Value() != "" {
-			m.clearedInputBuffer = m.textArea.Value()
-			m.textArea.Reset()
-			m.ctrlCPressed = false
+		if m.TextArea.Value() != "" {
+			m.ClearedInputBuffer = m.TextArea.Value()
+			m.TextArea.Reset()
+			m.CtrlCPressed = false
 			return m, nil, false // Allow layout recalculation in the same update cycle
 		}
-		if m.ctrlCPressed {
-			m.quitting = true
+		if m.CtrlCPressed {
+			m.Quitting = true
 			return m, tea.Quit, true
 		}
-		m.ctrlCPressed = true
+		m.CtrlCPressed = true
 		return m, ctrlCTimeout(), true
 
 	case tea.KeyCtrlZ:
-		if m.clearedInputBuffer != "" {
-			m.textArea.SetValue(m.clearedInputBuffer)
-			m.textArea.CursorEnd()
-			m.clearedInputBuffer = ""
+		if m.ClearedInputBuffer != "" {
+			m.TextArea.SetValue(m.ClearedInputBuffer)
+			m.TextArea.CursorEnd()
+			m.ClearedInputBuffer = ""
 		}
 		return m, nil, true
 
 	case tea.KeyEscape:
-		val := m.textArea.Value()
+		val := m.TextArea.Value()
 		if val == "" {
 			model, cmd := m.enterVisualMode(visualModeNone)
 			return model, cmd, true
 		}
 
 		if strings.HasPrefix(val, ":") {
-			m.textArea.Reset()
+			m.TextArea.Reset()
 		}
 		// For normal prompts, do nothing.
 		// In both cases, we've handled the event.
 		return m, nil, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		numCommands := len(m.paletteFilteredCommands)
-		numArgs := len(m.paletteFilteredArguments)
+		numCommands := len(m.PaletteFilteredCommands)
+		numArgs := len(m.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
 
-		if !m.showPalette || totalItems == 0 {
+		if !m.ShowPalette || totalItems == 0 {
 			return m, nil, true
 		}
 
 		// On the first Tab press, we just want to complete with the current selection (cursor 0).
 		// On subsequent Tab presses, we cycle.
 		// `isCyclingCompletions` tracks if we are in a cycle.
-		if !m.isCyclingCompletions {
+		if !m.IsCyclingCompletions {
 			// This is the first Tab/Shift+Tab press.
 			if msg.Type == tea.KeyShiftTab {
 				// If it's Shift+Tab, start from the end.
-				m.paletteCursor = totalItems - 1
+				m.PaletteCursor = totalItems - 1
 			}
 			// For a normal Tab, cursor is already 0, so we do nothing.
 		} else {
 			// We are already in a completion cycle.
 			if msg.Type == tea.KeyTab {
-				m.paletteCursor = (m.paletteCursor + 1) % totalItems
+				m.PaletteCursor = (m.PaletteCursor + 1) % totalItems
 			} else { // Shift+Tab
-				m.paletteCursor--
-				if m.paletteCursor < 0 {
-					m.paletteCursor = totalItems - 1
+				m.PaletteCursor--
+				if m.PaletteCursor < 0 {
+					m.PaletteCursor = totalItems - 1
 				}
 			}
 		}
-		m.isCyclingCompletions = true
+		m.IsCyclingCompletions = true
 
 		var selectedItem string
 		isArgument := false
-		if m.paletteCursor < numCommands {
-			selectedItem = m.paletteFilteredCommands[m.paletteCursor]
+		if m.PaletteCursor < numCommands {
+			selectedItem = m.PaletteFilteredCommands[m.PaletteCursor]
 		} else {
-			selectedItem = m.paletteFilteredArguments[m.paletteCursor-numCommands]
+			selectedItem = m.PaletteFilteredArguments[m.PaletteCursor-numCommands]
 			isArgument = true
 		}
 
-		val := m.textArea.Value()
+		val := m.TextArea.Value()
 		parts := strings.Fields(val)
 
 		if isArgument {
@@ -169,27 +169,27 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			} else {
 				prefixParts = parts
 			}
-			m.textArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+			m.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
 		} else { // command/action
-			m.textArea.SetValue(selectedItem)
+			m.TextArea.SetValue(selectedItem)
 		}
-		m.textArea.CursorEnd()
+		m.TextArea.CursorEnd()
 		return m, nil, true
 
 	case tea.KeyEnter:
-		totalItems := len(m.paletteFilteredCommands) + len(m.paletteFilteredArguments)
-		if m.showPalette && totalItems == 1 {
+		totalItems := len(m.PaletteFilteredCommands) + len(m.PaletteFilteredArguments)
+		if m.ShowPalette && totalItems == 1 {
 			var selectedItem string
 			isArgument := false
-			if len(m.paletteFilteredCommands) == 1 {
-				selectedItem = m.paletteFilteredCommands[0]
+			if len(m.PaletteFilteredCommands) == 1 {
+				selectedItem = m.PaletteFilteredCommands[0]
 			} else {
-				selectedItem = m.paletteFilteredArguments[0]
+				selectedItem = m.PaletteFilteredArguments[0]
 				isArgument = true
 			}
 
 			if isArgument {
-				val := m.textArea.Value()
+				val := m.TextArea.Value()
 				parts := strings.Fields(val)
 				var prefixParts []string
 				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
@@ -197,17 +197,17 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					prefixParts = parts
 				}
-				m.textArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				m.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
 			} else {
-				m.textArea.SetValue(selectedItem)
+				m.TextArea.SetValue(selectedItem)
 			}
-			m.textArea.CursorEnd()
+			m.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
 
 		// Smart enter: submit if it's a command.
-		if strings.HasPrefix(m.textArea.Value(), ":") {
+		if strings.HasPrefix(m.TextArea.Value(), ":") {
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
@@ -215,13 +215,13 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 
 	case tea.KeyCtrlH:
-		m.state = stateHistorySelect
-		m.textArea.Blur()
-		return m, listHistoryCmd(m.session.GetHistoryManager()), true
+		m.State = stateHistorySelect
+		m.TextArea.Blur()
+		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
 
 	case tea.KeyCtrlE:
-		if m.textArea.Focused() {
-			return m, editInEditorCmd(m.textArea.Value()), true
+		if m.TextArea.Focused() {
+			return m, editInEditorCmd(m.TextArea.Value()), true
 		}
 
 	case tea.KeyCtrlJ:
@@ -229,7 +229,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlN:
-		event := m.session.HandleInput(":new")
+		event := m.Session.HandleInput(":new")
 		if event.Type == core.NewSessionStarted {
 			newModel, cmd := m.newSession()
 			return newModel, cmd, true
@@ -237,22 +237,22 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyCtrlB:
-		event := m.session.HandleInput(":branch")
+		event := m.Session.HandleInput(":branch")
 		if event.Type == core.BranchModeStarted {
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
 		} else if event.Type == core.MessagesUpdated {
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
-		event := m.session.HandleInput(":itf")
+		event := m.Session.HandleInput(":itf")
 		if event.Type == core.MessagesUpdated {
-			m.viewport.SetContent(m.renderConversation())
-			m.viewport.GotoBottom()
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
 	}

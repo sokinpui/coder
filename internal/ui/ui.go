@@ -2,6 +2,7 @@ package ui
 
 import (
 	"coder/internal/config"
+	"coder/internal/ui/update"
 	"log"
 	"fmt"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 func Start() {
 	cfg := config.Default()
-	model, err := NewModel(cfg)
+	model, err := update.NewModel(cfg)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
 		os.Exit(1)
@@ -29,9 +30,9 @@ func Start() {
 	}
 
 	// Save conversation on exit
-	if m, ok := finalModel.(Model); ok {
-		if m.session != nil {
-			if err := m.session.SaveConversation(); err != nil {
+	if m, ok := finalModel.(update.Model); ok {
+		if m.Session != nil {
+			if err := m.Session.SaveConversation(); err != nil {
 				log.Printf("Error saving conversation history: %v", err)
 			}
 		}
