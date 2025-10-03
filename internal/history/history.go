@@ -107,6 +107,8 @@ var roleToMessageType = map[string]core.MessageType{
 	"Command Execute:":        core.CommandMessage,
 	"Command Execute Result:": core.CommandResultMessage,
 	"Command Execute Error:":  core.CommandErrorResultMessage,
+	"Execute Tools:":          core.ToolCallMessage,
+	"Result:":                 core.ToolResultMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
@@ -300,10 +302,10 @@ func BuildHistorySnippet(messages []core.Message) string {
 			sb.WriteString("Command Execute Error:\n")
 			sb.WriteString(msg.Content)
 		case core.ToolCallMessage:
-			sb.WriteString("Tool Call:\n")
+			sb.WriteString("Execute Tools:\n")
 			sb.WriteString(msg.Content)
 		case core.ToolResultMessage:
-			sb.WriteString("Tool Result:\n")
+			sb.WriteString("Result:\n")
 			sb.WriteString(msg.Content)
 		default:
 			// Skip system messages like InitMessage, DirectoryMessage

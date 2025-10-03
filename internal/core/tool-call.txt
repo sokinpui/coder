@@ -23,10 +23,10 @@ Here is an example of how to use the tools and run shell commands:
     },
     {
         "tool": "tools_with_args",
-        "args": [
+        "args": {
             "arg1": "value1",
             "arg2": "value2"
-        ]
+        }
     },
     {
         "shell": [

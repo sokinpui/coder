@@ -4,6 +4,7 @@ import (
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/tools"
+	"sort"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -111,18 +112,37 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 			tc := res.ToolCall
 			agentToolCall = &tc
 		} else {
-			toolCallBytes, _ := json.Marshal(res.ToolCall)
-			s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: string(toolCallBytes)})
+			var toolCallContent string
+			if res.ToolCall.ToolName != "" {
+				var argsParts []string
+				for k, v := range res.ToolCall.Args {
+					argsParts = append(argsParts, fmt.Sprintf("%s=%v", k, v))
+				}
+				sort.Strings(argsParts)
+				toolCallContent = strings.TrimSpace(fmt.Sprintf("%s %s", res.ToolCall.ToolName, strings.Join(argsParts, " ")))
+			} else if res.ToolCall.Shell != nil {
+				var shellCommands []string
+				switch shellCmd := res.ToolCall.Shell.(type) {
+				case string:
+					shellCommands = append(shellCommands, shellCmd)
+				case []interface{}:
+					for _, v := range shellCmd {
+						if s, ok := v.(string); ok {
+							shellCommands = append(shellCommands, s)
+						}
+					}
+				}
+				toolCallContent = fmt.Sprintf("shell %q", strings.Join(shellCommands, "; "))
+			}
+			s.AddMessage(core.Message{Type: core.ToolCallMessage, Content: toolCallContent})
 
-			resultObj := map[string]interface{}{"tool": res.ToolCall.ToolName}
+			var resultContent string
 			if res.Error != nil {
-				resultObj["error"] = res.Error.Error()
+				resultContent = fmt.Sprintf("Error: %v", res.Error)
+			} else {
+				resultContent = res.Output
 			}
-			if res.Output != "" {
-				resultObj["output"] = res.Output
-			}
-			resultBytes, _ := json.MarshalIndent(resultObj, "", "  ")
-			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: string(resultBytes)})
+			s.AddMessage(core.Message{Type: core.ToolResultMessage, Content: resultContent})
 		}
 	}
 

@@ -67,4 +67,15 @@ var (
 	statusBarTitleStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("228")). // Yellow
 				Bold(true)
+	toolCallStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("150")). // A shade of green/cyan
+			Padding(0, 1)
+	toolResultStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("150")).
+			Padding(0, 1).
+			BorderTop(false).
+			BorderBottom(false).
+			BorderRight(false)
 )
