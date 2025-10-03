@@ -42,15 +42,16 @@ var AgentConfigs = map[AgentName]AgentGenerationConfig{
 	CodingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.1, Tools: []string{
 		"upsert_files",
 	}},
-	WritingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.7, Tools: []string{
+	WritingAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.9, Tools: []string{
 		"upsert_files",
 	}},
-	GeneralAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.5, Tools: []string{}},
-	MainAgent: {ModelCode: "gemini-2.5-flash-preview-09-2025", Temperature: 0.1, Tools: []string{
+	GeneralAgent: {ModelCode: "gemini-2.5-pro", Temperature: 0.9, Tools: []string{}},
+	MainAgent: {ModelCode: "gemini-2.5-flash-preview-09-2025", Temperature: 0.9, Tools: []string{
 		"coding_agent",
 		"writing_agent",
 		"general_agent",
 		"read_files",
+		"read_directories",
 	}},
 }
 
