@@ -8,7 +8,7 @@ var CodingRole string
 //go:embed Roles/documenting.md
 var DocumentingRole string
 
-//go:embed Roles/agent.md
+//go:embed Roles/agent_main.md
 var AgentRole string
 
 //go:embed Roles/agent_coding.md
