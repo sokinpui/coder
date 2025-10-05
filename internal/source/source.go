@@ -14,10 +14,7 @@ type FileSources struct {
 
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
 // of files in the current directory, respecting .gitignore.
-// It excludes common non-source files and directories.
 func LoadProjectSource(sources *FileSources) (string, error) {
-	// Base exclusions for all modes.
-	// These are typically not useful for AI context.
 	exclusions := []string{
 		"*-lock.json",
 		"go.sum",
@@ -90,7 +87,6 @@ func LoadProjectSource(sources *FileSources) (string, error) {
 		cmd := exec.Command("bash", "-c", command)
 		output, err := cmd.Output()
 		if err != nil {
-			// Rerun with CombinedOutput to get stderr for the error message
 			cmdForErr := exec.Command("bash", "-c", command)
 			combinedOutput, _ := cmdForErr.CombinedOutput()
 			return "", fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(combinedOutput))

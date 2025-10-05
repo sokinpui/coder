@@ -10,24 +10,20 @@ import (
 	"strings"
 )
 
-// GetMessages returns the current conversation messages.
 func (s *Session) GetMessages() []core.Message {
 	return s.messages
 }
 
-// AddMessage allows adding a message to the history from outside (e.g., UI-specific messages).
 func (s *Session) AddMessage(msg core.Message) {
 	s.messages = append(s.messages, msg)
 }
 
-// ReplaceLastMessage allows updating the last message (e.g., for streaming).
 func (s *Session) ReplaceLastMessage(msg core.Message) {
 	if len(s.messages) > 0 {
 		s.messages[len(s.messages)-1] = msg
 	}
 }
 
-// DeleteMessages removes messages at the given indices from the session.
 func (s *Session) DeleteMessages(indices []int) {
 	if len(indices) == 0 {
 		return
@@ -36,7 +32,6 @@ func (s *Session) DeleteMessages(indices []int) {
 	repoRoot, err := utils.FindRepoRoot()
 	if err != nil {
 		log.Printf("Error finding repo root for deleting image: %v", err)
-		// We can still proceed to delete the message from history, but log the error.
 		repoRoot = ""
 	}
 

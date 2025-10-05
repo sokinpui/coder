@@ -18,36 +18,30 @@ const (
 	historyDirName = ".coder/history"
 )
 
-// Metadata holds the parsed YAML frontmatter from a history file.
 type Metadata struct {
 	Title      string
 	CreatedAt  time.Time
 	ModifiedAt time.Time
 }
 
-// ConversationInfo holds metadata for a single conversation.
 type ConversationInfo struct {
 	Filename   string    `json:"filename"`
 	Title      string    `json:"title"`
 	ModifiedAt time.Time `json:"modifiedAt"`
 }
 
-// ConversationData holds all the necessary information to save a conversation history file.
 type ConversationData struct {
-	Filename           string
-	Title              string
-	CreatedAt          time.Time
-	Messages           []core.Message
-	Preamble           string
+	Filename  string
+	Title     string
+	CreatedAt time.Time
+	Messages  []core.Message
+	Preamble  string
 }
 
-// Manager handles saving conversation history.
 type Manager struct {
 	historyPath string
 }
 
-// NewManager creates a new history manager.
-// It finds the git repository root and ensures the history directory exists.
 func NewManager() (*Manager, error) {
 	repoRoot, err := utils.FindRepoRoot()
 	if err != nil {
@@ -62,8 +56,6 @@ func NewManager() (*Manager, error) {
 	return &Manager{historyPath: historyPath}, nil
 }
 
-// SaveConversation saves the conversation to a markdown file.
-// It includes YAML frontmatter for metadata.
 func (m *Manager) SaveConversation(data *ConversationData) error {
 	historyContent := BuildHistorySnippet(data.Messages)
 
@@ -93,7 +85,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
 	fmt.Fprintln(&fileBuf, "---")
-	fmt.Fprintln(&fileBuf, "") // newline after metadata block
+	fmt.Fprintln(&fileBuf, "")
 
 	fileBuf.WriteString(content)
 
@@ -127,7 +119,6 @@ func processMessageContent(msg *core.Message, rawContent string) {
 	msg.Content = content
 }
 
-// ParseConversation parses the content of a history file into its metadata and messages.
 func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	parts := bytes.SplitN(content, []byte("---\n"), 3)
 	if len(parts) < 3 {
@@ -207,8 +198,7 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	return metadata, messages, nil
 }
 
-// ParseFileMetadata reads just the YAML frontmatter from a history file to get its metadata.
-// This is much more efficient than reading the whole file when just listing conversations.
+// ParseFileMetadata reads the YAML frontmatter from a history file to get its metadata.
 func ParseFileMetadata(filePath string) (*Metadata, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -264,7 +254,6 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 	return metadata, nil
 }
 
-// LoadConversation reads a history file from disk and parses it.
 func (m *Manager) LoadConversation(filename string) (*Metadata, []core.Message, error) {
 	filePath := filepath.Join(m.historyPath, filename)
 	fileInfo, err := os.Stat(filePath)
@@ -289,7 +278,6 @@ func (m *Manager) LoadConversation(filename string) (*Metadata, []core.Message, 
 	return metadata, messages, nil
 }
 
-// ListConversations scans the history directory and returns info for each conversation.
 func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	files, err := os.ReadDir(m.historyPath)
 	if err != nil {

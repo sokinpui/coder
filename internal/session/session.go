@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// Session manages the state of a single conversation.
 type Session struct {
 	config             *config.Config
 	generator          *generation.Generator
@@ -28,7 +27,6 @@ type Session struct {
 	modeStrategy       modes.ModeStrategy
 }
 
-// New creates a new session.
 func New(cfg *config.Config) (*Session, error) {
 	return NewWithMessages(cfg, nil)
 }
@@ -62,17 +60,14 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 	}, nil
 }
 
-// GetConfig returns the application configuration.
 func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
-// GetGenerator returns the session's generator instance.
 func (s *Session) GetGenerator() *generation.Generator {
 	return s.generator
 }
 
-// GetHistoryManager returns the session's history manager.
 func (s *Session) GetHistoryManager() *history.Manager {
 	return s.historyManager
 }
