@@ -2,11 +2,11 @@ package update
 
 import (
 	"coder/internal/history"
-	"fmt"
 	"coder/internal/session"
 	"coder/internal/token"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -146,7 +146,13 @@ func runFzfCmd(input string) tea.Cmd {
 	}
 
 	// Use sh -c to handle redirection, more portable than bash
-	fzfCmdStr := fmt.Sprintf("fzf > %s", tmpfileName)
+	var fzfCmdStr string
+	if os.Getenv("TMUX") != "" {
+		fzfCmdStr = fmt.Sprintf("fzf-tmux -p -w 90 > %s", tmpfileName)
+	} else {
+		fzfCmdStr = fmt.Sprintf("fzf > %s", tmpfileName)
+	}
+
 	cmd := exec.Command("sh", "-c", fzfCmdStr)
 	cmd.Stdin = strings.NewReader(input)
 
