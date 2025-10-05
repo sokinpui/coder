@@ -21,32 +21,19 @@ jobs:
         with:
           go-version: '1.24.1'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'web/package.json'
-
-      - name: Build frontend
-        run: |
-          cd web
-          npm install
-          npm run build
-
       - name: Build binaries
         run: |
           mkdir release
-          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-web-linux-amd64 ./cmd/coder-web
-          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-web-darwin-amd64 ./cmd/coder-web
-          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o release/coder-web-darwin-arm64 ./cmd/coder-web
-          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-web-windows-amd64.exe ./cmd/coder-web
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-linux-amd64 ./cmd/coder
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-darwin-amd64 ./cmd/coder
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o release/coder-darwin-arm64 ./cmd/coder
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o release/coder-windows-amd64.exe ./cmd/coder
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/coder-web-linux-amd64
-            release/coder-web-darwin-amd64
-            release/coder-web-darwin-arm64
-            release/coder-web-windows-amd64.exe
+            release/coder-linux-amd64
+            release/coder-darwin-amd64
+            release/coder-darwin-arm64
+            release/coder-windows-amd64.exe

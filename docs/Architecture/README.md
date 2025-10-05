@@ -4,7 +4,7 @@ This document provides an overview of the Coder project's architecture, componen
 
 ## High-Level Overview
 
-Coder is a monorepo containing two main applications: a Terminal User Interface (`coder`) and a Web User Interface (`coder-web`). Both applications share a common core logic layer written in Go. The applications act as clients to an external gRPC-based AI service for code generation.
+Coder is a Terminal User Interface (`coder`) application that shares a common core logic layer written in Go. The application acts as a client to an external gRPC-based AI service for code generation.
 
 ```
 +------------------+      +-------------------+

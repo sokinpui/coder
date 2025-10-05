@@ -1,10 +1,10 @@
 # Usage Guide
 
-This guide explains how to use the Coder TUI and Web UI applications. Both applications must be run from within a Git repository.
+This guide explains how to use the Coder TUI application. The application must be run from within a Git repository.
 
 ## Application Modes
 
-Coder provides different modes to tailor the AI's behavior for specific tasks like coding or writing documentation. You can switch modes using the `:mode` command in the TUI or the mode selector in the Web UI.
+Coder provides different modes to tailor the AI's behavior for specific tasks like coding or writing documentation. You can switch modes using the `:mode` command.
 
 For a detailed explanation of each mode and how it affects the AI's context and responses, see the [Modes Guide](./Modes.md).
 
@@ -77,32 +77,3 @@ Enter Visual Mode by pressing `Esc` on an empty input line. This mode allows you
 | `e`   | Edit the selected user prompt.       |
 | `Esc` | Exit Visual Mode.                    |
 
-## Web UI (`coder-web`)
-
-The Web UI provides a graphical interface with additional features like a file and Git browser.
-
-### Starting the Web UI
-
-Navigate to your project's root directory and run:
-
-```sh
-coder-web
-```
-
-The application will start a web server and print the URL to access in your browser, typically `http://localhost:<port>`.
-
-### Interface Overview
-
-- **Sidebar**: Provides navigation for creating a new chat, viewing history, and accessing the Code and Git browsers.
-- **Top Bar**: Displays the current conversation title, token count, and controls for changing the mode and model.
-- **Chat View**: The main area for conversation with the AI.
-- **Code Browser**: A file tree of the project. You can view file contents directly in the UI.
-- **Git Browser**: A viewer for the Git commit history and diffs.
-
-### Features
-
-- **Chat Interaction**: Send messages using the input box at the bottom. AI responses are rendered as Markdown.
-- **Message Actions**: Hover over a message to access actions like Regenerate, Edit, Branch, and Delete.
-- **Code Browser**: Navigate your project's file structure. Clicking a file displays its content. Markdown files are rendered, while code files are shown with syntax highlighting.
-- **Git Browser**: Visualize the commit graph, view commit details, and inspect diffs in either a side-by-side or unified view.
-- **History Management**: Load previous conversations from the history dialog, accessible via the sidebar.
