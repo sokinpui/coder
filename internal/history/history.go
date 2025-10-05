@@ -1,6 +1,7 @@
 package history
 
 import (
+	"bufio"
 	"bytes"
 	"coder/internal/core"
 	"coder/internal/utils"
@@ -206,6 +207,63 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	return metadata, messages, nil
 }
 
+// ParseFileMetadata reads just the YAML frontmatter from a history file to get its metadata.
+// This is much more efficient than reading the whole file when just listing conversations.
+func ParseFileMetadata(filePath string) (*Metadata, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	// Expect "---"
+	if !scanner.Scan() || scanner.Text() != "---" {
+		return nil, fmt.Errorf("invalid file format: missing YAML frontmatter start")
+	}
+
+	metadata := &Metadata{}
+	inFrontmatter := true
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "---" {
+			inFrontmatter = false
+			break
+		}
+
+		kv := strings.SplitN(line, ":", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		key, value := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
+		switch key {
+		case "title":
+			metadata.Title = value
+		case "createdAt":
+			t, err := time.Parse(time.RFC3339Nano, value)
+			if err == nil {
+				metadata.CreatedAt = t
+			}
+		case "modifiedAt":
+			t, err := time.Parse(time.RFC3339Nano, value)
+			if err == nil {
+				metadata.ModifiedAt = t
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if inFrontmatter {
+		return nil, fmt.Errorf("invalid file format: YAML frontmatter not closed")
+	}
+
+	return metadata, nil
+}
+
 // LoadConversation reads a history file from disk and parses it.
 func (m *Manager) LoadConversation(filename string) (*Metadata, []core.Message, error) {
 	filePath := filepath.Join(m.historyPath, filename)
@@ -245,13 +303,7 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 		}
 
 		filePath := filepath.Join(m.historyPath, file.Name())
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			// Silently skip files that can't be read
-			continue
-		}
-
-		metadata, _, err := ParseConversation(content)
+		metadata, err := ParseFileMetadata(filePath)
 		if err != nil {
 			// Silently skip files that can't be parsed
 			continue
