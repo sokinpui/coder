@@ -273,10 +273,12 @@ func (m Model) statusView() string {
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
 	rightStatusItems := []string{}
-	if tokenPart != "" {
-		rightStatusItems = append(rightStatusItems, tokenPart)
+	if m.State != stateVisualSelect {
+		if tokenPart != "" {
+			rightStatusItems = append(rightStatusItems, tokenPart)
+		}
+		rightStatusItems = append(rightStatusItems, modePart, modelPart)
 	}
-	rightStatusItems = append(rightStatusItems, modePart, modelPart)
 
 	if m.State == stateThinking || m.State == stateGenerating {
 		statusText := "Thinking"
