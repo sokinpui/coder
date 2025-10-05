@@ -121,15 +121,15 @@ func editInEditorCmd(content string) tea.Cmd {
 	return tea.ExecProcess(cmd, func(err error) tea.Msg {
 		defer os.Remove(tmpfile.Name())
 		if err != nil {
-			return editorFinishedMsg{err: err}
+			return editorFinishedMsg{err: err, originalContent: content}
 		}
 
 		newContent, readErr := os.ReadFile(tmpfile.Name())
 		if readErr != nil {
-			return editorFinishedMsg{err: readErr}
+			return editorFinishedMsg{err: readErr, originalContent: content}
 		}
 
-		return editorFinishedMsg{content: string(newContent)}
+		return editorFinishedMsg{content: string(newContent), originalContent: content}
 	})
 }
 

@@ -109,10 +109,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if m.EditingMessageIndex != -1 {
 			// This block handles the return from editing a previous message in the history.
 			// It updates the message in place and does not trigger a new generation.
-			if err := m.Session.EditMessage(m.EditingMessageIndex, msg.content); err != nil {
-				// This should ideally not happen if the logic for selecting an editable message is correct.
-				errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
-				m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			if msg.content != msg.originalContent {
+				if err := m.Session.EditMessage(m.EditingMessageIndex, msg.content); err != nil {
+					// This should ideally not happen if the logic for selecting an editable message is correct.
+					errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
+					m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+				}
 			}
 
 			var cmd tea.Cmd
@@ -137,11 +139,18 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, cmd, true
 		}
 
-		// This is for Ctrl+E on the text area.
-		m.TextArea.SetValue(msg.content)
-		m.TextArea.CursorEnd()
+		// This is for Ctrl+E on the text area. If content changed, submit.
+		if msg.content != msg.originalContent {
+			m.TextArea.SetValue(msg.content)
+			m.TextArea.CursorEnd()
+			model, cmd := m.handleSubmit()
+			return model, cmd, true
+		}
+
+		// Content is unchanged, just update textarea and focus.
+		m.TextArea.SetValue(msg.originalContent)
 		m.TextArea.Focus()
-		return m, nil, true
+		return m, textarea.Blink, true
 
 	case renderTickMsg:
 		if m.State != stateGenerating || !m.IsStreaming {

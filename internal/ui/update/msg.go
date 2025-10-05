@@ -23,6 +23,7 @@ type (
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg struct {
 		content string
+		originalContent string
 		err     error
 	}
 	clearStatusBarMsg struct{}
