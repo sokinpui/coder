@@ -45,11 +45,13 @@ func (m *CodingMode) StartGeneration(s SessionController) core.Event {
 
 // BuildPrompt constructs the prompt for coding mode.
 func (m *CodingMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
-	return BuildPrompt(
-		RoleSection(m.GetRolePrompt(), core.CoderInstructions),
-		SystemInstructionsSection(systemInstructions),
-		RelatedDocumentsSection(relatedDocuments),
-		ProjectSourceCodeSection(projectSourceCode),
-		ConversationHistorySection(messages),
-	)
+	return BuildPrompt(PromptSectionArray{
+		Sections: []PromptSection{
+			RoleSection(m.GetRolePrompt(), core.CoderInstructions),
+			SystemInstructionsSection(systemInstructions),
+			RelatedDocumentsSection(relatedDocuments),
+			ProjectSourceCodeSection(projectSourceCode),
+			ConversationHistorySection(messages),
+		},
+	})
 }

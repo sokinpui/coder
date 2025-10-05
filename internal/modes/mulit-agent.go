@@ -97,12 +97,14 @@ func (m *MultiAgentMode) buildAgentPrompt(messages []core.Message, agentName con
 	}
 
 	// Agent mode does not use file-based context.
-	return BuildPrompt(
-		RoleSection(rolePrompt, ""),
-		DirectoryInformationSection(dirInfoBuilder.String()),
-		ExternalToolsSection(toolDocs),
-		ConversationHistorySection(messages),
-	), nil
+	return BuildPrompt(PromptSectionArray{
+		Sections: []PromptSection{
+			RoleSection(rolePrompt, ""),
+			DirectoryInformationSection(dirInfoBuilder.String()),
+			ExternalToolsSection(toolDocs),
+			ConversationHistorySection(messages),
+		},
+	}), nil
 }
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,

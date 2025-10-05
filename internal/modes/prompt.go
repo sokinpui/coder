@@ -22,11 +22,16 @@ type PromptSection struct {
 	Content string
 }
 
+// PromptSectionArray holds a slice of PromptSection structs.
+type PromptSectionArray struct {
+	Sections []PromptSection
+}
+
 // BuildPrompt constructs the full prompt from a series of sections.
-func BuildPrompt(sections ...PromptSection) string {
+func BuildPrompt(promptSections PromptSectionArray) string {
 	var sb strings.Builder
 	hasContent := false
-	for _, section := range sections {
+	for _, section := range promptSections.Sections {
 		if section.Content == "" {
 			continue
 		}
