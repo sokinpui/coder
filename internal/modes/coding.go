@@ -1,7 +1,6 @@
 package modes
 
 import (
-	"coder/internal/config"
 	"coder/internal/contextdir"
 	"coder/internal/core"
 	"coder/internal/source"
@@ -23,7 +22,10 @@ func (m *CodingMode) LoadContext() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("failed to load context directory: %w", ctxErr)
 	}
 
-	projSource, srcErr := source.LoadProjectSource(config.CodingMode)
+	fileSources := &source.FileSources{
+		FileDirs: []string{"."},
+	}
+	projSource, srcErr := source.LoadProjectSource(fileSources)
 	if srcErr != nil {
 		return "", "", "", fmt.Errorf("failed to load project source: %w", srcErr)
 	}

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/modes"
@@ -63,7 +62,10 @@ func (c *Client) handleAskAI(payload map[string]interface{}, requestID string) {
 	messages = append(messages, core.Message{Type: core.UserMessage, Content: question})
 
 	// Load project source, including markdown files, to provide full context.
-	projectSource, err := source.LoadProjectSource(config.DocumentingMode)
+	fileSources := &source.FileSources{
+		FileDirs: []string{"."},
+	}
+	projectSource, err := source.LoadProjectSource(fileSources)
 	if err != nil {
 		log.Printf("failed to load project source for askAI: %v", err)
 		projectSource = "" // Proceed without project source on error

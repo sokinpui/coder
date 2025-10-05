@@ -1,16 +1,21 @@
 package source
 
 import (
-	"coder/internal/config"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
+// FileSources specifies the files and directories to be included as project source.
+type FileSources struct {
+	FilePaths []string
+	FileDirs  []string
+}
+
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
 // of files in the current directory, respecting .gitignore.
 // It excludes common non-source files and directories.
-func LoadProjectSource(mode config.AppMode) (string, error) {
+func LoadProjectSource(sources *FileSources) (string, error) {
 	// Base exclusions for all modes.
 	// These are typically not useful for AI context.
 	exclusions := []string{
@@ -65,26 +70,50 @@ func LoadProjectSource(mode config.AppMode) (string, error) {
 		"*.ogg",
 	}
 
-	// Exclude markdown files for non-documenting modes.
-	// if mode != config.DocumentingMode {
-	// 	exclusions = append(exclusions, "*.md")
-	// }
+	var filesFromDirs []string
+	if len(sources.FileDirs) > 0 {
+		var quotedDirs []string
+		for _, d := range sources.FileDirs {
+			// quoting for directory paths with spaces or special characters.
+			quotedDirs = append(quotedDirs, fmt.Sprintf("'%s'", strings.ReplaceAll(d, "'", "'\\''")))
+		}
 
-	var commandBuilder strings.Builder
-	commandBuilder.WriteString("fd . --type=file --hidden")
+		var commandBuilder strings.Builder
+		commandBuilder.WriteString(fmt.Sprintf("fd  --full-path %s --type=file --hidden", strings.Join(quotedDirs, " ")))
 
-	for _, exclusion := range exclusions {
-		// Using single quotes to handle potential special characters in globs for the shell.
-		commandBuilder.WriteString(fmt.Sprintf(" -E '%s'", exclusion))
+		for _, exclusion := range exclusions {
+			commandBuilder.WriteString(fmt.Sprintf(" -E '%s'", exclusion))
+		}
+
+		command := commandBuilder.String()
+
+		cmd := exec.Command("bash", "-c", command)
+		output, err := cmd.Output()
+		if err != nil {
+			// Rerun with CombinedOutput to get stderr for the error message
+			cmdForErr := exec.Command("bash", "-c", command)
+			combinedOutput, _ := cmdForErr.CombinedOutput()
+			return "", fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(combinedOutput))
+		}
+
+		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+		for _, line := range lines {
+			if line != "" {
+				filesFromDirs = append(filesFromDirs, line)
+			}
+		}
 	}
 
-	commandBuilder.WriteString(" | pcat --no-header")
-	command := commandBuilder.String()
+	allFiles := append(sources.FilePaths, filesFromDirs...)
+	if len(allFiles) == 0 {
+		return "", nil
+	}
 
-	cmd := exec.Command("bash", "-c", command)
+	pcatArgs := append([]string{"--no-header"}, allFiles...)
+	cmd := exec.Command("pcat", pcatArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("failed to load project source: %w\nOutput: %s", err, string(output))
+		return "", fmt.Errorf("failed to load project source with pcat: %w\nOutput: %s", err, string(output))
 	}
 	return string(output), nil
 }
