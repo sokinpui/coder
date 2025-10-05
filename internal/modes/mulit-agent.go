@@ -36,8 +36,8 @@ func (m *MultiAgentMode) GetRolePrompt() string {
 }
 
 // LoadContext does not load any context for agent mode.
-func (m *MultiAgentMode) LoadContext() (string, string, string, error) {
-	return "", "", "", nil
+func (m *MultiAgentMode) LoadContext() error {
+	return nil
 }
 
 // getAgentConfig returns the generation config for a given agent.
@@ -57,15 +57,15 @@ func (m *MultiAgentMode) getAgentConfig(s SessionController, agentName config.Ag
 }
 
 // buildAgentPrompt constructs a prompt for a specific agent and message history.
-func (m *MultiAgentMode) buildAgentPrompt(messages []core.Message, agentName config.AgentName) (string, error) {
-	rolePrompt, ok := agentRoles[agentName]
+func (m *MultiAgentMode) buildAgentPrompt(messages []core.Message) (string, error) {
+	rolePrompt, ok := agentRoles[m.activeAgent]
 	if !ok {
-		return "", fmt.Errorf("unknown agent: %s", agentName)
+		return "", fmt.Errorf("unknown agent: %s", m.activeAgent)
 	}
 
-	agentConfig, ok := config.AgentConfigs[agentName]
+	agentConfig, ok := config.AgentConfigs[m.activeAgent]
 	if !ok {
-		return "", fmt.Errorf("no config for agent: %s", agentName)
+		return "", fmt.Errorf("no config for agent: %s", m.activeAgent)
 	}
 
 	var toolDocs string
@@ -196,8 +196,8 @@ func (m *MultiAgentMode) StartGeneration(s SessionController) core.Event {
 }
 
 // BuildPrompt constructs the prompt for agent mode.
-func (m *MultiAgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+func (m *MultiAgentMode) BuildPrompt(messages []core.Message) string {
 	// Agent mode does not use file-based context.
-	prompt, _ := m.buildAgentPrompt(messages, m.activeAgent)
+	prompt, _ := m.buildAgentPrompt(messages)
 	return prompt
 }

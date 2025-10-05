@@ -16,9 +16,6 @@ type Session struct {
 	generator          *generation.Generator
 	historyManager     *history.Manager
 	messages           []core.Message
-	systemInstructions string
-	relatedDocuments   string
-	projectSourceCode  string
 	cancelGeneration   context.CancelFunc
 	title              string
 	titleGenerated     bool

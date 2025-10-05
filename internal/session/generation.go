@@ -19,12 +19,12 @@ func (s *Session) CancelGeneration() {
 
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	return s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, s.messages)
+	return s.modeStrategy.BuildPrompt(s.messages)
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	return s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
+	return s.modeStrategy.BuildPrompt(nil)
 }
 
 // StartGeneration delegates to the current mode strategy to start a generation.

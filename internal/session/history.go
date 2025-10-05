@@ -14,7 +14,7 @@ func (s *Session) SaveConversation() error {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}
 
-	preamble := s.modeStrategy.BuildPrompt(s.systemInstructions, s.relatedDocuments, s.projectSourceCode, nil)
+	preamble := s.modeStrategy.BuildPrompt(nil)
 	data := &history.ConversationData{
 		Filename:  s.historyFilename,
 		Title:     s.title,
@@ -85,10 +85,9 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 		return nil, err
 	}
 
-	// The new session needs the context from the old one.
-	newSess.systemInstructions = s.systemInstructions
-	newSess.relatedDocuments = s.relatedDocuments
-	newSess.projectSourceCode = s.projectSourceCode
+	if err := newSess.LoadContext(); err != nil {
+		return nil, fmt.Errorf("failed to load context for branched session: %w", err)
+	}
 
 	return newSess, nil
 }

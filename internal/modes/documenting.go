@@ -8,7 +8,11 @@ import (
 )
 
 // DocumentingMode is the strategy for the documentation generation mode.
-type DocumentingMode struct{}
+type DocumentingMode struct {
+	systemInstructions string
+	relatedDocuments   string
+	projectSourceCode  string
+}
 
 // GetRolePrompt returns the documenting role.
 func (m *DocumentingMode) GetRolePrompt() string {
@@ -16,10 +20,10 @@ func (m *DocumentingMode) GetRolePrompt() string {
 }
 
 // LoadContext loads context and project source, including markdown files.
-func (m *DocumentingMode) LoadContext() (string, string, string, error) {
+func (m *DocumentingMode) LoadContext() error {
 	sysInstructions, docs, ctxErr := contextdir.LoadContext()
 	if ctxErr != nil {
-		return "", "", "", fmt.Errorf("failed to load context directory: %w", ctxErr)
+		return fmt.Errorf("failed to load context directory: %w", ctxErr)
 	}
 
 	fileSources := &source.FileSources{
@@ -27,10 +31,13 @@ func (m *DocumentingMode) LoadContext() (string, string, string, error) {
 	}
 	projSource, srcErr := source.LoadProjectSource(fileSources)
 	if srcErr != nil {
-		return "", "", "", fmt.Errorf("failed to load project source: %w", srcErr)
+		return fmt.Errorf("failed to load project source: %w", srcErr)
 	}
 
-	return sysInstructions, docs, projSource, nil
+	m.systemInstructions = sysInstructions
+	m.relatedDocuments = docs
+	m.projectSourceCode = projSource
+	return nil
 }
 
 // ProcessAIResponse does nothing in documenting mode.
@@ -44,13 +51,13 @@ func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
 }
 
 // BuildPrompt constructs the prompt for documenting mode.
-func (m *DocumentingMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+func (m *DocumentingMode) BuildPrompt(messages []core.Message) string {
 	return BuildPrompt(PromptSectionArray{
 		Sections: []PromptSection{
 			RoleSection(m.GetRolePrompt(), core.CoderInstructions),
-			SystemInstructionsSection(systemInstructions),
-			RelatedDocumentsSection(relatedDocuments),
-			ProjectSourceCodeSection(projectSourceCode),
+			SystemInstructionsSection(m.systemInstructions),
+			RelatedDocumentsSection(m.relatedDocuments),
+			ProjectSourceCodeSection(m.projectSourceCode),
 			ConversationHistorySection(messages),
 		},
 	})
