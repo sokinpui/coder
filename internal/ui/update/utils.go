@@ -2,6 +2,7 @@ package update
 
 import (
 	"coder/internal/history"
+	"fmt"
 	"coder/internal/session"
 	"coder/internal/token"
 	"context"
@@ -130,6 +131,41 @@ func editInEditorCmd(content string) tea.Cmd {
 		}
 
 		return editorFinishedMsg{content: string(newContent), originalContent: content}
+	})
+}
+
+func runFzfCmd(input string) tea.Cmd {
+	tmpfile, err := os.CreateTemp("", "coder-fzf-result-")
+	if err != nil {
+		return func() tea.Msg { return fzfFinishedMsg{err: err} }
+	}
+	tmpfileName := tmpfile.Name()
+	if err := tmpfile.Close(); err != nil {
+		os.Remove(tmpfileName)
+		return func() tea.Msg { return fzfFinishedMsg{err: err} }
+	}
+
+	// Use sh -c to handle redirection, more portable than bash
+	fzfCmdStr := fmt.Sprintf("fzf > %s", tmpfileName)
+	cmd := exec.Command("sh", "-c", fzfCmdStr)
+	cmd.Stdin = strings.NewReader(input)
+
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		defer os.Remove(tmpfileName)
+
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 130 {
+				return fzfFinishedMsg{result: "", err: nil} // User cancelled
+			}
+			return fzfFinishedMsg{err: err}
+		}
+
+		resultBytes, readErr := os.ReadFile(tmpfileName)
+		if readErr != nil {
+			return fzfFinishedMsg{err: readErr}
+		}
+
+		return fzfFinishedMsg{result: strings.TrimSpace(string(resultBytes))}
 	})
 }
 

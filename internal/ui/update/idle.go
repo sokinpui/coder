@@ -75,6 +75,12 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
+	case core.FzfModeStarted:
+		fzfInput, ok := event.Data.(string)
+		if !ok {
+			return m, nil
+		}
+		return m, runFzfCmd(fzfInput)
 	}
 
 	return m, nil
@@ -244,6 +250,13 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		} else if event.Type == core.MessagesUpdated {
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
+		}
+		return m, nil, true
+
+	case tea.KeyCtrlF:
+		event := m.Session.HandleInput(":fzf")
+		if event.Type == core.FzfModeStarted {
+			return m, runFzfCmd(event.Data.(string)), true
 		}
 		return m, nil, true
 

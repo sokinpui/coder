@@ -55,6 +55,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		} else {
 			// Return to idle
 			m.State = stateIdle
+			m.TextArea.Reset()
 			m.TextArea.Focus()
 			m.Viewport.SetContent(m.renderConversation())
 			return m, textarea.Blink, true

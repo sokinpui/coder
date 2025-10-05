@@ -1,6 +1,7 @@
 package update
 
 import (
+	"strings"
 	"fmt"
 	"time"
 
@@ -240,6 +241,32 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.AnimatingTitle = false
 		return m, nil, true
+
+	case fzfFinishedMsg:
+		if msg.err != nil {
+			errorContent := fmt.Sprintf("\n**fzf Error:**\n```\n%v\n```\n", msg.err)
+			m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+			return m, nil, true
+		}
+
+		if msg.result == "" {
+			// User cancelled fzf
+			m.TextArea.Reset()
+			return m, nil, true
+		}
+
+		var commandToRun string
+		parts := strings.SplitN(msg.result, ": ", 2)
+		if len(parts) == 2 {
+			commandToRun = fmt.Sprintf(":%s %s", parts[0], parts[1])
+		} else {
+			commandToRun = ":" + msg.result
+		}
+		m.TextArea.SetValue(commandToRun)
+		model, cmd := m.handleSubmit()
+		return model, cmd, true
 
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""

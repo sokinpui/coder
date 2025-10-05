@@ -36,4 +36,8 @@ type (
 	conversationLoadedMsg struct {
 		err error
 	}
+	fzfFinishedMsg struct {
+		result string
+		err    error
+	}
 )

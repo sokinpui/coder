@@ -35,6 +35,8 @@ func (s *Session) HandleInput(input string) core.Event {
 			return core.Event{Type: core.BranchModeStarted}
 		case core.CommandResultHistoryMode:
 			return core.Event{Type: core.HistoryModeStarted}
+		case core.CommandResultFzfMode:
+			return core.Event{Type: core.FzfModeStarted, Data: cmdOutput.Payload}
 		}
 	}
 

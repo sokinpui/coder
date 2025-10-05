@@ -22,6 +22,8 @@ const (
 	HistoryModeStarted
 	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
+	// FzfModeStarted indicates the UI should run fzf.
+	FzfModeStarted
 )
 
 // Event is returned by session methods to inform the UI about what happened.
