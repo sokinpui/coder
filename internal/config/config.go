@@ -16,10 +16,10 @@ type AppMode string
 const (
 	CodingMode      AppMode = "Coding"
 	DocumentingMode AppMode = "Documenting"
-	AgentMode       AppMode = "Agent"
+	MultiAgentMode  AppMode = "Multi-agent"
 )
 
-var AvailableAppModes = []AppMode{CodingMode, DocumentingMode, AgentMode}
+var AvailableAppModes = []AppMode{CodingMode, DocumentingMode, MultiAgentMode}
 
 type AgentName string
 

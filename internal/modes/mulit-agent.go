@@ -12,8 +12,8 @@ import (
 	"strings"
 )
 
-// AgentMode is the strategy for the agent/tool-using mode.
-type AgentMode struct {
+// MultiAgentMode is the strategy for the agent/tool-using mode.
+type MultiAgentMode struct {
 	activeAgent config.AgentName
 }
 
@@ -31,17 +31,17 @@ var agentRoles = map[config.AgentName]string{
 }
 
 // GetRolePrompt returns the main agent role.
-func (m *AgentMode) GetRolePrompt() string {
+func (m *MultiAgentMode) GetRolePrompt() string {
 	return agentRoles[m.activeAgent]
 }
 
 // LoadContext does not load any context for agent mode.
-func (m *AgentMode) LoadContext() (string, string, string, error) {
+func (m *MultiAgentMode) LoadContext() (string, string, string, error) {
 	return "", "", "", nil
 }
 
 // getAgentConfig returns the generation config for a given agent.
-func (m *AgentMode) getAgentConfig(s SessionController, agentName config.AgentName) (*config.Generation, error) {
+func (m *MultiAgentMode) getAgentConfig(s SessionController, agentName config.AgentName) (*config.Generation, error) {
 	agentGenConfig, ok := config.AgentConfigs[agentName]
 	if !ok {
 		return nil, fmt.Errorf("no config for agent: %s", agentName)
@@ -57,7 +57,7 @@ func (m *AgentMode) getAgentConfig(s SessionController, agentName config.AgentNa
 }
 
 // buildAgentPrompt constructs a prompt for a specific agent and message history.
-func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.AgentName) (string, error) {
+func (m *MultiAgentMode) buildAgentPrompt(messages []core.Message, agentName config.AgentName) (string, error) {
 	rolePrompt, ok := agentRoles[agentName]
 	if !ok {
 		return "", fmt.Errorf("unknown agent: %s", agentName)
@@ -107,7 +107,7 @@ func (m *AgentMode) buildAgentPrompt(messages []core.Message, agentName config.A
 
 // ProcessAIResponse checks for tool calls in the last AI message, executes them,
 // and starts a new generation cycle with the results.
-func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
+func (m *MultiAgentMode) ProcessAIResponse(s SessionController) core.Event {
 	messages := s.GetMessages()
 	if len(messages) == 0 {
 		return core.Event{Type: core.NoOp}
@@ -184,7 +184,7 @@ func (m *AgentMode) ProcessAIResponse(s SessionController) core.Event {
 }
 
 // StartGeneration begins a new AI generation task using the agent-specific logic.
-func (m *AgentMode) StartGeneration(s SessionController) core.Event {
+func (m *MultiAgentMode) StartGeneration(s SessionController) core.Event {
 	genConfig, err := m.getAgentConfig(s, m.activeAgent)
 	if err != nil {
 		s.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: err.Error()})
@@ -194,7 +194,7 @@ func (m *AgentMode) StartGeneration(s SessionController) core.Event {
 }
 
 // BuildPrompt constructs the prompt for agent mode.
-func (m *AgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
+func (m *MultiAgentMode) BuildPrompt(systemInstructions, relatedDocuments, projectSourceCode string, messages []core.Message) string {
 	// Agent mode does not use file-based context.
 	prompt, _ := m.buildAgentPrompt(messages, m.activeAgent)
 	return prompt
