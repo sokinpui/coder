@@ -7,19 +7,20 @@ import (
 )
 
 const (
-	systemInstructionsHeader  = "# SYSTEM INSTRUCTIONS\n\n"
-	relatedDocumentsHeader    = "# RELATED DOCUMENTS\n\n"
-	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
-	externalToolsHeader       = "# EXTERNAL TOOLS\n\n"
+	systemInstructionsHeader   = "# SYSTEM INSTRUCTIONS\n\n"
+	relatedDocumentsHeader     = "# RELATED DOCUMENTS\n\n"
+	projectSourceCodeHeader    = "# PROJECT SOURCE CODE\n\n"
+	externalToolsHeader        = "# EXTERNAL TOOLS\n\n"
 	directoryInformationHeader = "# DIRECTORY INFORMATION\n\n"
-	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
-	separator                 = "\n\n---\n\n"
+	conversationHistoryHeader  = "# CONVERSATION HISTORY\n\n"
+	separator                  = "\n\n---\n\n"
 )
 
 // PromptSection represents a distinct part of a larger prompt.
 type PromptSection struct {
-	Header  string
-	Content string
+	Header    string
+	Content   string
+	Separator string
 }
 
 // PromptSectionArray holds a slice of PromptSection structs.
@@ -37,7 +38,7 @@ func BuildPrompt(promptSections PromptSectionArray) string {
 		}
 
 		if hasContent {
-			sb.WriteString(separator)
+			sb.WriteString(section.Separator)
 		}
 
 		if section.Header != "" {
@@ -58,53 +59,58 @@ func RoleSection(role, instructions string) PromptSection {
 	if instructions != "" {
 		content.WriteString(instructions)
 	}
-	return PromptSection{Content: content.String()}
+	return PromptSection{Content: content.String(), Separator: separator}
 }
 
 // SystemInstructionsSection creates a prompt section for user-defined system instructions.
 func SystemInstructionsSection(content string) PromptSection {
 	return PromptSection{
-		Header:  systemInstructionsHeader,
-		Content: content,
+		Header:    systemInstructionsHeader,
+		Content:   content,
+		Separator: separator,
 	}
 }
 
 // RelatedDocumentsSection creates a prompt section for related documents.
 func RelatedDocumentsSection(content string) PromptSection {
 	return PromptSection{
-		Header:  relatedDocumentsHeader,
-		Content: content,
+		Header:    relatedDocumentsHeader,
+		Content:   content,
+		Separator: separator,
 	}
 }
 
 // ProjectSourceCodeSection creates a prompt section for project source code.
 func ProjectSourceCodeSection(content string) PromptSection {
 	return PromptSection{
-		Header:  projectSourceCodeHeader,
-		Content: content,
+		Header:    projectSourceCodeHeader,
+		Content:   content,
+		Separator: separator,
 	}
 }
 
 // ExternalToolsSection creates a prompt section for external tool documentation.
 func ExternalToolsSection(content string) PromptSection {
 	return PromptSection{
-		Header:  externalToolsHeader,
-		Content: content,
+		Header:    externalToolsHeader,
+		Content:   content,
+		Separator: separator,
 	}
 }
 
 // DirectoryInformationSection creates a prompt section for directory information.
 func DirectoryInformationSection(content string) PromptSection {
 	return PromptSection{
-		Header:  directoryInformationHeader,
-		Content: content,
+		Header:    directoryInformationHeader,
+		Content:   content,
+		Separator: separator,
 	}
 }
 
 // ConversationHistorySection creates a prompt section for the conversation history.
 func ConversationHistorySection(messages []core.Message) PromptSection {
 	if len(messages) == 0 {
-		return PromptSection{}
+		return PromptSection{Separator: separator}
 	}
 
 	content := buildHistoryString(messages)
