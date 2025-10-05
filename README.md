@@ -37,3 +37,9 @@ The provided installation script can be used to install one or both applications
 ### Running
 
 - **TUI**: Run `coder` from within a Git repository.
+
+# Web UI
+
+mantain in another branch: https://github.com/sokinpui/coder/tree/web-ui
+
+Latest feature will available in TUI first.
