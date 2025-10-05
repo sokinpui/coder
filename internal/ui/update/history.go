@@ -8,7 +8,37 @@ import (
 )
 
 func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	prevGGPressed := m.HistoryGGPressed
+	m.HistoryGGPressed = false // Reset by default
+
 	switch msg.Type {
+	case tea.KeyCtrlD:
+		if len(m.HistoryItems) == 0 {
+			return m, nil, true
+		}
+		scrollAmount := m.Viewport.Height / 2
+		m.Viewport.HalfViewDown()
+		newCursor := m.HistorySelectCursor + scrollAmount
+		if newCursor >= len(m.HistoryItems) {
+			newCursor = len(m.HistoryItems) - 1
+		}
+		m.HistorySelectCursor = newCursor
+		m.Viewport.SetContent(m.historyView())
+		return m, nil, true
+	case tea.KeyCtrlU:
+		if len(m.HistoryItems) == 0 {
+			return m, nil, true
+		}
+		scrollAmount := m.Viewport.Height / 2
+		m.Viewport.HalfViewUp()
+		newCursor := m.HistorySelectCursor - scrollAmount
+		if newCursor < 0 {
+			newCursor = 0
+		}
+		m.HistorySelectCursor = newCursor
+		m.Viewport.SetContent(m.historyView())
+		return m, nil, true
+
 	case tea.KeyEsc, tea.KeyCtrlC:
 		m.HistoryItems = nil
 		if m.IsStreaming {
@@ -44,6 +74,22 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
+		case "g":
+			if prevGGPressed {
+				m.HistorySelectCursor = 0
+				m.Viewport.GotoTop()
+				m.Viewport.SetContent(m.historyView())
+			} else {
+				m.HistoryGGPressed = true
+			}
+			return m, nil, true
+		case "G":
+			if len(m.HistoryItems) > 0 {
+				m.HistorySelectCursor = len(m.HistoryItems) - 1
+				m.Viewport.GotoBottom()
+				m.Viewport.SetContent(m.historyView())
+			}
+			return m, nil, true
 		case "j":
 			if m.HistorySelectCursor < len(m.HistoryItems)-1 {
 				m.HistorySelectCursor++

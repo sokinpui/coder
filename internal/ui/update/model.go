@@ -19,11 +19,12 @@ import (
 const welcomeMessage = `Welcome to Coder!
 
 - Chat with the AI.
+- Press Enter for a new line in your prompt (or to run a command).
 - Use Ctrl+J to send your message.
 - Use Ctrl+E to edit your prompt in an external editor ($EDITOR).
-- Press Enter for a new line in your prompt (or to run a command).
-- Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - Use Ctrl+D and Ctrl+U to scroll the conversation.
+- Use Ctrl+H to view conversation history.
+- Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - During generation, press Ctrl+C to cancel.
 - Type ':' to see available commands and actions.
 - Place files in the 'Context' directory to provide them to the AI.`
@@ -95,6 +96,7 @@ type Model struct {
 	EditingMessageIndex      int
 	HistoryItems             []history.ConversationInfo
 	HistorySelectCursor      int
+	HistoryGGPressed         bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -174,5 +176,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		EditingMessageIndex:      -1,
 		HistoryItems:             nil,
 		HistorySelectCursor:      0,
+		HistoryGGPressed:         false,
 	}, nil
 }

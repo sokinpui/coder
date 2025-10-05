@@ -9,14 +9,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.CtrlCPressed = false
 	}
 
-	// Handle scrolling regardless of state.
-	switch msg.Type {
-	case tea.KeyCtrlU:
-		m.Viewport.HalfViewUp()
-		return m, nil, true
-	case tea.KeyCtrlD:
-		m.Viewport.HalfViewDown()
-		return m, nil, true
+	// Handle scrolling for non-history states.
+	if m.State != stateHistorySelect {
+		switch msg.Type {
+		case tea.KeyCtrlU:
+			m.Viewport.HalfViewUp()
+			return m, nil, true
+		case tea.KeyCtrlD:
+			m.Viewport.HalfViewDown()
+			return m, nil, true
+		}
 	}
 
 	switch m.State {

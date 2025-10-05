@@ -219,7 +219,7 @@ func (m Model) statusView() string {
 	}
 
 	if m.State == stateHistorySelect {
-		return statusStyle.Render("j/k: move | enter: load | esc: cancel")
+		return statusStyle.Render("j/k: move | gg/G: top/bottom | enter: load | esc: cancel")
 	}
 
 	// Line 1: Title
