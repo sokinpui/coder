@@ -278,10 +278,13 @@ func (m Model) statusView() string {
 	}
 	rightStatusItems = append(rightStatusItems, modePart, modelPart)
 
-	if m.State == stateThinking {
-		rightStatusItems = append(rightStatusItems, statusStyle.Render("Thinking..."))
-	} else if m.State == stateGenerating {
-		rightStatusItems = append(rightStatusItems, statusStyle.Render("Generating..."))
+	if m.State == stateThinking || m.State == stateGenerating {
+		statusText := "Thinking"
+		if m.State == stateGenerating {
+			statusText = "Generating"
+		}
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Spinner.View())
+		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
 	rightStatus := strings.Join(rightStatusItems, " | ")
 
