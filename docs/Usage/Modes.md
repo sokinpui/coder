@@ -23,9 +23,3 @@ This mode is designed for writing documentation, such as READMEs, architectural 
 -   **System Prompt**: Instructs the AI to act as an expert technical writer, emphasizing clarity, conciseness, and objective language. The full prompt is defined in `internal/core/Roles/documenting.md`.
 -   **Context Gathering**: Gathers all source code files from the project, **including** Markdown files (`*.md`). This allows the AI to reference existing documentation and maintain consistency.
 
-### `Auto`
-
-This mode provides a balanced approach for tasks that involve both coding and documentation.
-
--   **System Prompt**: Combines the instructions for both an expert programmer and an expert technical writer. The full prompt is defined in `internal/core/Roles/auto-mode.md`.
--   **Context Gathering**: Gathers all source code files, **including** Markdown files (`*.md`), similar to the `Documenting` mode.

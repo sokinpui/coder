@@ -31,11 +31,16 @@ coder
 | Key             | Action                                               |
 | --------------- | ---------------------------------------------------- |
 | `Ctrl+J`        | Send the message in the input area.                  |
+| `Ctrl+A`        | Apply the last AI response with the diff viewer (`:itf`). |
+| `Ctrl+B`        | Branch the conversation from a specific point.       |
 | `Enter`         | Insert a newline or execute a command.               |
 | `Ctrl+E`        | Edit the current prompt in an external editor (`$EDITOR`). |
+| `Ctrl+F`        | Open the command finder (`fzf`).                     |
+| `Ctrl+N`        | Start a new chat session.                            |
 | `Esc`           | Clear input or enter Visual Mode from empty input.   |
 | `Ctrl+C`        | Clear input. Press again on empty input to quit.     |
 | `Ctrl+D` / `Ctrl+U` | Scroll conversation view down/up.                    |
+| `Ctrl+H`        | View and load past conversations.                    |
 | `Tab` / `Shift+Tab` | Cycle through command/action completions.            |
 
 ### Commands
@@ -54,6 +59,7 @@ Commands start with a colon (`:`) and are entered in the input area.
 | `:branch`       | Enter Branch Mode to create a new session from a point. |
 | `:visual`       | Enter Visual Mode for message selection.             |
 | `:history`      | View and load past conversations.                    |
+| `:fzf`          | Open a fuzzy finder for commands.                    |
 
 ### Actions
 
