@@ -9,8 +9,6 @@ func NewStrategy(mode config.AppMode) ModeStrategy {
 	switch mode {
 	case config.DocumentingMode:
 		return &DocumentingMode{}
-	case config.MultiAgentMode:
-		return &MultiAgentMode{activeAgent: config.MainAgent}
 	case config.CodingMode:
 		fallthrough
 	default:
