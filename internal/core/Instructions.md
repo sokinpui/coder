@@ -52,6 +52,32 @@ file content
 ...
 ```
 
+Example:
+
+`internal/core/example.go`
+
+```go
+package example
+import "fmt"
+func Example() {
+    fmt.Println("This is an example.")
+}
+```
+
+If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
+
+`file1.md`
+
+````markdown
+...
+
+```python
+...
+```
+
+...
+````
+
 ## Order of output
 
 1. Infomative explanation
@@ -69,3 +95,7 @@ file content
 
 1. abstract of your suggestion or explanation
 2. details of your suggestion or explanation
+
+```
+
+```
