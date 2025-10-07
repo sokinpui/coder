@@ -6,6 +6,7 @@ type state int
 
 const (
 	stateIdle state = iota
+	stateGenPending
 	stateThinking
 	stateGenerating
 	stateCancelling
@@ -14,21 +15,22 @@ const (
 )
 
 type (
-	streamResultMsg   string
-	streamFinishedMsg struct{}
-	renderTickMsg     struct{}
-	errorMsg          struct{ error }
-	ctrlCTimeoutMsg   struct{}
-	tokenCountResultMsg int
+	startGenerationMsg      struct{}
+	streamResultMsg         string
+	streamFinishedMsg       struct{}
+	renderTickMsg           struct{}
+	errorMsg                struct{ error }
+	ctrlCTimeoutMsg         struct{}
+	tokenCountResultMsg     int
 	initialContextLoadedMsg struct{ err error }
-	editorFinishedMsg struct {
-		content string
+	editorFinishedMsg       struct {
+		content         string
 		originalContent string
-		err     error
+		err             error
 	}
-	clearStatusBarMsg struct{}
-	titleGeneratedMsg   struct{ title string }
-	animateTitleTickMsg struct{}
+	clearStatusBarMsg    struct{}
+	titleGeneratedMsg    struct{ title string }
+	animateTitleTickMsg  struct{}
 	historyListResultMsg struct {
 		items []history.ConversationInfo
 		err   error

@@ -15,6 +15,27 @@ import (
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
+	case startGenerationMsg:
+		if m.State != stateGenPending {
+			return m, nil, true // Debounce was cancelled
+		}
+
+		event := m.Session.StartGeneration()
+
+		if event.Type == core.GenerationStarted {
+			model, cmd := m.startGeneration(event)
+			return model, cmd, true
+		}
+
+		if event.Type == core.MessagesUpdated {
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+			m.State = stateIdle
+			m.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
+		return m, nil, true
+
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
 		if m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {

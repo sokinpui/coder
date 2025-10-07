@@ -233,7 +233,9 @@ func (m Model) statusView() string {
 
 	// Line 2: Status
 	var leftStatus string
-	if m.State == stateVisualSelect {
+	if m.State == stateGenPending {
+		leftStatus = generatingStatusStyle.Render("Waiting to send...")
+	} else if m.State == stateVisualSelect {
 		var modeStr string
 		var helpStr string
 		if m.VisualMode == visualModeGenerate {

@@ -2,6 +2,7 @@ package update
 
 import (
 	"strings"
+	"time"
 
 	"coder/internal/core"
 
@@ -29,19 +30,31 @@ func (m Model) newSession() (Model, tea.Cmd) {
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.TextArea.Value()
 
-	// If the last interaction failed, the user is likely retrying.
-	// Clear the previous failed attempt before submitting the new prompt.
-	if !strings.HasPrefix(input, ":") && m.LastInteractionFailed {
-		m.Session.RemoveLastInteraction()
-		m.LastInteractionFailed = false
+	if !strings.HasPrefix(input, ":") {
+		// This is a prompt, apply debounce.
+		if m.LastInteractionFailed {
+			m.Session.RemoveLastInteraction()
+			m.LastInteractionFailed = false
+		}
+
+		m.Session.AddMessage(core.Message{Type: core.UserMessage, Content: input})
+
+		var cmds []tea.Cmd
+		if !m.Session.IsTitleGenerated() {
+			cmds = append(cmds, generateTitleCmd(m.Session, input))
+		}
+
+		m.State = stateGenPending
+		m.TextArea.Blur()
+		m.TextArea.Reset()
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+
+		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }))
+		return m, tea.Batch(cmds...)
 	}
 
-	var cmds []tea.Cmd
-	shouldGenerateTitle := !strings.HasPrefix(input, ":") && !m.Session.IsTitleGenerated()
-	if shouldGenerateTitle {
-		cmds = append(cmds, generateTitleCmd(m.Session, input))
-	}
-
+	// This is a command, handle as before.
 	event := m.Session.HandleInput(input)
 
 	switch event.Type {
@@ -52,15 +65,14 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 		m.TextArea.Reset()
-		return m, tea.Batch(cmds...)
+		return m, nil
 
 	case core.NewSessionStarted:
 		return m.newSession()
 
 	case core.GenerationStarted:
 		m, cmd := m.startGeneration(event)
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
+		return m, cmd
 
 	case core.VisualModeStarted:
 		return m.enterVisualMode(visualModeNone)

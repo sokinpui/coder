@@ -3,8 +3,25 @@ package update
 import (
 	"coder/internal/core"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	switch msg.Type {
+	case tea.KeyCtrlC:
+		m.State = stateIdle
+		m.TextArea.Focus()
+		m.Session.AddMessage(core.Message{
+			Type:    core.CommandResultMessage, // Re-use style for notification
+			Content: "Generation cancelled.",
+		})
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+		return m, textarea.Blink, true
+	}
+	return m, nil, true // Consume all key presses
+}
 
 func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
 	if event.Type != core.GenerationStarted {
