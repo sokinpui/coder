@@ -16,19 +16,12 @@ func groupMessages(messages []core.Message) []messageBlock {
 		block := messageBlock{startIdx: i, endIdx: i}
 
 		switch msg.Type {
-		case core.CommandMessage:
+		// by design message after command/tool is always result/error, and they alwasy come in pairs
+		case core.CommandMessage, core.ToolCallMessage:
 			if i+1 < len(messages) {
-				nextMsgType := messages[i+1].Type
-				if nextMsgType == core.CommandResultMessage || nextMsgType == core.CommandErrorResultMessage {
-					block.endIdx = i + 1
-				}
+				block.endIdx = i + 1
 			}
-		case core.ToolCallMessage:
-			if i+1 < len(messages) {
-				if messages[i+1].Type == core.ToolResultMessage {
-					block.endIdx = i + 1
-				}
-			}
+
 		}
 
 		// Skip system messages from being selectable blocks

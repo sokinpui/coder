@@ -23,9 +23,8 @@ func listenForStream(sub chan string) tea.Cmd {
 		if !ok {
 			return streamFinishedMsg{}
 		}
-		if strings.HasPrefix(content, "Error:") {
-			errMsg := strings.TrimSpace(strings.TrimPrefix(content, "Error:"))
-			return errorMsg{errors.New(errMsg)}
+		if errMsg, result := strings.CutPrefix(content, "Error:"); result {
+			return errorMsg{errors.New(strings.TrimSpace(errMsg))}
 		}
 		return streamResultMsg(content)
 	}
@@ -175,9 +174,9 @@ func runFzfCmd(input string) tea.Cmd {
 	})
 }
 
-// calculateVisibleLines calculates the number of lines a text block will occupy
+// getVisibleLines calculates the number of lines a text block will occupy
 // in the textarea, considering word wrapping.
-func calculateVisibleLines(text string, width int) int {
+func getVisibleLines(text string, width int) int {
 	if width <= 0 {
 		// Avoid division by zero and handle cases where width is not yet set.
 		return 1
@@ -198,4 +197,25 @@ func calculateVisibleLines(text string, width int) int {
 		}
 	}
 	return visibleLineCount
+}
+
+// cursorPosAfterScroll calculates the new cursor position after a half-page scroll.
+func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDown bool) int {
+	if totalItems == 0 {
+		return 0
+	}
+
+	var newCursor int
+	if scrollDown {
+		newCursor = currentCursor + scrollAmount
+		if newCursor >= totalItems {
+			newCursor = totalItems - 1
+		}
+	} else { // scroll up
+		newCursor = currentCursor - scrollAmount
+		if newCursor < 0 {
+			newCursor = 0
+		}
+	}
+	return newCursor
 }

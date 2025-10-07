@@ -28,7 +28,7 @@ func (m Model) historyView() string {
 
 	for i, item := range m.HistoryItems {
 		line := fmt.Sprintf("  %s (%s)", item.Title, item.ModifiedAt.Format("2006-01-02 15:04"))
-		if i == m.HistorySelectCursor {
+		if i == m.HistoryCussorPos {
 			b.WriteString(paletteSelectedItemStyle.Render("▸" + line))
 		} else {
 			b.WriteString(paletteItemStyle.Render(" " + line))

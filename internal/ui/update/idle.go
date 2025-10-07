@@ -244,10 +244,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlB:
 		event := m.Session.HandleInput(":branch")
-		if event.Type == core.BranchModeStarted {
+		switch event.Type {
+		case core.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		} else if event.Type == core.MessagesUpdated {
+		case core.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		}
@@ -255,7 +256,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlF:
 		event := m.Session.HandleInput(":fzf")
-		if event.Type == core.FzfModeStarted {
+		switch event.Type {
+		case core.FzfModeStarted:
 			return m, runFzfCmd(event.Data.(string)), true
 		}
 		return m, nil, true

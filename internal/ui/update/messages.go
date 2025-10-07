@@ -1,8 +1,8 @@
 package update
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 	"time"
 
 	"coder/internal/core"
@@ -161,9 +161,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		messages := m.Session.GetMessages()
 		lastMsg := messages[len(messages)-1]
 		if lastMsg.Content != m.LastRenderedAIPart {
-			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
-			if wasAtBottom {
+			if m.Viewport.AtBottom() {
 				m.Viewport.GotoBottom()
 			}
 			m.LastRenderedAIPart = lastMsg.Content
@@ -195,7 +194,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				}
 			}
 		}
-		m.HistorySelectCursor = initialCursorPos
+		m.HistoryCussorPos = initialCursorPos
 
 		m.Viewport.SetContent(m.historyView())
 		// Center the selected item in the viewport

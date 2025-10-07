@@ -17,12 +17,8 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			return m, nil, true
 		}
 		scrollAmount := m.Viewport.Height / 2
-		m.Viewport.HalfViewDown()
-		newCursor := m.HistorySelectCursor + scrollAmount
-		if newCursor >= len(m.HistoryItems) {
-			newCursor = len(m.HistoryItems) - 1
-		}
-		m.HistorySelectCursor = newCursor
+		m.Viewport.HalfPageDown()
+		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.HistoryItems), true)
 		m.Viewport.SetContent(m.historyView())
 		return m, nil, true
 	case tea.KeyCtrlU:
@@ -30,12 +26,8 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			return m, nil, true
 		}
 		scrollAmount := m.Viewport.Height / 2
-		m.Viewport.HalfViewUp()
-		newCursor := m.HistorySelectCursor - scrollAmount
-		if newCursor < 0 {
-			newCursor = 0
-		}
-		m.HistorySelectCursor = newCursor
+		m.Viewport.HalfPageUp()
+		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.HistoryItems), false)
 		m.Viewport.SetContent(m.historyView())
 		return m, nil, true
 
@@ -62,10 +54,10 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		}
 
 	case tea.KeyEnter:
-		if len(m.HistoryItems) == 0 || m.HistorySelectCursor >= len(m.HistoryItems) {
+		if len(m.HistoryItems) == 0 || m.HistoryCussorPos >= len(m.HistoryItems) {
 			return m, nil, true
 		}
-		selectedItem := m.HistoryItems[m.HistorySelectCursor]
+		selectedItem := m.HistoryItems[m.HistoryCussorPos]
 		if m.IsStreaming {
 			m.Session.CancelGeneration()
 			m.IsStreaming = false // Prevent streamFinishedMsg from running
@@ -77,7 +69,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		switch string(msg.Runes) {
 		case "g":
 			if prevGGPressed {
-				m.HistorySelectCursor = 0
+				m.HistoryCussorPos = 0
 				m.Viewport.GotoTop()
 				m.Viewport.SetContent(m.historyView())
 			} else {
@@ -86,16 +78,16 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			return m, nil, true
 		case "G":
 			if len(m.HistoryItems) > 0 {
-				m.HistorySelectCursor = len(m.HistoryItems) - 1
+				m.HistoryCussorPos = len(m.HistoryItems) - 1
 				m.Viewport.GotoBottom()
 				m.Viewport.SetContent(m.historyView())
 			}
 			return m, nil, true
 		case "j":
-			if m.HistorySelectCursor < len(m.HistoryItems)-1 {
-				m.HistorySelectCursor++
+			if m.HistoryCussorPos < len(m.HistoryItems)-1 {
+				m.HistoryCussorPos++
 				headerHeight := 10 // offset to bottom
-				cursorLine := m.HistorySelectCursor + headerHeight
+				cursorLine := m.HistoryCussorPos + headerHeight
 				if cursorLine >= m.Viewport.YOffset+m.Viewport.Height {
 					m.Viewport.LineDown(1)
 				}
@@ -103,10 +95,10 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			}
 			return m, nil, true
 		case "k":
-			if m.HistorySelectCursor > 0 {
-				m.HistorySelectCursor--
+			if m.HistoryCussorPos > 0 {
+				m.HistoryCussorPos--
 				headerHeight := -10 // offset to top
-				cursorLine := m.HistorySelectCursor + headerHeight
+				cursorLine := m.HistoryCussorPos + headerHeight
 				if cursorLine < m.Viewport.YOffset {
 					m.Viewport.LineUp(1)
 				}

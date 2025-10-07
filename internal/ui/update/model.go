@@ -96,7 +96,7 @@ type Model struct {
 	DisplayedTitle           string
 	EditingMessageIndex      int
 	HistoryItems             []history.ConversationInfo
-	HistorySelectCursor      int
+	HistoryCussorPos         int
 	HistoryGGPressed         bool
 }
 
@@ -176,7 +176,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		DisplayedTitle:           "",
 		EditingMessageIndex:      -1,
 		HistoryItems:             nil,
-		HistorySelectCursor:      0,
+		HistoryCussorPos:         0,
 		HistoryGGPressed:         false,
 	}, nil
 }
