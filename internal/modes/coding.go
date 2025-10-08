@@ -1,6 +1,7 @@
 package modes
 
 import (
+	"coder/internal/config"
 	"coder/internal/contextdir"
 	"coder/internal/core"
 	"coder/internal/source"
@@ -21,16 +22,13 @@ func (m *CodingMode) GetRolePrompt() string {
 }
 
 // LoadContext loads context from the Context/ directory and project source files.
-func (m *CodingMode) LoadContext() error {
+func (m *CodingMode) LoadContext(cfg *config.Config) error {
 	sysInstructions, docs, ctxErr := contextdir.LoadContext()
 	if ctxErr != nil {
 		return fmt.Errorf("failed to load context directory: %w", ctxErr)
 	}
 
-	fileSources := &source.FileSources{
-		FileDirs: []string{"."},
-	}
-	projSource, srcErr := source.LoadProjectSource(fileSources)
+	projSource, srcErr := source.LoadProjectSource(&cfg.Sources)
 	if srcErr != nil {
 		return fmt.Errorf("failed to load project source: %w", srcErr)
 	}

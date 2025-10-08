@@ -20,6 +20,12 @@ const (
 
 var AvailableAppModes = []AppMode{CodingMode, DocumentingMode}
 
+// FileSources specifies the files and directories to be included as project source.
+type FileSources struct {
+	FilePaths []string
+	FileDirs  []string
+}
+
 // GRPC contains gRPC server configuration.
 type GRPC struct {
 	Addr string
@@ -39,6 +45,7 @@ type Config struct {
 	AppMode    AppMode
 	GRPC       GRPC
 	Generation Generation
+	Sources    FileSources
 }
 
 // Default returns a default configuration.
@@ -59,6 +66,9 @@ func Default() *Config {
 			TopP:         topP,
 			TopK:         topK,
 			OutputLength: outputLength,
+		},
+		Sources: FileSources{
+			FileDirs: []string{"."},
 		},
 	}
 }

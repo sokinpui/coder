@@ -7,7 +7,7 @@ import (
 
 // LoadContext loads the initial context for the session using the current mode strategy.
 func (s *Session) LoadContext() error {
-	return s.modeStrategy.LoadContext()
+	return s.modeStrategy.LoadContext(s.config)
 }
 
 // SetMode changes the application mode and reloads the context.

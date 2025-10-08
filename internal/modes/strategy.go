@@ -1,6 +1,9 @@
 package modes
 
-import "coder/internal/core"
+import (
+	"coder/internal/config"
+	"coder/internal/core"
+)
 
 // ModeStrategy defines the behavior for different application modes.
 type ModeStrategy interface {
@@ -8,7 +11,7 @@ type ModeStrategy interface {
 	GetRolePrompt() string
 
 	// LoadContext loads and stores mode-specific context.
-	LoadContext() error
+	LoadContext(cfg *config.Config) error
 
 	// ProcessAIResponse is a hook to perform actions after an AI response is received.
 	// It's primarily used by AgentMode to execute tool calls.
