@@ -48,7 +48,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
 		if m.State == stateThinking {
+			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
+			if wasAtBottom {
+				m.Viewport.GotoBottom()
+			}
 		}
 		return m, spinnerCmd, true
 
@@ -182,8 +186,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		messages := m.Session.GetMessages()
 		lastMsg := messages[len(messages)-1]
 		if lastMsg.Content != m.LastRenderedAIPart {
+			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
-			if m.Viewport.AtBottom() {
+			if wasAtBottom {
 				m.Viewport.GotoBottom()
 			}
 			m.LastRenderedAIPart = lastMsg.Content
