@@ -1,20 +1,15 @@
 package source
 
 import (
+	"coder/internal/config"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
-// FileSources specifies the files and directories to be included as project source.
-type FileSources struct {
-	FilePaths []string
-	FileDirs  []string
-}
-
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
 // of files in the current directory, respecting .gitignore.
-func LoadProjectSource(sources *FileSources) (string, error) {
+func LoadProjectSource(sources *config.FileSources) (string, error) {
 	exclusions := []string{
 		"*-lock.json",
 		"go.sum",
@@ -76,7 +71,7 @@ func LoadProjectSource(sources *FileSources) (string, error) {
 		}
 
 		var commandBuilder strings.Builder
-		commandBuilder.WriteString(fmt.Sprintf("fd  --full-path %s --type=file --hidden", strings.Join(quotedDirs, " ")))
+		commandBuilder.WriteString(fmt.Sprintf("fd . %s --type=file --hidden", strings.Join(quotedDirs, " ")))
 
 		for _, exclusion := range exclusions {
 			commandBuilder.WriteString(fmt.Sprintf(" -E '%s'", exclusion))
