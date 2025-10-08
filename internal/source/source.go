@@ -10,58 +10,6 @@ import (
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
 // of files in the current directory, respecting .gitignore.
 func LoadProjectSource(sources *config.FileSources) (string, error) {
-	exclusions := []string{
-		"*-lock.json",
-		"go.sum",
-		".git",
-		".coder",
-		".vscode",
-		".idea",
-		"dist",
-		"bin",
-		".env*",
-		"*.log",
-		"*.svg",
-		"*.png",
-		"*.jpg",
-		"*.wasm",
-		"*.png",
-		"*.jpg",
-		"*.jpeg",
-		"*.mp3",
-		"*.mp4",
-		"*.docx",
-		"*.doc",
-		"*.xlsx",
-		"*.wav",
-		"*.gif",
-		"*.psd",
-		"*.pdf",
-		"*.tiff",
-		"*.avif",
-		"*.jfif",
-		"*.pjeg",
-		"*.pjp",
-		"*.svg",
-		"*.wbep",
-		"*.bmp",
-		"*.ico",
-		"*.cur",
-		"*.tif",
-		"*.mov",
-		"*.avi",
-		"*.wmv",
-		"*.flv",
-		"*.mkv",
-		"*.webm",
-		"*.aac",
-		"*.flac",
-		"*.aif",
-		"*.m4a",
-		"__pycache__",
-		"*.ogg",
-	}
-
 	var filesFromDirs []string
 	if len(sources.FileDirs) > 0 {
 		var quotedDirs []string
@@ -72,10 +20,6 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 
 		var commandBuilder strings.Builder
 		commandBuilder.WriteString(fmt.Sprintf("fd . %s --type=file --hidden", strings.Join(quotedDirs, " ")))
-
-		for _, exclusion := range exclusions {
-			commandBuilder.WriteString(fmt.Sprintf(" -E '%s'", exclusion))
-		}
 
 		command := commandBuilder.String()
 
