@@ -50,7 +50,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 
-		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }))
+		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }), m.Spinner.Tick)
 		return m, tea.Batch(cmds...)
 	}
 

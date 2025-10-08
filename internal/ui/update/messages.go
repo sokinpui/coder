@@ -38,7 +38,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
-		if m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
+		if m.State != stateGenPending && m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
 			return m, nil, true
 		}
 
@@ -47,7 +47,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
-		if m.State == stateThinking {
+		if m.State == stateThinking || m.State == stateGenPending {
 			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {

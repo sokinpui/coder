@@ -148,7 +148,7 @@ func (m Model) renderConversation() string {
 		parts = append(parts, renderedMsg)
 	}
 
-	if m.State == stateThinking {
+	if m.State == stateThinking || m.State == stateGenPending {
 		// The spinner has its own colors, so we can't render it with the same style as the text.
 		thinkingText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
@@ -233,9 +233,7 @@ func (m Model) statusView() string {
 
 	// Line 2: Status
 	var leftStatus string
-	if m.State == stateGenPending {
-		leftStatus = generatingStatusStyle.Render("Waiting to send...")
-	} else if m.State == stateVisualSelect {
+	if m.State == stateVisualSelect {
 		var modeStr string
 		var helpStr string
 		if m.VisualMode == visualModeGenerate {
@@ -282,8 +280,8 @@ func (m Model) statusView() string {
 		rightStatusItems = append(rightStatusItems, modePart, modelPart)
 	}
 
-	if m.State == stateThinking || m.State == stateGenerating {
-		statusText := "Thinking"
+	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
+		statusText := "Thinking" // Default for genpending and thinking
 		if m.State == stateGenerating {
 			statusText = "Generating"
 		}
