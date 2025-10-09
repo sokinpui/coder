@@ -2,7 +2,6 @@ package commands
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
 	"fmt"
 	"strings"
 )
@@ -36,7 +35,7 @@ func GetCommands() []string {
 
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
-func ProcessCommand(input string, messages []core.Message, cfg *config.Config, sess SessionChanger) (result CommandOutput, isCmd bool, success bool) {
+func ProcessCommand(input string, s Session) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
 		return CommandOutput{}, false, false
 	}
@@ -54,6 +53,6 @@ func ProcessCommand(input string, messages []core.Message, cfg *config.Config, s
 		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
 	}
 
-	result, success = cmd(args, messages, cfg, sess)
+	result, success = cmd(args, s)
 	return result, true, success
 }

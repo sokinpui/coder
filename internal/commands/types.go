@@ -24,13 +24,13 @@ type CommandOutput struct {
 	Payload string
 }
 
-// SessionChanger is an interface that allows commands to modify session state
-// without creating a circular dependency between core and session packages.
-type SessionChanger interface {
+type Session interface {
+	GetMessages() []core.Message
+	GetConfig() *config.Config
 	SetTitle(title string)
 	SetMode(mode config.AppMode) error
 }
 
-type commandFunc func(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool)
+type commandFunc func(args string, s Session) (CommandOutput, bool)
 
 type argumentCompleter func(cfg *config.Config) []string

@@ -18,7 +18,7 @@ func (s *Session) HandleInput(input string) core.Event {
 		return s.StartGeneration()
 	}
 
-	cmdOutput, _, cmdSuccess := commands.ProcessCommand(input, s.messages, s.config, s)
+	cmdOutput, _, cmdSuccess := commands.ProcessCommand(input, s)
 	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
 
 	if cmdSuccess {

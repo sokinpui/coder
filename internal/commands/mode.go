@@ -2,7 +2,6 @@ package commands
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
 	"fmt"
 	"strings"
 )
@@ -19,7 +18,8 @@ func modeArgumentCompleter(cfg *config.Config) []string {
 	return modes
 }
 
-func modeCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func modeCmd(args string, s Session) (CommandOutput, bool) {
+	cfg := s.GetConfig()
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current mode: %s\n", cfg.AppMode)
@@ -34,7 +34,7 @@ func modeCmd(args string, messages []core.Message, cfg *config.Config, sess Sess
 	requestedMode := config.AppMode(args)
 	for _, m := range config.AvailableAppModes {
 		if m == requestedMode {
-			if err := sess.SetMode(requestedMode); err != nil {
+			if err := s.SetMode(requestedMode); err != nil {
 				return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error switching mode: %v", err)}, false
 			}
 			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Switched mode to: %s", args)}, true

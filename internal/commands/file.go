@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"coder/internal/config"
-	"coder/internal/core"
 	"fmt"
 	"os"
 	"strings"
@@ -12,8 +10,9 @@ func init() {
 	registerCommand("file", fileCmd, nil)
 }
 
-func fileCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func fileCmd(args string, s Session) (CommandOutput, bool) {
 	paths := strings.Fields(args)
+	cfg := s.GetConfig()
 
 	if len(paths) == 0 {
 		cfg.Sources.FileDirs = []string{}

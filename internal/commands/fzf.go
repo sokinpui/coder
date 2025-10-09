@@ -2,7 +2,6 @@ package commands
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
 	"fmt"
 	"strings"
 )
@@ -13,7 +12,7 @@ func init() {
 
 // fzfCmd prepares a list of commands for fzf and returns a special command result
 // to be handled by the UI.
-func fzfCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func fzfCmd(args string, s Session) (CommandOutput, bool) {
 	var fzfInput strings.Builder
 
 	// mode

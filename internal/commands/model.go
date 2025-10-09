@@ -2,7 +2,6 @@ package commands
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
 	"fmt"
 	"strings"
 )
@@ -15,7 +14,8 @@ func modelArgumentCompleter(cfg *config.Config) []string {
 	return config.AvailableModels
 }
 
-func modelCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func modelCmd(args string, s Session) (CommandOutput, bool) {
+	cfg := s.GetConfig()
 	if args == "" {
 		var b strings.Builder
 		fmt.Fprintf(&b, "Current model: %s\n", cfg.Generation.ModelCode)

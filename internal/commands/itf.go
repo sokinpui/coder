@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"coder/internal/config"
 	"coder/internal/core"
 	"os/exec"
 	"strings"
@@ -23,7 +22,8 @@ func ExecuteItf(content string, args string) (string, bool) {
 	return string(output), true
 }
 
-func itfCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func itfCmd(args string, s Session) (CommandOutput, bool) {
+	messages := s.GetMessages()
 	var lastAIResponse string
 	found := false
 	for i := len(messages) - 1; i >= 0; i-- {

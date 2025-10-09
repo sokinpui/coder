@@ -1,14 +1,9 @@
 package commands
 
-import (
-	"coder/internal/config"
-	"coder/internal/core"
-)
-
 func init() {
 	registerCommand("new", newCmd, nil)
 }
 
-func newCmd(args string, messages []core.Message, cfg *config.Config, sess SessionChanger) (CommandOutput, bool) {
+func newCmd(args string, s Session) (CommandOutput, bool) {
 	return CommandOutput{Type: CommandResultNewSession}, true
 }
