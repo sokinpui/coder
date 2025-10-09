@@ -9,8 +9,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/gorilla/websocket v1.5.3
-	github.com/sokinpui/itf.go v1.3.0
+	github.com/sokinpui/itf.go v1.3.1
 	github.com/sokinpui/pcat.go v0.1.0
 	github.com/sokinpui/synapse.go/v2 v2.0.3
 )
