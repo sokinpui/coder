@@ -5,7 +5,6 @@ import (
 	"coder/internal/contextdir"
 	"coder/internal/core"
 	"coder/internal/source"
-	"coder/internal/utils"
 	"fmt"
 )
 
@@ -51,17 +50,9 @@ func (m *CodingMode) StartGeneration(s SessionController) core.Event {
 
 // BuildPrompt constructs the prompt for coding mode.
 func (m *CodingMode) BuildPrompt(messages []core.Message) string {
-
-	dirInfoContent := utils.GetDirInfoContent()
-	dirInfoSection := PromptSection{
-		Content:   dirInfoContent,
-		Separator: "\n\n",
-	}
-
 	return BuildPrompt(PromptSectionArray{
 		Sections: []PromptSection{
 			RoleSection(m.GetRolePrompt(), core.CoderInstructions),
-			dirInfoSection,
 			SystemInstructionsSection(m.systemInstructions),
 			RelatedDocumentsSection(m.relatedDocuments),
 			ProjectSourceCodeSection(m.projectSourceCode),
