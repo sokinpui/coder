@@ -1,6 +1,7 @@
 package session
 
 import (
+	"coder/internal/commands"
 	"coder/internal/core"
 	"strings"
 )
@@ -17,25 +18,25 @@ func (s *Session) HandleInput(input string) core.Event {
 		return s.StartGeneration()
 	}
 
-	cmdOutput, _, cmdSuccess := core.ProcessCommand(input, s.messages, s.config, s)
+	cmdOutput, _, cmdSuccess := commands.ProcessCommand(input, s.messages, s.config, s)
 	// ProcessCommand returns isCmd=true for any string with ':', so we don't need to check it.
 
 	if cmdSuccess {
 		switch cmdOutput.Type {
-		case core.CommandResultNewSession:
+		case commands.CommandResultNewSession:
 			s.newSession()
 			return core.Event{Type: core.NewSessionStarted}
-		case core.CommandResultVisualMode:
+		case commands.CommandResultVisualMode:
 			return core.Event{Type: core.VisualModeStarted}
-		case core.CommandResultGenerateMode:
+		case commands.CommandResultGenerateMode:
 			return core.Event{Type: core.GenerateModeStarted}
-		case core.CommandResultEditMode:
+		case commands.CommandResultEditMode:
 			return core.Event{Type: core.EditModeStarted}
-		case core.CommandResultBranchMode:
+		case commands.CommandResultBranchMode:
 			return core.Event{Type: core.BranchModeStarted}
-		case core.CommandResultHistoryMode:
+		case commands.CommandResultHistoryMode:
 			return core.Event{Type: core.HistoryModeStarted}
-		case core.CommandResultFzfMode:
+		case commands.CommandResultFzfMode:
 			return core.Event{Type: core.FzfModeStarted, Data: cmdOutput.Payload}
 		}
 	}

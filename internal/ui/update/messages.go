@@ -162,7 +162,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Viewport.GotoBottom()
 
 			m.EditingMessageIndex = -1 // Reset on success or failure
-			return m, cmd, true
+			m.IsCountingTokens = true
+			return m, tea.Batch(cmd, countTokensCmd(m.Session.GetPromptForTokenCount())), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.

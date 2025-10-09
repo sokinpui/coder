@@ -68,7 +68,8 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 		m.TextArea.Reset()
-		return m, nil
+		m.IsCountingTokens = true
+		return m, countTokensCmd(m.Session.GetPromptForTokenCount())
 
 	case core.NewSessionStarted:
 		return m.newSession()

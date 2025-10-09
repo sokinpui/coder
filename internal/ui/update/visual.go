@@ -380,7 +380,8 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.TextArea.Focus()
 				m.Viewport.SetContent(m.renderConversation())
 				m.Viewport.GotoBottom()
-				return m, tea.Batch(textarea.Blink, cmd), true
+				m.IsCountingTokens = true
+				return m, tea.Batch(textarea.Blink, cmd, countTokensCmd(m.Session.GetPromptForTokenCount())), true
 			}
 		}
 	}

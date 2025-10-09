@@ -1,7 +1,7 @@
 package update
 
 import (
-	"coder/internal/core"
+	"coder/internal/commands"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -69,7 +69,7 @@ func (m Model) updatePalette() Model {
 			}
 		} else if len(parts) >= 1 {
 			cmdName := strings.TrimPrefix(parts[0], ":")
-			suggestions := core.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig())
+			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig())
 			if suggestions != nil {
 				var argPrefix string
 				if len(parts) > 1 && !hasTrailingSpace {

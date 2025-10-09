@@ -1,6 +1,7 @@
 package update
 
 import (
+	"coder/internal/commands"
 	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/history"
@@ -131,8 +132,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 
 	dirMsg := utils.GetDirInfoContent()
 	sess.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
-	commands := core.GetCommands()
-	sort.Strings(commands)
+	availableCommands := commands.GetCommands()
+	sort.Strings(availableCommands)
 
 	return Model{
 		TextArea:                 ta,
@@ -147,7 +148,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		TokenCount:               0,
 		IsCountingTokens:         false,
 		ShowPalette:              false,
-		AvailableCommands:        commands,
+		AvailableCommands:        availableCommands,
 		PaletteFilteredCommands:  []string{},
 		PaletteCursor:            0,
 		LastInteractionFailed:    false,
