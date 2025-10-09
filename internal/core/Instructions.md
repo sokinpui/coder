@@ -52,17 +52,7 @@ file content
 ...
 ```
 
-Example:
-
-`internal/core/example.go`
-
-```go
-package example
-import "fmt"
-func Example() {
-    fmt.Println("This is an example.")
-}
-```
+## Markdown files
 
 If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
 
@@ -76,6 +66,51 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ```
 
 ...
+````
+
+## Example of output formatting :
+
+File created:
+`internal/core/example.go`
+
+```go
+package example
+import "fmt"
+func Example() {
+    fmt.Println("This is an example.")
+}
+```
+
+file modified:
+`internal/core/example.go`
+
+```diff
+--- a/internal/core/example.go
++++ b/internal/core/example.go
+@@ -1,5 +1,5 @@
+  package example
+-import "fmt"
++import "log"
+  func Example() {
+-    fmt.Println("This is an example.")
++    log.Println("This is an example.")
+  }
+```
+
+files deleted:
+
+- `internal/core/old_example1.go`
+- `internal/core/old_example2.go`
+
+Markdown files:
+`docs/example.md`
+
+````markdown
+# Example Documentation
+
+```sh
+$ go run example.go
+```
 ````
 
 ## Order of output
@@ -95,7 +130,3 @@ If the markdown files contains codeblock inside, you should use four backticks f
 
 1. abstract of your suggestion or explanation
 2. details of your suggestion or explanation
-
-```
-
-```
