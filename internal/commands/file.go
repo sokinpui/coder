@@ -10,7 +10,7 @@ func init() {
 	registerCommand("file", fileCmd, nil)
 }
 
-func fileCmd(args string, s Session) (CommandOutput, bool) {
+func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	paths := strings.Fields(args)
 	cfg := s.GetConfig()
 

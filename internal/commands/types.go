@@ -24,13 +24,13 @@ type CommandOutput struct {
 	Payload string
 }
 
-type Session interface {
+type SessionController interface {
 	GetMessages() []core.Message
 	GetConfig() *config.Config
 	SetTitle(title string)
 	SetMode(mode config.AppMode) error
 }
 
-type commandFunc func(args string, s Session) (CommandOutput, bool)
+type commandFunc func(args string, s SessionController) (CommandOutput, bool)
 
 type argumentCompleter func(cfg *config.Config) []string

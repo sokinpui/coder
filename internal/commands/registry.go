@@ -35,7 +35,7 @@ func GetCommands() []string {
 
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
-func ProcessCommand(input string, s Session) (result CommandOutput, isCmd bool, success bool) {
+func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
 		return CommandOutput{}, false, false
 	}

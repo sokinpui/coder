@@ -22,7 +22,7 @@ func ExecuteItf(content string, args string) (string, bool) {
 	return string(output), true
 }
 
-func itfCmd(args string, s Session) (CommandOutput, bool) {
+func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	var lastAIResponse string
 	found := false

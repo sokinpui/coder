@@ -14,7 +14,7 @@ func modelArgumentCompleter(cfg *config.Config) []string {
 	return config.AvailableModels
 }
 
-func modelCmd(args string, s Session) (CommandOutput, bool) {
+func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
 		var b strings.Builder

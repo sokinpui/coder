@@ -12,7 +12,7 @@ func init() {
 
 // fzfCmd prepares a list of commands for fzf and returns a special command result
 // to be handled by the UI.
-func fzfCmd(args string, s Session) (CommandOutput, bool) {
+func fzfCmd(args string, s SessionController) (CommandOutput, bool) {
 	var fzfInput strings.Builder
 
 	// mode

@@ -18,7 +18,7 @@ func modeArgumentCompleter(cfg *config.Config) []string {
 	return modes
 }
 
-func modeCmd(args string, s Session) (CommandOutput, bool) {
+func modeCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
 		var b strings.Builder
