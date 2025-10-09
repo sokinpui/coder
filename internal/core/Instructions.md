@@ -70,7 +70,7 @@ If the markdown files contains codeblock inside, you should use four backticks f
 
 ## Example of output formatting :
 
-File created:
+Example of File created:
 `internal/core/example.go`
 
 ```go
@@ -81,7 +81,7 @@ func Example() {
 }
 ```
 
-file modified:
+Example of file modified:
 `internal/core/example.go`
 
 ```diff
@@ -97,12 +97,12 @@ file modified:
   }
 ```
 
-files deleted:
+example of files deleted:
 
 - `internal/core/old_example1.go`
 - `internal/core/old_example2.go`
 
-Markdown files:
+example of Markdown files:
 `docs/example.md`
 
 ````markdown
@@ -112,6 +112,39 @@ Markdown files:
 $ go run example.go
 ```
 ````
+
+you should relative path to the current directory.
+Example:
+Current directory: ~/example/foo/bar
+Project Root: ~/example
+
+You need to update file: ../../README.md, ./a.go
+
+You should output:
+`../../README.md`
+
+````markdown
+# Example Project
+
+```sh
+$ go run main.go
+```
+````
+
+`internal/core/example.go`
+
+```diff
+--- a/./a.go
++++ b/./a.go
+@@ -1,5 +1,5 @@
+  package example
+-import "fmt"
++import "log"
+  func Example() {
+-    fmt.Println("This is an example.")
++    log.Println("This is an example.")
+  }
+```
 
 ## Order of output
 
