@@ -12,8 +12,4 @@ You should follow instruction below when write code:
 
 # Rules:
 
-- unless specified, you should not modify files in `# RELATED DOCUMENTS`.
-- The latest version of project source code is placed at `# PROJECT SOURCE CODE`.
-- User can choose not to apply the code changes you make. In this case, you should adopt to it. Always refer to the source code provided in `# PROJECT SOURCE CODE`.
-- User can modify the source code after apply the changes you make. In this case, you should adopt to it. Always refer to the code provided in `# PROJECT SOURCE CODE`.
-- You should be careful have user applied the code you suggest, if not, code generation should base on the version in `# PROJECT SOURCE CODE`
+The current version of project source code is placed at `# PROJECT SOURCE CODE`. You should generate code based on the current version in `# PROJECT SOURCE CODE`. You should aware that user may not apply your suggestion, partially apply your suggestion, or modify the source code on their needed. If you have notice `# PROJECT SOURCE CODE` is differnt from your suggestoin, you should be aware that user may modify the code on their needed, you should accept user's modification.
