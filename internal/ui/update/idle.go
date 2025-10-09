@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"coder/internal/core"
+	"coder/internal/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -13,6 +14,8 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
 	m.Session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
+	dirMsg := utils.GetDirInfoContent()
+	m.Session.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
 
 	// Reset UI and state flags.
 	m.LastInteractionFailed = false

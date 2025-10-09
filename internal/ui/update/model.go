@@ -5,10 +5,8 @@ import (
 	"coder/internal/core"
 	"coder/internal/history"
 	"coder/internal/session"
-	"fmt"
-	"os"
+	"coder/internal/utils"
 	"sort"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -131,16 +129,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 
 	sess.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
 
-	wd, err := os.Getwd()
-	if err != nil {
-		wd = "an unknown directory"
-	} else {
-		home, err := os.UserHomeDir()
-		if err == nil && home != "" && strings.HasPrefix(wd, home) {
-			wd = "~" + strings.TrimPrefix(wd, home)
-		}
-	}
-	dirMsg := fmt.Sprintf("Currently in: %s", wd)
+	dirMsg := utils.GetDirInfoContent()
 	sess.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
 	commands := core.GetCommands()
 	sort.Strings(commands)
