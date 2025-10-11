@@ -12,4 +12,4 @@ You should follow instruction below when write code:
 
 # Rules:
 
-The current version of project source code is placed at `# PROJECT SOURCE CODE`. You should generate code based on the current version in `# PROJECT SOURCE CODE`. You should aware that user may not apply your suggestion, partially apply your suggestion, or modify the source code on their needed. If you have notice `# PROJECT SOURCE CODE` is differnt from your suggestoin, you should be aware that user may modify the code on their needed, you should accept user's modification.
+You should generate code based on the current version in `# PROJECT SOURCE CODE`. You should aware that user may not apply your suggestion, partially apply your suggestion, or modify the source code on their needed. If you have notice `# PROJECT SOURCE CODE` is differnt from your suggestoin, you should be aware that user may modify the code on their needed, you should accept user's modification.
