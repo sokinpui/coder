@@ -314,11 +314,6 @@ func (m Model) View() string {
 	b.WriteString("\n")
 
 	if m.State != stateHistorySelect {
-		if m.ShowPalette {
-			b.WriteString(m.paletteView())
-			b.WriteString("\n")
-		}
-
 		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
 		b.WriteString("\n")
 	}

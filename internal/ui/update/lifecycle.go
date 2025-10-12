@@ -102,12 +102,7 @@ func (m Model) updateLayout() Model {
 
 	statusViewHeight := lipgloss.Height(m.statusView())
 
-	paletteHeight := 0
-	if m.ShowPalette {
-		paletteHeight = lipgloss.Height(m.paletteView())
-	}
-
-	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
+	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
