@@ -55,6 +55,7 @@ Commands start with a colon (`:`) and are entered in the input area.
 | `:rename <title>`| Rename the current session title.                    |
 | `:itf`          | Pipe the last AI response to the `itf` diff viewer.  |
 | `:gen`          | Enter Generate Mode to re-run a previous prompt.     |
+| `:file [paths...]`| Sets the project source context to the specified files/directories. If no paths are given, clears the context. |
 | `:edit`         | Enter Edit Mode to modify a previous prompt.         |
 | `:branch`       | Enter Branch Mode to create a new session from a point. |
 | `:visual`       | Enter Visual Mode for message selection.             |
