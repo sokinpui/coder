@@ -163,7 +163,7 @@ func (m Model) renderConversation() string {
 	return strings.Join(parts, "\n")
 }
 
-func (m Model) paletteView() string {
+func (m Model) PaletteView() string {
 	if !m.ShowPalette || (len(m.PaletteFilteredCommands) == 0 && len(m.PaletteFilteredArguments) == 0) {
 		return ""
 	}
@@ -209,7 +209,7 @@ func (m Model) paletteView() string {
 	return paletteContainerStyle.Render(content)
 }
 
-func (m Model) statusView() string {
+func (m Model) StatusView() string {
 	if m.StatusBarMessage != "" {
 		return statusBarMsgStyle.Render(m.StatusBarMessage)
 	}
@@ -317,7 +317,7 @@ func (m Model) View() string {
 		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
 		b.WriteString("\n")
 	}
-	b.WriteString(m.statusView())
+	b.WriteString(m.StatusView())
 
 	return b.String()
 }

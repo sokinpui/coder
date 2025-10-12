@@ -2,6 +2,7 @@ package ui
 
 import (
 	"coder/internal/config"
+	"coder/internal/ui/overlay"
 	"coder/internal/ui/update"
 	"fmt"
 	"log"
@@ -18,8 +19,11 @@ func Start() {
 		os.Exit(1)
 	}
 
+	manager := update.NewManager(&mainModel)
+	manager.Overlays = []update.Overlay{&overlay.PaletteOverlay{}}
+
 	p := tea.NewProgram(
-		update.NewManager(&mainModel),
+		manager,
 		tea.WithAltScreen(),
 	)
 
