@@ -46,7 +46,7 @@ func (m Model) renderConversation() string {
 	blockStarts := make(map[int]int)
 	selectedBlocks := make(map[int]struct{})
 
-	if m.State == stateVisualSelect {
+	if m.State == StateVisualSelect {
 		for i, block := range m.SelectableBlocks {
 			blockStarts[block.startIdx] = i
 		}
@@ -67,7 +67,7 @@ func (m Model) renderConversation() string {
 
 	for i, msg := range m.Session.GetMessages() {
 		currentMsg := msg // Make a copy to modify content for visual mode
-		if m.State == stateVisualSelect {
+		if m.State == StateVisualSelect {
 			switch currentMsg.Type {
 			case core.UserMessage, core.AIMessage, core.CommandResultMessage, core.CommandErrorResultMessage:
 				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
@@ -115,7 +115,7 @@ func (m Model) renderConversation() string {
 
 		}
 
-		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {
+		if blockIndex, isStart := blockStarts[i]; m.State == StateVisualSelect && isStart {
 			isCursorOn := (blockIndex == m.VisualSelectCursor)
 
 			var isSelected bool
@@ -148,7 +148,7 @@ func (m Model) renderConversation() string {
 		parts = append(parts, renderedMsg)
 	}
 
-	if m.State == stateThinking || m.State == stateGenPending {
+	if m.State == StateThinking || m.State == StateGenPending {
 		// The spinner has its own colors, so we can't render it with the same style as the text.
 		thinkingText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
@@ -214,11 +214,11 @@ func (m Model) StatusView() string {
 		return statusBarMsgStyle.Render(m.StatusBarMessage)
 	}
 
-	if m.CtrlCPressed && m.State == stateIdle && m.TextArea.Value() == "" {
+	if m.CtrlCPressed && m.State == StateIdle && m.TextArea.Value() == "" {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
-	if m.State == stateHistorySelect {
+	if m.State == StateHistorySelect {
 		return statusStyle.Render("j/k: move | gg/G: top/bottom | enter: load | esc: cancel")
 	}
 
@@ -233,7 +233,7 @@ func (m Model) StatusView() string {
 
 	// Line 2: Status
 	var leftStatus string
-	if m.State == stateVisualSelect {
+	if m.State == StateVisualSelect {
 		var modeStr string
 		var helpStr string
 		if m.VisualMode == visualModeGenerate {
@@ -254,7 +254,7 @@ func (m Model) StatusView() string {
 			}
 		}
 		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
-	} else if m.State == stateCancelling {
+	} else if m.State == StateCancelling {
 		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
@@ -273,16 +273,16 @@ func (m Model) StatusView() string {
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
 	rightStatusItems := []string{}
-	if m.State != stateVisualSelect {
+	if m.State != StateVisualSelect {
 		if tokenPart != "" {
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
 		rightStatusItems = append(rightStatusItems, modePart, modelPart)
 	}
 
-	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
+	if m.State == StateGenPending || m.State == StateThinking || m.State == StateGenerating {
 		statusText := "Thinking" // Default for genpending and thinking
-		if m.State == stateGenerating {
+		if m.State == StateGenerating {
 			statusText = "Generating"
 		}
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Spinner.View())
@@ -313,7 +313,7 @@ func (m Model) View() string {
 	b.WriteString(m.Viewport.View())
 	b.WriteString("\n")
 
-	if m.State != stateHistorySelect {
+	if m.State != StateHistorySelect {
 		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
 		b.WriteString("\n")
 	}

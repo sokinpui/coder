@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"coder/internal/core"
+	"coder/internal/ui/fuzzyfinder"
 	"coder/internal/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -47,7 +48,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			cmds = append(cmds, generateTitleCmd(m.Session, input))
 		}
 
-		m.State = stateGenPending
+		m.State = StateGenPending
 		m.TextArea.Blur()
 		m.TextArea.Reset()
 		m.Viewport.SetContent(m.renderConversation())
@@ -88,15 +89,15 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	case core.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
 	case core.HistoryModeStarted:
-		m.State = stateHistorySelect
+		m.State = StateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
 	case core.FzfModeStarted:
-		fzfInput, ok := event.Data.(string)
-		if !ok {
-			return m, nil
-		}
-		return m, runFzfCmd(fzfInput)
+		fzfInput, _ := event.Data.(string)
+		items := strings.Split(fzfInput, "\n")
+		m.FuzzyFinder = fuzzyfinder.New(items)
+		m.State = StateFzf
+		return m, m.FuzzyFinder.Init()
 	}
 
 	return m, nil
@@ -237,7 +238,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 
 	case tea.KeyCtrlH:
-		m.State = stateHistorySelect
+		m.State = StateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
 
@@ -274,7 +275,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		event := m.Session.HandleInput(":fzf")
 		switch event.Type {
 		case core.FzfModeStarted:
-			return m, runFzfCmd(event.Data.(string)), true
+			fzfInput, _ := event.Data.(string)
+			items := strings.Split(fzfInput, "\n")
+			m.FuzzyFinder = fuzzyfinder.New(items)
+			m.State = StateFzf
+			return m, m.FuzzyFinder.Init(), true
 		}
 		return m, nil, true
 

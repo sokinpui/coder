@@ -2,7 +2,6 @@ package update
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"coder/internal/core"
@@ -16,7 +15,7 @@ import (
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
 	case startGenerationMsg:
-		if m.State != stateGenPending {
+		if m.State != StateGenPending {
 			return m, nil, true // Debounce was cancelled
 		}
 
@@ -30,7 +29,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if event.Type == core.MessagesUpdated {
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
-			m.State = stateIdle
+			m.State = StateIdle
 			m.TextArea.Focus()
 			return m, textarea.Blink, true
 		}
@@ -38,7 +37,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
-		if m.State != stateGenPending && m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
+		if m.State != StateGenPending && m.State != StateThinking && m.State != StateGenerating && m.State != StateCancelling {
 			return m, nil, true
 		}
 
@@ -47,7 +46,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
-		if m.State == stateThinking || m.State == stateGenPending {
+		if m.State == StateThinking || m.State == StateGenPending {
 			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
@@ -59,8 +58,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case streamResultMsg:
 		messages := m.Session.GetMessages()
 		lastMsg := messages[len(messages)-1]
-		if m.State == stateThinking {
-			m.State = stateGenerating
+		if m.State == StateThinking {
+			m.State = StateGenerating
 			lastMsg.Content += string(msg)
 			m.Session.ReplaceLastMessage(lastMsg)
 			return m, tea.Batch(listenForStream(m.StreamSub), renderTick()), true
@@ -77,7 +76,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.IsStreaming = false
 		messages := m.Session.GetMessages()
 
-		if m.State == stateCancelling {
+		if m.State == StateCancelling {
 			// This was a cancellation.
 			lastMsg := messages[len(messages)-1]
 			lastMsg.Content = "Generation cancelled."
@@ -107,7 +106,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Viewport.GotoBottom()
 		}
 
-		m.State = stateIdle
+		m.State = StateIdle
 		m.StreamSub = nil
 		m.Session.CancelGeneration()
 		m.TextArea.Reset()
@@ -147,13 +146,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			if m.IsStreaming {
 				messages := m.Session.GetMessages()
 				if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
-					m.State = stateThinking
+					m.State = StateThinking
 				} else {
-					m.State = stateGenerating
+					m.State = StateGenerating
 				}
 				cmd = m.Spinner.Tick
 			} else {
-				m.State = stateIdle
+				m.State = StateIdle
 				m.TextArea.Focus()
 				cmd = textarea.Blink
 			}
@@ -180,7 +179,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, textarea.Blink, true
 
 	case renderTickMsg:
-		if m.State != stateGenerating || !m.IsStreaming {
+		if m.State != StateGenerating || !m.IsStreaming {
 			return m, nil, true
 		}
 
@@ -205,7 +204,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case historyListResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
-			m.State = stateIdle
+			m.State = StateIdle
 			m.TextArea.Focus()
 			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
 		}
@@ -233,11 +232,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case conversationLoadedMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)
-			m.State = stateIdle
+			m.State = StateIdle
 			m.TextArea.Focus()
 			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
 		}
-		m.State = stateIdle
+		m.State = StateIdle
 		m.LastInteractionFailed = false
 		m.LastRenderedAIPart = ""
 		m.TextArea.Reset()
@@ -267,32 +266,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.AnimatingTitle = false
 		return m, nil, true
-
-	case fzfFinishedMsg:
-		if msg.err != nil {
-			errorContent := fmt.Sprintf("\n**fzf Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-			return m, nil, true
-		}
-
-		if msg.result == "" {
-			// User cancelled fzf
-			m.TextArea.Reset()
-			return m, nil, true
-		}
-
-		var commandToRun string
-		parts := strings.SplitN(msg.result, ": ", 2)
-		if len(parts) == 2 {
-			commandToRun = fmt.Sprintf(":%s %s", parts[0], parts[1])
-		} else {
-			commandToRun = ":" + msg.result
-		}
-		m.TextArea.SetValue(commandToRun)
-		model, cmd := m.handleSubmit()
-		return model, cmd, true
 
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""
@@ -330,7 +303,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if wasAtBottom {
 			m.Viewport.GotoBottom()
 		}
-		m.State = stateIdle
+		m.State = StateIdle
 		m.StreamSub = nil
 		m.Session.CancelGeneration()
 		m.TextArea.Reset()

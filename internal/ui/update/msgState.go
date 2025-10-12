@@ -2,16 +2,17 @@ package update
 
 import "coder/internal/history"
 
-type state int
+type State int
 
 const (
-	stateIdle state = iota
-	stateGenPending
-	stateThinking
-	stateGenerating
-	stateCancelling
-	stateVisualSelect
-	stateHistorySelect
+	StateIdle State = iota
+	StateGenPending
+	StateThinking
+	StateGenerating
+	StateCancelling
+	StateVisualSelect
+	StateFzf
+	StateHistorySelect
 )
 
 type (
@@ -37,9 +38,5 @@ type (
 	}
 	conversationLoadedMsg struct {
 		err error
-	}
-	fzfFinishedMsg struct {
-		result string
-		err    error
 	}
 )

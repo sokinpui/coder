@@ -37,16 +37,16 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			// Return to the generation view
 			messages := m.Session.GetMessages()
 			if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateThinking
+				m.State = StateThinking
 			} else {
-				m.State = stateGenerating
+				m.State = StateGenerating
 			}
 			m.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
 			return m, tea.Batch(listenForStream(m.StreamSub), renderTick(), m.Spinner.Tick), true
 		} else {
 			// Return to idle
-			m.State = stateIdle
+			m.State = StateIdle
 			m.TextArea.Reset()
 			m.TextArea.Focus()
 			m.Viewport.SetContent(m.renderConversation())

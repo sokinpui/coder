@@ -20,7 +20,10 @@ func Start() {
 	}
 
 	manager := update.NewManager(&mainModel)
-	manager.Overlays = []update.Overlay{&overlay.PaletteOverlay{}}
+	manager.Overlays = []update.Overlay{
+		&overlay.PaletteOverlay{},
+		&overlay.FzfOverlay{},
+	}
 
 	p := tea.NewProgram(
 		manager,

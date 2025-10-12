@@ -10,7 +10,7 @@ import (
 func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		m.State = stateIdle
+		m.State = StateIdle
 		m.TextArea.Focus()
 		m.Session.AddMessage(core.Message{
 			Type:    core.CommandResultMessage, // Re-use style for notification
@@ -27,7 +27,7 @@ func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
 	if event.Type != core.GenerationStarted {
 		return m, nil // Should not happen
 	}
-	m.State = stateThinking
+	m.State = StateThinking
 	m.IsStreaming = true
 	m.StreamSub = event.Data.(chan string)
 	m.TextArea.Blur()
@@ -47,9 +47,9 @@ func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		if m.State != stateCancelling {
+		if m.State != StateCancelling {
 			m.Session.CancelGeneration()
-			m.State = stateCancelling
+			m.State = StateCancelling
 		}
 	case tea.KeyCtrlN:
 		if m.IsStreaming {
@@ -60,7 +60,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		event := m.Session.HandleInput(":new")
 		if event.Type == core.NewSessionStarted {
 			newModel, cmd := m.newSession()
-			newModel.State = stateIdle
+			newModel.State = StateIdle
 			return newModel, cmd, true
 		}
 		return m, nil, true
@@ -77,7 +77,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		}
 		return m, nil, true
 	case tea.KeyCtrlH:
-		m.State = stateHistorySelect
+		m.State = StateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
 	case tea.KeyEscape:

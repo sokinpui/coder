@@ -6,6 +6,7 @@ import (
 	"coder/internal/core"
 	"coder/internal/history"
 	"coder/internal/session"
+	"coder/internal/ui/fuzzyfinder"
 	"coder/internal/utils"
 	"sort"
 
@@ -64,9 +65,10 @@ type Model struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
 	Spinner                  spinner.Model
+	FuzzyFinder              fuzzyfinder.Model
 	Session                  *session.Session
 	StreamSub                chan string
-	State                    state
+	State                    State
 	Quitting                 bool
 	Height                   int
 	Width                    int
@@ -139,8 +141,9 @@ func NewModel(cfg *config.Config) (Model, error) {
 		TextArea:                 ta,
 		Viewport:                 vp,
 		Spinner:                  s,
+		FuzzyFinder:              fuzzyfinder.New(nil),
 		Session:                  sess,
-		State:                    stateIdle,
+		State:                    StateIdle,
 		GlamourRenderer:          renderer,
 		IsStreaming:              false,
 		LastRenderedAIPart:       "",

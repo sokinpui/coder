@@ -1,6 +1,10 @@
 package update
 
 import (
+	"coder/internal/ui/fuzzyfinder"
+	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -18,6 +22,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Reset cycling flag on any key press that is not Tab.
 	if key, ok := msg.(tea.KeyMsg); ok && key.Type != tea.KeyTab && key.Type != tea.KeyShiftTab {
 		m.IsCyclingCompletions = false
+	}
+
+	if m.State == StateFzf {
+		var cmd tea.Cmd
+		newFzf, cmd := m.FuzzyFinder.Update(msg)
+		if fzfModel, ok := newFzf.(fuzzyfinder.Model); ok {
+			m.FuzzyFinder = fzfModel
+		}
+
+		if m.FuzzyFinder.Quitting {
+			m.State = StateIdle
+			m.TextArea.Focus()
+			return m, textarea.Blink
+		} else if m.FuzzyFinder.Choice != "" {
+			m.State = StateIdle
+			m.TextArea.Focus()
+
+			parts := strings.SplitN(m.FuzzyFinder.Choice, ": ", 2)
+			var commandToRun string
+			if len(parts) == 2 {
+				commandToRun = fmt.Sprintf(":%s %s", parts[0], parts[1])
+			} else {
+				commandToRun = ":" + m.FuzzyFinder.Choice
+			}
+			m.TextArea.SetValue(commandToRun)
+			return m.handleSubmit()
+		}
+		return m, cmd
 	}
 
 	// Handle state-specific messages and key presses.

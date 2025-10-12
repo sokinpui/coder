@@ -10,7 +10,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	// Handle scrolling for non-history states.
-	if m.State != stateHistorySelect {
+	if m.State != StateHistorySelect {
 		switch msg.Type {
 		case tea.KeyCtrlU:
 			m.Viewport.HalfViewUp()
@@ -22,15 +22,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	switch m.State {
-	case stateGenPending:
+	case StateGenPending:
 		return m.handleKeyPressGenPending(msg)
-	case stateThinking, stateGenerating, stateCancelling:
+	case StateThinking, StateGenerating, StateCancelling:
 		return m.handleKeyPressGenerating(msg)
-	case stateHistorySelect:
+	case StateHistorySelect:
 		return m.handleKeyPressHistory(msg)
-	case stateVisualSelect:
+	case StateVisualSelect:
 		return m.handleKeyPressVisual(msg)
-	case stateIdle:
+	case StateIdle:
 		return m.handleKeyPressIdle(msg)
 	}
 	return m, nil, false

@@ -52,7 +52,7 @@ func (m Model) updatePalette() Model {
 	m.PaletteFilteredCommands = []string{}
 	m.PaletteFilteredArguments = []string{}
 
-	if m.State == stateIdle && strings.HasPrefix(val, ":") {
+	if m.State == StateIdle && strings.HasPrefix(val, ":") {
 		parts := strings.Fields(val)
 		hasTrailingSpace := strings.HasSuffix(val, " ")
 

@@ -13,7 +13,7 @@ import (
 )
 
 func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
-	m.State = stateVisualSelect
+	m.State = StateVisualSelect
 	m.VisualMode = mode
 	m.SelectableBlocks = groupMessages(m.Session.GetMessages())
 
@@ -61,13 +61,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			messages := m.Session.GetMessages()
 			// Check if the last message is an empty AI message, which indicates 'thinking' state.
 			if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateThinking
+				m.State = StateThinking
 			} else {
-				m.State = stateGenerating
+				m.State = StateGenerating
 			}
 			cmd = tea.Batch(cmd, m.Spinner.Tick)
 		} else {
-			m.State = stateIdle
+			m.State = StateIdle
 		}
 		m.VisualMode = visualModeNone
 		m.TextArea.Focus()
@@ -100,7 +100,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 
 				// Exit visual mode before starting generation
-				m.State = stateIdle
+				m.State = StateIdle
 				m.VisualMode = visualModeNone
 				m.TextArea.Focus()
 
@@ -124,7 +124,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 			if userMsgIndex != -1 {
 				// Exit visual mode before starting editor
-				m.State = stateIdle
+				m.State = StateIdle
 				m.VisualMode = visualModeNone
 				m.EditingMessageIndex = userMsgIndex
 				originalContent := m.Session.GetMessages()[userMsgIndex].Content
@@ -151,7 +151,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				cmd = clearStatusBarCmd(2 * time.Second)
 
 				// Exit visual mode and apply changes
-				m.State = stateIdle
+				m.State = StateIdle
 				m.VisualMode = visualModeNone
 				m.VisualIsSelecting = false
 
@@ -176,7 +176,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		m.State = stateIdle
+		m.State = StateIdle
 		m.VisualMode = visualModeNone
 		m.VisualIsSelecting = false
 		m.TextArea.Focus()
@@ -229,14 +229,14 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			event := m.Session.HandleInput(":new")
 			if event.Type == core.NewSessionStarted {
 				newModel, cmd := m.newSession()
-				newModel.State = stateIdle
+				newModel.State = StateIdle
 				newModel.VisualMode = visualModeNone
 				newModel.VisualIsSelecting = false
 				return newModel, cmd, true
 			}
 			return m, nil, true
 		case "i":
-			m.State = stateIdle
+			m.State = StateIdle
 			m.VisualMode = visualModeNone
 			m.VisualIsSelecting = false
 			m.TextArea.Focus()
@@ -266,7 +266,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					}
 
 					// Exit visual mode before starting generation
-					m.State = stateIdle
+					m.State = StateIdle
 					m.VisualMode = visualModeNone
 					m.TextArea.Focus()
 
@@ -317,13 +317,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
 					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
-						m.State = stateThinking
+						m.State = StateThinking
 					} else {
-						m.State = stateGenerating
+						m.State = StateGenerating
 					}
 					cmd = tea.Batch(cmd, m.Spinner.Tick)
 				} else {
-					m.State = stateIdle
+					m.State = StateIdle
 				}
 				m.VisualMode = visualModeNone
 				m.VisualIsSelecting = false
@@ -367,13 +367,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
 					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
-						m.State = stateThinking
+						m.State = StateThinking
 					} else {
-						m.State = stateGenerating
+						m.State = StateGenerating
 					}
 					cmd = tea.Batch(cmd, m.Spinner.Tick)
 				} else {
-					m.State = stateIdle
+					m.State = StateIdle
 				}
 				m.VisualMode = visualModeNone
 				m.VisualIsSelecting = false
