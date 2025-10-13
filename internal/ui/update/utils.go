@@ -147,7 +147,7 @@ func runFzfCmd(input string) tea.Cmd {
 	// Use sh -c to handle redirection, more portable than bash
 	var fzfCmdStr string
 	if os.Getenv("TMUX") != "" {
-		fzfCmdStr = fmt.Sprintf("fzf-tmux -p -w 90 > %s", tmpfileName)
+		fzfCmdStr = fmt.Sprintf("fzf-tmux -p 100%%,100%% > %s", tmpfileName)
 	} else {
 		fzfCmdStr = fmt.Sprintf("fzf > %s", tmpfileName)
 	}
