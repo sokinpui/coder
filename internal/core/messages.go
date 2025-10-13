@@ -11,8 +11,6 @@ const (
 	InitMessage
 	DirectoryMessage
 	ImageMessage
-	ToolCallMessage
-	ToolResultMessage
 )
 
 type Message struct {

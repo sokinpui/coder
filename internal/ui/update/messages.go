@@ -86,21 +86,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.LastInteractionFailed = true
 		}
 
-		if !m.LastInteractionFailed {
-			event := m.Session.ProcessAIResponse()
-			if event.Type == core.GenerationStarted {
-				// The session added ToolCall and ToolResult messages. We need to re-render before starting generation.
-				m.Viewport.SetContent(m.renderConversation())
-				m.Viewport.GotoBottom()
-				model, cmd := m.startGeneration(event)
-				return model, cmd, true
-			} else if event.Type == core.MessagesUpdated {
-				// Something was updated, e.g. an error message. Re-render.
-				m.Viewport.SetContent(m.renderConversation())
-				m.Viewport.GotoBottom()
-			}
-		}
-
 		wasAtBottom := m.Viewport.AtBottom()
 		m.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {

@@ -119,14 +119,6 @@ func buildHistoryString(messages []core.Message) string {
 			sb.WriteString("AI Assistant:\n")
 			sb.WriteString(msg.Content)
 			sb.WriteString("\n")
-		case core.ToolCallMessage:
-			sb.WriteString("Tool Call:\n")
-			sb.WriteString(msg.Content)
-			sb.WriteString("\n")
-		case core.ToolResultMessage:
-			sb.WriteString("Tool Result:\n")
-			sb.WriteString(msg.Content)
-			sb.WriteString("\n")
 		}
 	}
 	sb.WriteString("AI Assistant:\n")

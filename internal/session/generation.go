@@ -31,8 +31,3 @@ func (s *Session) GetInitialPromptForTokenCount() string {
 func (s *Session) StartGeneration() core.Event {
 	return s.modeStrategy.StartGeneration(s)
 }
-
-// ProcessAIResponse delegates to the current mode strategy to process the AI response.
-func (s *Session) ProcessAIResponse() core.Event {
-	return s.modeStrategy.ProcessAIResponse(s)
-}

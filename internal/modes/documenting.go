@@ -38,11 +38,6 @@ func (m *DocumentingMode) LoadContext(cfg *config.Config) error {
 	return nil
 }
 
-// ProcessAIResponse does nothing in documenting mode.
-func (m *DocumentingMode) ProcessAIResponse(s SessionController) core.Event {
-	return core.Event{Type: core.NoOp}
-}
-
 // StartGeneration begins a new AI generation task using the default logic.
 func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
 	return StartGeneration(s, nil)

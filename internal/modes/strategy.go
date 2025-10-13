@@ -13,10 +13,6 @@ type ModeStrategy interface {
 	// LoadContext loads and stores mode-specific context.
 	LoadContext(cfg *config.Config) error
 
-	// ProcessAIResponse is a hook to perform actions after an AI response is received.
-	// It's primarily used by AgentMode to execute tool calls.
-	ProcessAIResponse(s SessionController) core.Event
-
 	// StartGeneration prepares and begins a new AI generation task.
 	StartGeneration(s SessionController) core.Event
 

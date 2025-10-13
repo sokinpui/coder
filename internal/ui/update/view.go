@@ -104,14 +104,6 @@ func (m Model) renderConversation() string {
 		case core.CommandErrorResultMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.ToolCallMessage:
-			blockWidth := m.Viewport.Width - toolCallStyle.GetHorizontalFrameSize()
-			renderedMsg = toolCallStyle.Width(blockWidth).Render("Execute Tools:\n" + currentMsg.Content)
-
-			// case core.ToolResultMessage:
-			// 	blockWidth := m.Viewport.Width - toolResultStyle.GetHorizontalFrameSize()
-			// 	content := "Result:\n" + currentMsg.Content
-			// 	renderedMsg = toolResultStyle.Width(blockWidth).Render(content)
 
 		}
 

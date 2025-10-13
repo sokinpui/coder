@@ -17,7 +17,7 @@ func groupMessages(messages []core.Message) []messageBlock {
 
 		switch msg.Type {
 		// by design message after command/tool is always result/error, and they alwasy come in pairs
-		case core.CommandMessage, core.ToolCallMessage:
+		case core.CommandMessage:
 			if i+1 < len(messages) {
 				block.endIdx = i + 1
 			}
