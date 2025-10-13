@@ -100,14 +100,9 @@ func (m Model) updateLayout() Model {
 	inputHeight := min(visibleLines+1, m.Height/4)
 	m.TextArea.SetHeight(max(1, inputHeight))
 
-	statusViewHeight := lipgloss.Height(m.statusView())
+	statusViewHeight := lipgloss.Height(m.StatusView())
 
-	paletteHeight := 0
-	if m.ShowPalette {
-		paletteHeight = lipgloss.Height(m.paletteView())
-	}
-
-	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - paletteHeight - textAreaStyle.GetVerticalPadding() - 2
+	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
