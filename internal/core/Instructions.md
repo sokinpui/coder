@@ -2,7 +2,7 @@
 
 1. output changes of files in unified diff format. except files that are deleted and created.
 2. Use Markdown code block per file:
-3. code generation should always base on the version in `# PROJECT SOURCE CODE` section.
+3. code generation should always base on the latest version
 
 ## File Modify:
 
@@ -52,7 +52,17 @@ file content
 ...
 ```
 
-## Markdown files
+Example:
+
+`internal/core/example.go`
+
+```go
+package example
+import "fmt"
+func Example() {
+    fmt.Println("This is an example.")
+}
+```
 
 If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
 
@@ -66,46 +76,6 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ```
 
 ...
-````
-
-## Example of output formatting :
-
-Example of File created:
-`internal/core/example.go`
-
-```go
-package example
-import "fmt"
-func Example() {
-    fmt.Println("This is an example.")
-}
-```
-
-Example of file modified:
-`internal/core/example.go`
-
-```diff
---- a/internal/core/example.go
-+++ b/internal/core/example.go
-@@ -1,5 +1,5 @@
-  package example
--import "fmt"
-+import "log"
-  func Example() {
--    fmt.Println("This is an example.")
-+    log.Println("This is an example.")
-  }
-```
-
-example of Markdown files:
-`docs/example.md`
-
-````markdown
-# Example Documentation
-
-```sh
-$ go run example.go
-```
 ````
 
 ## Order of output
@@ -125,3 +95,7 @@ $ go run example.go
 
 1. abstract of your suggestion or explanation
 2. details of your suggestion or explanation
+
+```
+
+```
