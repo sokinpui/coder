@@ -267,21 +267,22 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlN:
-		newModel, cmd := m.newSession()
-		return newModel, cmd, true
+		event := m.Session.HandleInput(":new")
+		if event.Type == core.NewSessionStarted {
+			newModel, cmd := m.newSession()
+			return newModel, cmd, true
+		}
+		return m, nil, true
 
 	case tea.KeyCtrlB:
-		messages := m.Session.GetMessages()
-		if !hasSelectableMessages(messages) {
-			m.Session.AddMessage(core.Message{
-				Type:    core.CommandErrorResultMessage,
-				Content: "Cannot enter branch mode: no messages to select.",
-			})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-		} else {
+		event := m.Session.HandleInput(":branch")
+		switch event.Type {
+		case core.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
+		case core.MessagesUpdated:
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
 
