@@ -1,15 +1,30 @@
 package update
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/ui/fuzzyfinder"
 	"coder/internal/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// hasSelectableMessages checks if there are any messages in the session that can be selected in visual modes.
+func hasSelectableMessages(messages []core.Message) bool {
+	for _, msg := range messages {
+		switch msg.Type {
+		case core.InitMessage, core.DirectoryMessage:
+			continue
+		default:
+			return true
+		}
+	}
+	return false
+}
 
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
@@ -252,36 +267,41 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlN:
-		event := m.Session.HandleInput(":new")
-		if event.Type == core.NewSessionStarted {
-			newModel, cmd := m.newSession()
-			return newModel, cmd, true
-		}
-		return m, nil, true
+		newModel, cmd := m.newSession()
+		return newModel, cmd, true
 
 	case tea.KeyCtrlB:
-		event := m.Session.HandleInput(":branch")
-		switch event.Type {
-		case core.BranchModeStarted:
-			model, cmd := m.enterVisualMode(visualModeBranch)
-			return model, cmd, true
-		case core.MessagesUpdated:
+		messages := m.Session.GetMessages()
+		if !hasSelectableMessages(messages) {
+			m.Session.AddMessage(core.Message{
+				Type:    core.CommandErrorResultMessage,
+				Content: "Cannot enter branch mode: no messages to select.",
+			})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
+		} else {
+			model, cmd := m.enterVisualMode(visualModeBranch)
+			return model, cmd, true
 		}
 		return m, nil, true
 
 	case tea.KeyCtrlF:
-		event := m.Session.HandleInput(":fzf")
-		switch event.Type {
-		case core.FzfModeStarted:
-			fzfInput, _ := event.Data.(string)
-			items := strings.Split(fzfInput, "\n")
-			m.FuzzyFinder = fuzzyfinder.New(items)
-			m.State = StateFzf
-			return m, m.FuzzyFinder.Init(), true
+		var fzfInput strings.Builder
+
+		// mode
+		for _, mode := range config.AvailableAppModes {
+			fzfInput.WriteString(fmt.Sprintf("mode: %s\n", mode))
 		}
-		return m, nil, true
+
+		// model
+		for _, model := range config.AvailableModels {
+			fzfInput.WriteString(fmt.Sprintf("model: %s\n", model))
+		}
+
+		items := strings.Split(fzfInput.String(), "\n")
+		m.FuzzyFinder = fuzzyfinder.New(items)
+		m.State = StateFzf
+		return m, m.FuzzyFinder.Init(), true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.

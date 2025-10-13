@@ -25,7 +25,7 @@ func (p *PaletteOverlay) View(main *update.Model) string {
 
 	paletteModel := simpleModel{content: paletteContent}
 
-	yOffset := (main.TextArea.Height() + lipgloss.Height(main.StatusView()) + 1) * -1
+	yOffset := (main.TextArea.Height() + lipgloss.Height(main.StatusView()) + 2) * -1
 
 	overlayModel := overlay.New(
 		paletteModel,
