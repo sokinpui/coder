@@ -31,23 +31,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.FuzzyFinder = fzfModel
 		}
 
-		if m.FuzzyFinder.Quitting {
-			m.State = StateIdle
-			m.TextArea.Focus()
-			return m, textarea.Blink
-		} else if m.FuzzyFinder.Choice != "" {
+		if m.FuzzyFinder.Choice != "" {
 			m.State = StateIdle
 			m.TextArea.Focus()
 
 			parts := strings.SplitN(m.FuzzyFinder.Choice, ": ", 2)
 			var commandToRun string
 			if len(parts) == 2 {
-				commandToRun = fmt.Sprintf(":%s %s", parts[0], parts[1])
+				commandToRun = fmt.Sprintf(":%s %s", parts[0], strings.TrimSpace(parts[1]))
 			} else {
 				commandToRun = ":" + m.FuzzyFinder.Choice
 			}
 			m.TextArea.SetValue(commandToRun)
 			return m.handleSubmit()
+		} else if m.FuzzyFinder.Quitting {
+			m.State = StateIdle
+			m.TextArea.Focus()
+			return m, textarea.Blink
 		}
 		return m, cmd
 	}
