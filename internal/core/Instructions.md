@@ -2,7 +2,7 @@
 
 1. output changes of files in unified diff format. except files that are deleted and created.
 2. Use Markdown code block per file:
-3. code generation should always base on the latest version
+3. code generation should always base on the version in `# PROJECT SOURCE CODE` section.
 
 ## File Modify:
 
