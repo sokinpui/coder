@@ -8,6 +8,7 @@
 
 output changes of files in unified diff format.
 
+**Example:**
 `path/to/file`
 
 ```diff
@@ -23,6 +24,7 @@ output changes of files in unified diff format.
 
 output the content of the file.
 
+**Example:**
 `path/to/file`
 
 ```
@@ -36,14 +38,11 @@ file content
 list the name of the files that are deleted.
 `path/to/file`
 
-```
-file content
-```
-
 ## if User ask you to print files, follow the instructions below
 
 output the content of the file.
 
+**Example:**
 `path/to/file`
 
 ```
@@ -56,6 +55,7 @@ file content
 
 If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
 
+**Example:**
 `file1.md`
 
 ````markdown
@@ -66,46 +66,6 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ```
 
 ...
-````
-
-## Example of output formatting :
-
-Example of File created:
-`internal/core/example.go`
-
-```go
-package example
-import "fmt"
-func Example() {
-    fmt.Println("This is an example.")
-}
-```
-
-Example of file modified:
-`internal/core/example.go`
-
-```diff
---- a/internal/core/example.go
-+++ b/internal/core/example.go
-@@ -1,5 +1,5 @@
-  package example
--import "fmt"
-+import "log"
-  func Example() {
--    fmt.Println("This is an example.")
-+    log.Println("This is an example.")
-  }
-```
-
-example of Markdown files:
-`docs/example.md`
-
-````markdown
-# Example Documentation
-
-```sh
-$ go run example.go
-```
 ````
 
 ## Order of output
