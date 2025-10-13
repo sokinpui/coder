@@ -33,11 +33,12 @@ file content
 
 ## File Delete:
 
-list the name of the files that are deleted.
-`path/to/file`
+list the name of the files that are deleted in a markdown code block tagged with `delete`.
 
-```
-file content
+```delete
+file1
+file2
+...
 ```
 
 ## if User ask you to print files, follow the instructions below
@@ -50,18 +51,6 @@ output the content of the file.
 ...
 file content
 ...
-```
-
-Example:
-
-`internal/core/example.go`
-
-```go
-package example
-import "fmt"
-func Example() {
-    fmt.Println("This is an example.")
-}
 ```
 
 If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
@@ -95,7 +84,3 @@ If the markdown files contains codeblock inside, you should use four backticks f
 
 1. abstract of your suggestion or explanation
 2. details of your suggestion or explanation
-
-```
-
-```
