@@ -20,7 +20,6 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	// Reset UI and state flags.
 	m.LastInteractionFailed = false
 	m.LastRenderedAIPart = ""
-	m.TextArea.Reset()
 	m.TextArea.Focus()
 	m.Viewport.GotoTop()
 	m.Viewport.SetContent(m.renderConversation())
