@@ -279,7 +279,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.result == "" {
 			// User cancelled fzf
-			m.TextArea.Reset()
 			return m, nil, true
 		}
 

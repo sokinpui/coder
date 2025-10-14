@@ -1,6 +1,8 @@
 package update
 
 import (
+	"coder/internal/config"
+	"fmt"
 	"strings"
 	"time"
 
@@ -90,12 +92,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
-	case core.FzfModeStarted:
-		fzfInput, ok := event.Data.(string)
-		if !ok {
-			return m, nil
-		}
-		return m, runFzfCmd(fzfInput)
 	}
 
 	return m, nil
@@ -261,12 +257,19 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyCtrlF:
-		event := m.Session.HandleInput(":fzf")
-		switch event.Type {
-		case core.FzfModeStarted:
-			return m, runFzfCmd(event.Data.(string)), true
+		var fzfInput strings.Builder
+
+		// mode
+		for _, mode := range config.AvailableAppModes {
+			fzfInput.WriteString(fmt.Sprintf("mode: %s\n", mode))
 		}
-		return m, nil, true
+
+		// model
+		for _, model := range config.AvailableModels {
+			fzfInput.WriteString(fmt.Sprintf("model: %s\n", model))
+		}
+
+		return m, runFzfCmd(fzfInput.String()), true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
