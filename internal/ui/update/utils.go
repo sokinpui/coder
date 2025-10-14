@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"path/filepath"
 	"strings"
 	"time"
@@ -223,50 +224,94 @@ func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDow
 	return newCursor
 }
 
-// handlePasteCmd checks the clipboard for an image using `pngpaste`.
+// handlePasteCmd checks the clipboard for an image.
+// It uses `pngpaste` on macOS and `xclip` on Linux.
 // If an image is found, it's saved to `.coder/images` and the relative path is returned.
 // If not, it falls back to pasting text content.
 func handlePasteCmd() tea.Cmd {
 	return func() tea.Msg {
-		// 1. Check if pngpaste exists
-		if _, err := exec.LookPath("pngpaste"); err != nil {
-			// pngpaste not found, fallback to text paste
-			content, err := clipboard.ReadAll()
+		// Try to paste an image based on OS
+		switch runtime.GOOS {
+		case "darwin":
+			if _, err := exec.LookPath("pngpaste"); err != nil {
+				break // pngpaste not found, fallback to text
+			}
+
+			repoRoot, err := utils.FindRepoRoot()
 			if err != nil {
-				return pasteResultMsg{err: fmt.Errorf("failed to read clipboard: %w", err)}
+				return pasteResultMsg{err: fmt.Errorf("could not find repo root: %w", err)}
 			}
-			return pasteResultMsg{isImage: false, content: content}
+			imagesDir := filepath.Join(repoRoot, ".coder", "images")
+			if err := os.MkdirAll(imagesDir, 0755); err != nil {
+				return pasteResultMsg{err: fmt.Errorf("could not create images directory: %w", err)}
+			}
+			filename := fmt.Sprintf("%d.png", time.Now().UnixNano())
+			filePath := filepath.Join(imagesDir, filename)
+
+			cmd := exec.Command("pngpaste", filePath)
+			if err := cmd.Run(); err == nil {
+				// Success! It was an image. Return relative path
+				relPath, err := filepath.Rel(repoRoot, filePath)
+				if err != nil { // Should not happen, but fallback to full path
+					relPath = filePath
+				}
+				return pasteResultMsg{isImage: true, content: filepath.ToSlash(relPath)}
+			}
+			// If pngpaste fails, it means no image was on clipboard. Fall through to text paste.
+
+		case "linux":
+			if _, err := exec.LookPath("xclip"); err != nil {
+				break // xclip not found, fallback to text
+			}
+
+			// Check if clipboard has image/png target
+			checkCmd := exec.Command("xclip", "-selection", "clipboard", "-t", "TARGETS", "-o")
+			output, err := checkCmd.Output()
+			if err != nil || !strings.Contains(string(output), "image/png") {
+				break // No PNG image on clipboard, fallback to text
+			}
+
+			// Save the image
+			repoRoot, err := utils.FindRepoRoot()
+			if err != nil {
+				return pasteResultMsg{err: fmt.Errorf("could not find repo root: %w", err)}
+			}
+			imagesDir := filepath.Join(repoRoot, ".coder", "images")
+			if err := os.MkdirAll(imagesDir, 0755); err != nil {
+				return pasteResultMsg{err: fmt.Errorf("could not create images directory: %w", err)}
+			}
+			filename := fmt.Sprintf("%d.png", time.Now().UnixNano())
+			filePath := filepath.Join(imagesDir, filename)
+
+			outFile, err := os.Create(filePath)
+			if err != nil {
+				return pasteResultMsg{err: fmt.Errorf("could not create image file: %w", err)}
+			}
+			defer outFile.Close()
+
+			saveCmd := exec.Command("xclip", "-selection", "clipboard", "-t", "image/png", "-o")
+			saveCmd.Stdout = outFile
+
+			if err := saveCmd.Run(); err == nil {
+				info, statErr := os.Stat(filePath)
+				if statErr == nil && info.Size() > 0 {
+					// Success! It was an image. Return relative path
+					relPath, err := filepath.Rel(repoRoot, filePath)
+					if err != nil { // Should not happen, but fallback to full path
+						relPath = filePath
+					}
+					return pasteResultMsg{isImage: true, content: filepath.ToSlash(relPath)}
+				}
+				os.Remove(filePath) // clean up empty file
+			}
+			// If xclip fails, fall through to text paste.
 		}
 
-		// 2. Check if clipboard has image data by trying to save it.
-		repoRoot, err := utils.FindRepoRoot()
+		// Fallback for other OSes or if image paste tool fails/is not present
+		content, err := clipboard.ReadAll()
 		if err != nil {
-			return pasteResultMsg{err: fmt.Errorf("could not find repo root: %w", err)}
+			return pasteResultMsg{err: fmt.Errorf("failed to read clipboard: %w", err)}
 		}
-
-		imagesDir := filepath.Join(repoRoot, ".coder", "images")
-		if err := os.MkdirAll(imagesDir, 0755); err != nil {
-			return pasteResultMsg{err: fmt.Errorf("could not create images directory: %w", err)}
-		}
-
-		filename := fmt.Sprintf("%d.png", time.Now().UnixNano())
-		filePath := filepath.Join(imagesDir, filename)
-
-		cmd := exec.Command("pngpaste", filePath)
-		if err := cmd.Run(); err != nil {
-			// This error means there was no image on the clipboard. Fallback to text paste.
-			content, readErr := clipboard.ReadAll()
-			if readErr != nil {
-				return pasteResultMsg{err: fmt.Errorf("pngpaste failed and could not read clipboard text: %w", readErr)}
-			}
-			return pasteResultMsg{isImage: false, content: content}
-		}
-
-		// Success! It was an image. Return relative path
-		relPath, err := filepath.Rel(repoRoot, filePath)
-		if err != nil { // Should not happen, but fallback to full path
-			relPath = filePath
-		}
-		return pasteResultMsg{isImage: true, content: filepath.ToSlash(relPath)}
+		return pasteResultMsg{isImage: false, content: content}
 	}
 }
