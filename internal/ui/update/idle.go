@@ -127,18 +127,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyEscape:
-		val := m.TextArea.Value()
-		if val == "" {
-			model, cmd := m.enterVisualMode(visualModeNone)
-			return model, cmd, true
-		}
-
-		if strings.HasPrefix(val, ":") {
-			m.TextArea.Reset()
-		}
-		// For normal prompts, do nothing.
-		// In both cases, we've handled the event.
-		return m, nil, true
+		// Enter visual mode, preserving the text in the text area.
+		model, cmd := m.enterVisualMode(visualModeNone)
+		return model, cmd, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
 		numCommands := len(m.PaletteFilteredCommands)
