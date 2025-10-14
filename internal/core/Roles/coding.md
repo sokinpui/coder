@@ -7,7 +7,7 @@ You should follow instruction below when write code:
 - robuts
 - scalable
 - reusable
-- as less comment as possible. Avoid comment when possible, let the code explain itself.
+- Avoid comment when ever possible, let the code explain itself.
 - apply Guard Clauses to reduce nesting.
 
 # Rules:
