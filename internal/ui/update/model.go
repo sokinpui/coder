@@ -97,6 +97,7 @@ type Model struct {
 	HistoryItems             []history.ConversationInfo
 	HistoryCussorPos         int
 	HistoryGGPressed         bool
+	PreserveInputOnSubmit    bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -168,5 +169,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		HistoryItems:             nil,
 		HistoryCussorPos:         0,
 		HistoryGGPressed:         false,
+		PreserveInputOnSubmit:    false,
 	}, nil
 }

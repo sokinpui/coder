@@ -282,6 +282,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
+		originalContent := m.TextArea.Value()
+
 		var commandToRun string
 		parts := strings.SplitN(msg.result, ": ", 2)
 		if len(parts) == 2 {
@@ -290,7 +292,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			commandToRun = ":" + msg.result
 		}
 		m.TextArea.SetValue(commandToRun)
+		m.TextArea.CursorEnd()
+		m.PreserveInputOnSubmit = true
 		model, cmd := m.handleSubmit()
+
+		if newModel, ok := model.(Model); ok {
+			newModel.TextArea.SetValue(originalContent)
+			newModel.TextArea.CursorEnd()
+			return newModel, cmd, true
+		}
 		return model, cmd, true
 
 	case clearStatusBarMsg:

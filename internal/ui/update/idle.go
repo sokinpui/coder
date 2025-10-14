@@ -68,7 +68,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	case core.MessagesUpdated:
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
-		m.TextArea.Reset()
+		if !m.PreserveInputOnSubmit {
+			m.TextArea.Reset()
+		}
+		m.PreserveInputOnSubmit = false
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPromptForTokenCount())
 
