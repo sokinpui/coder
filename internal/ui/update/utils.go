@@ -260,12 +260,25 @@ func handlePasteCmd() tea.Cmd {
 			// If pngpaste fails, it means no image was on clipboard. Fall through to text paste.
 
 		case "linux":
-			if _, err := exec.LookPath("xclip"); err != nil {
-				break // xclip not found, fallback to text
+			isWayland := os.Getenv("WAYLAND_DISPLAY") != "" || os.Getenv("XDG_SESSION_TYPE") == "wayland"
+
+			var checkCmd, saveCmd *exec.Cmd
+
+			if isWayland {
+				if _, err := exec.LookPath("wl-paste"); err != nil {
+					break // wl-paste not found, fallback to text
+				}
+				checkCmd = exec.Command("wl-paste", "--list-types")
+				saveCmd = exec.Command("wl-paste", "-t", "image/png")
+			} else {
+				if _, err := exec.LookPath("xclip"); err != nil {
+					break // xclip not found, fallback to text
+				}
+				checkCmd = exec.Command("xclip", "-selection", "clipboard", "-t", "TARGETS", "-o")
+				saveCmd = exec.Command("xclip", "-selection", "clipboard", "-t", "image/png", "-o")
 			}
 
 			// Check if clipboard has image/png target
-			checkCmd := exec.Command("xclip", "-selection", "clipboard", "-t", "TARGETS", "-o")
 			output, err := checkCmd.Output()
 			if err != nil || !strings.Contains(string(output), "image/png") {
 				break // No PNG image on clipboard, fallback to text
@@ -289,7 +302,6 @@ func handlePasteCmd() tea.Cmd {
 			}
 			defer outFile.Close()
 
-			saveCmd := exec.Command("xclip", "-selection", "clipboard", "-t", "image/png", "-o")
 			saveCmd.Stdout = outFile
 
 			if err := saveCmd.Run(); err == nil {
@@ -304,7 +316,7 @@ func handlePasteCmd() tea.Cmd {
 				}
 				os.Remove(filePath) // clean up empty file
 			}
-			// If xclip fails, fall through to text paste.
+			// If tool fails, fall through to text paste.
 		}
 
 		// Fallback for other OSes or if image paste tool fails/is not present
