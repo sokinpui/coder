@@ -1,6 +1,6 @@
 # Coder
 
-Coder is an AI coding assistant available as a Terminal User Interface (TUI). It is designed to integrate AI code generation and modification directly into the development workflow.
+Coder is a wrapper of LLM chat interface with a few shortcutes to help apply code generated
 
 ## Features
 
@@ -23,8 +23,10 @@ Full documentation for the project can be found in the `docs/` directory.
 
 ### Prerequisites
 
-- **Common**: Go (1.24+), Git.
-- `fd`, `pcat`, `itf`.
+- **Common**: Go, Git.
+- `fd`, `pcat`, `itf`, `fzf`
+- `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) for image pasting.
+-
 
 ### Installation
 
@@ -37,3 +39,9 @@ The provided installation script can be used to install one or both applications
 ### Running
 
 - **TUI**: Run `coder` from within a Git repository.
+
+# Web UI
+
+mantain in another branch: https://github.com/sokinpui/coder/tree/web-ui
+
+Latest feature will available in TUI first.
