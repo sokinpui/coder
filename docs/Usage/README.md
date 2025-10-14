@@ -53,6 +53,7 @@ Commands start with a colon (`:`) and are entered in the input area.
 | `:mode <name>`  | Switch the application mode (e.g., `Coding`, `Documenting`). |
 | `:model <name>` | Switch the AI model.                                 |
 | `:rename <title>`| Rename the current session title.                    |
+| `:file [paths...]`| Set specific source files/directories for context. No paths clears the list. |
 | `:itf`          | Pipe the last AI response to the `itf` diff viewer.  |
 | `:gen`          | Enter Generate Mode to re-run a previous prompt.     |
 | `:edit`         | Enter Edit Mode to modify a previous prompt.         |
@@ -60,14 +61,6 @@ Commands start with a colon (`:`) and are entered in the input area.
 | `:visual`       | Enter Visual Mode for message selection.             |
 | `:history`      | View and load past conversations.                    |
 | `:fzf`          | Open a fuzzy finder for commands.                    |
-
-### Actions
-
-Actions are commands that execute external tools.
-
-| Action         | Description                                          |
-| -------------- | ---------------------------------------------------- |
-| `:pcat <file>` | Display a file with syntax highlighting.             |
 
 ### Visual Mode
 

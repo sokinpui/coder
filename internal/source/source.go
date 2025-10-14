@@ -105,10 +105,10 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 
 		command := commandBuilder.String()
 
-		cmd := exec.Command("bash", "-c", command)
+		cmd := exec.Command("sh", "-c", command)
 		output, err := cmd.Output()
 		if err != nil {
-			cmdForErr := exec.Command("bash", "-c", command)
+			cmdForErr := exec.Command("sh", "-c", command)
 			combinedOutput, _ := cmdForErr.CombinedOutput()
 			return "", fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(combinedOutput))
 		}

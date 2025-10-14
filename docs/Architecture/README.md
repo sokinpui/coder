@@ -4,36 +4,23 @@ This document provides an overview of the Coder project's architecture, componen
 
 ## High-Level Overview
 
-Coder is a Terminal User Interface (TUI) application written in Go. It acts as a client to an external gRPC-based AI service for code generation.
+Coder is a Terminal User Interface (TUI) application written in Go. It acts as a client to an external gRPC-based AI service for code generation, and is designed to be run locally from within a Git repository.
 
 ```
-+------------------+      +-------------------+
-|   TUI Client     |      |    Web Client     |
-|     (coder)      |      |    (coder-web)    |
-+------------------+      +-------------------+
-        |                   |      ^
-        |                   |      | (WebSocket)
-        |                   V      |
-        |             +-------------------+
-        |             | Go WebSocket Srv  |
-        |             +-------------------+
-        |                   |
-        +---------+---------+
-                  |
-        +-------------------+
-        |    Core Logic     |
-        |    (session)      |
-        +-------------------+
-                  |
-        +-------------------+
-        |  gRPC Client for  |
-        |    AI Service     |
-        +-------------------+
-                  |
-                  V
-        +-------------------+
-        | External AI Service|
-        +-------------------+
++------------------+
+|   TUI Client     |
+|     (coder)      |
++------------------+
+         |
++------------------+
+|    Core Logic    |
+|    (session)     |
++------------------+
+         |
++------------------+
+|  gRPC Client for |
+|    AI Service    |
++------------------+
 ```
 
 ## Component Breakdown
@@ -41,7 +28,6 @@ Coder is a Terminal User Interface (TUI) application written in Go. It acts as a
 ### Applications
 
 -   **`cmd/coder` (TUI)**: A standalone, keyboard-driven terminal application built using the `bubbletea` framework. It directly interacts with the core session management logic.
--   **`cmd/coder-web` (Web UI)**: A Go application that serves a React-based single-page application (SPA) and handles communication with it via a WebSocket server.
 
 ### Core Logic (`internal/`)
 
@@ -51,14 +37,7 @@ This directory contains the shared business logic for both applications.
 -   **`core`**: Defines fundamental types (`Message`) and handles the processing of user input, distinguishing between prompts, commands (`:mode`), and actions (`:pcat`).
 -   **`generation`**: Contains the client for the external AI gRPC service. It is responsible for sending prompts and receiving generated content streams.
 -   **`history`**: Manages the persistence of conversations. Sessions are saved as Markdown files with YAML frontmatter in the `.coder/history` directory at the root of the Git repository.
--   **`server`**: Implements the WebSocket server for `coder-web`. It manages client connections, translates WebSocket messages into calls to the `session` manager, and streams responses back to the web client.
 -   **`ui`**: The implementation of the TUI, including all models, views, and updates for the `bubbletea` framework.
-
-### Frontend (`web/`)
-
--   A React and TypeScript single-page application built with Vite.
--   It communicates with the `coder-web` backend exclusively through a WebSocket connection.
--   Components are built using Material-UI.
 
 ## Data Flow
 
@@ -71,16 +50,12 @@ On startup, and before each generation, the application gathers context:
 
 This context is prepended to the prompt sent to the AI service.
 
-### Conversation Flow (Web UI)
+### Conversation Flow
 
-1.  The user types a message in the React UI and sends it.
-2.  The `useWebSocket` hook sends a JSON message (`userInput`) over the WebSocket.
-3.  The Go `server` receives the message and passes the input to the `session` manager.
-4.  The `session` manager processes the input via the `core` package. For a prompt, it constructs the full prompt including system instructions, context, and conversation history.
-5.  The `session` calls the `generation` client to send the prompt to the AI service.
-6.  The `generation` client streams the response back to the `session`.
-7.  The `session` forwards the stream to the `server`, which sends `generationChunk` messages over the WebSocket.
-8.  The React UI receives the chunks and updates the display in real-time.
-9.  Upon completion, the `session` saves the full conversation to the history file.
-
-The TUI flow is similar but replaces the WebSocket communication with direct function calls between the `ui` and `session` packages.
+The TUI flow uses direct function calls between the `ui` and `session` packages. When a user sends a prompt:
+1. The `ui` package sends the input string to the `session` manager.
+2. The `session` manager processes the input via the `core` package. It constructs the full prompt including system instructions, context, and conversation history.
+3. The `session` calls the `generation` client to send the prompt to the AI service.
+4. The `generation` client streams the response back to the `session`.
+5. The `session` forwards the stream to the `ui`, which updates the display in real-time.
+6. Upon completion, the `session` saves the full conversation to the history file.
