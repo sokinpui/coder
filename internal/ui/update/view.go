@@ -88,6 +88,9 @@ func (m Model) renderConversation() string {
 		case core.CommandMessage:
 			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
+		case core.ImageMessage:
+			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
+			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
 		case core.AIMessage:
 			if currentMsg.Content == "" {
 				continue

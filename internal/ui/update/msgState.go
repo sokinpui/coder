@@ -42,4 +42,9 @@ type (
 		result string
 		err    error
 	}
+	pasteResultMsg struct {
+		isImage bool
+		content string
+		err     error
+	}
 )

@@ -239,6 +239,21 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.DisplayedTitle = ""
 		return m, animateTitleTick(), true
 
+	case pasteResultMsg:
+		if msg.err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.err)
+			return m, clearStatusBarCmd(5 * time.Second), true
+		}
+
+		if msg.isImage {
+			m.Session.AddMessage(core.Message{Type: core.ImageMessage, Content: msg.content})
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+		} else {
+			m.TextArea.InsertString(msg.content)
+		}
+		return m, nil, true
+
 	case animateTitleTickMsg:
 		if !m.AnimatingTitle {
 			return m, nil, true

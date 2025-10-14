@@ -286,6 +286,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
+
+	case tea.KeyCtrlV:
+		return m, handlePasteCmd(), true
 	}
 	return m, nil, false
 }

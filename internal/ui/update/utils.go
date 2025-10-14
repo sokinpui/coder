@@ -4,14 +4,17 @@ import (
 	"coder/internal/history"
 	"coder/internal/session"
 	"coder/internal/token"
+	"coder/internal/utils"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -218,4 +221,52 @@ func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDow
 		}
 	}
 	return newCursor
+}
+
+// handlePasteCmd checks the clipboard for an image using `pngpaste`.
+// If an image is found, it's saved to `.coder/images` and the relative path is returned.
+// If not, it falls back to pasting text content.
+func handlePasteCmd() tea.Cmd {
+	return func() tea.Msg {
+		// 1. Check if pngpaste exists
+		if _, err := exec.LookPath("pngpaste"); err != nil {
+			// pngpaste not found, fallback to text paste
+			content, err := clipboard.ReadAll()
+			if err != nil {
+				return pasteResultMsg{err: fmt.Errorf("failed to read clipboard: %w", err)}
+			}
+			return pasteResultMsg{isImage: false, content: content}
+		}
+
+		// 2. Check if clipboard has image data by trying to save it.
+		repoRoot, err := utils.FindRepoRoot()
+		if err != nil {
+			return pasteResultMsg{err: fmt.Errorf("could not find repo root: %w", err)}
+		}
+
+		imagesDir := filepath.Join(repoRoot, ".coder", "images")
+		if err := os.MkdirAll(imagesDir, 0755); err != nil {
+			return pasteResultMsg{err: fmt.Errorf("could not create images directory: %w", err)}
+		}
+
+		filename := fmt.Sprintf("%d.png", time.Now().UnixNano())
+		filePath := filepath.Join(imagesDir, filename)
+
+		cmd := exec.Command("pngpaste", filePath)
+		if err := cmd.Run(); err != nil {
+			// This error means there was no image on the clipboard. Fallback to text paste.
+			content, readErr := clipboard.ReadAll()
+			if readErr != nil {
+				return pasteResultMsg{err: fmt.Errorf("pngpaste failed and could not read clipboard text: %w", readErr)}
+			}
+			return pasteResultMsg{isImage: false, content: content}
+		}
+
+		// Success! It was an image. Return relative path
+		relPath, err := filepath.Rel(repoRoot, filePath)
+		if err != nil { // Should not happen, but fallback to full path
+			relPath = filePath
+		}
+		return pasteResultMsg{isImage: true, content: filepath.ToSlash(relPath)}
+	}
 }
