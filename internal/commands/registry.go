@@ -33,14 +33,73 @@ func GetCommands() []string {
 	return commandNames
 }
 
+// processPipedCommands handles the logic for executing a series of commands linked by pipes.
+func processPipedCommands(trimmedInput string, s SessionController) (CommandOutput, bool) {
+	pipeSymbol := "|||"
+	commandParts := strings.Split(trimmedInput, pipeSymbol)
+	var lastOutput CommandOutput
+	var lastSuccess = true
+
+	for i, part := range commandParts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			return CommandOutput{Type: CommandResultString, Payload: "Invalid pipe syntax: empty command."}, false
+		}
+
+		var pipedArgs string
+		if i > 0 { // For commands after the first one in the pipe
+			if !lastSuccess {
+				return CommandOutput{Type: CommandResultString, Payload: "Error: previous command in pipe failed."}, false
+			}
+			if lastOutput.Type != CommandResultString {
+				return CommandOutput{Type: CommandResultString, Payload: "Error: command output is not pipeable."}, false
+			}
+			pipedArgs = lastOutput.Payload
+		}
+
+		parts := strings.Fields(part)
+		if len(parts) == 0 {
+			return CommandOutput{Type: CommandResultString, Payload: "Invalid command syntax."}, false
+		}
+		cmdName := parts[0]
+		argsFromPart := strings.Join(parts[1:], " ")
+
+		finalArgs := argsFromPart
+		if pipedArgs != "" {
+			// Normalize whitespace and newlines from the piped output to pass as arguments.
+			normalizedPipedArgs := strings.Join(strings.Fields(pipedArgs), " ")
+			if finalArgs != "" {
+				finalArgs += " " + normalizedPipedArgs
+			} else {
+				finalArgs = normalizedPipedArgs
+			}
+		}
+
+		cmd, exists := commands[cmdName]
+		if !exists {
+			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, false
+		}
+
+		lastOutput, lastSuccess = cmd(finalArgs, s)
+	}
+	return lastOutput, lastSuccess
+}
+
 // ProcessCommand tries to execute a command from the input string.
 // It returns the result and a boolean indicating if it was a command.
 func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
-		return CommandOutput{}, false, false
+		return CommandOutput{}, false, false // Not a command
+	}
+	trimmedInput := strings.TrimPrefix(input, ":")
+	pipeSymbol := "|||"
+	if strings.Contains(trimmedInput, pipeSymbol) {
+		result, success = processPipedCommands(trimmedInput, s)
+		return result, true, success
 	}
 
-	parts := strings.Fields(strings.TrimPrefix(input, ":"))
+	// No pipe, original logic
+	parts := strings.Fields(trimmedInput)
 	if len(parts) == 0 {
 		return CommandOutput{Type: CommandResultString, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false
 	}
