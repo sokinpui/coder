@@ -26,7 +26,7 @@ const welcomeMessage = `Welcome to Coder!
 - Use Ctrl+H to view conversation history.
 - Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - During generation, press Ctrl+C to cancel.
-- Type ':' to see available commands and actions.
+- Type ':help' for a list of all commands and shortcuts.
 - Place files in the 'Context' directory to provide them to the AI.`
 
 func min(a, b int) int {
