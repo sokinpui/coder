@@ -17,8 +17,8 @@ func (m *DocumentingMode) GetRolePrompt() string {
 	return core.DocumentingRole
 }
 
-// LoadContext loads context and project source, including markdown files.
-func (m *DocumentingMode) LoadContext(cfg *config.Config) error {
+// LoadSourceCode loads context and project source, including markdown files.
+func (m *DocumentingMode) LoadSourceCode(cfg *config.Config) error {
 
 	projSource, srcErr := source.LoadProjectSource(&cfg.Sources)
 	if srcErr != nil {

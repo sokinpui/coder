@@ -17,8 +17,8 @@ func (m *CodingMode) GetRolePrompt() string {
 	return core.CodingRole
 }
 
-// LoadContext loads context from the Context/ directory and project source files.
-func (m *CodingMode) LoadContext(cfg *config.Config) error {
+// LoadSourceCode loads context from the Context/ directory and project source files.
+func (m *CodingMode) LoadSourceCode(cfg *config.Config) error {
 	projSource, srcErr := source.LoadProjectSource(&cfg.Sources)
 	if srcErr != nil {
 		return fmt.Errorf("failed to load project source: %w", srcErr)

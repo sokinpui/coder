@@ -7,7 +7,7 @@ import (
 
 // LoadContext loads the initial context for the session using the current mode strategy.
 func (s *Session) LoadContext() error {
-	if err := s.modeStrategy.LoadContext(s.config); err != nil {
+	if err := s.modeStrategy.LoadSourceCode(s.config); err != nil {
 		return err
 	}
 	s.preamble = s.modeStrategy.BuildPrompt(nil)
