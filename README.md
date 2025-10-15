@@ -26,7 +26,6 @@ Full documentation for the project can be found in the `docs/` directory.
 - **Common**: Go, Git.
 - `fd`, `pcat`, `itf`, `fzf`
 - `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) for image pasting.
--
 
 ### Installation
 
