@@ -102,7 +102,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true // Don't count tokens on failure/cancellation
 		}
 
-		prompt := m.Session.GetPromptForTokenCount()
+		prompt := m.Session.GetPrompt()
 		m.IsCountingTokens = true
 
 		return m, countTokensCmd(prompt), true
@@ -148,7 +148,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 			m.EditingMessageIndex = -1 // Reset on success or failure
 			m.IsCountingTokens = true
-			return m, tea.Batch(cmd, countTokensCmd(m.Session.GetPromptForTokenCount())), true
+			return m, tea.Batch(cmd, countTokensCmd(m.Session.GetPrompt())), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
@@ -231,7 +231,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 		m.IsCountingTokens = true
-		return m, tea.Batch(countTokensCmd(m.Session.GetPromptForTokenCount()), textarea.Blink), true
+		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
 
 	case titleGeneratedMsg:
 		m.AnimatingTitle = true
@@ -322,7 +322,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// Now that context is loaded, count the tokens.
 		m.IsCountingTokens = true
-		return m, countTokensCmd(m.Session.GetPromptForTokenCount()), true
+		return m, countTokensCmd(m.Session.GetPrompt()), true
 
 	case errorMsg:
 		m.IsStreaming = false

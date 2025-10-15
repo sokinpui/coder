@@ -166,7 +166,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 				// Recalculate token count
 				m.IsCountingTokens = true
-				cmds = append(cmds, countTokensCmd(m.Session.GetPromptForTokenCount()))
+				cmds = append(cmds, countTokensCmd(m.Session.GetPrompt()))
 
 				return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...)), true
 			}
@@ -381,7 +381,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Viewport.SetContent(m.renderConversation())
 				m.Viewport.GotoBottom()
 				m.IsCountingTokens = true
-				return m, tea.Batch(textarea.Blink, cmd, countTokensCmd(m.Session.GetPromptForTokenCount())), true
+				return m, tea.Batch(textarea.Blink, cmd, countTokensCmd(m.Session.GetPrompt())), true
 			}
 		}
 	}

@@ -17,8 +17,8 @@ func (s *Session) CancelGeneration() {
 	}
 }
 
-// GetPromptForTokenCount builds and returns the full prompt string for token counting.
-func (s *Session) GetPromptForTokenCount() string {
+// GetPrompt builds and returns the full prompt string for token counting.
+func (s *Session) GetPrompt() string {
 	return s.modeStrategy.BuildPrompt(s.messages)
 }
 

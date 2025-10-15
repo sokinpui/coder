@@ -24,7 +24,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) c
 		return core.Event{Type: core.MessagesUpdated}
 	}
 
-	prompt := s.GetPromptForTokenCount()
+	prompt := s.GetPrompt()
 	messages := s.GetMessages()
 
 	// Collect image paths from recent messages that precede the current user prompt.

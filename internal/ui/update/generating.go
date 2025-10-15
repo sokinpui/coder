@@ -39,7 +39,7 @@ func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
 	m.Viewport.SetContent(m.renderConversation())
 	m.Viewport.GotoBottom()
 
-	prompt := m.Session.GetPromptForTokenCount()
+	prompt := m.Session.GetPrompt()
 	m.IsCountingTokens = true
 	return m, tea.Batch(listenForStream(m.StreamSub), m.Spinner.Tick, countTokensCmd(prompt))
 }

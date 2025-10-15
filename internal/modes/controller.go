@@ -16,6 +16,6 @@ type SessionController interface {
 	// Methods needed for StartGeneration logic in strategies
 	GetGenerator() *generation.Generator
 	SetCancelGeneration(cancel context.CancelFunc)
-	GetPromptForTokenCount() string
+	GetPrompt() string
 	LoadContext() error
 }
