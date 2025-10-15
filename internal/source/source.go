@@ -13,6 +13,7 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 	exclusions := []string{
 		// common exclusions:
 		"*-lock.json",
+		"*.md",
 		"go.sum",
 		".git",
 		".coder",
