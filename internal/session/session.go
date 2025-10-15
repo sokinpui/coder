@@ -12,17 +12,17 @@ import (
 )
 
 type Session struct {
-	config             *config.Config
-	generator          *generation.Generator
-	historyManager     *history.Manager
-	messages           []core.Message
-	cancelGeneration   context.CancelFunc
-	title              string
-	preamble           string
-	titleGenerated     bool
-	historyFilename    string
-	createdAt          time.Time
-	modeStrategy       modes.ModeStrategy
+	config           *config.Config
+	generator        *generation.Generator
+	historyManager   *history.Manager
+	messages         []core.Message
+	cancelGeneration context.CancelFunc
+	title            string
+	context          string // Role instruction + source code
+	titleGenerated   bool
+	historyFilename  string
+	createdAt        time.Time
+	modeStrategy     modes.ModeStrategy
 }
 
 func New(cfg *config.Config) (*Session, error) {

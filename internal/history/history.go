@@ -3,9 +3,9 @@ package history
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"coder/internal/core"
 	"coder/internal/utils"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,7 +38,7 @@ type ConversationData struct {
 	Title     string
 	CreatedAt time.Time
 	Messages  []core.Message
-	Preamble  string
+	Context   string // Role Instruction + source code
 	FilePaths []string
 	FileDirs  []string
 }
@@ -68,7 +68,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 		return nil
 	}
 
-	trimmedHeaders := strings.TrimSpace(data.Preamble)
+	trimmedHeaders := strings.TrimSpace(data.Context)
 
 	var contentBuilder strings.Builder
 	if trimmedHeaders != "" {

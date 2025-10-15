@@ -10,7 +10,7 @@ func (s *Session) LoadContext() error {
 	if err := s.modeStrategy.LoadSourceCode(s.config); err != nil {
 		return err
 	}
-	s.preamble = s.modeStrategy.BuildPrompt(nil)
+	s.context = s.modeStrategy.BuildPrompt(nil) // return only the Role instruction + source code
 	return nil
 }
 

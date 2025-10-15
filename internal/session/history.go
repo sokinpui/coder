@@ -19,7 +19,7 @@ func (s *Session) SaveConversation() error {
 		Title:     s.title,
 		CreatedAt: s.createdAt,
 		Messages:  s.messages,
-		Preamble:  s.preamble,
+		Context:   s.context,
 		FilePaths: s.config.Sources.FilePaths,
 		FileDirs:  s.config.Sources.FileDirs,
 	}
