@@ -322,7 +322,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// Now that context is loaded, count the tokens.
 		m.IsCountingTokens = true
-		return m, countTokensCmd(m.Session.GetInitialPromptForTokenCount()), true
+		return m, countTokensCmd(m.Session.GetPromptForTokenCount()), true
 
 	case errorMsg:
 		m.IsStreaming = false
