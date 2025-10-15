@@ -36,16 +36,23 @@ if [ "$(uname)" == "Darwin" ]; then
   check_command "pngpaste"
 fi
 
-echo "All required system commands are found."
-
 # --- Install Go Dependencies ---
 echo "Installing Go-based dependencies to $(go env GOPATH)/bin..."
 
-echo "Installing itf (interactive diff tool)..."
-go install github.com/sokinpui/itf.go/cmd/itf@latest
+# if itf is not installed, install it
+if ! command -v itf &>/dev/null; then
+  echo "Installing itf (interactive diff tool)..."
+  go install github.com/sokinpui/itf.go/cmd/itf@latest
+else
+  echo "itf is already installed"
+fi
 
-echo "Installing pcat (code to prompt tool)..."
-go install github.com/sokinpui/pcat.go/cmd/pcat@latest
+if ! command -v pcat &>/dev/null; then
+  echo "Installing pcat (code to prompt tool)..."
+  go install github.com/sokinpui/pcat.go/cmd/pcat@latest
+else
+  echo "pcat is already installed"
+fi
 
 # --- Install Application Binary ---
 echo "Installing Coder TUI..."
