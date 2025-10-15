@@ -21,10 +21,14 @@ type helpSection struct {
 	group helpGroup
 }
 
+var behaviorGroup = helpGroup{
+	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `:file` let AI read them."},
+}
+
 var commandGroup = helpGroup{
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
-	{key: "file", desc: "Set project source files/directories. No arguments clears."},
+	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all."},
 	{key: "gen", desc: "Enter generate mode to re-generate a response."},
 	{key: "help", desc: "Show this help message."},
 	{key: "history", desc: "View conversation history."},
@@ -71,6 +75,7 @@ var historyViewGropu = helpGroup{
 }
 
 var helpPageDesc = []helpSection{
+	{name: "Behavior", group: behaviorGroup},
 	{name: "Global", group: globalGroup},
 	{name: "Command", group: commandGroup},
 	{name: "Visual mode", group: visualModeGroup},
