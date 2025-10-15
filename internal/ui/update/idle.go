@@ -34,6 +34,11 @@ func (m Model) newSession() (Model, tea.Cmd) {
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.TextArea.Value()
 
+	// don't send if the input is empty
+	if strings.TrimSpace(input) == "" {
+		return m, nil
+	}
+
 	if !strings.HasPrefix(input, ":") {
 		// This is a prompt, apply debounce.
 		if m.LastInteractionFailed {
