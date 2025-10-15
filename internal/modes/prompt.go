@@ -7,11 +7,9 @@ import (
 )
 
 const (
-	systemInstructionsHeader   = "# SYSTEM INSTRUCTIONS\n\n"
-	relatedDocumentsHeader     = "# RELATED DOCUMENTS\n\n"
-	projectSourceCodeHeader    = "# PROJECT SOURCE CODE\n\n"
-	conversationHistoryHeader  = "# CONVERSATION HISTORY\n\n"
-	Separator                  = "\n\n---\n\n"
+	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
+	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
+	Separator                 = "\n\n---\n\n"
 )
 
 // PromptSection represents a distinct part of a larger prompt.
@@ -58,24 +56,6 @@ func RoleSection(role, instructions string) PromptSection {
 		content.WriteString(instructions)
 	}
 	return PromptSection{Content: content.String(), Separator: Separator}
-}
-
-// SystemInstructionsSection creates a prompt section for user-defined system instructions.
-func SystemInstructionsSection(content string) PromptSection {
-	return PromptSection{
-		Header:    systemInstructionsHeader,
-		Content:   content,
-		Separator: Separator,
-	}
-}
-
-// RelatedDocumentsSection creates a prompt section for related documents.
-func RelatedDocumentsSection(content string) PromptSection {
-	return PromptSection{
-		Header:    relatedDocumentsHeader,
-		Content:   content,
-		Separator: Separator,
-	}
 }
 
 // ProjectSourceCodeSection creates a prompt section for project source code.
