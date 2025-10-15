@@ -3,6 +3,7 @@ package history
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"coder/internal/core"
 	"coder/internal/utils"
 	"fmt"
@@ -22,6 +23,8 @@ type Metadata struct {
 	Title      string
 	CreatedAt  time.Time
 	ModifiedAt time.Time
+	FilePaths  []string
+	FileDirs   []string
 }
 
 type ConversationInfo struct {
@@ -36,6 +39,8 @@ type ConversationData struct {
 	CreatedAt time.Time
 	Messages  []core.Message
 	Preamble  string
+	FilePaths []string
+	FileDirs  []string
 }
 
 type Manager struct {
@@ -84,6 +89,18 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
+	if len(data.FilePaths) > 0 {
+		paths, err := json.Marshal(data.FilePaths)
+		if err == nil {
+			fmt.Fprintf(&fileBuf, "filePaths: %s\n", string(paths))
+		}
+	}
+	if len(data.FileDirs) > 0 {
+		dirs, err := json.Marshal(data.FileDirs)
+		if err == nil {
+			fmt.Fprintf(&fileBuf, "fileDirs: %s\n", string(dirs))
+		}
+	}
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintln(&fileBuf, "")
 
@@ -117,6 +134,14 @@ func processMessageContent(msg *core.Message, rawContent string) {
 	msg.Content = content
 }
 
+func parseStringSlice(value string) []string {
+	var s []string
+	if err := json.Unmarshal([]byte(value), &s); err != nil {
+		return nil
+	}
+	return s
+}
+
 func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	parts := bytes.SplitN(content, []byte("---\n"), 3)
 	if len(parts) < 3 {
@@ -147,6 +172,10 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 			if err == nil {
 				metadata.ModifiedAt = t
 			}
+		case "filePaths":
+			metadata.FilePaths = parseStringSlice(value)
+		case "fileDirs":
+			metadata.FileDirs = parseStringSlice(value)
 		}
 	}
 
@@ -238,6 +267,10 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 			if err == nil {
 				metadata.ModifiedAt = t
 			}
+		case "filePaths":
+			metadata.FilePaths = parseStringSlice(value)
+		case "fileDirs":
+			metadata.FileDirs = parseStringSlice(value)
 		}
 	}
 

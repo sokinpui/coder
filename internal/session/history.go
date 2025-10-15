@@ -21,6 +21,8 @@ func (s *Session) SaveConversation() error {
 		CreatedAt: s.createdAt,
 		Messages:  s.messages,
 		Preamble:  preamble,
+		FilePaths: s.config.Sources.FilePaths,
+		FileDirs:  s.config.Sources.FileDirs,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -50,6 +52,19 @@ func (s *Session) LoadConversation(filename string) error {
 	s.titleGenerated = true // A loaded conversation always has a title.
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
+
+	// Update sources from history. If not present in history (e.g. old format),
+	// clear them to match the state when the conversation was saved.
+	if metadata.FilePaths != nil {
+		s.config.Sources.FilePaths = metadata.FilePaths
+	} else {
+		s.config.Sources.FilePaths = []string{}
+	}
+	if metadata.FileDirs != nil {
+		s.config.Sources.FileDirs = metadata.FileDirs
+	} else {
+		s.config.Sources.FileDirs = []string{}
+	}
 
 	// The context, including project source, is loaded based on the current mode.
 	return s.LoadContext()
