@@ -18,6 +18,7 @@ type Session struct {
 	messages           []core.Message
 	cancelGeneration   context.CancelFunc
 	title              string
+	preamble           string
 	titleGenerated     bool
 	historyFilename    string
 	createdAt          time.Time

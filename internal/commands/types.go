@@ -28,6 +28,7 @@ type SessionController interface {
 	GetConfig() *config.Config
 	SetTitle(title string)
 	SetMode(mode config.AppMode) error
+	LoadContext() error
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

@@ -17,6 +17,10 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	if len(paths) == 0 {
 		cfg.Sources.FileDirs = []string{}
 		cfg.Sources.FilePaths = []string{}
+		if err := s.LoadContext(); err != nil {
+			msg := fmt.Sprintf("Project source files cleared, but failed to reload context: %v", err)
+			return CommandOutput{Type: CommandResultString, Payload: msg}, false
+		}
 		return CommandOutput{Type: CommandResultString, Payload: "Project source files cleared. The next prompt will not include any project source code."}, true
 	}
 
@@ -62,6 +66,10 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 			cfg.Sources.FilePaths = append(cfg.Sources.FilePaths, f)
 			fileLookup[f] = struct{}{}
 		}
+	}
+
+	if err := s.LoadContext(); err != nil {
+		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
 	}
 
 	var payload strings.Builder

@@ -11,7 +11,7 @@ const (
 	relatedDocumentsHeader     = "# RELATED DOCUMENTS\n\n"
 	projectSourceCodeHeader    = "# PROJECT SOURCE CODE\n\n"
 	conversationHistoryHeader  = "# CONVERSATION HISTORY\n\n"
-	separator                  = "\n\n---\n\n"
+	Separator                  = "\n\n---\n\n"
 )
 
 // PromptSection represents a distinct part of a larger prompt.
@@ -57,7 +57,7 @@ func RoleSection(role, instructions string) PromptSection {
 	if instructions != "" {
 		content.WriteString(instructions)
 	}
-	return PromptSection{Content: content.String(), Separator: separator}
+	return PromptSection{Content: content.String(), Separator: Separator}
 }
 
 // SystemInstructionsSection creates a prompt section for user-defined system instructions.
@@ -65,7 +65,7 @@ func SystemInstructionsSection(content string) PromptSection {
 	return PromptSection{
 		Header:    systemInstructionsHeader,
 		Content:   content,
-		Separator: separator,
+		Separator: Separator,
 	}
 }
 
@@ -74,7 +74,7 @@ func RelatedDocumentsSection(content string) PromptSection {
 	return PromptSection{
 		Header:    relatedDocumentsHeader,
 		Content:   content,
-		Separator: separator,
+		Separator: Separator,
 	}
 }
 
@@ -83,17 +83,17 @@ func ProjectSourceCodeSection(content string) PromptSection {
 	return PromptSection{
 		Header:    projectSourceCodeHeader,
 		Content:   content,
-		Separator: separator,
+		Separator: Separator,
 	}
 }
 
 // ConversationHistorySection creates a prompt section for the conversation history.
 func ConversationHistorySection(messages []core.Message) PromptSection {
 	if len(messages) == 0 {
-		return PromptSection{Separator: separator}
+		return PromptSection{Separator: Separator}
 	}
 
-	content := buildHistoryString(messages)
+	content := BuildHistoryString(messages)
 
 	return PromptSection{
 		Header:  conversationHistoryHeader,
@@ -101,7 +101,8 @@ func ConversationHistorySection(messages []core.Message) PromptSection {
 	}
 }
 
-func buildHistoryString(messages []core.Message) string {
+// BuildHistoryString constructs the conversation history part of the prompt.
+func BuildHistoryString(messages []core.Message) string {
 	var sb strings.Builder
 	for _, msg := range messages {
 		switch msg.Type {

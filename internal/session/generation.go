@@ -2,6 +2,8 @@ package session
 
 import (
 	"coder/internal/core"
+	"coder/internal/modes"
+	"strings"
 	"context"
 )
 
@@ -19,12 +21,25 @@ func (s *Session) CancelGeneration() {
 
 // GetPromptForTokenCount builds and returns the full prompt string for token counting.
 func (s *Session) GetPromptForTokenCount() string {
-	return s.modeStrategy.BuildPrompt(s.messages)
+	if len(s.messages) == 0 {
+		return s.preamble
+	}
+
+	historySection := modes.ConversationHistorySection(s.messages)
+
+	var sb strings.Builder
+	sb.WriteString(s.preamble)
+	if s.preamble != "" {
+		sb.WriteString(modes.Separator)
+	}
+	sb.WriteString(historySection.Header)
+	sb.WriteString(historySection.Content)
+	return sb.String()
 }
 
 // GetInitialPromptForTokenCount returns the prompt with only the context.
 func (s *Session) GetInitialPromptForTokenCount() string {
-	return s.modeStrategy.BuildPrompt(nil)
+	return s.preamble
 }
 
 // StartGeneration delegates to the current mode strategy to start a generation.

@@ -14,13 +14,12 @@ func (s *Session) SaveConversation() error {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}
 
-	preamble := s.modeStrategy.BuildPrompt(nil)
 	data := &history.ConversationData{
 		Filename:  s.historyFilename,
 		Title:     s.title,
 		CreatedAt: s.createdAt,
 		Messages:  s.messages,
-		Preamble:  preamble,
+		Preamble:  s.preamble,
 		FilePaths: s.config.Sources.FilePaths,
 		FileDirs:  s.config.Sources.FileDirs,
 	}
