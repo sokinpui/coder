@@ -13,10 +13,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	if m.State != stateHistorySelect {
 		switch msg.Type {
 		case tea.KeyCtrlU:
-			m.Viewport.HalfViewUp()
+			m.Viewport.HalfPageUp()
 			return m, nil, true
 		case tea.KeyCtrlD:
-			m.Viewport.HalfViewDown()
+			m.Viewport.HalfPageDown()
 			return m, nil, true
 		}
 	}

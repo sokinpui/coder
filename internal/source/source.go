@@ -1,6 +1,7 @@
 package source
 
 import (
+	"bufio"
 	"coder/internal/config"
 	"fmt"
 	"os/exec"
@@ -114,9 +115,9 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 			return "", fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(combinedOutput))
 		}
 
-		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-		for _, line := range lines {
-			if line != "" {
+		scanner := bufio.NewScanner(strings.NewReader(string(output)))
+		for scanner.Scan() {
+			if line := scanner.Text(); line != "" {
 				filesFromDirs = append(filesFromDirs, line)
 			}
 		}

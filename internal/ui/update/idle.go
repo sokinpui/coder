@@ -155,9 +155,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			// For a normal Tab, cursor is already 0, so we do nothing.
 		} else {
 			// We are already in a completion cycle.
-			if msg.Type == tea.KeyTab {
+			switch msg.Type {
+			case tea.KeyTab:
 				m.PaletteCursor = (m.PaletteCursor + 1) % totalItems
-			} else { // Shift+Tab
+			case tea.KeyShiftTab:
 				m.PaletteCursor--
 				if m.PaletteCursor < 0 {
 					m.PaletteCursor = totalItems - 1
@@ -246,7 +247,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlN:
 		event := m.Session.HandleInput(":new")
-		if event.Type == core.NewSessionStarted {
+		switch event.Type {
+		case core.NewSessionStarted:
 			newModel, cmd := m.newSession()
 			return newModel, cmd, true
 		}
@@ -282,7 +284,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.Session.HandleInput(":itf")
-		if event.Type == core.MessagesUpdated {
+		switch event.Type {
+		case core.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		}

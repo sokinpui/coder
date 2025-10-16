@@ -58,7 +58,8 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.StreamSub = nil
 		}
 		event := m.Session.HandleInput(":new")
-		if event.Type == core.NewSessionStarted {
+		switch event.Type {
+		case core.NewSessionStarted:
 			newModel, cmd := m.newSession()
 			newModel.State = stateIdle
 			return newModel, cmd, true
@@ -66,10 +67,11 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		return m, nil, true
 	case tea.KeyCtrlB:
 		event := m.Session.HandleInput(":branch")
-		if event.Type == core.BranchModeStarted {
+		switch event.Type {
+		case core.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		} else if event.Type == core.MessagesUpdated {
+		case core.MessagesUpdated:
 			// This handles the case where branching is not possible (e.g., no messages)
 			// and an error message was added to the session.
 			m.Viewport.SetContent(m.renderConversation())

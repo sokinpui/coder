@@ -149,8 +149,9 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	}
 
 	metadata := &Metadata{}
-	metaLines := strings.Split(string(parts[1]), "\n")
-	for _, line := range metaLines {
+	metaScanner := bufio.NewScanner(bytes.NewReader(parts[1]))
+	for metaScanner.Scan() {
+		line := metaScanner.Text()
 		if line == "" {
 			continue
 		}
@@ -179,24 +180,24 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 		}
 	}
 
-	body := string(parts[2])
-	historyHeader := "# CONVERSATION HISTORY"
-	historyIndex := strings.Index(body, historyHeader)
+	bodyBytes := parts[2]
+	historyHeader := []byte("# CONVERSATION HISTORY")
+	historyIndex := bytes.Index(bodyBytes, historyHeader)
 	if historyIndex == -1 {
 		// No conversation history, but not an error.
 		return metadata, []core.Message{}, nil
 	}
 
-	conversationContent := body[historyIndex+len(historyHeader):]
-	conversationContent = strings.TrimSpace(conversationContent)
+	conversationContentBytes := bodyBytes[historyIndex+len(historyHeader):]
+	conversationContentBytes = bytes.TrimSpace(conversationContentBytes)
 
 	var messages []core.Message
 	var currentMessage *core.Message
 	var contentBuilder strings.Builder
 
-	lines := strings.Split(conversationContent, "\n")
-
-	for _, line := range lines {
+	convScanner := bufio.NewScanner(bytes.NewReader(conversationContentBytes))
+	for convScanner.Scan() {
+		line := convScanner.Text()
 		foundRole := false
 		for role, msgType := range roleToMessageType {
 			if strings.HasPrefix(line, role) {
@@ -347,7 +348,7 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 func BuildHistorySnippet(messages []core.Message) string {
 	var sb strings.Builder
 
-	for i := 0; i < len(messages); i++ {
+	for i := range messages {
 		msg := messages[i]
 
 		switch msg.Type {

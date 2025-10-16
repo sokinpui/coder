@@ -114,9 +114,10 @@ func (m Model) renderConversation() string {
 			isCursorOn := (blockIndex == m.VisualSelectCursor)
 
 			var isSelected bool
-			if m.VisualMode == visualModeGenerate || m.VisualMode == visualModeEdit || m.VisualMode == visualModeBranch {
+			switch m.VisualMode {
+			case visualModeGenerate, visualModeEdit, visualModeBranch:
 				isSelected = isCursorOn
-			} else { // visualModeNone
+			default: // visualModeNone
 				_, isSelected = selectedBlocks[blockIndex]
 			}
 
@@ -228,19 +229,20 @@ func (m Model) StatusView() string {
 
 	// Line 2: Status
 	var leftStatus string
-	if m.State == stateVisualSelect {
-		var modeStr string
-		var helpStr string
-		if m.VisualMode == visualModeGenerate {
+	switch m.State {
+	case stateVisualSelect:
+		var modeStr, helpStr string
+		switch m.VisualMode {
+		case visualModeGenerate:
 			modeStr = "GENERATE"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		} else if m.VisualMode == visualModeEdit {
+		case visualModeEdit:
 			modeStr = "EDIT"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		} else if m.VisualMode == visualModeBranch {
+		case visualModeBranch:
 			modeStr = "BRANCH"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		} else { // visualModeNone
+		default: // visualModeNone
 			modeStr = "VISUAL"
 			if m.VisualIsSelecting {
 				helpStr = "j/k: move | y: copy | d: delete | esc: cancel selection"
@@ -249,7 +251,7 @@ func (m Model) StatusView() string {
 			}
 		}
 		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
-	} else if m.State == stateCancelling {
+	case stateCancelling:
 		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 

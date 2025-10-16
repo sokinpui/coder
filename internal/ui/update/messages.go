@@ -22,12 +22,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		event := m.Session.StartGeneration()
 
-		if event.Type == core.GenerationStarted {
+		switch event.Type {
+		case core.GenerationStarted:
 			model, cmd := m.startGeneration(event)
 			return model, cmd, true
 		}
 
-		if event.Type == core.MessagesUpdated {
+		switch event.Type {
+		case core.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			m.State = stateIdle
@@ -47,7 +49,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
-		if m.State == stateThinking || m.State == stateGenPending {
+		switch m.State {
+		case stateThinking, stateGenPending:
 			wasAtBottom := m.Viewport.AtBottom()
 			m.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
@@ -59,7 +62,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case streamResultMsg:
 		messages := m.Session.GetMessages()
 		lastMsg := messages[len(messages)-1]
-		if m.State == stateThinking {
+		switch m.State {
+		case stateThinking:
 			m.State = stateGenerating
 			lastMsg.Content += string(msg)
 			m.Session.ReplaceLastMessage(lastMsg)
@@ -77,7 +81,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.IsStreaming = false
 		messages := m.Session.GetMessages()
 
-		if m.State == stateCancelling {
+		switch m.State {
+		case stateCancelling:
 			// This was a cancellation.
 			lastMsg := messages[len(messages)-1]
 			lastMsg.Content = "Generation cancelled."
