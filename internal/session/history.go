@@ -20,8 +20,8 @@ func (s *Session) SaveConversation() error {
 		CreatedAt: s.createdAt,
 		Messages:  s.messages,
 		Context:   s.context,
-		FilePaths: s.config.Sources.FilePaths,
-		FileDirs:  s.config.Sources.FileDirs,
+		Files:     s.config.Sources.Files,
+		Dirs:      s.config.Sources.Dirs,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -54,15 +54,15 @@ func (s *Session) LoadConversation(filename string) error {
 
 	// Update sources from history. If not present in history (e.g. old format),
 	// clear them to match the state when the conversation was saved.
-	if metadata.FilePaths != nil {
-		s.config.Sources.FilePaths = metadata.FilePaths
+	if metadata.Files != nil {
+		s.config.Sources.Files = metadata.Files
 	} else {
-		s.config.Sources.FilePaths = []string{}
+		s.config.Sources.Files = []string{}
 	}
-	if metadata.FileDirs != nil {
-		s.config.Sources.FileDirs = metadata.FileDirs
+	if metadata.Dirs != nil {
+		s.config.Sources.Dirs = metadata.Dirs
 	} else {
-		s.config.Sources.FileDirs = []string{}
+		s.config.Sources.Dirs = []string{}
 	}
 
 	// The context, including project source, is loaded based on the current mode.

@@ -91,9 +91,9 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 	}
 
 	var filesFromDirs []string
-	if len(sources.FileDirs) > 0 {
+	if len(sources.Dirs) > 0 {
 		var quotedDirs []string
-		for _, d := range sources.FileDirs {
+		for _, d := range sources.Dirs {
 			// quoting for directory paths with spaces or special characters.
 			quotedDirs = append(quotedDirs, fmt.Sprintf("'%s'", strings.ReplaceAll(d, "'", "'\\''")))
 		}
@@ -123,7 +123,7 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 		}
 	}
 
-	allFiles := append(sources.FilePaths, filesFromDirs...)
+	allFiles := append(sources.Files, filesFromDirs...)
 	if len(allFiles) == 0 {
 		return "", nil
 	}

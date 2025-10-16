@@ -23,8 +23,8 @@ type Metadata struct {
 	Title      string
 	CreatedAt  time.Time
 	ModifiedAt time.Time
-	FilePaths  []string
-	FileDirs   []string
+	Files      []string
+	Dirs       []string
 }
 
 type ConversationInfo struct {
@@ -39,8 +39,8 @@ type ConversationData struct {
 	CreatedAt time.Time
 	Messages  []core.Message
 	Context   string // Role Instruction + source code
-	FilePaths []string
-	FileDirs  []string
+	Files     []string
+	Dirs      []string
 }
 
 type Manager struct {
@@ -89,16 +89,16 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
-	if len(data.FilePaths) > 0 {
-		paths, err := json.Marshal(data.FilePaths)
+	if len(data.Files) > 0 {
+		paths, err := json.Marshal(data.Files)
 		if err == nil {
-			fmt.Fprintf(&fileBuf, "filePaths: %s\n", string(paths))
+			fmt.Fprintf(&fileBuf, "files: %s\n", string(paths))
 		}
 	}
-	if len(data.FileDirs) > 0 {
-		dirs, err := json.Marshal(data.FileDirs)
+	if len(data.Dirs) > 0 {
+		dirs, err := json.Marshal(data.Dirs)
 		if err == nil {
-			fmt.Fprintf(&fileBuf, "fileDirs: %s\n", string(dirs))
+			fmt.Fprintf(&fileBuf, "dirs: %s\n", string(dirs))
 		}
 	}
 	fmt.Fprintln(&fileBuf, "---")
@@ -173,10 +173,10 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 			if err == nil {
 				metadata.ModifiedAt = t
 			}
-		case "filePaths":
-			metadata.FilePaths = parseStringSlice(value)
-		case "fileDirs":
-			metadata.FileDirs = parseStringSlice(value)
+		case "files":
+			metadata.Files = parseStringSlice(value)
+		case "dirs":
+			metadata.Dirs = parseStringSlice(value)
 		}
 	}
 
@@ -268,10 +268,10 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 			if err == nil {
 				metadata.ModifiedAt = t
 			}
-		case "filePaths":
-			metadata.FilePaths = parseStringSlice(value)
-		case "fileDirs":
-			metadata.FileDirs = parseStringSlice(value)
+		case "files":
+			metadata.Files = parseStringSlice(value)
+		case "dirs":
+			metadata.Dirs = parseStringSlice(value)
 		}
 	}
 
