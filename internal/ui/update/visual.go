@@ -83,16 +83,17 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		switch m.VisualMode {
 		case visualModeGenerate:
 			block := m.SelectableBlocks[m.VisualSelectCursor]
-			userMsgIndex := -1
-			// Find the first user message at or before the start of the selected block
+			msgIndex := -1
+			// Find the first user or image message at or before the start of the selected block
 			for i := block.startIdx; i >= 0; i-- {
-				if m.Session.GetMessages()[i].Type == core.UserMessage {
-					userMsgIndex = i
+				msgType := m.Session.GetMessages()[i].Type
+				if msgType == core.UserMessage || msgType == core.ImageMessage {
+					msgIndex = i
 					break
 				}
 			}
 
-			if userMsgIndex != -1 {
+			if msgIndex != -1 {
 				if m.IsStreaming {
 					m.Session.CancelGeneration()
 					m.IsStreaming = false
@@ -104,7 +105,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.VisualMode = visualModeNone
 				m.TextArea.Focus()
 
-				event := m.Session.RegenerateFrom(userMsgIndex)
+				event := m.Session.RegenerateFrom(msgIndex)
 				model, cmd := m.startGeneration(event)
 				return model, cmd, true
 			}
@@ -249,16 +250,17 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					return m, nil, true // Out of bounds
 				}
 				block := m.SelectableBlocks[m.VisualSelectCursor]
-				userMsgIndex := -1
-				// Find the first user message at or before the start of the selected block
+				msgIndex := -1
+				// Find the first user or image message at or before the start of the selected block
 				for i := block.startIdx; i >= 0; i-- {
-					if m.Session.GetMessages()[i].Type == core.UserMessage {
-						userMsgIndex = i
+					msgType := m.Session.GetMessages()[i].Type
+					if msgType == core.UserMessage || msgType == core.ImageMessage {
+						msgIndex = i
 						break
 					}
 				}
 
-				if userMsgIndex != -1 {
+				if msgIndex != -1 {
 					if m.IsStreaming {
 						m.Session.CancelGeneration()
 						m.IsStreaming = false
@@ -270,7 +272,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.VisualMode = visualModeNone
 					m.TextArea.Focus()
 
-					event := m.Session.RegenerateFrom(userMsgIndex)
+					event := m.Session.RegenerateFrom(msgIndex)
 					model, cmd := m.startGeneration(event)
 					return model, cmd, true
 				}

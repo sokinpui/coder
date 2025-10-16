@@ -108,8 +108,16 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 // RegenerateFrom truncates the message history to the specified user message
 // and starts a new generation.
-func (s *Session) RegenerateFrom(userMessageIndex int) core.Event {
-	if userMessageIndex < 0 || userMessageIndex >= len(s.messages) || s.messages[userMessageIndex].Type != core.UserMessage {
+func (s *Session) RegenerateFrom(messageIndex int) core.Event {
+	if messageIndex < 0 || messageIndex >= len(s.messages) {
+		s.messages = append(s.messages, core.Message{
+			Type:    core.CommandErrorResultMessage,
+			Content: "Invalid index for regeneration.",
+		})
+		return core.Event{Type: core.MessagesUpdated}
+	}
+	msgType := s.messages[messageIndex].Type
+	if msgType != core.UserMessage && msgType != core.ImageMessage {
 		s.messages = append(s.messages, core.Message{
 			Type:    core.CommandErrorResultMessage,
 			Content: "Invalid index for regeneration.",
@@ -117,6 +125,6 @@ func (s *Session) RegenerateFrom(userMessageIndex int) core.Event {
 		return core.Event{Type: core.MessagesUpdated}
 	}
 
-	s.messages = s.messages[:userMessageIndex+1]
+	s.messages = s.messages[:messageIndex+1]
 	return s.StartGeneration()
 }
