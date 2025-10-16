@@ -2,6 +2,7 @@ package update
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"coder/internal/core"
@@ -351,11 +352,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				isDeletingCurrentAIMessage := false
 				if m.IsStreaming && len(m.Session.GetMessages()) > 0 {
 					lastMessageIndex := len(m.Session.GetMessages()) - 1
-					for _, idx := range selectedIndices {
-						if idx == lastMessageIndex {
-							isDeletingCurrentAIMessage = true
-							break
-						}
+
+					if slices.Contains(selectedIndices, lastMessageIndex) {
+						isDeletingCurrentAIMessage = true
 					}
 				}
 				if isDeletingCurrentAIMessage {
