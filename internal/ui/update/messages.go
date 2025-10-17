@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"coder/internal/types"
+	"coder/internal/utils"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -115,7 +116,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case editorFinishedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			m.EditingMessageIndex = -1 // Also reset here
@@ -129,7 +130,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				if err := m.Session.EditMessage(m.EditingMessageIndex, msg.content); err != nil {
 					// This should ideally not happen if the logic for selecting an editable message is correct.
 					errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
-					m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+					m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 				}
 			}
 
@@ -227,6 +228,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.TextArea.Focus()
 			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
 		}
+
+		welcome := types.Message{Type: types.InitMessage, Content: welcomeMessage}
+		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
+		m.Session.AddMessages(welcome, dirInfo)
+
 		m.State = stateIdle
 		m.LastInteractionFailed = false
 		m.LastRenderedAIPart = ""
@@ -251,7 +257,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if msg.isImage {
-			m.Session.AddMessage(types.Message{Type: types.ImageMessage, Content: msg.content})
+			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		} else {
@@ -276,7 +282,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case fzfFinishedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**fzf Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			return m, nil, true
@@ -319,7 +325,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case initialContextLoadedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			return m, nil, true

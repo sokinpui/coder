@@ -12,7 +12,7 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case tea.KeyCtrlC:
 		m.State = stateIdle
 		m.TextArea.Focus()
-		m.Session.AddMessage(types.Message{
+		m.Session.AddMessages(types.Message{
 			Type:    types.CommandResultMessage, // Re-use style for notification
 			Content: "Generation cancelled.",
 		})

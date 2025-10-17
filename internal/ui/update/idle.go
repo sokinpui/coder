@@ -1,8 +1,8 @@
 package update
 
 import (
-	"coder/internal/types"
 	"coder/internal/config"
+	"coder/internal/types"
 	"fmt"
 	"strings"
 	"time"
@@ -15,9 +15,9 @@ import (
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
-	m.Session.AddMessage(types.Message{Type: types.InitMessage, Content: welcomeMessage})
+	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 	dirMsg := utils.GetDirInfoContent()
-	m.Session.AddMessage(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
+	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
 	// Reset UI and state flags.
 	m.LastInteractionFailed = false
@@ -46,7 +46,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			m.LastInteractionFailed = false
 		}
 
-		m.Session.AddMessage(types.Message{Type: types.UserMessage, Content: input})
+		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
 
 		var cmds []tea.Cmd
 		if !m.Session.IsTitleGenerated() {

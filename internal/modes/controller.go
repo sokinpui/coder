@@ -1,8 +1,8 @@
 package modes
 
 import (
-	"coder/internal/types"
 	"coder/internal/generation"
+	"coder/internal/types"
 	"context"
 )
 
@@ -10,7 +10,7 @@ import (
 // It is implemented by session.Session.
 type SessionController interface {
 	GetMessages() []types.Message
-	AddMessage(msg types.Message)
+	AddMessages(msg ...types.Message)
 	StartGeneration() types.Event
 
 	// Methods needed for StartGeneration logic in strategies

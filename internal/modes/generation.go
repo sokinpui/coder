@@ -1,8 +1,8 @@
 package modes
 
 import (
-	"coder/internal/types"
 	"coder/internal/config"
+	"coder/internal/types"
 	"coder/internal/utils"
 	"context"
 	"fmt"
@@ -17,7 +17,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 	// to pick up any file changes.
 	if err := s.LoadContext(); err != nil {
 		log.Printf("Error reloading context for generation: %v", err)
-		s.AddMessage(types.Message{
+		s.AddMessages(types.Message{
 			Type:    types.CommandErrorResultMessage,
 			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
 		})
@@ -49,7 +49,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 		repoRoot, err := utils.FindRepoRoot()
 		if err != nil {
 			log.Printf("Error finding repo root for image paths: %v", err)
-			s.AddMessage(types.Message{
+			s.AddMessages(types.Message{
 				Type:    types.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
 			})
@@ -65,7 +65,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 	s.SetCancelGeneration(cancel)
 	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, generationConfig)
 
-	s.AddMessage(types.Message{Type: types.AIMessage, Content: ""}) // Placeholder for AI
+	s.AddMessages(types.Message{Type: types.AIMessage, Content: ""}) // Placeholder for AI
 
 	return types.Event{
 		Type: types.GenerationStarted,

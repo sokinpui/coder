@@ -14,8 +14,8 @@ func (s *Session) GetMessages() []types.Message {
 	return s.messages
 }
 
-func (s *Session) AddMessage(msg types.Message) {
-	s.messages = append(s.messages, msg)
+func (s *Session) AddMessages(msg ...types.Message) {
+	s.messages = append(s.messages, msg...)
 }
 
 func (s *Session) ReplaceLastMessage(msg types.Message) {
