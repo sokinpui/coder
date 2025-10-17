@@ -138,6 +138,14 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
+		if msg.Type == tea.KeyDown {
+			// If on the last line of the text area, move cursor to the end.
+			if m.TextArea.Line() == m.TextArea.LineCount()-1 {
+				m.TextArea.CursorEnd()
+				return m, nil, true
+			}
+		}
+
 	case tea.KeyCtrlC:
 		if m.TextArea.Value() != "" {
 			m.ClearedInputBuffer = m.TextArea.Value()
