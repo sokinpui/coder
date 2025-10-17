@@ -15,7 +15,7 @@ import (
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
-	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
+	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 	dirMsg := utils.GetDirInfoContent()
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 

@@ -229,7 +229,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
 		}
 
-		welcome := types.Message{Type: types.InitMessage, Content: welcomeMessage}
+		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
 		m.Session.PrependMessages(welcome, dirInfo)
 
