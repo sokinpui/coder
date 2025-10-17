@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"coder/internal/core"
+	"coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -23,13 +23,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		event := m.Session.StartGeneration()
 
 		switch event.Type {
-		case core.GenerationStarted:
+		case types.GenerationStarted:
 			model, cmd := m.startGeneration(event)
 			return model, cmd, true
 		}
 
 		switch event.Type {
-		case core.MessagesUpdated:
+		case types.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			m.State = stateIdle
@@ -86,7 +86,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			// This was a cancellation.
 			lastMsg := messages[len(messages)-1]
 			lastMsg.Content = "Generation cancelled."
-			lastMsg.Type = core.CommandResultMessage // Re-use style for notification
+			lastMsg.Type = types.CommandResultMessage // Re-use style for notification
 			m.Session.ReplaceLastMessage(lastMsg)
 			m.LastInteractionFailed = true
 		}
@@ -115,7 +115,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case editorFinishedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			m.EditingMessageIndex = -1 // Also reset here
@@ -129,14 +129,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				if err := m.Session.EditMessage(m.EditingMessageIndex, msg.content); err != nil {
 					// This should ideally not happen if the logic for selecting an editable message is correct.
 					errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
-					m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+					m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 				}
 			}
 
 			var cmd tea.Cmd
 			if m.IsStreaming {
 				messages := m.Session.GetMessages()
-				if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+				if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 					m.State = stateThinking
 				} else {
 					m.State = stateGenerating
@@ -251,7 +251,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if msg.isImage {
-			m.Session.AddMessage(core.Message{Type: core.ImageMessage, Content: msg.content})
+			m.Session.AddMessage(types.Message{Type: types.ImageMessage, Content: msg.content})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		} else {
@@ -276,7 +276,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case fzfFinishedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**fzf Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			return m, nil, true
@@ -319,7 +319,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case initialContextLoadedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessage(core.Message{Type: core.CommandErrorResultMessage, Content: errorContent})
+			m.Session.AddMessage(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 			return m, nil, true

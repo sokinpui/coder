@@ -1,9 +1,9 @@
 package update
 
 import (
+	"coder/internal/types"
 	"coder/internal/commands"
 	"coder/internal/config"
-	"coder/internal/core"
 	"coder/internal/history"
 	"coder/internal/session"
 	"coder/internal/utils"
@@ -129,10 +129,10 @@ func NewModel(cfg *config.Config) (Model, error) {
 		return Model{}, err
 	}
 
-	sess.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
+	sess.AddMessage(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 
 	dirMsg := utils.GetDirInfoContent()
-	sess.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
+	sess.AddMessage(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 	availableCommands := commands.GetCommands()
 	sort.Strings(availableCommands)
 

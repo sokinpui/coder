@@ -1,8 +1,8 @@
 package session
 
 import (
+	"coder/internal/types"
 	"coder/internal/config"
-	"coder/internal/core"
 	"coder/internal/generation"
 	"coder/internal/history"
 	"coder/internal/modes"
@@ -15,7 +15,7 @@ type Session struct {
 	config           *config.Config
 	generator        *generation.Generator
 	historyManager   *history.Manager
-	messages         []core.Message
+	messages         []types.Message
 	cancelGeneration context.CancelFunc
 	title            string
 	context          string // Role instruction + source code
@@ -30,7 +30,7 @@ func New(cfg *config.Config) (*Session, error) {
 }
 
 // NewWithMessages creates a new session with a pre-existing set of messages.
-func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Session, error) {
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []core.Message) (*Sessi
 	}
 
 	// Make a defensive copy of the slice to avoid external modifications.
-	messages := make([]core.Message, len(initialMessages))
+	messages := make([]types.Message, len(initialMessages))
 	copy(messages, initialMessages)
 
 	return &Session{

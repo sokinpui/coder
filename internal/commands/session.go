@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 	"fmt"
 )
 
@@ -14,10 +14,10 @@ func init() {
 	registerCommand("rename", renameCmd, nil)
 }
 
-func hasSelectableMessages(messages []core.Message) bool {
+func hasSelectableMessages(messages []types.Message) bool {
 	for _, msg := range messages {
 		switch msg.Type {
-		case core.InitMessage, core.DirectoryMessage:
+		case types.InitMessage, types.DirectoryMessage:
 			continue
 		default:
 			return true

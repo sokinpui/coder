@@ -1,7 +1,7 @@
 package update
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -36,7 +36,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		if m.IsStreaming {
 			// Return to the generation view
 			messages := m.Session.GetMessages()
-			if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 				m.State = stateThinking
 			} else {
 				m.State = stateGenerating

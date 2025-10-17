@@ -2,7 +2,7 @@ package commands
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
+	"coder/internal/types"
 )
 
 type CommandResultType int
@@ -24,7 +24,7 @@ type CommandOutput struct {
 }
 
 type SessionController interface {
-	GetMessages() []core.Message
+	GetMessages() []types.Message
 	GetConfig() *config.Config
 	SetTitle(title string)
 	SetMode(mode config.AppMode) error

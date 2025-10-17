@@ -3,7 +3,7 @@ package history
 import (
 	"bufio"
 	"bytes"
-	"coder/internal/core"
+	"coder/internal/types"
 	"coder/internal/utils"
 	"encoding/json"
 	"fmt"
@@ -35,13 +35,13 @@ type ConversationInfo struct {
 }
 
 type ConversationData struct {
-	Filename  string
-	Title     string
-	CreatedAt time.Time
-	Messages  []core.Message
-	Context   string // Role Instruction + source code
-	Files     []string
-	Dirs      []string
+	Filename   string
+	Title      string
+	CreatedAt  time.Time
+	Messages   []types.Message
+	Context    string // Role Instruction + source code
+	Files      []string
+	Dirs       []string
 	WorkingDir string
 }
 
@@ -110,22 +110,22 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	return os.WriteFile(filePath, fileBuf.Bytes(), 0644)
 }
 
-var roleToMessageType = map[string]core.MessageType{
-	"User:":                   core.UserMessage,
-	"AI Assistant:":           core.AIMessage,
-	"Image:":                  core.ImageMessage,
-	"Command Execute:":        core.CommandMessage,
-	"Command Execute Result:": core.CommandResultMessage,
-	"Command Execute Error:":  core.CommandErrorResultMessage,
+var roleToMessageType = map[string]types.MessageType{
+	"User:":                   types.UserMessage,
+	"AI Assistant:":           types.AIMessage,
+	"Image:":                  types.ImageMessage,
+	"Command Execute:":        types.CommandMessage,
+	"Command Execute Result:": types.CommandResultMessage,
+	"Command Execute Error:":  types.CommandErrorResultMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
 
 // processMessageContent trims whitespace and handles special message content parsing,
 // like extracting the path from a markdown image link for ImageMessages.
-func processMessageContent(msg *core.Message, rawContent string) {
+func processMessageContent(msg *types.Message, rawContent string) {
 	content := strings.TrimSpace(rawContent)
-	if msg.Type == core.ImageMessage {
+	if msg.Type == types.ImageMessage {
 		matches := imageMarkdownRegex.FindStringSubmatch(content)
 		if len(matches) > 1 {
 			content = matches[1]
@@ -142,7 +142,7 @@ func parseStringSlice(value string) []string {
 	return s
 }
 
-func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
+func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	parts := bytes.SplitN(content, []byte("---\n"), 3)
 	if len(parts) < 3 {
 		return nil, nil, fmt.Errorf("invalid file format: missing YAML frontmatter")
@@ -187,14 +187,14 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 	historyIndex := bytes.Index(bodyBytes, historyHeader)
 	if historyIndex == -1 {
 		// No conversation history, but not an error.
-		return metadata, []core.Message{}, nil
+		return metadata, []types.Message{}, nil
 	}
 
 	conversationContentBytes := bodyBytes[historyIndex+len(historyHeader):]
 	conversationContentBytes = bytes.TrimSpace(conversationContentBytes)
 
-	var messages []core.Message
-	var currentMessage *core.Message
+	var messages []types.Message
+	var currentMessage *types.Message
 	var contentBuilder strings.Builder
 
 	convScanner := bufio.NewScanner(bytes.NewReader(conversationContentBytes))
@@ -208,7 +208,7 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 					messages = append(messages, *currentMessage)
 				}
 				contentBuilder.Reset()
-				currentMessage = &core.Message{Type: msgType}
+				currentMessage = &types.Message{Type: msgType}
 				contentBuilder.WriteString(strings.TrimSpace(strings.TrimPrefix(line, role)))
 				foundRole = true
 				break
@@ -290,7 +290,7 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 	return metadata, nil
 }
 
-func (m *Manager) LoadConversation(filename string) (*Metadata, []core.Message, error) {
+func (m *Manager) LoadConversation(filename string) (*Metadata, []types.Message, error) {
 	filePath := filepath.Join(m.historyPath, filename)
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
@@ -349,32 +349,32 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 }
 
 // BuildHistorySnippet constructs a string representation of a list of messages for copying.
-func BuildHistorySnippet(messages []core.Message) string {
+func BuildHistorySnippet(messages []types.Message) string {
 	var sb strings.Builder
 
 	for i := range messages {
 		msg := messages[i]
 
 		switch msg.Type {
-		case core.UserMessage:
+		case types.UserMessage:
 			sb.WriteString("User:\n")
 			sb.WriteString(msg.Content)
-		case core.ImageMessage:
+		case types.ImageMessage:
 			sb.WriteString("Image:\n")
 			sb.WriteString(fmt.Sprintf("![image](%s)", msg.Content))
-		case core.AIMessage:
+		case types.AIMessage:
 			if msg.Content == "" {
 				continue
 			}
 			sb.WriteString("AI Assistant:\n")
 			sb.WriteString(msg.Content)
-		case core.CommandMessage:
+		case types.CommandMessage:
 			sb.WriteString("Command Execute:\n")
 			sb.WriteString(msg.Content)
-		case core.CommandResultMessage:
+		case types.CommandResultMessage:
 			sb.WriteString("Command Execute Result:\n")
 			sb.WriteString(msg.Content)
-		case core.CommandErrorResultMessage:
+		case types.CommandErrorResultMessage:
 			sb.WriteString("Command Execute Error:\n")
 			sb.WriteString(msg.Content)
 		default:

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"coder/internal/core"
+	"coder/internal/types"
 	"coder/internal/history"
 
 	"github.com/atotto/clipboard"
@@ -61,7 +61,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if m.IsStreaming {
 			messages := m.Session.GetMessages()
 			// Check if the last message is an empty AI message, which indicates 'thinking' state.
-			if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 				m.State = stateThinking
 			} else {
 				m.State = stateGenerating
@@ -88,7 +88,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			// Find the first user or image message at or before the start of the selected block
 			for i := block.startIdx; i >= 0; i-- {
 				msgType := m.Session.GetMessages()[i].Type
-				if msgType == core.UserMessage || msgType == core.ImageMessage {
+				if msgType == types.UserMessage || msgType == types.ImageMessage {
 					msgIndex = i
 					break
 				}
@@ -118,7 +118,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			userMsgIndex := -1
 			// Find the first user message at or before the start of the selected block
 			for i := block.startIdx; i >= 0; i-- {
-				if m.Session.GetMessages()[i].Type == core.UserMessage {
+				if m.Session.GetMessages()[i].Type == types.UserMessage {
 					userMsgIndex = i
 					break
 				}
@@ -229,7 +229,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.StreamSub = nil
 			}
 			event := m.Session.HandleInput(":new")
-			if event.Type == core.NewSessionStarted {
+			if event.Type == types.NewSessionStarted {
 				newModel, cmd := m.newSession()
 				newModel.State = stateIdle
 				newModel.VisualMode = visualModeNone
@@ -255,7 +255,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				// Find the first user or image message at or before the start of the selected block
 				for i := block.startIdx; i >= 0; i-- {
 					msgType := m.Session.GetMessages()[i].Type
-					if msgType == core.UserMessage || msgType == core.ImageMessage {
+					if msgType == types.UserMessage || msgType == types.ImageMessage {
 						msgIndex = i
 						break
 					}
@@ -287,7 +287,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				userMsgIndex := -1
 				// Find the first user message at or before the start of the selected block
 				for i := block.startIdx; i >= 0; i-- {
-					if m.Session.GetMessages()[i].Type == core.UserMessage {
+					if m.Session.GetMessages()[i].Type == types.UserMessage {
 						userMsgIndex = i
 						break
 					}
@@ -305,7 +305,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if start > end {
 					start, end = end, start
 				}
-				var selectedMessages []core.Message
+				var selectedMessages []types.Message
 				for i := start; i <= end; i++ {
 					block := m.SelectableBlocks[i]
 					for j := block.startIdx; j <= block.endIdx; j++ {
@@ -319,7 +319,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
-					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+					if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 						m.State = stateThinking
 					} else {
 						m.State = stateGenerating
@@ -367,7 +367,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				cmd = clearStatusBarCmd(2 * time.Second)
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
-					if len(messages) > 0 && messages[len(messages)-1].Type == core.AIMessage && messages[len(messages)-1].Content == "" {
+					if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 						m.State = stateThinking
 					} else {
 						m.State = stateGenerating

@@ -1,9 +1,9 @@
 package update
 
-import "coder/internal/core"
+import "coder/internal/types"
 
 // filter out system messages and Directory messages into blocks
-func groupMessages(messages []core.Message) []messageBlock {
+func groupMessages(messages []types.Message) []messageBlock {
 	var blocks []messageBlock
 	if len(messages) == 0 {
 		return blocks
@@ -27,7 +27,7 @@ func groupMessages(messages []core.Message) []messageBlock {
 		//
 
 		// Skip system messages from being selectable blocks
-		if msg.Type != core.InitMessage && msg.Type != core.DirectoryMessage {
+		if msg.Type != types.InitMessage && msg.Type != types.DirectoryMessage {
 			blocks = append(blocks, block)
 		}
 

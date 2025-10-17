@@ -2,19 +2,19 @@ package session
 
 import (
 	"coder/internal/commands"
-	"coder/internal/core"
+	"coder/internal/types"
 	"strings"
 )
 
 // HandleInput processes user input (prompts, commands, actions).
-func (s *Session) HandleInput(input string) core.Event {
+func (s *Session) HandleInput(input string) types.Event {
 	if strings.TrimSpace(input) == "" {
-		return core.Event{Type: core.NoOp}
+		return types.Event{Type: types.NoOp}
 	}
 
 	if !strings.HasPrefix(input, ":") {
 		// This is a new user prompt.
-		s.messages = append(s.messages, core.Message{Type: core.UserMessage, Content: input})
+		s.messages = append(s.messages, types.Message{Type: types.UserMessage, Content: input})
 		return s.StartGeneration()
 	}
 
@@ -25,26 +25,26 @@ func (s *Session) HandleInput(input string) core.Event {
 		switch cmdOutput.Type {
 		case commands.CommandResultNewSession:
 			s.newSession()
-			return core.Event{Type: core.NewSessionStarted}
+			return types.Event{Type: types.NewSessionStarted}
 		case commands.CommandResultVisualMode:
-			return core.Event{Type: core.VisualModeStarted}
+			return types.Event{Type: types.VisualModeStarted}
 		case commands.CommandResultGenerateMode:
-			return core.Event{Type: core.GenerateModeStarted}
+			return types.Event{Type: types.GenerateModeStarted}
 		case commands.CommandResultEditMode:
-			return core.Event{Type: core.EditModeStarted}
+			return types.Event{Type: types.EditModeStarted}
 		case commands.CommandResultBranchMode:
-			return core.Event{Type: core.BranchModeStarted}
+			return types.Event{Type: types.BranchModeStarted}
 		case commands.CommandResultHistoryMode:
-			return core.Event{Type: core.HistoryModeStarted}
+			return types.Event{Type: types.HistoryModeStarted}
 		}
 	}
 
 	s.generator.Config = s.config.Generation
-	s.messages = append(s.messages, core.Message{Type: core.CommandMessage, Content: input})
+	s.messages = append(s.messages, types.Message{Type: types.CommandMessage, Content: input})
 	if cmdSuccess {
-		s.messages = append(s.messages, core.Message{Type: core.CommandResultMessage, Content: cmdOutput.Payload})
+		s.messages = append(s.messages, types.Message{Type: types.CommandResultMessage, Content: cmdOutput.Payload})
 	} else {
-		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: cmdOutput.Payload})
+		s.messages = append(s.messages, types.Message{Type: types.CommandErrorResultMessage, Content: cmdOutput.Payload})
 	}
-	return core.Event{Type: core.MessagesUpdated}
+	return types.Event{Type: types.MessagesUpdated}
 }

@@ -2,8 +2,8 @@ package session
 
 import (
 	"coder/internal/config"
-	"coder/internal/core"
 	"coder/internal/history"
+	"coder/internal/types"
 	"fmt"
 	"log"
 	"os"
@@ -98,7 +98,7 @@ func (s *Session) newSession() {
 	if err := s.SaveConversation(); err != nil {
 		log.Printf("Error saving conversation for /new command: %v", err)
 	}
-	s.messages = []core.Message{} // Clear messages
+	s.messages = []types.Message{} // Clear messages
 	s.title = "New Chat"
 	s.titleGenerated = false
 	s.createdAt = time.Now()
@@ -108,7 +108,7 @@ func (s *Session) newSession() {
 	if err := s.LoadContext(); err != nil {
 		// Log and add an error message for the user to see.
 		log.Printf("Error reloading context for new session: %v", err)
-		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: fmt.Sprintf("Failed to reload context for new session: %v", err)})
+		s.messages = append(s.messages, types.Message{Type: types.CommandErrorResultMessage, Content: fmt.Sprintf("Failed to reload context for new session: %v", err)})
 	}
 }
 
@@ -140,21 +140,21 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 // RegenerateFrom truncates the message history to the specified user message
 // and starts a new generation.
-func (s *Session) RegenerateFrom(messageIndex int) core.Event {
+func (s *Session) RegenerateFrom(messageIndex int) types.Event {
 	if messageIndex < 0 || messageIndex >= len(s.messages) {
-		s.messages = append(s.messages, core.Message{
-			Type:    core.CommandErrorResultMessage,
+		s.messages = append(s.messages, types.Message{
+			Type:    types.CommandErrorResultMessage,
 			Content: "Invalid index for regeneration.",
 		})
-		return core.Event{Type: core.MessagesUpdated}
+		return types.Event{Type: types.MessagesUpdated}
 	}
 	msgType := s.messages[messageIndex].Type
-	if msgType != core.UserMessage && msgType != core.ImageMessage {
-		s.messages = append(s.messages, core.Message{
-			Type:    core.CommandErrorResultMessage,
+	if msgType != types.UserMessage && msgType != types.ImageMessage {
+		s.messages = append(s.messages, types.Message{
+			Type:    types.CommandErrorResultMessage,
 			Content: "Invalid index for regeneration.",
 		})
-		return core.Event{Type: core.MessagesUpdated}
+		return types.Event{Type: types.MessagesUpdated}
 	}
 
 	s.messages = s.messages[:messageIndex+1]

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"coder/internal/core"
+	"coder/internal/types"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -69,29 +69,29 @@ func (m Model) renderConversation() string {
 		currentMsg := msg // Make a copy to modify content for visual mode
 		if m.State == stateVisualSelect {
 			switch currentMsg.Type {
-			case core.UserMessage, core.AIMessage, core.CommandResultMessage, core.CommandErrorResultMessage:
+			case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
 				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
 			}
 		}
 
 		var renderedMsg string
 		switch currentMsg.Type {
-		case core.InitMessage:
+		case types.InitMessage:
 			blockWidth := m.Viewport.Width - initMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.DirectoryMessage:
+		case types.DirectoryMessage:
 			blockWidth := m.Viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.UserMessage:
+		case types.UserMessage:
 			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
 			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.CommandMessage:
+		case types.CommandMessage:
 			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.ImageMessage:
+		case types.ImageMessage:
 			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
-		case core.AIMessage:
+		case types.AIMessage:
 			if currentMsg.Content == "" {
 				continue
 			} else {
@@ -101,10 +101,10 @@ func (m Model) renderConversation() string {
 				}
 				renderedMsg = renderedAI
 			}
-		case core.CommandResultMessage:
+		case types.CommandResultMessage:
 			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
-		case core.CommandErrorResultMessage:
+		case types.CommandErrorResultMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 

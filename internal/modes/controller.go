@@ -1,7 +1,7 @@
 package modes
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 	"coder/internal/generation"
 	"context"
 )
@@ -9,9 +9,9 @@ import (
 // SessionController defines the parts of a session that a mode strategy can control.
 // It is implemented by session.Session.
 type SessionController interface {
-	GetMessages() []core.Message
-	AddMessage(msg core.Message)
-	StartGeneration() core.Event
+	GetMessages() []types.Message
+	AddMessage(msg types.Message)
+	StartGeneration() types.Event
 
 	// Methods needed for StartGeneration logic in strategies
 	GetGenerator() *generation.Generator

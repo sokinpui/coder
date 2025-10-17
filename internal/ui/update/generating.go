@@ -1,7 +1,7 @@
 package update
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,8 +12,8 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case tea.KeyCtrlC:
 		m.State = stateIdle
 		m.TextArea.Focus()
-		m.Session.AddMessage(core.Message{
-			Type:    core.CommandResultMessage, // Re-use style for notification
+		m.Session.AddMessage(types.Message{
+			Type:    types.CommandResultMessage, // Re-use style for notification
 			Content: "Generation cancelled.",
 		})
 		m.Viewport.SetContent(m.renderConversation())
@@ -23,8 +23,8 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	return m, nil, true // Consume all key presses
 }
 
-func (m Model) startGeneration(event core.Event) (Model, tea.Cmd) {
-	if event.Type != core.GenerationStarted {
+func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
+	if event.Type != types.GenerationStarted {
 		return m, nil // Should not happen
 	}
 	m.State = stateThinking
@@ -59,7 +59,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		}
 		event := m.Session.HandleInput(":new")
 		switch event.Type {
-		case core.NewSessionStarted:
+		case types.NewSessionStarted:
 			newModel, cmd := m.newSession()
 			newModel.State = stateIdle
 			return newModel, cmd, true
@@ -68,10 +68,10 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case tea.KeyCtrlB:
 		event := m.Session.HandleInput(":branch")
 		switch event.Type {
-		case core.BranchModeStarted:
+		case types.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		case core.MessagesUpdated:
+		case types.MessagesUpdated:
 			// This handles the case where branching is not possible (e.g., no messages)
 			// and an error message was added to the session.
 			m.Viewport.SetContent(m.renderConversation())

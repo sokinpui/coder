@@ -1,12 +1,12 @@
 package update
 
 import (
+	"coder/internal/types"
 	"coder/internal/config"
 	"fmt"
 	"strings"
 	"time"
 
-	"coder/internal/core"
 	"coder/internal/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,9 +15,9 @@ import (
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
-	m.Session.AddMessage(core.Message{Type: core.InitMessage, Content: welcomeMessage})
+	m.Session.AddMessage(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 	dirMsg := utils.GetDirInfoContent()
-	m.Session.AddMessage(core.Message{Type: core.DirectoryMessage, Content: dirMsg})
+	m.Session.AddMessage(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
 	// Reset UI and state flags.
 	m.LastInteractionFailed = false
@@ -46,7 +46,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			m.LastInteractionFailed = false
 		}
 
-		m.Session.AddMessage(core.Message{Type: core.UserMessage, Content: input})
+		m.Session.AddMessage(types.Message{Type: types.UserMessage, Content: input})
 
 		var cmds []tea.Cmd
 		if !m.Session.IsTitleGenerated() {
@@ -67,10 +67,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	event := m.Session.HandleInput(input)
 
 	switch event.Type {
-	case core.NoOp:
+	case types.NoOp:
 		return m, nil
 
-	case core.MessagesUpdated:
+	case types.MessagesUpdated:
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 		if !m.PreserveInputOnSubmit {
@@ -80,23 +80,23 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPrompt())
 
-	case core.NewSessionStarted:
+	case types.NewSessionStarted:
 		return m.newSession()
 
-	case core.GenerationStarted:
+	case types.GenerationStarted:
 		m, cmd := m.startGeneration(event)
 		return m, cmd
 
-	case core.VisualModeStarted:
+	case types.VisualModeStarted:
 		return m.enterVisualMode(visualModeNone)
 
-	case core.GenerateModeStarted:
+	case types.GenerateModeStarted:
 		return m.enterVisualMode(visualModeGenerate)
-	case core.EditModeStarted:
+	case types.EditModeStarted:
 		return m.enterVisualMode(visualModeEdit)
-	case core.BranchModeStarted:
+	case types.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
-	case core.HistoryModeStarted:
+	case types.HistoryModeStarted:
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
@@ -248,7 +248,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlN:
 		event := m.Session.HandleInput(":new")
 		switch event.Type {
-		case core.NewSessionStarted:
+		case types.NewSessionStarted:
 			newModel, cmd := m.newSession()
 			return newModel, cmd, true
 		}
@@ -257,10 +257,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlB:
 		event := m.Session.HandleInput(":branch")
 		switch event.Type {
-		case core.BranchModeStarted:
+		case types.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
-		case core.MessagesUpdated:
+		case types.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		}
@@ -285,7 +285,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.Session.HandleInput(":itf")
 		switch event.Type {
-		case core.MessagesUpdated:
+		case types.MessagesUpdated:
 			m.Viewport.SetContent(m.renderConversation())
 			m.Viewport.GotoBottom()
 		}

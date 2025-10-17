@@ -3,7 +3,7 @@ package modes
 import (
 	"strings"
 
-	"coder/internal/core"
+	"coder/internal/types"
 )
 
 const (
@@ -68,7 +68,7 @@ func ProjectSourceCodeSection(content string) PromptSection {
 }
 
 // ConversationHistorySection creates a prompt section for the conversation history.
-func ConversationHistorySection(messages []core.Message) PromptSection {
+func ConversationHistorySection(messages []types.Message) PromptSection {
 	if len(messages) == 0 {
 		return PromptSection{Separator: Separator}
 	}
@@ -82,18 +82,18 @@ func ConversationHistorySection(messages []core.Message) PromptSection {
 }
 
 // BuildHistoryString constructs the conversation history part of the prompt.
-func BuildHistoryString(messages []core.Message) string {
+func BuildHistoryString(messages []types.Message) string {
 	var sb strings.Builder
 	for _, msg := range messages {
 		switch msg.Type {
-		case core.UserMessage:
+		case types.UserMessage:
 			sb.WriteString("User:\n")
 			sb.WriteString(msg.Content)
 			sb.WriteString("\n")
-		case core.ImageMessage:
+		case types.ImageMessage:
 			sb.WriteString(msg.Content)
 			sb.WriteString("\n")
-		case core.AIMessage:
+		case types.AIMessage:
 			if msg.Content == "" {
 				continue
 			}

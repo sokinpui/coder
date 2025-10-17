@@ -1,8 +1,9 @@
 package modes
 
 import (
+	"coder/internal/prompt"
+	"coder/internal/types"
 	"coder/internal/config"
-	"coder/internal/core"
 	"coder/internal/source"
 	"fmt"
 )
@@ -14,7 +15,7 @@ type DocumentingMode struct {
 
 // GetRolePrompt returns the documenting role.
 func (m *DocumentingMode) GetRolePrompt() string {
-	return core.DocumentingRole
+	return prompt.DocumentingRole
 }
 
 // LoadSourceCode loads context and project source, including markdown files.
@@ -30,15 +31,15 @@ func (m *DocumentingMode) LoadSourceCode(cfg *config.Config) error {
 }
 
 // StartGeneration begins a new AI generation task using the default logic.
-func (m *DocumentingMode) StartGeneration(s SessionController) core.Event {
+func (m *DocumentingMode) StartGeneration(s SessionController) types.Event {
 	return StartGeneration(s, nil)
 }
 
 // BuildPrompt constructs the prompt for documenting mode.
-func (m *DocumentingMode) BuildPrompt(messages []core.Message) string {
+func (m *DocumentingMode) BuildPrompt(messages []types.Message) string {
 	return BuildPrompt(PromptSectionArray{
 		Sections: []PromptSection{
-			RoleSection(m.GetRolePrompt(), core.CoderInstructions),
+			RoleSection(m.GetRolePrompt(), prompt.CoderInstructions),
 			ProjectSourceCodeSection(m.projectSourceCode),
 			ConversationHistorySection(messages),
 		},

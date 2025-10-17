@@ -1,4 +1,4 @@
-package core
+package types
 
 // EventType defines the type of event returned by the session.
 type EventType int
@@ -27,5 +27,5 @@ const (
 // Event is returned by session methods to inform the UI about what happened.
 type Event struct {
 	Type EventType
-	Data interface{} // Can be a stream channel for GenerationStarted or an error for ErrorOccurred
+	Data any // Can be a stream channel for GenerationStarted or an error for ErrorOccurred
 }

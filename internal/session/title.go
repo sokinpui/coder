@@ -1,7 +1,7 @@
 package session
 
 import (
-	"coder/internal/core"
+	"coder/internal/prompt"
 	"context"
 	"log"
 	"strings"
@@ -18,7 +18,7 @@ func (s *Session) IsTitleGenerated() bool {
 func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.titleGenerated = true // Set this first to prevent concurrent calls.
 
-	prompt := strings.Replace(core.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
+	prompt := strings.Replace(prompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
 
 	title, err := s.generator.GenerateTitle(ctx, prompt)
 	if err != nil {

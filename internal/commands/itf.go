@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 	"os/exec"
 	"strings"
 )
@@ -27,7 +27,7 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	var lastAIResponse string
 	found := false
 	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Type == core.AIMessage {
+		if messages[i].Type == types.AIMessage {
 			lastAIResponse = messages[i].Content
 			found = true
 			break

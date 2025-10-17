@@ -1,8 +1,8 @@
 package modes
 
 import (
+	"coder/internal/types"
 	"coder/internal/config"
-	"coder/internal/core"
 	"coder/internal/utils"
 	"context"
 	"fmt"
@@ -12,16 +12,16 @@ import (
 
 // StartGeneration provides a default implementation for starting a generation task,
 // optionally allowing a specific generation config to be used.
-func StartGeneration(s SessionController, generationConfig *config.Generation) core.Event {
+func StartGeneration(s SessionController, generationConfig *config.Generation) types.Event {
 	// Reload context, which includes project source, before every generation
 	// to pick up any file changes.
 	if err := s.LoadContext(); err != nil {
 		log.Printf("Error reloading context for generation: %v", err)
-		s.AddMessage(core.Message{
-			Type:    core.CommandErrorResultMessage,
+		s.AddMessage(types.Message{
+			Type:    types.CommandErrorResultMessage,
 			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
 		})
-		return core.Event{Type: core.MessagesUpdated}
+		return types.Event{Type: types.MessagesUpdated}
 	}
 
 	prompt := s.GetPrompt()
@@ -32,9 +32,9 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) c
 	// Iterate backwards from the message before the last one (which is the user prompt).
 	for i := len(messages) - 2; i >= 0; i-- {
 		msg := messages[i]
-		if msg.Type == core.ImageMessage {
+		if msg.Type == types.ImageMessage {
 			imgPaths = append(imgPaths, msg.Content)
-		} else if msg.Type == core.UserMessage || msg.Type == core.AIMessage {
+		} else if msg.Type == types.UserMessage || msg.Type == types.AIMessage {
 			// Stop when we hit the previous conversation turn.
 			break
 		}
@@ -49,11 +49,11 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) c
 		repoRoot, err := utils.FindRepoRoot()
 		if err != nil {
 			log.Printf("Error finding repo root for image paths: %v", err)
-			s.AddMessage(core.Message{
-				Type:    core.CommandErrorResultMessage,
+			s.AddMessage(types.Message{
+				Type:    types.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
 			})
-			return core.Event{Type: core.MessagesUpdated}
+			return types.Event{Type: types.MessagesUpdated}
 		}
 		for i, p := range imgPaths {
 			imgPaths[i] = filepath.Join(repoRoot, p)
@@ -65,10 +65,10 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) c
 	s.SetCancelGeneration(cancel)
 	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, generationConfig)
 
-	s.AddMessage(core.Message{Type: core.AIMessage, Content: ""}) // Placeholder for AI
+	s.AddMessage(types.Message{Type: types.AIMessage, Content: ""}) // Placeholder for AI
 
-	return core.Event{
-		Type: core.GenerationStarted,
+	return types.Event{
+		Type: types.GenerationStarted,
 		Data: streamChan,
 	}
 }

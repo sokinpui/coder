@@ -1,7 +1,7 @@
 package session
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 	"context"
 )
 
@@ -23,6 +23,6 @@ func (s *Session) GetPrompt() string {
 }
 
 // StartGeneration delegates to the current mode strategy to start a generation.
-func (s *Session) StartGeneration() core.Event {
+func (s *Session) StartGeneration() types.Event {
 	return s.modeStrategy.StartGeneration(s)
 }

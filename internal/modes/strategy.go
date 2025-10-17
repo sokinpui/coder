@@ -1,8 +1,8 @@
 package modes
 
 import (
+	"coder/internal/types"
 	"coder/internal/config"
-	"coder/internal/core"
 )
 
 // ModeStrategy defines the behavior for different application modes.
@@ -14,8 +14,8 @@ type ModeStrategy interface {
 	LoadSourceCode(cfg *config.Config) error
 
 	// StartGeneration prepares and begins a new AI generation task.
-	StartGeneration(s SessionController) core.Event
+	StartGeneration(s SessionController) types.Event
 
 	// BuildPrompt constructs the full prompt for the model.
-	BuildPrompt(messages []core.Message) string
+	BuildPrompt(messages []types.Message) string
 }

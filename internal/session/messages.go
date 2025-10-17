@@ -1,7 +1,7 @@
 package session
 
 import (
-	"coder/internal/core"
+	"coder/internal/types"
 	"coder/internal/utils"
 	"fmt"
 	"log"
@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-func (s *Session) GetMessages() []core.Message {
+func (s *Session) GetMessages() []types.Message {
 	return s.messages
 }
 
-func (s *Session) AddMessage(msg core.Message) {
+func (s *Session) AddMessage(msg types.Message) {
 	s.messages = append(s.messages, msg)
 }
 
-func (s *Session) ReplaceLastMessage(msg core.Message) {
+func (s *Session) ReplaceLastMessage(msg types.Message) {
 	if len(s.messages) > 0 {
 		s.messages[len(s.messages)-1] = msg
 	}
@@ -43,7 +43,7 @@ func (s *Session) DeleteMessages(indices []int) {
 		toDelete[idx] = struct{}{}
 
 		msg := s.messages[idx]
-		if msg.Type == core.ImageMessage && repoRoot != "" {
+		if msg.Type == types.ImageMessage && repoRoot != "" {
 			imagePath := filepath.Join(repoRoot, msg.Content)
 			// Security check to prevent path traversal
 			if !strings.HasPrefix(imagePath, filepath.Join(repoRoot, ".coder", "images")) {
@@ -58,7 +58,7 @@ func (s *Session) DeleteMessages(indices []int) {
 		}
 	}
 
-	newMessages := make([]core.Message, 0, len(s.messages)-len(indices))
+	newMessages := make([]types.Message, 0, len(s.messages)-len(indices))
 	for i, msg := range s.messages {
 		if _, found := toDelete[i]; !found {
 			newMessages = append(newMessages, msg)
@@ -73,7 +73,7 @@ func (s *Session) EditMessage(index int, newContent string) error {
 	if index < 0 || index >= len(s.messages) {
 		return fmt.Errorf("index out of bounds: %d", index)
 	}
-	if s.messages[index].Type != core.UserMessage {
+	if s.messages[index].Type != types.UserMessage {
 		return fmt.Errorf("can only edit user messages, but got type %v at index %d", s.messages[index].Type, index)
 	}
 
