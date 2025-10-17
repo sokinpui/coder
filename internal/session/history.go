@@ -1,6 +1,7 @@
 package session
 
 import (
+	"coder/internal/config"
 	"coder/internal/core"
 	"coder/internal/history"
 	"fmt"
@@ -78,6 +79,13 @@ func (s *Session) newSession() {
 	s.titleGenerated = false
 	s.createdAt = time.Now()
 	s.historyFilename = ""
+	defaultConfig := config.Default()
+	s.config.Sources = defaultConfig.Sources
+	if err := s.LoadContext(); err != nil {
+		// Log and add an error message for the user to see.
+		log.Printf("Error reloading context for new session: %v", err)
+		s.messages = append(s.messages, core.Message{Type: core.CommandErrorResultMessage, Content: fmt.Sprintf("Failed to reload context for new session: %v", err)})
+	}
 }
 
 // Branch saves the current session and creates a new one containing messages
