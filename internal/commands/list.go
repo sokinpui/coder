@@ -26,9 +26,13 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	pcatArgs := append([]string{"--no-header", "-l"}, allFiles...)
 	cmd := exec.Command("pcat", pcatArgs...)
-	output, err := cmd.CombinedOutput()
+	fileList, err := cmd.CombinedOutput()
 
-	payload := "Current project sources:\n" + string(output)
+	overview := formatSourceSummary(sources)
+
+	summary := "Current project sources:\n" + overview + "\n\n" + "Files read by AI\n:" + string(fileList)
+
+	payload := summary
 
 	return CommandOutput{Type: CommandResultString, Payload: payload}, true
 }
