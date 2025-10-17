@@ -64,6 +64,11 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	// This is a command, handle as before.
+	if len(m.CommandHistory) == 0 || m.CommandHistory[len(m.CommandHistory)-1] != input {
+		m.CommandHistory = append(m.CommandHistory, input)
+	}
+	m.CommandHistoryCursor = len(m.CommandHistory)
+	m.commandHistoryModified = ""
 	event := m.Session.HandleInput(input)
 
 	switch event.Type {
@@ -107,6 +112,32 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
+	case tea.KeyUp, tea.KeyDown:
+		if strings.HasPrefix(m.TextArea.Value(), ":") {
+			if m.CommandHistoryCursor == len(m.CommandHistory) {
+				m.commandHistoryModified = m.TextArea.Value()
+			}
+
+			if msg.Type == tea.KeyUp {
+				if m.CommandHistoryCursor > 0 {
+					m.CommandHistoryCursor--
+					m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+					m.TextArea.CursorEnd()
+				}
+			} else { // KeyDown
+				if m.CommandHistoryCursor < len(m.CommandHistory) {
+					m.CommandHistoryCursor++
+					if m.CommandHistoryCursor == len(m.CommandHistory) {
+						m.TextArea.SetValue(m.commandHistoryModified)
+					} else {
+						m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+					}
+					m.TextArea.CursorEnd()
+				}
+			}
+			return m, nil, true
+		}
+
 	case tea.KeyCtrlC:
 		if m.TextArea.Value() != "" {
 			m.ClearedInputBuffer = m.TextArea.Value()

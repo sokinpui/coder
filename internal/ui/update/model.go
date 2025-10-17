@@ -98,6 +98,9 @@ type Model struct {
 	HistoryCussorPos         int
 	HistoryGGPressed         bool
 	PreserveInputOnSubmit    bool
+	CommandHistory           []string
+	CommandHistoryCursor     int
+	commandHistoryModified   string
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -170,5 +173,8 @@ func NewModel(cfg *config.Config) (Model, error) {
 		HistoryCussorPos:         0,
 		HistoryGGPressed:         false,
 		PreserveInputOnSubmit:    false,
+		CommandHistory:           []string{},
+		CommandHistoryCursor:     0,
+		commandHistoryModified:   "",
 	}, nil
 }
