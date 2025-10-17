@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"coder/internal/source"
+	"coder/internal/utils"
 	"fmt"
-	"strings"
+	"os/exec"
 )
 
 func init() {
@@ -11,20 +13,22 @@ func init() {
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
-	sources := cfg.Sources
+	sources := &cfg.Sources
 
 	if len(sources.Dirs) == 0 && len(sources.Files) == 0 {
 		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
 	}
 
-	var b strings.Builder
-	fmt.Fprintln(&b, "Current project sources:")
-	if len(sources.Dirs) > 0 {
-		fmt.Fprintf(&b, "Directories: %s\n", strings.Join(sources.Dirs, ", "))
-	}
-	if len(sources.Files) > 0 {
-		fmt.Fprintf(&b, "Files: %s\n", strings.Join(sources.Files, ", "))
+	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, source.Exclusions)
+	if err != nil {
+		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: strings.TrimSpace(b.String())}, true
+	pcatArgs := append([]string{"--no-header", "-l"}, allFiles...)
+	cmd := exec.Command("pcat", pcatArgs...)
+	output, err := cmd.CombinedOutput()
+
+	payload := "Current project sources:\n" + string(output)
+
+	return CommandOutput{Type: CommandResultString, Payload: payload}, true
 }

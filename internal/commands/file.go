@@ -73,16 +73,16 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	var payload strings.Builder
-	fmt.Fprintln(&payload, "Project source updated.")
-	if len(cfg.Sources.Dirs) > 0 {
-		fmt.Fprintf(&payload, "Directories: %s\n", strings.Join(cfg.Sources.Dirs, ", "))
-	}
-	if len(cfg.Sources.Files) > 0 {
-		fmt.Fprintf(&payload, "Files: %s\n", strings.Join(cfg.Sources.Files, ", "))
+	payload.WriteString("Project source updated.")
+
+	summary := formatSourceSummary(&cfg.Sources)
+	if summary != "" {
+		payload.WriteString("\n")
+		payload.WriteString(summary)
 	}
 	if len(invalidPaths) > 0 {
-		fmt.Fprintf(&payload, "Warning: The following paths do not exist and were ignored: %s\n", strings.Join(invalidPaths, ", "))
+		payload.WriteString(fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", ")))
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: strings.TrimSpace(payload.String())}, true
+	return CommandOutput{Type: CommandResultString, Payload: payload.String()}, true
 }
