@@ -42,10 +42,9 @@ var (
 			Padding(0, 1)
 	imageMessageStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				Padding(0, 1).
-				BorderTop(false).
-				BorderBottom(false).
-				BorderRight(false)
+				Foreground(lipgloss.Color("244")).
+				BorderForeground(lipgloss.Color("244")).
+				Padding(0, 1)
 	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
