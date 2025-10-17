@@ -69,7 +69,6 @@ type Model struct {
 	LastInteractionFailed    bool
 	PaletteFilteredArguments []string
 	IsCyclingCompletions     bool
-	ClearedInputBuffer       string
 	VisualMode               visualMode
 	VisualIsSelecting        bool
 	SelectableBlocks         []messageBlock
@@ -144,7 +143,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		LastInteractionFailed:    false,
 		PaletteFilteredArguments: []string{},
 		IsCyclingCompletions:     false,
-		ClearedInputBuffer:       "",
 		VisualMode:               visualModeNone,
 		VisualIsSelecting:        false,
 		SelectableBlocks:         []messageBlock{},

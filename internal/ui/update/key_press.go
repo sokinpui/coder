@@ -9,6 +9,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.CtrlCPressed = false
 	}
 
+	// Handle global keybindings first
+	switch msg.Type {
+	case tea.KeyCtrlZ:
+		return m, tea.Suspend, true // Suspend the application
+	}
+
 	// Handle scrolling for non-history states.
 	if m.State != stateHistorySelect {
 		switch msg.Type {

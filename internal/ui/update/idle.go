@@ -148,7 +148,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlC:
 		if m.TextArea.Value() != "" {
-			m.ClearedInputBuffer = m.TextArea.Value()
 			m.TextArea.Reset()
 			m.CtrlCPressed = false
 			return m, nil, false // Allow layout recalculation in the same update cycle
@@ -159,14 +158,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.CtrlCPressed = true
 		return m, ctrlCTimeout(), true
-
-	case tea.KeyCtrlZ:
-		if m.ClearedInputBuffer != "" {
-			m.TextArea.SetValue(m.ClearedInputBuffer)
-			m.TextArea.CursorEnd()
-			m.ClearedInputBuffer = ""
-		}
-		return m, nil, true
 
 	case tea.KeyEscape:
 		// Enter visual mode, preserving the text in the text area.

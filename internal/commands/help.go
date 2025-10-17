@@ -52,6 +52,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+F", desc: "Open command finder (fzf)."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},
+	{key: "Ctrl+Z", desc: "Suspend the application."},
 	{key: "Tab", desc: "Autocomplete commands and arguments."},
 	{key: "Esc", desc: "Enter visual mode."},
 	{key: "Ctrl+C", desc: "Clear input, or double press on empty line to quit."},
