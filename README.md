@@ -2,6 +2,10 @@
 
 Coder is a wrapper of LLM chat interface with a few shortcutes to help apply code generated
 
+## Screenshot
+![[Pasted image 20251017232945.png]]
+![[Pasted image 20251017233024.png]]
+![[Pasted image 20251017233026.png]]
 ## Features
 
 - **Tui Interfaces**: A fast, keyboard-driven TUI built with Bubble Tea.
