@@ -6,23 +6,39 @@ import (
 	"coder/internal/history"
 	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
+	historyContent := history.BuildHistorySnippet(s.messages)
+
+	// Don't save a session if it's a fresh, unmodified one.
+	if historyContent == "" && s.title == "New Chat" {
+		return nil
+	}
+
 	if s.historyFilename == "" {
 		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
 	}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		// Log the error but don't fail the save.
+		log.Printf("could not get working directory when saving session: %v", err)
+		wd = ""
+	}
+
 	data := &history.ConversationData{
-		Filename:  s.historyFilename,
-		Title:     s.title,
-		CreatedAt: s.createdAt,
-		Messages:  s.messages,
-		Context:   s.context,
-		Files:     s.config.Sources.Files,
-		Dirs:      s.config.Sources.Dirs,
+		Filename:   s.historyFilename,
+		Title:      s.title,
+		CreatedAt:  s.createdAt,
+		Messages:   s.messages,
+		Context:    s.context,
+		Files:      s.config.Sources.Files,
+		Dirs:       s.config.Sources.Dirs,
+		WorkingDir: wd,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -45,6 +61,14 @@ func (s *Session) LoadConversation(filename string) error {
 	metadata, messages, err := s.historyManager.LoadConversation(filename)
 	if err != nil {
 		return fmt.Errorf("failed to load conversation %s: %w", filename, err)
+	}
+
+	// Change directory if specified in history.
+	if metadata.WorkingDir != "" {
+		if err := os.Chdir(metadata.WorkingDir); err != nil {
+			// Log the error but continue. The user might have moved the project.
+			log.Printf("could not switch to working directory '%s' from history file '%s': %v", metadata.WorkingDir, filename, err)
+		}
 	}
 
 	s.messages = messages

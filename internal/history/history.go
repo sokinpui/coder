@@ -25,6 +25,7 @@ type Metadata struct {
 	ModifiedAt time.Time
 	Files      []string
 	Dirs       []string
+	WorkingDir string
 }
 
 type ConversationInfo struct {
@@ -41,6 +42,7 @@ type ConversationData struct {
 	Context   string // Role Instruction + source code
 	Files     []string
 	Dirs      []string
+	WorkingDir string
 }
 
 type Manager struct {
@@ -63,11 +65,6 @@ func NewManager() (*Manager, error) {
 
 func (m *Manager) SaveConversation(data *ConversationData) error {
 	historyContent := BuildHistorySnippet(data.Messages)
-
-	if historyContent == "" && data.Title == "New Chat" {
-		return nil
-	}
-
 	trimmedHeaders := strings.TrimSpace(data.Context)
 
 	var contentBuilder strings.Builder
@@ -89,6 +86,9 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
+	if data.WorkingDir != "" {
+		fmt.Fprintf(&fileBuf, "workingDir: %s\n", data.WorkingDir)
+	}
 	if len(data.Files) > 0 {
 		paths, err := json.Marshal(data.Files)
 		if err == nil {
@@ -177,6 +177,8 @@ func ParseConversation(content []byte) (*Metadata, []core.Message, error) {
 			metadata.Files = parseStringSlice(value)
 		case "dirs":
 			metadata.Dirs = parseStringSlice(value)
+		case "workingDir":
+			metadata.WorkingDir = value
 		}
 	}
 
@@ -272,6 +274,8 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 			metadata.Files = parseStringSlice(value)
 		case "dirs":
 			metadata.Dirs = parseStringSlice(value)
+		case "workingDir":
+			metadata.WorkingDir = value
 		}
 	}
 
