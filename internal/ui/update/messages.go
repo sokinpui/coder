@@ -231,7 +231,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		welcome := types.Message{Type: types.InitMessage, Content: welcomeMessage}
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
-		m.Session.AddMessages(welcome, dirInfo)
+		m.Session.PrependMessages(welcome, dirInfo)
 
 		m.State = stateIdle
 		m.LastInteractionFailed = false

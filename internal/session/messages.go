@@ -18,6 +18,10 @@ func (s *Session) AddMessages(msg ...types.Message) {
 	s.messages = append(s.messages, msg...)
 }
 
+func (s *Session) PrependMessages(msg ...types.Message) {
+	s.messages = append(msg, s.messages...)
+}
+
 func (s *Session) ReplaceLastMessage(msg types.Message) {
 	if len(s.messages) > 0 {
 		s.messages[len(s.messages)-1] = msg
