@@ -257,7 +257,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		} else {
 			m.TextArea.InsertString(msg.content)
 		}
-		return m, nil, true
+		return m, nil, false
 
 	case animateTitleTickMsg:
 		if !m.AnimatingTitle {
