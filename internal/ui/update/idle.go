@@ -71,6 +71,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	m.commandHistoryModified = ""
 	event := m.Session.HandleInput(input)
 
+	shouldPreserve := m.PreserveInputOnSubmit
+	m.PreserveInputOnSubmit = false
+
 	switch event.Type {
 	case types.NoOp:
 		return m, nil
@@ -78,10 +81,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	case types.MessagesUpdated:
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
-		if !m.PreserveInputOnSubmit {
+		if !shouldPreserve {
 			m.TextArea.Reset()
 		}
-		m.PreserveInputOnSubmit = false
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPrompt())
 
