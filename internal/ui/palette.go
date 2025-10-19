@@ -1,23 +1,21 @@
-package overlay
+package ui
 
 import (
-	"coder/internal/ui/update"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rmhubbert/bubbletea-overlay"
 )
 
-// PaletteOverlay implements the update.Overlay interface for the command palette.
+// PaletteOverlay implements the Overlay interface for the command palette.
 type PaletteOverlay struct{}
 
 // IsVisible checks if the command palette should be shown.
-func (p *PaletteOverlay) IsVisible(main *update.Model) bool {
+func (p *PaletteOverlay) IsVisible(main *Model) bool {
 	return main.ShowPalette
 }
 
 // View renders the command palette overlay.
-func (p *PaletteOverlay) View(main *update.Model) string {
+func (p *PaletteOverlay) View(main *Model) string {
 	paletteContent := main.PaletteView()
 	if paletteContent == "" {
 		return main.View()

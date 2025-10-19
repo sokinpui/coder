@@ -2,8 +2,6 @@ package ui
 
 import (
 	"coder/internal/config"
-	"coder/internal/ui/overlay"
-	"coder/internal/ui/update"
 	"fmt"
 	"log"
 	"os"
@@ -13,14 +11,14 @@ import (
 
 func Start() {
 	cfg := config.Default()
-	mainModel, err := update.NewModel(cfg)
+	mainModel, err := NewModel(cfg)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
 		os.Exit(1)
 	}
 
-	manager := update.NewManager(&mainModel)
-	manager.Overlays = []update.Overlay{&overlay.PaletteOverlay{}}
+	manager := NewManager(&mainModel)
+	manager.Overlays = []Overlay{&PaletteOverlay{}}
 
 	p := tea.NewProgram(
 		manager,
@@ -34,7 +32,7 @@ func Start() {
 	}
 
 	// Save conversation on exit
-	if m, ok := finalModel.(*update.Manager); ok {
+	if m, ok := finalModel.(*Manager); ok {
 		if m.Main != nil && m.Main.Session != nil {
 			if err := m.Main.Session.SaveConversation(); err != nil {
 				log.Printf("Error saving conversation history: %v", err)

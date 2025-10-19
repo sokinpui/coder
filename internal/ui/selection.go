@@ -1,4 +1,4 @@
-package update
+package ui
 
 import "coder/internal/types"
 

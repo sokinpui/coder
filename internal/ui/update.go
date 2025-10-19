@@ -1,4 +1,4 @@
-package update
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/textarea"

@@ -1,4 +1,4 @@
-package update
+package ui
 
 // Overlay defines the interface for a UI overlay.
 type Overlay interface {
