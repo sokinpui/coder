@@ -31,9 +31,23 @@ file content
 ...
 ```
 
+## File Rename:
+
+list the name of the files to rename in a markdown code block tagged with `rename`.
+
+`Files to be renamed`
+
+```rename
+/path/to/oldfile  -> /path/to/newfile
+/path/to/oldfile2 -> /path/to/newfile2
+...
+```
+
 ## File Delete:
 
 list the name of the files that are deleted in a markdown code block tagged with `delete`.
+
+`Files to be deleted`
 
 ```delete
 file1
