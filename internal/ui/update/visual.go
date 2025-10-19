@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"slices"
 	"time"
-
+	
 	"coder/internal/types"
+	"coder/internal/commands"
 	"coder/internal/history"
 
 	"github.com/atotto/clipboard"
@@ -51,6 +52,51 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		cmds []tea.Cmd
 	)
 	switch msg.Type {
+	case tea.KeyCtrlA:
+		if m.VisualSelectCursor >= len(m.SelectableBlocks) {
+			return m, nil, true // Out of bounds
+		}
+
+		cursorMessageIndex := m.SelectableBlocks[m.VisualSelectCursor].startIdx
+		var aiResponseToApply string
+		found := false
+		messages := m.Session.GetMessages()
+
+		// Search backwards from the message before the cursor's block
+		for i := cursorMessageIndex - 1; i >= 0; i-- {
+			if messages[i].Type == types.AIMessage && messages[i].Content != "" {
+				aiResponseToApply = messages[i].Content
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			m.StatusBarMessage = "No AI response found above the cursor to apply."
+			return m, clearStatusBarCmd(3 * time.Second), true
+		}
+
+		// Execute itf
+		result, success := commands.ExecuteItf(aiResponseToApply, "")
+
+		// Add messages to show command execution
+		m.Session.AddMessages(types.Message{
+			Type:    types.CommandMessage,
+			Content: ":itf (from visual mode)",
+		})
+		if success {
+			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: result})
+		} else {
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: result})
+		}
+
+		// Exit visual mode and update UI
+		m.State = stateIdle
+		m.VisualMode = visualModeNone
+		m.TextArea.Focus()
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+		return m, textarea.Blink, true
 	case tea.KeyEsc, tea.KeyCtrlC:
 		if m.VisualIsSelecting {
 			m.VisualIsSelecting = false

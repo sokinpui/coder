@@ -66,6 +66,7 @@ var visualModeGroup = helpGroup{
 	{key: "g", desc: "Regenerate from the selected user message."},
 	{key: "e", desc: "Edit the selected user message."},
 	{key: "b", desc: "Enter branch mode from the selected message."},
+	{key: "Ctrl+A", desc: "Apply code changes from nearest AI response above."},
 	{key: "i / Esc", desc: "Exit visual mode."},
 }
 
