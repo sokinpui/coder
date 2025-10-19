@@ -70,6 +70,7 @@ type Model struct {
 	PaletteFilteredArguments []string
 	IsCyclingCompletions     bool
 	VisualMode               visualMode
+	Finder                   FinderModel
 	VisualIsSelecting        bool
 	SelectableBlocks         []messageBlock
 	VisualSelectCursor       int
@@ -145,6 +146,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		IsCyclingCompletions:     false,
 		VisualMode:               visualModeNone,
 		VisualIsSelecting:        false,
+		Finder:                   NewFinder(),
 		SelectableBlocks:         []messageBlock{},
 		VisualSelectCursor:       0,
 		VisualSelectStart:        0,

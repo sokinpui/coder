@@ -12,6 +12,7 @@ const (
 	stateCancelling
 	stateVisualSelect
 	stateHistorySelect
+	stateFinder
 )
 
 type (
@@ -38,13 +39,12 @@ type (
 	conversationLoadedMsg struct {
 		err error
 	}
-	fzfFinishedMsg struct {
-		result string
-		err    error
-	}
 	pasteResultMsg struct {
 		isImage bool
 		content string
 		err     error
+	}
+	finderResultMsg struct {
+		result string
 	}
 )

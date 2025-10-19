@@ -9,6 +9,8 @@ import (
 
 	"coder/internal/utils"
 
+	"github.com/charmbracelet/bubbles/textinput"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -299,19 +301,20 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.KeyCtrlF:
-		var fzfInput strings.Builder
-
-		// mode
+		m.State = stateFinder
+		m.TextArea.Blur()
+		var items []string
 		for _, mode := range config.AvailableAppModes {
-			fzfInput.WriteString(fmt.Sprintf("mode: %s\n", mode))
+			items = append(items, fmt.Sprintf("mode: %s", mode))
 		}
-
-		// model
 		for _, model := range config.AvailableModels {
-			fzfInput.WriteString(fmt.Sprintf("model: %s\n", model))
+			items = append(items, fmt.Sprintf("model: %s", model))
 		}
-
-		return m, runFzfCmd(fzfInput.String()), true
+		m.Finder.AllItems = items
+		m.Finder.FoundItems = items
+		m.Finder.Visible = true
+		m.Finder.TextInput.Focus()
+		return m, textinput.Blink, true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.

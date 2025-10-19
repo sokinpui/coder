@@ -279,20 +279,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.AnimatingTitle = false
 		return m, nil, true
 
-	case fzfFinishedMsg:
-		if msg.err != nil {
-			errorContent := fmt.Sprintf("\n**fzf Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-			return m, nil, true
-		}
-
-		if msg.result == "" {
-			// User cancelled fzf
-			return m, nil, true
-		}
-
+	case finderResultMsg:
+		m.State = stateIdle
+		m.TextArea.Focus()
 		originalContent := m.TextArea.Value()
 
 		var commandToRun string
