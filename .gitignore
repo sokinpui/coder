@@ -2,3 +2,4 @@ grpc/
 test.go
 .coder/
 context/
+.obsidian/
