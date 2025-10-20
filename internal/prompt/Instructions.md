@@ -94,6 +94,22 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ...
 ````
 
+## multi Code Block Formatting
+
+Good Example:
+
+`Title or filename.ext`
+
+```tag
+...
+```
+
+`Title or filename.ext`
+
+```tag
+...
+```
+
 ## Order of output
 
 1. Infomative explanation
