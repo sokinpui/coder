@@ -15,6 +15,7 @@ const (
 	CommandResultEditMode
 	CommandResultBranchMode
 	CommandResultHistoryMode
+	CommandResultQuit
 )
 
 // CommandOutput is the structured result of a command execution.

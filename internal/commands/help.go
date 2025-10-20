@@ -37,6 +37,8 @@ var commandGroup = helpGroup{
 	{key: "mode", desc: "Switch application mode (e.g., :mode Coding)."},
 	{key: "model", desc: "Switch generation model (e.g., :model gemini-2.5-pro)."},
 	{key: "new", desc: "Start a new chat session."},
+	{key: "q", desc: "Quit the application."},
+	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
 	{key: "shell", desc: "Execute a shell command."},
 	{key: "visual", desc: "Enter visual mode for message selection."},

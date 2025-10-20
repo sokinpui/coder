@@ -22,6 +22,8 @@ const (
 	HistoryModeStarted
 	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
+	// Quit indicates the application should quit.
+	Quit
 )
 
 // Event is returned by session methods to inform the UI about what happened.

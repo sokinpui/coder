@@ -111,6 +111,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
+
+	case types.Quit:
+		m.Quitting = true
+		return m, tea.Quit
 	}
 
 	return m, nil
