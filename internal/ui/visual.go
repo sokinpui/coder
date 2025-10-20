@@ -358,7 +358,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 						selectedMessages = append(selectedMessages, m.Session.GetMessages()[j])
 					}
 				}
-				content := history.BuildHistorySnippet(selectedMessages)
+
+				var content string
+				if len(selectedMessages) == 1 && selectedMessages[0].Type == types.UserMessage {
+					content = selectedMessages[0].Content
+				} else {
+					content = history.BuildHistorySnippet(selectedMessages)
+				}
 				if err := clipboard.WriteAll(content); err == nil {
 					m.StatusBarMessage = "Copied to clipboard."
 					cmd = clearStatusBarCmd(2 * time.Second)
