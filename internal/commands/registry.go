@@ -9,6 +9,44 @@ import (
 var commands = make(map[string]commandFunc)
 var commandArgumentCompleters = make(map[string]argumentCompleter)
 
+// splitPipedCommands splits a string by the pipe symbol '|', respecting quotes and escapes.
+func splitPipedCommands(input string) []string {
+	var parts []string
+	var currentPart strings.Builder
+	inSingleQuote := false
+	inDoubleQuote := false
+	isEscaped := false
+
+	for _, char := range input {
+		if isEscaped {
+			currentPart.WriteRune(char)
+			isEscaped = false
+			continue
+		}
+
+		if char == '\\' {
+			isEscaped = true
+			currentPart.WriteRune(char)
+			continue
+		}
+
+		if char == '\'' && !inDoubleQuote {
+			inSingleQuote = !inSingleQuote
+		} else if char == '"' && !inSingleQuote {
+			inDoubleQuote = !inDoubleQuote
+		}
+
+		if char == '|' && !inSingleQuote && !inDoubleQuote {
+			parts = append(parts, currentPart.String())
+			currentPart.Reset()
+		} else {
+			currentPart.WriteRune(char)
+		}
+	}
+	parts = append(parts, currentPart.String())
+	return parts
+}
+
 func registerCommand(name string, fn commandFunc, completer argumentCompleter) {
 	commands[name] = fn
 	if completer != nil {
@@ -35,8 +73,7 @@ func GetCommands() []string {
 
 // processPipedCommands handles the logic for executing a series of commands linked by pipes.
 func processPipedCommands(trimmedInput string, s SessionController) (CommandOutput, bool) {
-	pipeSymbol := "|||"
-	commandParts := strings.Split(trimmedInput, pipeSymbol)
+	commandParts := splitPipedCommands(trimmedInput)
 	var lastOutput CommandOutput
 	var lastSuccess = true
 
@@ -92,8 +129,7 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 		return CommandOutput{}, false, false // Not a command
 	}
 	trimmedInput := strings.TrimPrefix(input, ":")
-	pipeSymbol := "|||"
-	if strings.Contains(trimmedInput, pipeSymbol) {
+	if strings.Contains(trimmedInput, "|") {
 		result, success = processPipedCommands(trimmedInput, s)
 		return result, true, success
 	}
