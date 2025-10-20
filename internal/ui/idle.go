@@ -58,6 +58,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.State = stateGenPending
 		m.TextArea.Blur()
 		m.TextArea.Reset()
+		m = m.updateLayout()
 		m.Viewport.SetContent(m.renderConversation())
 		m.Viewport.GotoBottom()
 
@@ -86,6 +87,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		if !shouldPreserve {
 			m.TextArea.Reset()
 		}
+		m = m.updateLayout()
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPrompt())
 
@@ -126,6 +128,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if m.CommandHistoryCursor > 0 {
 					m.CommandHistoryCursor--
 					m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+					m = m.updateLayout()
 					m.TextArea.CursorEnd()
 				}
 			} else { // KeyDown
@@ -133,8 +136,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.CommandHistoryCursor++
 					if m.CommandHistoryCursor == len(m.CommandHistory) {
 						m.TextArea.SetValue(m.commandHistoryModified)
+						m = m.updateLayout()
 					} else {
 						m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+						m = m.updateLayout()
 					}
 					m.TextArea.CursorEnd()
 				}
@@ -221,8 +226,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				prefixParts = parts
 			}
 			m.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+			m = m.updateLayout()
 		} else { // command/action
 			m.TextArea.SetValue(selectedItem)
+			m = m.updateLayout()
 		}
 		m.TextArea.CursorEnd()
 		return m, nil, true

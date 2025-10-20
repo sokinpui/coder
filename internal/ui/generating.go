@@ -32,6 +32,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.StreamSub = event.Data.(chan string)
 	m.TextArea.Blur()
 	m.TextArea.Reset()
+	m = m.updateLayout()
 
 	m.LastRenderedAIPart = ""
 	m.LastInteractionFailed = false

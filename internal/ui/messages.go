@@ -102,6 +102,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.StreamSub = nil
 		m.Session.CancelGeneration()
 		m.TextArea.Reset()
+		m = m.updateLayout()
 		m.TextArea.Focus()
 
 		if m.LastInteractionFailed {
