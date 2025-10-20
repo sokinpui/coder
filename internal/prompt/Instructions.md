@@ -96,6 +96,7 @@ If the markdown files contains codeblock inside, you should use four backticks f
 
 ## multi Code Block Formatting
 
+**"Always place the triple backticks (```) for code blocks on their own separate lines."**
 Good Example:
 
 `Title or filename.ext`
