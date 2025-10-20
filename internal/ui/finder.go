@@ -50,13 +50,13 @@ func (m FinderModel) Update(msg tea.Msg) (FinderModel, tea.Cmd) {
 			m.TextInput.Reset()
 			return m, nil
 
-		case tea.KeyUp, tea.KeyCtrlP:
+		case tea.KeyUp, tea.KeyCtrlP, tea.KeyCtrlK:
 			if m.Cursor > 0 {
 				m.Cursor--
 			}
 			return m, nil
 
-		case tea.KeyDown, tea.KeyCtrlN:
+		case tea.KeyDown, tea.KeyCtrlN, tea.KeyCtrlJ:
 			if m.Cursor < len(m.FoundItems)-1 {
 				m.Cursor++
 			}
