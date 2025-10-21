@@ -16,21 +16,22 @@ type QuickViewModel struct {
 	Visible         bool
 	GlamourRenderer *glamour.TermRenderer
 	messages        []types.Message
+	needsRender     bool
 }
 
 // NewQuickView creates a new quick view model.
 func NewQuickView() *QuickViewModel {
 	vp := viewport.New(80, 20) // Initial size, will be updated
 	return &QuickViewModel{
-		Viewport: vp,
-		Visible:  false,
+		Viewport:    vp,
+		Visible:     false,
+		needsRender: false,
 	}
 }
 
 func (m *QuickViewModel) SetMessages(messages []types.Message) {
 	m.messages = messages
-	m.Viewport.SetContent(m.renderMessages())
-	m.Viewport.GotoBottom()
+	m.needsRender = true
 }
 
 func (m *QuickViewModel) Init() tea.Cmd {
@@ -102,8 +103,12 @@ func (f *QuickViewOverlay) View(main *Model) string {
 	main.QuickView.Viewport.Height = quickViewHeight - paletteContainerStyle.GetVerticalFrameSize()
 	main.QuickView.GlamourRenderer = main.GlamourRenderer
 
-	// The content needs to be re-rendered if messages changed.
-	// The SetMessages method handles this.
+	if main.QuickView.needsRender {
+		main.QuickView.Viewport.SetContent(main.QuickView.renderMessages())
+		main.QuickView.Viewport.GotoBottom()
+		main.QuickView.needsRender = false
+	}
+
 	quickViewContent := main.QuickView.View()
 	if quickViewContent == "" {
 		return main.View()
