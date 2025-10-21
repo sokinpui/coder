@@ -1,12 +1,40 @@
 package ui
 
 import (
+	"coder/internal/utils"
+	"regexp"
 	"strings"
 
 	"coder/internal/types"
 
 	"github.com/charmbracelet/lipgloss"
 )
+
+func highlightString(haystack, needle string, style, currentStyle lipgloss.Style, currentMatchIndex int, matchCounter *int) string {
+	if needle == "" || haystack == "" {
+		return haystack
+	}
+
+	// Use regex for case-insensitive replacement
+	re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(needle))
+	if err != nil {
+		// Fallback for invalid regex
+		return haystack
+	}
+
+	highlighted := re.ReplaceAllStringFunc(haystack, func(match string) string {
+		var rendered string
+		if currentMatchIndex != -1 && *matchCounter == currentMatchIndex {
+			rendered = currentStyle.Render(match)
+		} else {
+			rendered = style.Render(match)
+		}
+		(*matchCounter)++
+		return rendered
+	})
+
+	return highlighted
+}
 
 func truncateMessage(content string, maxLines int) string {
 	lines := strings.Split(content, "\n")
@@ -18,7 +46,7 @@ func truncateMessage(content string, maxLines int) string {
 }
 
 // renderConversation renders the entire message history.
-func (m Model) renderConversation() string {
+func (m Model) renderConversation(forSearch bool) string {
 	var parts []string
 
 	blockStarts := make(map[int]int)
@@ -43,7 +71,10 @@ func (m Model) renderConversation() string {
 		}
 	}
 
+	var matchCounter int = 0
 	for i, msg := range m.Session.GetMessages() {
+		isSearchActive := !forSearch && (m.State == stateSearching || m.State == stateSearchNav) && m.SearchQuery != ""
+
 		currentMsg := msg // Make a copy to modify content for visual mode
 		if m.State == stateVisualSelect {
 			switch currentMsg.Type {
@@ -62,9 +93,15 @@ func (m Model) renderConversation() string {
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.UserMessage:
 			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
+			if isSearchActive {
+				currentMsg.Content = highlightString(currentMsg.Content, m.SearchQuery, searchHighlightStyle, currentSearchHighlightStyle, m.currentMatchFirstOnLine, &matchCounter)
+			}
 			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.CommandMessage:
 			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
+			if isSearchActive {
+				currentMsg.Content = highlightString(currentMsg.Content, m.SearchQuery, searchHighlightStyle, currentSearchHighlightStyle, m.currentMatchFirstOnLine, &matchCounter)
+			}
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.ImageMessage:
 			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
@@ -72,18 +109,28 @@ func (m Model) renderConversation() string {
 		case types.AIMessage:
 			if currentMsg.Content == "" {
 				continue
+			}
+			renderedAI, err := m.GlamourRenderer.Render(currentMsg.Content)
+			if err != nil {
+				renderedAI = currentMsg.Content
+			}
+			if isSearchActive {
+				plainRenderedAI := utils.StripAnsi(renderedAI)
+				renderedMsg = highlightString(plainRenderedAI, m.SearchQuery, searchHighlightStyle, currentSearchHighlightStyle, m.currentMatchFirstOnLine, &matchCounter)
 			} else {
-				renderedAI, err := m.GlamourRenderer.Render(currentMsg.Content)
-				if err != nil {
-					renderedAI = currentMsg.Content
-				}
 				renderedMsg = renderedAI
 			}
 		case types.CommandResultMessage:
 			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
+			if isSearchActive {
+				currentMsg.Content = highlightString(currentMsg.Content, m.SearchQuery, searchHighlightStyle, currentSearchHighlightStyle, m.currentMatchFirstOnLine, &matchCounter)
+			}
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.CommandErrorResultMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
+			if isSearchActive {
+				currentMsg.Content = highlightString(currentMsg.Content, m.SearchQuery, searchHighlightStyle, currentSearchHighlightStyle, m.currentMatchFirstOnLine, &matchCounter)
+			}
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
 
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/glamour"
 )
 
@@ -88,6 +89,13 @@ type Model struct {
 	CommandHistory           []string
 	CommandHistoryCursor     int
 	commandHistoryModified   string
+	SearchInput              textinput.Model
+	SearchQuery              string
+	SearchResultLines        []int
+	CurrentSearchResult      int
+	currentMatchFirstOnLine  int
+	SearchableContent        []string
+	isSearchDebouncing       bool
 }
 
 func NewModel(cfg *config.Config) (Model, error) {
@@ -124,6 +132,11 @@ func NewModel(cfg *config.Config) (Model, error) {
 	dirMsg := utils.GetDirInfoContent()
 	sess.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 	availableCommands := commands.GetCommands()
+
+	si := textinput.New()
+	si.Prompt = "/"
+	si.Placeholder = "Search..."
+
 	sort.Strings(availableCommands)
 
 	return Model{
@@ -164,5 +177,12 @@ func NewModel(cfg *config.Config) (Model, error) {
 		CommandHistory:           []string{},
 		CommandHistoryCursor:     0,
 		commandHistoryModified:   "",
+		SearchInput:              si,
+		SearchQuery:              "",
+		SearchResultLines:        nil,
+		CurrentSearchResult:      0,
+		currentMatchFirstOnLine:  -1,
+		SearchableContent:        nil,
+		isSearchDebouncing:       false,
 	}, nil
 }

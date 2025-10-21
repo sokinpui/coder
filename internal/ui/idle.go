@@ -26,7 +26,7 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	m.LastRenderedAIPart = ""
 	m.TextArea.Focus()
 	m.Viewport.GotoTop()
-	m.Viewport.SetContent(m.renderConversation())
+	m.Viewport.SetContent(m.renderConversation(false))
 
 	// Recalculate the token count for the base context.
 	m.IsCountingTokens = true
@@ -59,7 +59,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.TextArea.Blur()
 		m.TextArea.Reset()
 		m = m.updateLayout()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 
 		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }), m.Spinner.Tick)
@@ -82,7 +82,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case types.MessagesUpdated:
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		if !shouldPreserve {
 			m.TextArea.Reset()
@@ -122,6 +122,21 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
+	case tea.KeyRunes:
+		if !strings.HasPrefix(m.TextArea.Value(), ":") {
+			if msg.String() == "/" {
+				m.State = stateSearching
+				m.SearchInput.Focus()
+				m.SearchInput.Reset()
+				m.TextArea.Blur()
+
+				fullRenderedContent := m.renderConversation(true)
+				cleanContent := utils.StripAnsi(fullRenderedContent)
+				m.SearchableContent = strings.Split(cleanContent, "\n")
+				return m, textinput.Blink, true
+			}
+		}
+
 	case tea.KeyUp, tea.KeyDown:
 		if strings.HasPrefix(m.TextArea.Value(), ":") {
 			if m.CommandHistoryCursor == len(m.CommandHistory) {
@@ -306,7 +321,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			model, cmd := m.enterVisualMode(visualModeBranch)
 			return model, cmd, true
 		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
@@ -332,7 +347,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		event := m.Session.HandleInput(":itf")
 		switch event.Type {
 		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 		}
 		return m, nil, true

@@ -34,6 +34,14 @@ func listenForStream(sub chan string) tea.Cmd {
 	}
 }
 
+const searchDebounceDuration = 200 * time.Millisecond
+
+func searchDebounceTick() tea.Cmd {
+	return tea.Tick(searchDebounceDuration, func(t time.Time) tea.Msg {
+		return searchDebounceTickMsg{}
+	})
+}
+
 func countTokensCmd(text string) tea.Cmd {
 	return func() tea.Msg {
 		count := token.CountTokens(text)

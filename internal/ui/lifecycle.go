@@ -108,11 +108,22 @@ func (m Model) updatePalette() Model {
 func (m Model) updateLayout() Model {
 	visibleLines := getVisibleLines(m.TextArea.Value(), m.TextArea.Width())
 	inputHeight := min(visibleLines+1, m.Height/4)
+	m.SearchInput.Width = m.Width - lipgloss.Width(m.SearchInput.Prompt) - 2
 	m.TextArea.SetHeight(max(1, inputHeight))
 
 	statusViewHeight := lipgloss.Height(m.StatusView())
 
-	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
+	var currentInputHeight int
+	var inputAreaVerticalPadding int
+	if m.State == stateSearching {
+		currentInputHeight = 1
+		inputAreaVerticalPadding = 0
+	} else if m.State != stateHistorySelect && m.State != stateSearchNav {
+		currentInputHeight = m.TextArea.Height()
+		inputAreaVerticalPadding = textAreaStyle.GetVerticalPadding()
+	}
+
+	viewportHeight := m.Height - currentInputHeight - statusViewHeight - inputAreaVerticalPadding - 2
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
