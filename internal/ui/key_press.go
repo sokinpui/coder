@@ -13,25 +13,28 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.CtrlCPressed = false
 	}
 
-	// Handle global keybindings first
-	switch msg.Type {
-	case tea.KeyCtrlZ:
-		return m, tea.Suspend, true // Suspend the application
-	case tea.KeyCtrlQ:
-		if m.State == stateQuickView {
-			m.State = m.PreviousState
+	// If quick view is visible, it gets priority on key presses.
+	if m.QuickView.Visible {
+		switch msg.Type {
+		case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ:
 			m.QuickView.Visible = false
 			if m.State == stateIdle {
 				m.TextArea.Focus()
 				return m, textarea.Blink, true
 			}
-			var cmd tea.Cmd
-			isGeneratingState := m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating || m.State == stateCancelling
-			if isGeneratingState {
-				cmd = m.Spinner.Tick
-			}
-			return m, cmd, true
+			return m, nil, true
 		}
+		// Let quickview handle its own scrolling etc.
+		cmd := m.QuickView.Update(msg)
+		return m, cmd, true
+	}
+
+	// Handle global keybindings first
+	switch msg.Type {
+	case tea.KeyCtrlZ:
+		return m, tea.Suspend, true // Suspend the application
+	case tea.KeyCtrlQ:
+		// This now just opens the quick view
 		messages := m.Session.GetMessages()
 		var lastTwo []types.Message
 		count := 0
@@ -52,8 +55,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		m.QuickView.SetMessages(lastTwo)
 		m.QuickView.Visible = true
-		m.PreviousState = m.State
-		m.State = stateQuickView
 		m.TextArea.Blur()
 		return m, nil, true
 	}
@@ -79,24 +80,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressHistory(msg)
 	case stateVisualSelect:
 		return m.handleKeyPressVisual(msg)
-	case stateQuickView:
-		switch msg.Type {
-		case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ:
-			m.State = m.PreviousState
-			m.QuickView.Visible = false
-			if m.State == stateIdle {
-				m.TextArea.Focus()
-				return m, textarea.Blink, true
-			}
-			var cmd tea.Cmd
-			isGeneratingState := m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating || m.State == stateCancelling
-			if isGeneratingState {
-				cmd = m.Spinner.Tick
-			}
-			return m, cmd, true
-		}
-		cmd := m.QuickView.Update(msg)
-		return m, cmd, true
 	case stateFinder:
 		newFinder, cmd := m.Finder.Update(msg)
 		m.Finder = newFinder

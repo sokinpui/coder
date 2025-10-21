@@ -53,7 +53,6 @@ type Model struct {
 	Session                  *session.Session
 	StreamSub                chan string
 	State                    state
-	PreviousState            state
 	Quitting                 bool
 	Height                   int
 	Width                    int
@@ -132,7 +131,6 @@ func NewModel(cfg *config.Config) (Model, error) {
 		Viewport:                 vp,
 		Spinner:                  s,
 		Session:                  sess,
-		PreviousState:            stateIdle,
 		State:                    stateIdle,
 		GlamourRenderer:          renderer,
 		IsStreaming:              false,

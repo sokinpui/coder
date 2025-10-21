@@ -91,7 +91,7 @@ func (m *QuickViewModel) View() string {
 type QuickViewOverlay struct{}
 
 func (f *QuickViewOverlay) IsVisible(main *Model) bool {
-	return main.State == stateQuickView
+	return main.QuickView.Visible
 }
 
 func (f *QuickViewOverlay) View(main *Model) string {
