@@ -47,7 +47,7 @@ func (m Model) StatusView() string {
 		default: // visualModeNone
 			modeStr = "VISUAL"
 			if m.VisualIsSelecting {
-				helpStr = "j/k: move | y: copy | d: delete | esc: cancel selection"
+				helpStr = "j/k: move | o/O: swap cursor | y: copy | d: delete | esc: cancel selection"
 			} else {
 				helpStr = "j/k: move | v: start selection | esc: cancel"
 			}

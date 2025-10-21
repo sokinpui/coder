@@ -65,6 +65,7 @@ var globalGroup = helpGroup{
 var visualModeGroup = helpGroup{
 	{key: "j / k", desc: "Move cursor down / up."},
 	{key: "v", desc: "Start/stop selection."},
+	{key: "o / O", desc: "Swap cursor with selection start."},
 	{key: "y", desc: "Yank (copy) selected messages."},
 	{key: "d", desc: "Delete selected messages."},
 	{key: "g", desc: "Regenerate from the selected user message."},

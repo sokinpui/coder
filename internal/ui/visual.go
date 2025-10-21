@@ -252,6 +252,12 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			// Allow the viewport to handle the key press for scrolling
 			return m, nil, false
+		case "o", "O":
+			if m.VisualIsSelecting {
+				m.VisualSelectCursor, m.VisualSelectStart = m.VisualSelectStart, m.VisualSelectCursor
+				m.Viewport.SetContent(m.renderConversation())
+			}
+			return m, nil, true
 		case "v", "V":
 			if m.VisualIsSelecting {
 				m.VisualIsSelecting = false
