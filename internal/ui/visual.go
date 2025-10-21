@@ -257,9 +257,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.VisualIsSelecting = false
 			} else {
 				m.VisualIsSelecting = true
-				if len(m.SelectableBlocks) > 0 {
-					m.VisualSelectStart = len(m.SelectableBlocks) - 1
-				}
+				m.VisualSelectStart = m.VisualSelectCursor
 			}
 			m.Viewport.SetContent(m.renderConversation())
 			return m, nil, true
