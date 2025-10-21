@@ -37,16 +37,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		// This now just opens the quick view
 		messages := m.Session.GetMessages()
 		var lastTwo []types.Message
+		var lastNMessages int = 4
 		count := 0
-		for i := len(messages) - 1; i >= 0 && count < 2; i-- {
+		for i := len(messages) - 1; i >= 0 && count < lastNMessages; i-- {
 			msg := messages[i]
-			switch msg.Type {
-			case types.UserMessage, types.AIMessage:
-				if msg.Content != "" { // Don't show empty AI messages
-					lastTwo = append(lastTwo, msg)
-					count++
-				}
+			// Don't show system messages or empty AI messages
+			if msg.Type == types.InitMessage || msg.Type == types.DirectoryMessage {
+				continue
 			}
+			if msg.Type == types.AIMessage && msg.Content == "" {
+				continue
+			}
+			lastTwo = append(lastTwo, msg)
+			count++
 		}
 		// reverse to get correct order
 		for i, j := 0, len(lastTwo)-1; i < j; i, j = i+1, j-1 {
