@@ -53,6 +53,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+N", desc: "Start a new chat session."},
 	{key: "Ctrl+B", desc: "Enter branch mode."},
 	{key: "Ctrl+F", desc: "Open command finder (fzf)."},
+	{key: "Ctrl+Q", desc: "Quick view of last two messages."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},
 	{key: "Ctrl+Z", desc: "Suspend the application."},

@@ -53,6 +53,7 @@ type Model struct {
 	Session                  *session.Session
 	StreamSub                chan string
 	State                    state
+	PreviousState            state
 	Quitting                 bool
 	Height                   int
 	Width                    int
@@ -71,6 +72,7 @@ type Model struct {
 	IsCyclingCompletions     bool
 	VisualMode               visualMode
 	Finder                   FinderModel
+	QuickView                *QuickViewModel
 	VisualIsSelecting        bool
 	SelectableBlocks         []messageBlock
 	VisualSelectCursor       int
@@ -130,6 +132,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		Viewport:                 vp,
 		Spinner:                  s,
 		Session:                  sess,
+		PreviousState:            stateIdle,
 		State:                    stateIdle,
 		GlamourRenderer:          renderer,
 		IsStreaming:              false,
@@ -147,6 +150,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		VisualMode:               visualModeNone,
 		VisualIsSelecting:        false,
 		Finder:                   NewFinder(),
+		QuickView:                NewQuickView(),
 		SelectableBlocks:         []messageBlock{},
 		VisualSelectCursor:       0,
 		VisualSelectStart:        0,

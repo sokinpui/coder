@@ -13,6 +13,7 @@ const (
 	stateVisualSelect
 	stateHistorySelect
 	stateFinder
+	stateQuickView
 )
 
 type (
