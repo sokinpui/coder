@@ -257,6 +257,7 @@ func (m Model) StatusView() string {
 
 	modeInfo := fmt.Sprintf("Mode: %s", m.Session.GetConfig().AppMode)
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
+	tempInfo := fmt.Sprintf("Temp: %.1f", m.Session.GetConfig().Generation.Temperature)
 
 	var tokenInfo string
 	if m.IsCountingTokens {
@@ -267,6 +268,7 @@ func (m Model) StatusView() string {
 
 	modePart := modelInfoStyle.Render(modeInfo)
 	modelPart := modelInfoStyle.Render(modelInfo)
+	tempPart := modelInfoStyle.Render(tempInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
 	rightStatusItems := []string{}
@@ -274,7 +276,7 @@ func (m Model) StatusView() string {
 		if tokenPart != "" {
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
-		rightStatusItems = append(rightStatusItems, modePart, modelPart)
+		rightStatusItems = append(rightStatusItems, modePart, modelPart, tempPart)
 	}
 
 	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
