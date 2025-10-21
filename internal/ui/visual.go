@@ -35,7 +35,7 @@ func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
 	m.TextArea.Blur()
 
 	originalOffset := m.Viewport.YOffset
-	m.Viewport.SetContent(m.renderConversation())
+	m.Viewport.SetContent(m.renderConversation(false))
 
 	if isSelectionMode {
 		m.Viewport.SetYOffset(originalOffset)
@@ -94,13 +94,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.State = stateIdle
 		m.VisualMode = visualModeNone
 		m.TextArea.Focus()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		return m, textarea.Blink, true
 	case tea.KeyEsc, tea.KeyCtrlC:
 		if m.VisualIsSelecting {
 			m.VisualIsSelecting = false
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			return m, nil, true
 		}
 		var cmd tea.Cmd = textarea.Blink
@@ -118,7 +118,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.VisualMode = visualModeNone
 		m.TextArea.Focus()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		return m, cmd, true
 
@@ -209,7 +209,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.TextArea.Reset()
 				m.TextArea.SetHeight(1)
 				m.TextArea.Focus()
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				m.Viewport.GotoBottom()
 
 				// Recalculate token count
@@ -228,7 +228,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.VisualMode = visualModeNone
 		m.VisualIsSelecting = false
 		m.TextArea.Focus()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...)), true
 
@@ -238,7 +238,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if m.VisualSelectCursor < len(m.SelectableBlocks)-1 {
 				m.VisualSelectCursor++
 				offset := m.Viewport.YOffset
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				m.Viewport.SetYOffset(offset)
 			}
 			// Allow the viewport to handle the key press for scrolling
@@ -247,7 +247,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if m.VisualSelectCursor > 0 {
 				m.VisualSelectCursor--
 				offset := m.Viewport.YOffset
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				m.Viewport.SetYOffset(offset)
 			}
 			// Allow the viewport to handle the key press for scrolling
@@ -255,7 +255,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case "o", "O":
 			if m.VisualIsSelecting {
 				m.VisualSelectCursor, m.VisualSelectStart = m.VisualSelectStart, m.VisualSelectCursor
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 			}
 			return m, nil, true
 		case "v", "V":
@@ -265,13 +265,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.VisualIsSelecting = true
 				m.VisualSelectStart = m.VisualSelectCursor
 			}
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			return m, nil, true
 		case "b":
 			if !m.VisualIsSelecting && m.VisualMode == visualModeNone {
 				m.VisualMode = visualModeBranch
 				m.VisualIsSelecting = true // branch is a single-selection mode
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				return m, nil, true
 			}
 		case "n":
@@ -294,7 +294,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.VisualMode = visualModeNone
 			m.VisualIsSelecting = false
 			m.TextArea.Focus()
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 			return m, textarea.Blink, true
 		case "g":
@@ -389,7 +389,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.VisualMode = visualModeNone
 				m.VisualIsSelecting = false
 				m.TextArea.Focus()
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				m.Viewport.GotoBottom()
 				return m, tea.Batch(textarea.Blink, cmd), true
 			}
@@ -437,7 +437,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.VisualMode = visualModeNone
 				m.VisualIsSelecting = false
 				m.TextArea.Focus()
-				m.Viewport.SetContent(m.renderConversation())
+				m.Viewport.SetContent(m.renderConversation(false))
 				m.Viewport.GotoBottom()
 				m.IsCountingTokens = true
 				return m, tea.Batch(textarea.Blink, cmd, countTokensCmd(m.Session.GetPrompt())), true

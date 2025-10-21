@@ -94,6 +94,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, cmd, true
 	case stateIdle:
 		return m.handleKeyPressIdle(msg)
+	case stateSearching:
+		return m.handleKeyPressSearching(msg)
+	case stateSearchNav:
+		return m.handleKeyPressSearchNav(msg)
 	}
 	return m, nil, false
 }

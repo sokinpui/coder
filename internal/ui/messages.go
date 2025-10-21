@@ -16,6 +16,14 @@ import (
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
+	case searchDebounceTickMsg:
+		if m.isSearchDebouncing {
+			m.isSearchDebouncing = false
+			m = m.performSearch()
+			m.Viewport.SetContent(m.renderConversation(false))
+		}
+		return m, nil, true
+
 	case startGenerationMsg:
 		if m.State != stateGenPending {
 			return m, nil, true // Debounce was cancelled
@@ -31,7 +39,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		switch event.Type {
 		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 			m.State = stateIdle
 			m.TextArea.Focus()
@@ -53,7 +61,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		switch m.State {
 		case stateThinking, stateGenPending:
 			wasAtBottom := m.Viewport.AtBottom()
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			if wasAtBottom {
 				m.Viewport.GotoBottom()
 			}
@@ -93,7 +101,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		wasAtBottom := m.Viewport.AtBottom()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		if wasAtBottom {
 			m.Viewport.GotoBottom()
 		}
@@ -118,7 +126,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 			m.EditingMessageIndex = -1 // Also reset here
 			return m, nil, true
@@ -150,7 +158,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				cmd = textarea.Blink
 			}
 
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 
 			m.EditingMessageIndex = -1 // Reset on success or failure
@@ -180,7 +188,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		lastMsg := messages[len(messages)-1]
 		if lastMsg.Content != m.LastRenderedAIPart {
 			wasAtBottom := m.Viewport.AtBottom()
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			if wasAtBottom {
 				m.Viewport.GotoBottom()
 			}
@@ -240,7 +248,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.TextArea.Reset()
 		m.TextArea.SetHeight(1)
 		m.TextArea.Focus()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		m.IsCountingTokens = true
 		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
@@ -259,7 +267,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.isImage {
 			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 		} else {
 			m.TextArea.InsertString(msg.content)
@@ -316,7 +324,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 			return m, nil, true
 		}
@@ -336,7 +344,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.LastInteractionFailed = true
 
 		wasAtBottom := m.Viewport.AtBottom()
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		if wasAtBottom {
 			m.Viewport.GotoBottom()
 		}
@@ -359,7 +367,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		)
 		if err == nil {
 			m.GlamourRenderer = renderer
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 		}
 		return m, nil, false
 	}

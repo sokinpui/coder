@@ -13,9 +13,12 @@ const (
 	stateVisualSelect
 	stateHistorySelect
 	stateFinder
+	stateSearching
+	stateSearchNav
 )
 
 type (
+	searchDebounceTickMsg   struct{}
 	startGenerationMsg      struct{}
 	streamResultMsg         string
 	streamFinishedMsg       struct{}

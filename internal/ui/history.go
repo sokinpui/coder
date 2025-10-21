@@ -41,14 +41,14 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			} else {
 				m.State = stateGenerating
 			}
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			// Re-issue commands needed for generation state
 			return m, tea.Batch(listenForStream(m.StreamSub), renderTick(), m.Spinner.Tick), true
 		} else {
 			// Return to idle
 			m.State = stateIdle
 			m.TextArea.Focus()
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			return m, textarea.Blink, true
 		}
 

@@ -13,7 +13,10 @@ func (m Model) View() string {
 	b.WriteString(m.Viewport.View())
 	b.WriteString("\n")
 
-	if m.State != stateHistorySelect {
+	if m.State == stateSearching {
+		b.WriteString(m.SearchInput.View())
+		b.WriteString("\n")
+	} else if m.State != stateHistorySelect && m.State != stateSearchNav {
 		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
 		b.WriteString("\n")
 	}

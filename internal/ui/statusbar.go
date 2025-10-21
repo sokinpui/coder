@@ -20,6 +20,20 @@ func (m Model) StatusView() string {
 		return statusStyle.Render("j/k: move | gg/G: top/bottom | enter: load | esc: cancel")
 	}
 
+	if m.State == stateSearching {
+		searchStatus := "enter: confirm | esc: cancel"
+		if len(m.SearchResultLines) > 0 {
+			searchStatus = fmt.Sprintf("match %d of %d | %s", m.CurrentSearchResult+1, len(m.SearchResultLines), searchStatus)
+		} else if m.SearchQuery != "" {
+			searchStatus = fmt.Sprintf("no matches | %s", searchStatus)
+		}
+		return statusStyle.Render(searchStatus)
+	}
+
+	if m.State == stateSearchNav {
+		return statusStyle.Render(fmt.Sprintf("Search: '%s' | n/N: navigate | /: new search | esc: exit", m.SearchQuery))
+	}
+
 	// Line 1: Title
 	var title string
 	if m.AnimatingTitle {

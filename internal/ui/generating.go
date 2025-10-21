@@ -16,7 +16,7 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			Type:    types.CommandResultMessage, // Re-use style for notification
 			Content: "Generation cancelled.",
 		})
-		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.SetContent(m.renderConversation(false))
 		m.Viewport.GotoBottom()
 		return m, textarea.Blink, true
 	}
@@ -37,7 +37,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.LastRenderedAIPart = ""
 	m.LastInteractionFailed = false
 
-	m.Viewport.SetContent(m.renderConversation())
+	m.Viewport.SetContent(m.renderConversation(false))
 	m.Viewport.GotoBottom()
 
 	prompt := m.Session.GetPrompt()
@@ -75,7 +75,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		case types.MessagesUpdated:
 			// This handles the case where branching is not possible (e.g., no messages)
 			// and an error message was added to the session.
-			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.SetContent(m.renderConversation(false))
 			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
