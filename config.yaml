@@ -1,0 +1,27 @@
+# Default application mode.
+# Available options: "Coding", "Documenting"
+appmode: Coding
+
+# Configuration for the synapse gRPC service, which handles AI model communication.
+grpc:
+  addr: "localhost:50051"
+
+# Default model generation parameters.
+generation:
+  # The default model to use for generating responses.
+  # Run ":model" in the app to see all available models.
+  modelcode: "gemini-2.5-pro"
+
+  # Controls the randomness of the output. 0.0 is deterministic.
+  temperature: 0.0
+
+# Default project source files and directories to be read by the AI.
+# These are the sources that will be loaded when you start the app or a new session.
+# You can override this for a specific session with the ":file" command.
+sources:
+  # List of directories to include. It will recursively find files.
+  # The example below includes the current directory.
+  dirs:
+    - "."
+  # List of specific files to include.
+  files:

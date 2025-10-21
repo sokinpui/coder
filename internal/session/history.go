@@ -103,8 +103,15 @@ func (s *Session) newSession() {
 	s.titleGenerated = false
 	s.createdAt = time.Now()
 	s.historyFilename = ""
-	defaultConfig := config.Default()
-	s.config.Sources = defaultConfig.Sources
+	// Reload config to reset sources to their configured values,
+	// discarding any changes made with `:file` in the previous session.
+	newCfg, err := config.Load()
+	if err != nil {
+		log.Printf("Error reloading config for new session, falling back to default sources: %v", err)
+		s.config.Sources = config.FileSources{Dirs: []string{"."}, Files: []string{}}
+	} else {
+		s.config.Sources = newCfg.Sources
+	}
 	if err := s.LoadContext(); err != nil {
 		// Log and add an error message for the user to see.
 		log.Printf("Error reloading context for new session: %v", err)

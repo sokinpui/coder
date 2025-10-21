@@ -10,7 +10,11 @@ import (
 )
 
 func Start() {
-	cfg := config.Default()
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("Error loading configuration: %v\n", err)
+		os.Exit(1)
+	}
 	mainModel, err := NewModel(cfg)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
