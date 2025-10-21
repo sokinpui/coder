@@ -58,6 +58,17 @@ fi
 echo "Installing Coder TUI..."
 go install ./cmd/coder
 
+# cp default config file if it does not exist
+CONFIG_DIR="$HOME/.config/coder"
+CONFIG_FILE="$CONFIG_DIR/config.yaml"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "Creating default configuration file at $CONFIG_FILE..."
+  mkdir -p "$CONFIG_DIR"
+  cp ./config.yaml "$CONFIG_FILE"
+else
+  echo "Configuration file already exists at $CONFIG_FILE"
+fi
+
 echo "Installation complete."
 echo "You can now run 'coder' from your terminal."
 echo "Ensure $(go env GOPATH)/bin is in your system's PATH."
