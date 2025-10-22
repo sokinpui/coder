@@ -3,23 +3,24 @@ package token
 import (
 	"log"
 
-	vgenai "cloud.google.com/go/vertexai/genai"
-	"cloud.google.com/go/vertexai/genai/tokenizer"
+	"google.golang.org/genai"
+	"google.golang.org/genai/tokenizer"
 )
 
-var tok *tokenizer.Tokenizer
+var tok *tokenizer.LocalTokenizer
 
 func init() {
 	var err error
 	// The tokenizer is compatible across Gemini models.
-	tok, err = tokenizer.New("gemini-1.5-flash")
+	// Using NewLocalTokenizer as inspired by sllmi-go for offline tokenization.
+	tok, err = tokenizer.NewLocalTokenizer("gemini-2.5-flash")
 	if err != nil {
 		log.Fatalf("could not load tokenizer: %v", err)
 	}
 }
 
 func CountTokens(text string) int {
-	ntoks, err := tok.CountTokens(vgenai.Text(text))
+	ntoks, err := tok.CountTokens(genai.Text(text), nil)
 	if err != nil {
 		// Fallback to a rough character-based estimate on encoding failure.
 		log.Printf("token counting failed, falling back to estimate: %v", err)
