@@ -385,12 +385,7 @@ func hashString(data []byte) string {
 // URL's data doesn't match the hash, an error is returned.
 func loadModelData(url string, wantHash string) ([]byte, error) {
 	urlhash := hashString([]byte(url))
-	repoRoot, err := utils.FindRepoRoot()
-	if err != nil {
-		return nil, fmt.Errorf("finding repo root: %w", err)
-	}
-
-	cacheDir := filepath.Join(repoRoot, ".coder", "tokenizer")
+	cacheDir := filepath.Join(utils.UserHomeDir(), ".coder", "tokenizer")
 	cachePath := filepath.Join(cacheDir, urlhash)
 
 	cacheData, err := os.ReadFile(cachePath)

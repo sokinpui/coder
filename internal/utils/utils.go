@@ -18,6 +18,14 @@ func FindRepoRoot() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+func UserHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
+}
+
 // ShortenPath replaces the user's home directory with ~ in a given path.
 func ShortenPath(path string) string {
 	home, err := os.UserHomeDir()
