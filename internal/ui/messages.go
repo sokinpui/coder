@@ -49,7 +49,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
-		if m.State != stateInitializing && m.State != stateGenPending && m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
+		switch m.State {
+		case stateInitializing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
+			// Continue to spinner update logic
+		default:
 			return m, nil, true
 		}
 
