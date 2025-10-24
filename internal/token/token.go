@@ -1,10 +1,10 @@
 package token
 
 import (
+	"coder/internal/tokenizer"
 	"log"
 
 	"google.golang.org/genai"
-	"google.golang.org/genai/tokenizer"
 )
 
 var tok *tokenizer.LocalTokenizer
