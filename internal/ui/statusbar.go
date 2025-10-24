@@ -30,8 +30,14 @@ func (m Model) StatusView() string {
 	titlePart := statusBarTitleStyle.MaxWidth(m.Width).Render(title)
 
 	// Line 2: Status
+	var rightStatusItems []string
 	var leftStatus string
+
 	switch m.State {
+	case stateInitializing:
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Initializing tokenizer "), m.Spinner.View())
+		statusLine := spinnerWithText
+		return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)
 	case stateVisualSelect:
 		var modeStr, helpStr string
 		switch m.VisualMode {
@@ -73,7 +79,6 @@ func (m Model) StatusView() string {
 	tempPart := modelInfoStyle.Render(tempInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
 
-	rightStatusItems := []string{}
 	if m.State != stateVisualSelect {
 		if tokenPart != "" {
 			rightStatusItems = append(rightStatusItems, tokenPart)

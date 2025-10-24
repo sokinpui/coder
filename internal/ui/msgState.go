@@ -5,7 +5,8 @@ import "coder/internal/history"
 type state int
 
 const (
-	stateIdle state = iota
+	stateInitializing state = iota
+	stateIdle
 	stateGenPending
 	stateThinking
 	stateGenerating
@@ -16,6 +17,7 @@ const (
 )
 
 type (
+	tokenizerInitializedMsg struct{ err error }
 	startGenerationMsg      struct{}
 	streamResultMsg         string
 	streamFinishedMsg       struct{}

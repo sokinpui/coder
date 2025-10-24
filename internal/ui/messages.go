@@ -16,6 +16,14 @@ import (
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
+	case tokenizerInitializedMsg:
+		if msg.err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Tokenizer init failed: %v", msg.err)
+			// We can continue without a tokenizer, it will just use estimates.
+		}
+		m.State = stateIdle
+		return m, loadInitialContextCmd(m.Session), true
+
 	case startGenerationMsg:
 		if m.State != stateGenPending {
 			return m, nil, true // Debounce was cancelled
@@ -41,7 +49,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
-		if m.State != stateGenPending && m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
+		if m.State != stateInitializing && m.State != stateGenPending && m.State != stateThinking && m.State != stateGenerating && m.State != stateCancelling {
 			return m, nil, true
 		}
 

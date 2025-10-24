@@ -2,6 +2,7 @@ package token
 
 import (
 	"coder/internal/tokenizer"
+	"fmt"
 	"log"
 
 	"google.golang.org/genai"
@@ -9,17 +10,21 @@ import (
 
 var tok *tokenizer.LocalTokenizer
 
-func init() {
+func Init() error {
 	var err error
 	// The tokenizer is compatible across Gemini models.
 	// Using NewLocalTokenizer as inspired by sllmi-go for offline tokenization.
 	tok, err = tokenizer.NewLocalTokenizer("gemini-2.5-flash")
 	if err != nil {
-		log.Fatalf("could not load tokenizer: %v", err)
+		return fmt.Errorf("could not load tokenizer: %w", err)
 	}
+	return nil
 }
 
 func CountTokens(text string) int {
+	if tok == nil {
+		return len(text) / 4
+	}
 	ntoks, err := tok.CountTokens(genai.Text(text), nil)
 	if err != nil {
 		// Fallback to a rough character-based estimate on encoding failure.

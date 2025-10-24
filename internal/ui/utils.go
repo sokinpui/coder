@@ -34,6 +34,13 @@ func listenForStream(sub chan string) tea.Cmd {
 	}
 }
 
+func initTokenizerCmd() tea.Cmd {
+	return func() tea.Msg {
+		err := token.Init()
+		return tokenizerInitializedMsg{err: err}
+	}
+}
+
 func countTokensCmd(text string) tea.Cmd {
 	return func() tea.Msg {
 		count := token.CountTokens(text)

@@ -131,7 +131,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		Viewport:                 vp,
 		Spinner:                  s,
 		Session:                  sess,
-		State:                    stateIdle,
+		State:                    stateInitializing,
 		GlamourRenderer:          renderer,
 		IsStreaming:              false,
 		LastRenderedAIPart:       "",
