@@ -92,6 +92,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(cmd, textinput.Blink), true
 		}
 		return m, cmd, true
+	case stateSearch:
+		newSearch, cmd := m.Search.Update(msg)
+		m.Search = newSearch
+		if !m.Search.Visible {
+			m.State = stateIdle
+			m.TextArea.Focus()
+			return m, tea.Batch(cmd, textinput.Blink), true
+		}
+		return m, cmd, true
 	case stateIdle:
 		return m.handleKeyPressIdle(msg)
 	}

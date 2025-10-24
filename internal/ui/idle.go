@@ -107,6 +107,16 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m.enterVisualMode(visualModeEdit)
 	case types.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
+	case types.SearchModeStarted:
+		m.TextArea.Reset()
+		m.State = stateSearch
+		m.TextArea.Blur()
+		m.Search.AllItems = m.collectSearchableMessages()
+		m.Search.TextInput.SetValue(event.Data.(string))
+		m.Search.updateFoundItems()
+		m.Search.Visible = true
+		m.Search.TextInput.Focus()
+		return m, textinput.Blink
 	case types.HistoryModeStarted:
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
@@ -336,6 +346,16 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Viewport.GotoBottom()
 		}
 		return m, nil, true
+
+	case tea.KeyCtrlP:
+		m.State = stateSearch
+		m.TextArea.Blur()
+		m.Search.AllItems = m.collectSearchableMessages()
+		m.Search.TextInput.SetValue("")
+		m.Search.updateFoundItems()
+		m.Search.Visible = true
+		m.Search.TextInput.Focus()
+		return m, textinput.Blink, true
 
 	case tea.KeyCtrlV:
 		return m, handlePasteCmd(), true

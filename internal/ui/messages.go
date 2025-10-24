@@ -315,6 +315,38 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return model, cmd, true
 
+	case searchResultMsg:
+		m.State = stateIdle
+		m.TextArea.Focus()
+
+		content, offsets := m.renderConversationWithOffsets()
+		m.messageLineOffsets = offsets
+		m.Viewport.SetContent(content)
+
+		if line, ok := m.messageLineOffsets[msg.item.MsgIndex]; ok {
+			// Determine if there's a border offset based on message type
+			borderOffset := 0
+			messageType := m.Session.GetMessages()[msg.item.MsgIndex].Type
+			if messageType == types.UserMessage { // Add other types here if they get borders
+				borderOffset = 1
+			}
+
+			// Calculate the absolute line number of the found text
+			absoluteLine := line + borderOffset + msg.item.LineNum
+
+			// Center the found line in the viewport
+			offset := absoluteLine - (m.Viewport.Height / 2)
+			if offset < 0 {
+				offset = 0
+			}
+			m.Viewport.SetYOffset(offset)
+			m.StatusBarMessage = fmt.Sprintf("Jumped to message %d, line %d.", msg.item.MsgIndex, msg.item.LineNum+1)
+		} else {
+			m.StatusBarMessage = fmt.Sprintf("Found match, but couldn't jump. See message %d.", msg.item.MsgIndex)
+		}
+
+		return m, tea.Batch(clearStatusBarCmd(3*time.Second), textarea.Blink), true
+
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""
 		return m, nil, true

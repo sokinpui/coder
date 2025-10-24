@@ -22,7 +22,12 @@ func Start() {
 	}
 
 	manager := NewManager(&mainModel)
-	manager.Overlays = []Overlay{&PaletteOverlay{}, &FinderOverlay{}, &QuickViewOverlay{}}
+	manager.Overlays = []Overlay{
+		&PaletteOverlay{},
+		&FinderOverlay{},
+		&SearchOverlay{},
+		&QuickViewOverlay{},
+	}
 
 	p := tea.NewProgram(
 		manager,

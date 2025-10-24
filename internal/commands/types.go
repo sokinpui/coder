@@ -14,6 +14,7 @@ const (
 	CommandResultVisualMode
 	CommandResultEditMode
 	CommandResultBranchMode
+	CommandResultSearchMode
 	CommandResultHistoryMode
 	CommandResultQuit
 )

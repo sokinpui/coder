@@ -18,6 +18,8 @@ const (
 	EditModeStarted
 	// BranchModeStarted indicates the UI should enter visual branch mode.
 	BranchModeStarted
+	// SearchModeStarted indicates the UI should enter search mode.
+	SearchModeStarted
 	// HistoryModeStarted indicates the UI should enter history browsing mode.
 	HistoryModeStarted
 	// NewSessionStarted indicates the session has been reset.

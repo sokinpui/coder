@@ -14,6 +14,7 @@ const (
 	stateVisualSelect
 	stateHistorySelect
 	stateFinder
+	stateSearch
 )
 
 type (
@@ -48,5 +49,8 @@ type (
 	}
 	finderResultMsg struct {
 		result string
+	}
+	searchResultMsg struct {
+		item SearchItem
 	}
 )

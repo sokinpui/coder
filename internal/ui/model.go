@@ -71,6 +71,8 @@ type Model struct {
 	IsCyclingCompletions     bool
 	VisualMode               visualMode
 	Finder                   FinderModel
+	Search                   SearchModel
+	messageLineOffsets       map[int]int
 	QuickView                *QuickViewModel
 	VisualIsSelecting        bool
 	SelectableBlocks         []messageBlock
@@ -147,7 +149,9 @@ func NewModel(cfg *config.Config) (Model, error) {
 		IsCyclingCompletions:     false,
 		VisualMode:               visualModeNone,
 		VisualIsSelecting:        false,
+		Search:                   NewSearch(),
 		Finder:                   NewFinder(),
+		messageLineOffsets:       make(map[int]int),
 		QuickView:                NewQuickView(),
 		SelectableBlocks:         []messageBlock{},
 		VisualSelectCursor:       0,

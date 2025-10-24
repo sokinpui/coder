@@ -17,8 +17,11 @@ func truncateMessage(content string, maxLines int) string {
 	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
 }
 
-// renderConversation renders the entire message history.
-func (m Model) renderConversation() string {
+// renderConversationWithOffsets renders the conversation and returns the content string
+// and a map of message index to its starting line number.
+func (m Model) renderConversationWithOffsets() (string, map[int]int) {
+	messageLineOffsets := make(map[int]int)
+	currentLine := 0
 	var parts []string
 
 	blockStarts := make(map[int]int)
@@ -44,6 +47,7 @@ func (m Model) renderConversation() string {
 	}
 
 	for i, msg := range m.Session.GetMessages() {
+		messageLineOffsets[i] = currentLine
 		currentMsg := msg // Make a copy to modify content for visual mode
 		if m.State == stateVisualSelect {
 			switch currentMsg.Type {
@@ -120,6 +124,7 @@ func (m Model) renderConversation() string {
 			renderedMsg = lipgloss.JoinHorizontal(lipgloss.Top, checkbox, renderedMsg)
 		}
 		parts = append(parts, renderedMsg)
+		currentLine += strings.Count(renderedMsg, "\n") + 1
 	}
 
 	if m.State == stateThinking || m.State == stateGenPending {
@@ -134,5 +139,11 @@ func (m Model) renderConversation() string {
 		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 		parts = append(parts, block)
 	}
-	return strings.Join(parts, "\n")
+	return strings.Join(parts, "\n"), messageLineOffsets
+}
+
+// renderConversation renders the entire message history.
+func (m Model) renderConversation() string {
+	content, _ := m.renderConversationWithOffsets()
+	return content
 }

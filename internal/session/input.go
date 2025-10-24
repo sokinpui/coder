@@ -34,6 +34,8 @@ func (s *Session) HandleInput(input string) types.Event {
 			return types.Event{Type: types.EditModeStarted}
 		case commands.CommandResultBranchMode:
 			return types.Event{Type: types.BranchModeStarted}
+		case commands.CommandResultSearchMode:
+			return types.Event{Type: types.SearchModeStarted, Data: cmdOutput.Payload}
 		case commands.CommandResultHistoryMode:
 			return types.Event{Type: types.HistoryModeStarted}
 		case commands.CommandResultQuit:
