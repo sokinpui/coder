@@ -8,6 +8,7 @@ import (
 
 func init() {
 	registerCommand("file", fileCmd, nil)
+	registerCommand("pcat", fileCmd, nil)
 }
 
 func fileCmd(args string, s SessionController) (CommandOutput, bool) {

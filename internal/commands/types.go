@@ -16,6 +16,7 @@ const (
 	CommandResultBranchMode
 	CommandResultSearchMode
 	CommandResultHistoryMode
+	CommandResultFzfMode
 	CommandResultQuit
 )
 

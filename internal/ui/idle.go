@@ -117,6 +117,22 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.Search.Visible = true
 		m.Search.TextInput.Focus()
 		return m, textinput.Blink
+	case types.FzfModeStarted:
+		m.TextArea.Reset()
+		m.State = stateFinder
+		m.TextArea.Blur()
+		var items []string
+		for _, mode := range config.AvailableAppModes {
+			items = append(items, fmt.Sprintf("mode: %s", mode))
+		}
+		for _, model := range config.AvailableModels {
+			items = append(items, fmt.Sprintf("model: %s", model))
+		}
+		m.Finder.AllItems = items
+		m.Finder.FoundItems = items
+		m.Finder.Visible = true
+		m.Finder.TextInput.Focus()
+		return m, textinput.Blink
 	case types.HistoryModeStarted:
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
