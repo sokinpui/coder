@@ -14,6 +14,71 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
+	switch event.Type {
+	case types.NoOp:
+		return m, nil
+
+	case types.MessagesUpdated:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+		m = m.updateLayout()
+		m.IsCountingTokens = true
+		return m, countTokensCmd(m.Session.GetPrompt())
+
+	case types.NewSessionStarted:
+		return m.newSession()
+
+	case types.GenerationStarted:
+		return m.startGeneration(event)
+
+	case types.VisualModeStarted:
+		return m.enterVisualMode(visualModeNone)
+
+	case types.GenerateModeStarted:
+		return m.enterVisualMode(visualModeGenerate)
+	case types.EditModeStarted:
+		return m.enterVisualMode(visualModeEdit)
+	case types.BranchModeStarted:
+		return m.enterVisualMode(visualModeBranch)
+	case types.SearchModeStarted:
+		m.TextArea.Reset()
+		m.State = stateSearch
+		m.TextArea.Blur()
+		m.Search.AllItems = m.collectSearchableMessages()
+		m.Search.TextInput.SetValue(event.Data.(string))
+		m.Search.updateFoundItems()
+		m.Search.Visible = true
+		m.Search.TextInput.Focus()
+		return m, textinput.Blink
+	case types.FzfModeStarted:
+		m.TextArea.Reset()
+		m.State = stateFinder
+		m.TextArea.Blur()
+		var items []string
+		for _, mode := range config.AvailableAppModes {
+			items = append(items, fmt.Sprintf("mode: %s", mode))
+		}
+		for _, model := range config.AvailableModels {
+			items = append(items, fmt.Sprintf("model: %s", model))
+		}
+		m.Finder.AllItems = items
+		m.Finder.FoundItems = items
+		m.Finder.Visible = true
+		m.Finder.TextInput.Focus()
+		return m, textinput.Blink
+	case types.HistoryModeStarted:
+		m.State = stateHistorySelect
+		m.TextArea.Blur()
+		return m, listHistoryCmd(m.Session.GetHistoryManager())
+
+	case types.Quit:
+		m.Quitting = true
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
 func (m Model) newSession() (Model, tea.Cmd) {
 	// The session handles saving and clearing messages.
 	// The UI just needs to reset its state.
@@ -77,73 +142,17 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	shouldPreserve := m.PreserveInputOnSubmit
 	m.PreserveInputOnSubmit = false
 
-	switch event.Type {
-	case types.NoOp:
-		return m, nil
-
-	case types.MessagesUpdated:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
-		if !shouldPreserve {
-			m.TextArea.Reset()
+	model, cmd := m.handleEvent(event)
+	if newModel, ok := model.(Model); ok {
+		if event.Type == types.MessagesUpdated {
+			if !shouldPreserve {
+				newModel.TextArea.Reset()
+			}
 		}
-		m = m.updateLayout()
-		m.IsCountingTokens = true
-		return m, countTokensCmd(m.Session.GetPrompt())
-
-	case types.NewSessionStarted:
-		return m.newSession()
-
-	case types.GenerationStarted:
-		m, cmd := m.startGeneration(event)
-		return m, cmd
-
-	case types.VisualModeStarted:
-		return m.enterVisualMode(visualModeNone)
-
-	case types.GenerateModeStarted:
-		return m.enterVisualMode(visualModeGenerate)
-	case types.EditModeStarted:
-		return m.enterVisualMode(visualModeEdit)
-	case types.BranchModeStarted:
-		return m.enterVisualMode(visualModeBranch)
-	case types.SearchModeStarted:
-		m.TextArea.Reset()
-		m.State = stateSearch
-		m.TextArea.Blur()
-		m.Search.AllItems = m.collectSearchableMessages()
-		m.Search.TextInput.SetValue(event.Data.(string))
-		m.Search.updateFoundItems()
-		m.Search.Visible = true
-		m.Search.TextInput.Focus()
-		return m, textinput.Blink
-	case types.FzfModeStarted:
-		m.TextArea.Reset()
-		m.State = stateFinder
-		m.TextArea.Blur()
-		var items []string
-		for _, mode := range config.AvailableAppModes {
-			items = append(items, fmt.Sprintf("mode: %s", mode))
-		}
-		for _, model := range config.AvailableModels {
-			items = append(items, fmt.Sprintf("model: %s", model))
-		}
-		m.Finder.AllItems = items
-		m.Finder.FoundItems = items
-		m.Finder.Visible = true
-		m.Finder.TextInput.Focus()
-		return m, textinput.Blink
-	case types.HistoryModeStarted:
-		m.State = stateHistorySelect
-		m.TextArea.Blur()
-		return m, listHistoryCmd(m.Session.GetHistoryManager())
-
-	case types.Quit:
-		m.Quitting = true
-		return m, tea.Quit
+		return newModel, cmd
 	}
 
-	return m, nil
+	return model, cmd
 }
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -303,9 +312,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 
 	case tea.KeyCtrlH:
-		m.State = stateHistorySelect
-		m.TextArea.Blur()
-		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
+		event := m.Session.HandleInput(":history")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlE:
 		if m.TextArea.Focused() {
@@ -318,60 +327,29 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlN:
 		event := m.Session.HandleInput(":new")
-		switch event.Type {
-		case types.NewSessionStarted:
-			newModel, cmd := m.newSession()
-			return newModel, cmd, true
-		}
-		return m, nil, true
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlB:
 		event := m.Session.HandleInput(":branch")
-		switch event.Type {
-		case types.BranchModeStarted:
-			model, cmd := m.enterVisualMode(visualModeBranch)
-			return model, cmd, true
-		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-		}
-		return m, nil, true
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlF:
-		m.State = stateFinder
-		m.TextArea.Blur()
-		var items []string
-		for _, mode := range config.AvailableAppModes {
-			items = append(items, fmt.Sprintf("mode: %s", mode))
-		}
-		for _, model := range config.AvailableModels {
-			items = append(items, fmt.Sprintf("model: %s", model))
-		}
-		m.Finder.AllItems = items
-		m.Finder.FoundItems = items
-		m.Finder.Visible = true
-		m.Finder.TextInput.Focus()
-		return m, textinput.Blink, true
+		event := m.Session.HandleInput(":fzf")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.Session.HandleInput(":itf")
-		switch event.Type {
-		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-		}
-		return m, nil, true
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlP:
-		m.State = stateSearch
-		m.TextArea.Blur()
-		m.Search.AllItems = m.collectSearchableMessages()
-		m.Search.TextInput.SetValue("")
-		m.Search.updateFoundItems()
-		m.Search.Visible = true
-		m.Search.TextInput.Focus()
-		return m, textinput.Blink, true
+		event := m.Session.HandleInput(":search")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 
 	case tea.KeyCtrlV:
 		return m, handlePasteCmd(), true
