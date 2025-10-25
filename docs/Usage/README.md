@@ -31,17 +31,21 @@ coder
 | Key             | Action                                               |
 | --------------- | ---------------------------------------------------- |
 | `Ctrl+J`        | Send the message in the input area.                  |
-| `Ctrl+A`        | Apply the last AI response with the diff viewer (`:itf`). |
-| `Ctrl+B`        | Branch the conversation from a specific point.       |
 | `Enter`         | Insert a newline or execute a command.               |
-| `Ctrl+E`        | Edit the current prompt in an external editor (`$EDITOR`). |
-| `Ctrl+F`        | Open the command finder (`fzf`).                     |
-| `Ctrl+N`        | Start a new chat session.                            |
+| `Tab` / `Shift+Tab` | Cycle through command/action completions.            |
 | `Esc`           | Clear input or enter Visual Mode from empty input.   |
 | `Ctrl+C`        | Clear input. Press again on empty input to quit.     |
-| `Ctrl+D` / `Ctrl+U` | Scroll conversation view down/up.                    |
+| `Ctrl+A`        | Apply the last AI response with the diff viewer (`:itf`). |
+| `Ctrl+B`        | Enter Branch Mode to start a new session from a point. |
+| `Ctrl+E`        | Edit the current prompt in an external editor (`$EDITOR`). |
+| `Ctrl+F`        | Open the command finder (`fzf`).                     |
 | `Ctrl+H`        | View and load past conversations.                    |
-| `Tab` / `Shift+Tab` | Cycle through command/action completions.            |
+| `Ctrl+N`        | Start a new chat session.                            |
+| `Ctrl+P`        | Fuzzy search the current conversation.               |
+| `Ctrl+Q`        | Show a quick view of the last few messages.          |
+| `Ctrl+D` / `Ctrl+U` | Scroll conversation view down/up.                    |
+| `Ctrl+V`        | Paste from clipboard (supports images).              |
+| `Ctrl+Z`        | Suspend the application.                             |
 
 ### Commands
 
@@ -49,18 +53,23 @@ Commands start with a colon (`:`) and are entered in the input area.
 
 | Command         | Description                                          |
 | --------------- | ---------------------------------------------------- |
-| `:new`          | Start a new chat session.                            |
+| `:branch`       | Enter Branch Mode to create a new session from a point. |
+| `:edit`         | Enter Edit Mode to modify a previous prompt.         |
+| `:file [paths...]`| Set specific source files/directories for context. No paths clears the list. |
+| `:gen`          | Enter Generate Mode to re-run a previous prompt.     |
+| `:help`         | Show the help message with all commands and keybindings. |
+| `:history`      | View and load past conversations.                    |
+| `:itf`          | Pipe the last AI response to the `itf` diff viewer.  |
+| `:list`         | List the current project source files being read by the AI. |
 | `:mode <name>`  | Switch the application mode (e.g., `Coding`, `Documenting`). |
 | `:model <name>` | Switch the AI model.                                 |
+| `:new`          | Start a new chat session.                            |
+| `:q` / `:quit`  | Quit the application.                                |
 | `:rename <title>`| Rename the current session title.                    |
-| `:file [paths...]`| Set specific source files/directories for context. No paths clears the list. |
-| `:itf`          | Pipe the last AI response to the `itf` diff viewer.  |
-| `:gen`          | Enter Generate Mode to re-run a previous prompt.     |
-| `:edit`         | Enter Edit Mode to modify a previous prompt.         |
-| `:branch`       | Enter Branch Mode to create a new session from a point. |
+| `:search <query>`| Fuzzy search the conversation for a specific query.  |
+| `:shell <cmd>`  | Execute a shell command and see the output.          |
+| `:temp <value>` | Set the generation temperature (e.g., 0.0 to 2.0).   |
 | `:visual`       | Enter Visual Mode for message selection.             |
-| `:history`      | View and load past conversations.                    |
-| `:fzf`          | Open a fuzzy finder for commands.                    |
 
 ### Visual Mode
 
@@ -69,10 +78,13 @@ Enter Visual Mode by pressing `Esc` on an empty input line. This mode allows you
 | Key | Action                               |
 | --- | ------------------------------------ |
 | `j`/`k` | Move cursor up/down.                 |
+| `o`/`O` | Swap cursor with selection start.    |
 | `v`   | Start/end selection.                 |
 | `y`   | Copy selected messages to clipboard. |
 | `d`   | Delete selected messages.            |
 | `g`   | Regenerate from the selected message.|
 | `e`   | Edit the selected user prompt.       |
+| `b`   | Branch the conversation from the selected message. |
+| `Ctrl+A` | Apply code changes from the nearest AI response above the cursor. |
 | `Esc` | Exit Visual Mode.                    |
 

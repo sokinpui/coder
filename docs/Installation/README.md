@@ -16,6 +16,11 @@ Before installation, ensure the following dependencies are installed and availab
 - **`fd`**: A simple, fast and user-friendly alternative to `find`.
 - **`pcat`**: A syntax highlighting file viewer.
 - **`itf`**: An interactive diff viewer used to apply code changes.
+- **`fzf`**: A command-line fuzzy finder used for the command palette (`Ctrl+F`).
+- **Clipboard Tools** (for pasting images with `Ctrl+V`):
+  - **macOS**: `pngpaste`
+  - **Linux (X11)**: `xclip`
+  - **Linux (Wayland)**: `wl-clipboard`
 
 ## Installation Methods
 
