@@ -2,7 +2,6 @@ package utils
 
 const WelcomeMessage = `Welcome to Coder!
 
-- Chat with the AI.
 - Press Enter for a new line in your prompt (or to run a command).
 - Use Ctrl+J to send your message.
 - Use Ctrl+E to edit your prompt in an external editor ($EDITOR).
