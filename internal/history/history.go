@@ -25,6 +25,7 @@ type Metadata struct {
 	ModifiedAt time.Time
 	Files      []string
 	Dirs       []string
+	Exclusions []string
 	WorkingDir string
 }
 
@@ -42,6 +43,7 @@ type ConversationData struct {
 	Context    string // Role Instruction + source code
 	Files      []string
 	Dirs       []string
+	Exclusions []string
 	WorkingDir string
 }
 
@@ -99,6 +101,12 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 		dirs, err := json.Marshal(data.Dirs)
 		if err == nil {
 			fmt.Fprintf(&fileBuf, "dirs: %s\n", string(dirs))
+		}
+	}
+	if len(data.Exclusions) > 0 {
+		exclusions, err := json.Marshal(data.Exclusions)
+		if err == nil {
+			fmt.Fprintf(&fileBuf, "exclusions: %s\n", string(exclusions))
 		}
 	}
 	fmt.Fprintln(&fileBuf, "---")
@@ -177,6 +185,8 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 			metadata.Files = parseStringSlice(value)
 		case "dirs":
 			metadata.Dirs = parseStringSlice(value)
+		case "exclusions":
+			metadata.Exclusions = parseStringSlice(value)
 		case "workingDir":
 			metadata.WorkingDir = value
 		}
@@ -274,6 +284,8 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 			metadata.Files = parseStringSlice(value)
 		case "dirs":
 			metadata.Dirs = parseStringSlice(value)
+		case "exclusions":
+			metadata.Exclusions = parseStringSlice(value)
 		case "workingDir":
 			metadata.WorkingDir = value
 		}

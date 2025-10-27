@@ -38,6 +38,7 @@ func (s *Session) SaveConversation() error {
 		Context:    s.context,
 		Files:      s.config.Sources.Files,
 		Dirs:       s.config.Sources.Dirs,
+		Exclusions: s.config.Sources.Exclusions,
 		WorkingDir: wd,
 	}
 	return s.historyManager.SaveConversation(data)
@@ -88,6 +89,11 @@ func (s *Session) LoadConversation(filename string) error {
 		s.config.Sources.Dirs = metadata.Dirs
 	} else {
 		s.config.Sources.Dirs = []string{}
+	}
+	if metadata.Exclusions != nil {
+		s.config.Sources.Exclusions = metadata.Exclusions
+	} else {
+		s.config.Sources.Exclusions = []string{}
 	}
 
 	// The context, including project source, is loaded based on the current mode.

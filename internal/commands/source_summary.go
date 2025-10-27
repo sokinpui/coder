@@ -8,7 +8,7 @@ import (
 
 // formatSourceSummary creates a vertical, indented list of source directories and files.
 func formatSourceSummary(sources *config.FileSources) string {
-	if len(sources.Dirs) == 0 && len(sources.Files) == 0 {
+	if len(sources.Dirs) == 0 && len(sources.Files) == 0 && len(sources.Exclusions) == 0 {
 		return ""
 	}
 
@@ -25,6 +25,13 @@ func formatSourceSummary(sources *config.FileSources) string {
 		b.WriteString("Files:\n")
 		for _, f := range sources.Files {
 			fmt.Fprintf(&b, "  %s\n", f)
+		}
+	}
+
+	if len(sources.Exclusions) > 0 {
+		b.WriteString("Exclusions:\n")
+		for _, e := range sources.Exclusions {
+			fmt.Fprintf(&b, "  %s\n", e)
 		}
 	}
 

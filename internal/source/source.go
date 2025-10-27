@@ -13,7 +13,8 @@ func LoadProjectSource(sources *config.FileSources) (string, error) {
 	if len(sources.Dirs) == 0 && len(sources.Files) == 0 {
 		return "", nil
 	}
-	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, Exclusions)
+	finalExclusions := append(Exclusions, sources.Exclusions...)
+	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, finalExclusions)
 	if err != nil {
 		return "", err
 	}

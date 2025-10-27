@@ -32,8 +32,9 @@ var AvailableAppModes = []AppMode{CodingMode, DocumentingMode}
 
 // FileSources specifies the files and directories to be included as project source.
 type FileSources struct {
-	Files []string
-	Dirs  []string
+	Files      []string
+	Dirs       []string
+	Exclusions []string
 }
 
 // GRPC contains gRPC server configuration.
@@ -72,6 +73,7 @@ func Load() (*Config, error) {
 	v.SetDefault("generation.outputlength", 65536)
 	v.SetDefault("sources.dirs", []string{"."})
 	v.SetDefault("sources.files", []string{})
+	v.SetDefault("sources.exclusions", []string{})
 
 	// Look for config in repo root .coder/
 	repoRoot, err := utils.FindRepoRoot()

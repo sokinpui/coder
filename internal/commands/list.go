@@ -19,7 +19,8 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
 	}
 
-	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, source.Exclusions)
+	finalExclusions := append(source.Exclusions, sources.Exclusions...)
+	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, finalExclusions)
 	if err != nil {
 		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
