@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -22,8 +23,20 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: CommandResultString, Payload: "Project source exclusions cleared."}, true
 	}
 
-	pathsToModify := make(map[string]struct{})
+	var pathsToRemove []string
 	for _, p := range paths {
+		if strings.ContainsAny(p, "*?[]") {
+			matches, err := filepath.Glob(p)
+			if err == nil { // ignore glob errors, just won't remove anything
+				pathsToRemove = append(pathsToRemove, matches...)
+			}
+		} else {
+			pathsToRemove = append(pathsToRemove, p)
+		}
+	}
+
+	pathsToModify := make(map[string]struct{})
+	for _, p := range pathsToRemove {
 		pathsToModify[p] = struct{}{}
 	}
 

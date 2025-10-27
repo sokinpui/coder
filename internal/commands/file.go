@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,7 +29,24 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	var dirs []string
 	var invalidPaths []string
 
+	var expandedPaths []string
 	for _, p := range paths {
+		if strings.ContainsAny(p, "*?[]") {
+			matches, err := filepath.Glob(p)
+			if err != nil {
+				invalidPaths = append(invalidPaths, fmt.Sprintf("%s (glob error: %v)", p, err))
+				continue
+			}
+			if len(matches) == 0 {
+				invalidPaths = append(invalidPaths, p)
+			}
+			expandedPaths = append(expandedPaths, matches...)
+		} else {
+			expandedPaths = append(expandedPaths, p)
+		}
+	}
+
+	for _, p := range expandedPaths {
 		info, err := os.Stat(p)
 		if err != nil {
 			if os.IsNotExist(err) {
