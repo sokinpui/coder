@@ -13,14 +13,14 @@ func init() {
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
-	sources := &cfg.Sources
+	context := &cfg.Context
 
-	if len(sources.Dirs) == 0 && len(sources.Files) == 0 {
+	if len(context.Dirs) == 0 && len(context.Files) == 0 {
 		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
 	}
 
-	finalExclusions := append(source.Exclusions, sources.Exclusions...)
-	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, finalExclusions)
+	finalExclusions := append(source.Exclusions, context.Exclusions...)
+	allFiles, err := utils.SourceToFileList(context.Dirs, context.Files, finalExclusions)
 	if err != nil {
 		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
@@ -29,9 +29,9 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	cmd := exec.Command("pcat", pcatArgs...)
 	fileList, err := cmd.CombinedOutput()
 
-	overview := formatSourceSummary(sources)
+	overview := formatContextSummary(context)
 
-	summary := "Current project sources:\n" + overview + "\n\n" + "Files read by AI\n:" + string(fileList)
+	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI\n:" + string(fileList)
 
 	payload := summary
 

@@ -14,7 +14,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 
 	if len(paths) == 0 {
-		cfg.Sources.Exclusions = []string{}
+		cfg.Context.Exclusions = []string{}
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project source exclusions cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: CommandResultString, Payload: msg}, false
@@ -28,31 +28,31 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	// Remove from Dirs
-	newDirs := make([]string, 0, len(cfg.Sources.Dirs))
-	for _, d := range cfg.Sources.Dirs {
+	newDirs := make([]string, 0, len(cfg.Context.Dirs))
+	for _, d := range cfg.Context.Dirs {
 		if _, found := pathsToModify[d]; !found {
 			newDirs = append(newDirs, d)
 		}
 	}
-	cfg.Sources.Dirs = newDirs
+	cfg.Context.Dirs = newDirs
 
 	// Remove from Files
-	newFiles := make([]string, 0, len(cfg.Sources.Files))
-	for _, f := range cfg.Sources.Files {
+	newFiles := make([]string, 0, len(cfg.Context.Files))
+	for _, f := range cfg.Context.Files {
 		if _, found := pathsToModify[f]; !found {
 			newFiles = append(newFiles, f)
 		}
 	}
-	cfg.Sources.Files = newFiles
+	cfg.Context.Files = newFiles
 
 	// Add to Exclusions
 	exclusionLookup := make(map[string]struct{})
-	for _, e := range cfg.Sources.Exclusions {
+	for _, e := range cfg.Context.Exclusions {
 		exclusionLookup[e] = struct{}{}
 	}
 	for _, p := range paths {
 		if _, exists := exclusionLookup[p]; !exists {
-			cfg.Sources.Exclusions = append(cfg.Sources.Exclusions, p)
+			cfg.Context.Exclusions = append(cfg.Context.Exclusions, p)
 			exclusionLookup[p] = struct{}{}
 		}
 	}
@@ -64,7 +64,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	var payload strings.Builder
 	payload.WriteString("Project source updated.")
 
-	summary := formatSourceSummary(&cfg.Sources)
+	summary := formatContextSummary(&cfg.Context)
 	if summary != "" {
 		payload.WriteString("\n")
 		payload.WriteString(summary)

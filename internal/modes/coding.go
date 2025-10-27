@@ -1,10 +1,10 @@
 package modes
 
 import (
-	"coder/internal/prompt"
-	"coder/internal/types"
 	"coder/internal/config"
+	"coder/internal/prompt"
 	"coder/internal/source"
+	"coder/internal/types"
 	"fmt"
 )
 
@@ -20,7 +20,7 @@ func (m *CodingMode) GetRolePrompt() string {
 
 // LoadSourceCode loads context from the Context/ directory and project source files.
 func (m *CodingMode) LoadSourceCode(cfg *config.Config) error {
-	projSource, srcErr := source.LoadProjectSource(&cfg.Sources)
+	projSource, srcErr := source.LoadProjectSource(&cfg.Context)
 	if srcErr != nil {
 		return fmt.Errorf("failed to load project source: %w", srcErr)
 	}

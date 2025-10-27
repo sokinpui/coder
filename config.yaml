@@ -18,7 +18,7 @@ generation:
 # Default project source files and directories to be read by the AI.
 # These are the sources that will be loaded when you start the app or a new session.
 # You can override this for a specific session with the ":file" command.
-sources:
+context:
   # List of directories to include. It will recursively find files.
   # The example below includes the current directory.
   dirs:

@@ -27,17 +27,17 @@ Coder is a Terminal User Interface (TUI) application written in Go. It acts as a
 
 ### Applications
 
--   **`cmd/coder` (TUI)**: A standalone, keyboard-driven terminal application built using the `bubbletea` framework. It directly interacts with the core session management logic.
+- **`cmd/coder` (TUI)**: A standalone, keyboard-driven terminal application built using the `bubbletea` framework. It directly interacts with the core session management logic.
 
 ### Core Logic (`internal/`)
 
 This directory contains the shared business logic for both applications.
 
--   **`session`**: The central component for state management. It manages the conversation history, configuration, and orchestrates interactions between the UI and other components.
--   **`commands`**: Handles the processing of user input commands (e.g., `:mode`, `:file`).
--   **`generation`**: Contains the client for the external AI gRPC service. It is responsible for sending prompts and receiving generated content streams.
--   **`history`**: Manages the persistence of conversations. Sessions are saved as Markdown files with YAML frontmatter in the `.coder/history` directory at the root of the Git repository.
--   **`ui`**: The implementation of the TUI, including all models, views, and updates for the `bubbletea` framework.
+- **`session`**: The central component for state management. It manages the conversation history, configuration, and orchestrates interactions between the UI and other components.
+- **`commands`**: Handles the processing of user input commands (e.g., `:mode`, `:file`).
+- **`generation`**: Contains the client for the external AI gRPC service. It is responsible for sending prompts and receiving generated content streams.
+- **`history`**: Manages the persistence of conversations. Sessions are saved as Markdown files with YAML frontmatter in the `.coder/history` directory at the root of the Git repository.
+- **`ui`**: The implementation of the TUI, including all models, views, and updates for the `bubbletea` framework.
 
 Other key packages include `types` for fundamental data structures, `modes` for handling application behavior (`Coding`, `Documenting`), and `source` for context gathering.
 
@@ -47,13 +47,14 @@ Other key packages include `types` for fundamental data structures, `modes` for 
 
 On startup, and before each generation, the application gathers context:
 
-1.  **Project Source**: The `source` package uses `fd` to find source files based on the `sources` configuration in `config.yaml` (or the `.coder/config.yaml` file in the repository). This configuration, which defaults to the current directory, can be modified at runtime with the `:file` command. The file list is then piped to `pcat` to create a single formatted string of project code.
+1.  **Project Source**: The `source` package uses `fd` to find source files based on the `context` configuration in `config.yaml` (or the `.coder/config.yaml` file in the repository). This configuration, which defaults to the current directory, can be modified at runtime with the `:file` command. The file list is then piped to `pcat` to create a single formatted string of project code.
 
 This context is combined with the system prompt and conversation history to form the full prompt sent to the AI service.
 
 ### Conversation Flow
 
 The TUI flow uses direct function calls between the `ui` and `session` packages. When a user sends a prompt:
+
 1. The `ui` package sends the input string to the `session` manager.
 2. The `session` manager processes the input. It constructs the full prompt including system instructions, context, and conversation history using the current `mode` strategy.
 3. The `session` calls the `generation` client to send the prompt to the AI service.

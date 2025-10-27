@@ -15,13 +15,13 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 
 	if len(paths) == 0 {
-		cfg.Sources.Dirs = []string{}
-		cfg.Sources.Files = []string{}
+		cfg.Context.Dirs = []string{}
+		cfg.Context.Files = []string{}
 		if err := s.LoadContext(); err != nil {
-			msg := fmt.Sprintf("Project source files cleared, but failed to reload context: %v", err)
+			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: CommandResultString, Payload: msg}, false
 		}
-		return CommandOutput{Type: CommandResultString, Payload: "Project source files cleared. The next prompt will not include any project source code."}, true
+		return CommandOutput{Type: CommandResultString, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
 	}
 
 	var files []string
@@ -46,36 +46,36 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	// De-duplicate and append directories
 	dirLookup := make(map[string]struct{})
-	for _, d := range cfg.Sources.Dirs {
+	for _, d := range cfg.Context.Dirs {
 		dirLookup[d] = struct{}{}
 	}
 	for _, d := range dirs {
 		if _, exists := dirLookup[d]; !exists {
-			cfg.Sources.Dirs = append(cfg.Sources.Dirs, d)
+			cfg.Context.Dirs = append(cfg.Context.Dirs, d)
 			dirLookup[d] = struct{}{}
 		}
 	}
 
 	// De-duplicate and append files
 	fileLookup := make(map[string]struct{})
-	for _, f := range cfg.Sources.Files {
+	for _, f := range cfg.Context.Files {
 		fileLookup[f] = struct{}{}
 	}
 	for _, f := range files {
 		if _, exists := fileLookup[f]; !exists {
-			cfg.Sources.Files = append(cfg.Sources.Files, f)
+			cfg.Context.Files = append(cfg.Context.Files, f)
 			fileLookup[f] = struct{}{}
 		}
 	}
 
 	if err := s.LoadContext(); err != nil {
-		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
+		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
 	}
 
 	var payload strings.Builder
-	payload.WriteString("Project source updated.")
+	payload.WriteString("Project context updated.")
 
-	summary := formatSourceSummary(&cfg.Sources)
+	summary := formatContextSummary(&cfg.Context)
 	if summary != "" {
 		payload.WriteString("\n")
 		payload.WriteString(summary)

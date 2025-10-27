@@ -36,9 +36,9 @@ func (s *Session) SaveConversation() error {
 		CreatedAt:  s.createdAt,
 		Messages:   s.messages,
 		Context:    s.context,
-		Files:      s.config.Sources.Files,
-		Dirs:       s.config.Sources.Dirs,
-		Exclusions: s.config.Sources.Exclusions,
+		Files:      s.config.Context.Files,
+		Dirs:       s.config.Context.Dirs,
+		Exclusions: s.config.Context.Exclusions,
 		WorkingDir: wd,
 	}
 	return s.historyManager.SaveConversation(data)
@@ -78,22 +78,22 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 
-	// Update sources from history. If not present in history (e.g. old format),
+	// Update Context from history. If not present in history (e.g. old format),
 	// clear them to match the state when the conversation was saved.
 	if metadata.Files != nil {
-		s.config.Sources.Files = metadata.Files
+		s.config.Context.Files = metadata.Files
 	} else {
-		s.config.Sources.Files = []string{}
+		s.config.Context.Files = []string{}
 	}
 	if metadata.Dirs != nil {
-		s.config.Sources.Dirs = metadata.Dirs
+		s.config.Context.Dirs = metadata.Dirs
 	} else {
-		s.config.Sources.Dirs = []string{}
+		s.config.Context.Dirs = []string{}
 	}
 	if metadata.Exclusions != nil {
-		s.config.Sources.Exclusions = metadata.Exclusions
+		s.config.Context.Exclusions = metadata.Exclusions
 	} else {
-		s.config.Sources.Exclusions = []string{}
+		s.config.Context.Exclusions = []string{}
 	}
 
 	// The context, including project source, is loaded based on the current mode.
@@ -109,14 +109,14 @@ func (s *Session) newSession() {
 	s.titleGenerated = false
 	s.createdAt = time.Now()
 	s.historyFilename = ""
-	// Reload config to reset sources to their configured values,
+	// Reload config to reset Context to their configured values,
 	// discarding any changes made with `:file` in the previous session.
 	newCfg, err := config.Load()
 	if err != nil {
-		log.Printf("Error reloading config for new session, falling back to default sources: %v", err)
-		s.config.Sources = config.FileSources{Dirs: []string{"."}, Files: []string{}}
+		log.Printf("Error reloading config for new session, falling back to default Context: %v", err)
+		s.config.Context = config.Context{Dirs: []string{"."}, Files: []string{}}
 	} else {
-		s.config.Sources = newCfg.Sources
+		s.config.Context = newCfg.Context
 	}
 	if err := s.LoadContext(); err != nil {
 		// Log and add an error message for the user to see.

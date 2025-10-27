@@ -9,12 +9,12 @@ import (
 
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
 // of files in the current directory, respecting .gitignore.
-func LoadProjectSource(sources *config.FileSources) (string, error) {
-	if len(sources.Dirs) == 0 && len(sources.Files) == 0 {
+func LoadProjectSource(context *config.Context) (string, error) {
+	if len(context.Dirs) == 0 && len(context.Files) == 0 {
 		return "", nil
 	}
-	finalExclusions := append(Exclusions, sources.Exclusions...)
-	allFiles, err := utils.SourceToFileList(sources.Dirs, sources.Files, finalExclusions)
+	finalExclusions := append(Exclusions, context.Exclusions...)
+	allFiles, err := utils.SourceToFileList(context.Dirs, context.Files, finalExclusions)
 	if err != nil {
 		return "", err
 	}

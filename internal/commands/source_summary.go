@@ -6,31 +6,31 @@ import (
 	"strings"
 )
 
-// formatSourceSummary creates a vertical, indented list of source directories and files.
-func formatSourceSummary(sources *config.FileSources) string {
-	if len(sources.Dirs) == 0 && len(sources.Files) == 0 && len(sources.Exclusions) == 0 {
+// formatContextSummary creates a vertical, indented list of source directories and files.
+func formatContextSummary(context *config.Context) string {
+	if len(context.Dirs) == 0 && len(context.Files) == 0 && len(context.Exclusions) == 0 {
 		return ""
 	}
 
 	var b strings.Builder
 
-	if len(sources.Dirs) > 0 {
+	if len(context.Dirs) > 0 {
 		b.WriteString("Directories:\n")
-		for _, d := range sources.Dirs {
+		for _, d := range context.Dirs {
 			fmt.Fprintf(&b, "  %s\n", d)
 		}
 	}
 
-	if len(sources.Files) > 0 {
+	if len(context.Files) > 0 {
 		b.WriteString("Files:\n")
-		for _, f := range sources.Files {
+		for _, f := range context.Files {
 			fmt.Fprintf(&b, "  %s\n", f)
 		}
 	}
 
-	if len(sources.Exclusions) > 0 {
+	if len(context.Exclusions) > 0 {
 		b.WriteString("Exclusions:\n")
-		for _, e := range sources.Exclusions {
+		for _, e := range context.Exclusions {
 			fmt.Fprintf(&b, "  %s\n", e)
 		}
 	}
