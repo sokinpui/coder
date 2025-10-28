@@ -27,6 +27,7 @@ func Start() {
 		&FinderOverlay{},
 		&SearchOverlay{},
 		&QuickViewOverlay{},
+		&TreeOverlay{},
 	}
 
 	p := tea.NewProgram(

@@ -24,6 +24,8 @@ const (
 	HistoryModeStarted
 	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
+	// tree mode
+	TreeModeStarted
 	// fzf mode
 	FzfModeStarted
 	// Quit indicates the application should quit.

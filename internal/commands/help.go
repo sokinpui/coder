@@ -44,6 +44,7 @@ var commandGroup = helpGroup{
 	{key: "search", desc: "Search the current conversation."},
 	{key: "shell", desc: "Execute a shell command."},
 	{key: "temp", desc: "Set the generation temperature (e.g., :temp 0.5)."},
+	{key: "tree", desc: "Open a file tree to select files/directories for context."},
 	{key: "visual", desc: "Enter visual mode for message selection."},
 }
 

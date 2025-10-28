@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -346,6 +347,41 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		return m, tea.Batch(clearStatusBarCmd(3*time.Second), textarea.Blink), true
+
+	case treeReadyMsg:
+		m.Tree.root = msg.root
+		m.Tree.buildVisibleNodes()
+		return m, nil, true
+
+	case treeSelectionResultMsg:
+		m.State = stateIdle
+		m.TextArea.Focus()
+
+		cfg := m.Session.GetConfig()
+		cfg.Context.Files = []string{}
+		cfg.Context.Dirs = []string{}
+
+		for _, p := range msg.selectedPaths {
+			info, err := os.Stat(p)
+			if err != nil {
+				continue // ignore paths that don't exist
+			}
+			if info.IsDir() {
+				cfg.Context.Dirs = append(cfg.Context.Dirs, p)
+			} else {
+				cfg.Context.Files = append(cfg.Context.Files, p)
+			}
+		}
+
+		if err := m.Session.LoadContext(); err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Error loading context: %v", err)
+			return m, clearStatusBarCmd(5 * time.Second), true
+		}
+
+		m.StatusBarMessage = "Project context updated."
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
+		return m, tea.Batch(textarea.Blink, clearStatusBarCmd(3*time.Second)), true
 
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""

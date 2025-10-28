@@ -15,6 +15,7 @@ const (
 	stateHistorySelect
 	stateFinder
 	stateSearch
+	stateTree
 )
 
 type (
@@ -52,5 +53,11 @@ type (
 	}
 	searchResultMsg struct {
 		item SearchItem
+	}
+	treeReadyMsg struct {
+		root *treeNode
+	}
+	treeSelectionResultMsg struct {
+		selectedPaths []string
 	}
 )

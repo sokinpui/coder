@@ -17,6 +17,7 @@ const (
 	CommandResultSearchMode
 	CommandResultHistoryMode
 	CommandResultFzfMode
+	CommandResultTreeMode
 	CommandResultQuit
 )
 

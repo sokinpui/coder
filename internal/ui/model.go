@@ -73,6 +73,7 @@ type Model struct {
 	Finder                   FinderModel
 	Search                   SearchModel
 	messageLineOffsets       map[int]int
+	Tree                     TreeModel
 	QuickView                *QuickViewModel
 	VisualIsSelecting        bool
 	SelectableBlocks         []messageBlock
@@ -151,6 +152,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		VisualIsSelecting:        false,
 		Search:                   NewSearch(),
 		Finder:                   NewFinder(),
+		Tree:                     NewTree(),
 		messageLineOffsets:       make(map[int]int),
 		QuickView:                NewQuickView(),
 		SelectableBlocks:         []messageBlock{},

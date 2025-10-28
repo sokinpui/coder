@@ -40,6 +40,8 @@ func (s *Session) HandleInput(input string) types.Event {
 			return types.Event{Type: types.HistoryModeStarted}
 		case commands.CommandResultQuit:
 			return types.Event{Type: types.Quit}
+		case commands.CommandResultTreeMode:
+			return types.Event{Type: types.TreeModeStarted}
 		case commands.CommandResultFzfMode:
 			return types.Event{Type: types.FzfModeStarted}
 
