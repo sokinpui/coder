@@ -247,8 +247,14 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 		case tea.KeyEnter:
 			m.Visible = false
 			var paths []string
+			repoRoot := m.root.path
 			for p := range m.selected {
-				paths = append(paths, p)
+				relPath, err := filepath.Rel(repoRoot, p)
+				if err != nil {
+					paths = append(paths, p) // fallback to absolute
+				} else {
+					paths = append(paths, relPath)
+				}
 			}
 			return m, func() tea.Msg { return treeSelectionResultMsg{selectedPaths: paths} }
 		case tea.KeySpace:
