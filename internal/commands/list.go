@@ -9,9 +9,10 @@ import (
 
 func init() {
 	registerCommand("list", listCmd, nil)
+	registerCommand("list-all", listFullCmd, nil)
 }
 
-func listCmd(args string, s SessionController) (CommandOutput, bool) {
+func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	context := &cfg.Context
 
@@ -32,6 +33,23 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	overview := formatContextSummary(context)
 
 	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI\n:" + string(fileList)
+
+	payload := summary
+
+	return CommandOutput{Type: CommandResultString, Payload: payload}, true
+}
+
+func listCmd(args string, s SessionController) (CommandOutput, bool) {
+	cfg := s.GetConfig()
+	context := &cfg.Context
+
+	if len(context.Dirs) == 0 && len(context.Files) == 0 {
+		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
+	}
+
+	overview := formatContextSummary(context)
+
+	summary := "Current project context:\n" + overview
 
 	payload := summary
 
