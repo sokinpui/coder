@@ -33,6 +33,7 @@ type TreeModel struct {
 	Height       int
 	Visible      bool
 	viewOffset   int
+	ggPressed    bool
 }
 
 func NewTree() TreeModel {
@@ -175,6 +176,9 @@ func (m *TreeModel) buildVisibleNodes() {
 }
 
 func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
+	prevGGPressed := m.ggPressed
+	m.ggPressed = false
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -193,6 +197,9 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 
 		case tea.KeyRunes:
 			switch msg.String() {
+			case "q":
+				m.Visible = false
+				return m, nil
 			case "k":
 				if m.cursor > 0 {
 					m.cursor--
@@ -200,6 +207,16 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 			case "j":
 				if m.cursor < len(m.visibleNodes)-1 {
 					m.cursor++
+				}
+			case "g":
+				if prevGGPressed {
+					m.cursor = 0
+				} else {
+					m.ggPressed = true
+				}
+			case "G":
+				if len(m.visibleNodes) > 0 {
+					m.cursor = len(m.visibleNodes) - 1
 				}
 			case "l": // expand
 				if len(m.visibleNodes) > 0 {
