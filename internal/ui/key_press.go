@@ -110,6 +110,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(cmd, textarea.Blink), true
 		}
 		return m, cmd, true
+	case stateInitializing:
+		fallthrough
 	case stateIdle:
 		return m.handleKeyPressIdle(msg)
 	}
