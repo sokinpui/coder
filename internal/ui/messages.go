@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 	"os"
 	"strings"
 	"time"
@@ -357,19 +358,35 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.State = stateIdle
 		m.TextArea.Focus()
 
+		repoRoot, err := utils.FindRepoRoot()
+		if err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Error finding repo root: %v", err)
+			return m, clearStatusBarCmd(5 * time.Second), true
+		}
+		cwd, err := os.Getwd()
+		if err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Error getting current directory: %v", err)
+			return m, clearStatusBarCmd(5 * time.Second), true
+		}
+
 		cfg := m.Session.GetConfig()
 		cfg.Context.Files = []string{}
 		cfg.Context.Dirs = []string{}
 
 		for _, p := range msg.selectedPaths {
-			info, err := os.Stat(p)
+			absPath := filepath.Join(repoRoot, p)
+			info, err := os.Stat(absPath)
 			if err != nil {
 				continue // ignore paths that don't exist
 			}
+			relToCwd, err := filepath.Rel(cwd, absPath)
+			if err != nil {
+				relToCwd = absPath // fallback to absolute path
+			}
 			if info.IsDir() {
-				cfg.Context.Dirs = append(cfg.Context.Dirs, p)
+				cfg.Context.Dirs = append(cfg.Context.Dirs, relToCwd)
 			} else {
-				cfg.Context.Files = append(cfg.Context.Files, p)
+				cfg.Context.Files = append(cfg.Context.Files, relToCwd)
 			}
 		}
 
