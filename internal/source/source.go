@@ -19,7 +19,7 @@ func LoadProjectSource(context *config.Context) (string, error) {
 		return "", err
 	}
 
-	pcatArgs := append([]string{"--no-header"}, allFiles...)
+	pcatArgs := append([]string{}, allFiles...)
 	cmd := exec.Command("pcat", pcatArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
