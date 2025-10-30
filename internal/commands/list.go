@@ -26,7 +26,7 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
 
-	pcatArgs := append([]string{"--no-header", "-l"}, allFiles...)
+	pcatArgs := append([]string{}, allFiles...)
 	cmd := exec.Command("pcat", pcatArgs...)
 	fileList, err := cmd.CombinedOutput()
 
