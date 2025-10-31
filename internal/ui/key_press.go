@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"coder/internal/commands"
 	"coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -31,6 +32,31 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	// Handle global keybindings first
 	switch msg.Type {
+	case tea.KeyCtrlL:
+		cmdOutput, _, cmdSuccess := commands.ProcessCommand(":list-all", m.Session)
+
+		var messages []types.Message
+		messages = append(messages, types.Message{
+			Type:    types.CommandMessage,
+			Content: ":list-all",
+		})
+
+		if !cmdSuccess {
+			messages = append(messages, types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: cmdOutput.Payload,
+			})
+		} else {
+			messages = append(messages, types.Message{
+				Type:    types.CommandResultMessage,
+				Content: cmdOutput.Payload,
+			})
+		}
+
+		m.QuickView.SetMessages(messages)
+		m.QuickView.Visible = true
+		m.TextArea.Blur()
+		return m, nil, true
 	case tea.KeyCtrlZ:
 		return m, tea.Suspend, true // Suspend the application
 	case tea.KeyCtrlQ:

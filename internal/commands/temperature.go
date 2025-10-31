@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	registerCommand("temp", tempCmd, nil)
+	registerCommand("temperature", tempCmd, nil)
 }
 
 func tempCmd(args string, s SessionController) (CommandOutput, bool) {

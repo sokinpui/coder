@@ -2,7 +2,7 @@ package ui
 
 import (
 	"coder/internal/config"
-	"coder/internal/source"
+	// "coder/internal/source"
 	"coder/internal/utils"
 	"fmt"
 	"github.com/rmhubbert/bubbletea-overlay"
@@ -87,8 +87,9 @@ func (m *TreeModel) initCmd() tea.Cmd {
 		}
 
 		nodesByPath := map[string]*treeNode{absRoot: rootNode}
-		exclusions := source.Exclusions
-		exclusions = append(exclusions, ".git")
+		// exclusions := source.Exclusions
+		// exclusions = append(exclusions, ".git")
+		exclusions := []string{}
 
 		walkErr := filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {

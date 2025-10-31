@@ -348,6 +348,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
+	case tea.KeyCtrlT:
+		event := m.Session.HandleInput(":tree")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
+
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.Session.HandleInput(":itf")
