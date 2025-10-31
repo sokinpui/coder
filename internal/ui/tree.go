@@ -153,6 +153,39 @@ func sortTree(node *treeNode) {
 	}
 }
 
+func (m *TreeModel) expandSelectedNodes() {
+	if m.root == nil {
+		return
+	}
+
+	nodesByPath := make(map[string]*treeNode)
+	var collectNodes func(*treeNode)
+	collectNodes = func(node *treeNode) {
+		nodesByPath[node.path] = node
+		for _, child := range node.children {
+			collectNodes(child)
+		}
+	}
+	collectNodes(m.root)
+
+	for path := range m.selected {
+		node, ok := nodesByPath[path]
+		if !ok {
+			continue
+		}
+
+		if node.isDir {
+			node.expanded = true
+		}
+
+		parent := node.parent
+		for parent != nil {
+			parent.expanded = true
+			parent = parent.parent
+		}
+	}
+}
+
 func (m *TreeModel) buildVisibleNodes() {
 	m.visibleNodes = []*treeNode{}
 	var addNodes func(*treeNode)

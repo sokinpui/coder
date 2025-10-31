@@ -351,6 +351,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case treeReadyMsg:
 		m.Tree.root = msg.root
+		m.Tree.expandSelectedNodes()
 		m.Tree.buildVisibleNodes()
 		return m, nil, true
 
