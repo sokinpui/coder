@@ -5,14 +5,15 @@ import (
 	// "coder/internal/source"
 	"coder/internal/utils"
 	"fmt"
-	"github.com/rmhubbert/bubbletea-overlay"
-	"io/fs"
+	"os/exec"
+
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rmhubbert/bubbletea-overlay"
 )
 
 type treeNode struct {
@@ -79,59 +80,68 @@ func (m *TreeModel) initCmd() tea.Cmd {
 			return errorMsg{fmt.Errorf("failed to get absolute path for root: %w", err)}
 		}
 
+		// Get directories
+		dirCmd := exec.Command("fd", ".", "--hidden", "--type", "d", "-E", ".git", "-E", ".coder")
+		dirCmd.Dir = absRoot
+		dirOutput, err := dirCmd.Output()
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to list directories with fd: %w", err)}
+		}
+		dirPaths := strings.Split(strings.TrimSpace(string(dirOutput)), "\n")
+
+		// Get files
+		fileCmd := exec.Command("fd", ".", "--hidden", "--type", "f", "-E", ".git", "-E", ".coder")
+		fileCmd.Dir = absRoot
+		fileOutput, err := fileCmd.Output()
+		if err != nil {
+			return errorMsg{fmt.Errorf("failed to list files with fd: %w", err)}
+		}
+		filePaths := strings.Split(strings.TrimSpace(string(fileOutput)), "\n")
+
 		rootNode := &treeNode{
 			path:     absRoot,
 			name:     filepath.Base(absRoot),
 			isDir:    true,
 			expanded: true,
 		}
-
 		nodesByPath := map[string]*treeNode{absRoot: rootNode}
-		// exclusions := source.Exclusions
-		// exclusions = append(exclusions, ".git")
-		exclusions := []string{}
 
-		walkErr := filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
+		// Create all directory nodes first. fd output is sorted, so parents should appear before children.
+		for _, relPath := range dirPaths {
+			if relPath == "" {
+				continue
 			}
-			if path == absRoot {
-				return nil
-			}
-
-			// Check exclusions
-			base := filepath.Base(path)
-			for _, pattern := range exclusions {
-				if matched, _ := filepath.Match(pattern, base); matched {
-					if d.IsDir() {
-						return filepath.SkipDir
-					}
-					return nil
-				}
-			}
-
-			parentPath := filepath.Dir(path)
+			fullPath := filepath.Join(absRoot, relPath)
+			parentPath := filepath.Dir(fullPath)
 			parent, ok := nodesByPath[parentPath]
 			if !ok {
-				return nil // Should not happen if we walk top-down
+				continue // Should not happen if fd output is sorted correctly
 			}
 
 			node := &treeNode{
-				path:   path,
-				name:   d.Name(),
-				isDir:  d.IsDir(),
+				path:   fullPath,
+				name:   filepath.Base(fullPath),
+				isDir:  true,
 				parent: parent,
 			}
 			parent.children = append(parent.children, node)
-			if d.IsDir() {
-				nodesByPath[path] = node
+			nodesByPath[fullPath] = node
+		}
+
+		// Add all file nodes.
+		for _, relPath := range filePaths {
+			if relPath == "" {
+				continue
+			}
+			fullPath := filepath.Join(absRoot, relPath)
+			parentPath := filepath.Dir(fullPath)
+			parent, ok := nodesByPath[parentPath]
+			if !ok {
+				continue
 			}
 
-			return nil
-		})
-
-		if walkErr != nil {
-			return errorMsg{fmt.Errorf("error walking directory: %w", walkErr)}
+			node := &treeNode{path: fullPath, name: filepath.Base(fullPath), isDir: false, parent: parent}
+			parent.children = append(parent.children, node)
 		}
 
 		sortTree(rootNode)
