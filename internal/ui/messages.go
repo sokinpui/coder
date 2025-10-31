@@ -2,8 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -396,10 +396,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, clearStatusBarCmd(5 * time.Second), true
 		}
 
-		m.StatusBarMessage = "Project context updated."
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
-		return m, tea.Batch(textarea.Blink, clearStatusBarCmd(3*time.Second)), true
+		event := m.Session.HandleInput(":list")
+		model, cmd := m.handleEvent(event)
+		if newModel, ok := model.(Model); ok {
+			if event.Type == types.MessagesUpdated {
+				newModel.TextArea.Reset()
+			}
+			return newModel, cmd, true
+		}
+		return model, cmd, true
 
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""
