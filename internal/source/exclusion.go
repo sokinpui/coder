@@ -3,7 +3,7 @@ package source
 var Exclusions = []string{
 	// common exclusions:
 	"*-lock.json",
-	"*.md",
+	// "*.md",
 	"go.sum",
 	".git",
 	".coder",
