@@ -25,8 +25,7 @@ Before installation, ensure the following dependencies are installed and availab
 ## Installation Methods
 
 ### Using the Installation Script (Recommended)
-
-The project includes a convenience script `install.sh` to automate the installation process. It checks for dependencies and installs the binary to your `GOPATH`.
+The project includes a convenience script `install.sh` to automate the installation process. It checks for dependencies, installs the binary to your `GOPATH`, and creates a default configuration file.
 
 1.  Navigate to the root of the project directory.
 2.  Make the script executable: `chmod +x install.sh`
@@ -34,6 +33,8 @@ The project includes a convenience script `install.sh` to automate the installat
     ```sh
     ./install.sh
     ```
+
+4.  The script will create a default configuration file at `~/.config/coder/config.yaml` if one does not already exist.
 
 4.  Ensure `$(go env GOPATH)/bin` is in your system's `PATH`.
 

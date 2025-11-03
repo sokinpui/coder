@@ -15,6 +15,8 @@ Coder is a wrapper of LLM chat interface with a few shortcutes to help apply cod
 - **In-place Code Application**: Apply generated code changes directly using a diff viewer.
 - **Conversation Management**: Sessions are automatically saved and can be browsed or resumed later.
 - **Extensible Commands**: A command system (`:mode`, `:model`) allows for runtime configuration changes.
+- **File Tree Navigation**: A built-in file tree (`:tree`, `Ctrl+T`) for easy context selection.
+- **Command Piping**: Chain commands together (e.g., `:shell ls -R | :file`).
 
 ## Documentation
 
@@ -24,6 +26,12 @@ Full documentation for the project can be found in the `docs/` directory.
 - **[Usage](./docs/Usage/README.md)**: How to configure and use the TUI.
 - **[Architecture](./docs/Architecture/README.md)**: An overview of the project's architecture.
 - **[Developer Guide](./docs/Develop/README.md)**: Information for contributors.
+
+## Configuration
+
+On first run, a default `config.yaml` is created at `~/.config/coder/config.yaml`.
+
+You can also create a project-specific configuration at `.coder/config.yaml` in your repository's root. This will override the global settings.
 
 ## Quick Start
 
@@ -43,7 +51,8 @@ The provided installation script can be used to install one or both applications
 
 ### Running
 
-- **TUI**: Run `coder` from within a Git repository.
+- **Standard**: Run `coder` from within a Git repository.
+- **Temporary Session**: Run `coder --tmp` to start in a temporary directory with a new Git repository, perfect for quick experiments.
 
 # Web UI
 

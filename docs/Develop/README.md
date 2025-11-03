@@ -46,5 +46,5 @@ Ensure you have the following installed:
 
 The project uses GitHub Actions for continuous integration and releases. Workflows are defined in the `.github/workflows/` directory:
 
--   `go-tui.yml`: Builds and tests the TUI application.
+-   `go-tui.yml`: Builds the TUI application on pushes and pull requests to ensure it compiles.
 -   `release.yml`: Triggers on new version tags (`v*.*.*`), builds cross-platform binaries, and creates a GitHub Release.

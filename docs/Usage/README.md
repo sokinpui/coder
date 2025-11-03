@@ -87,4 +87,3 @@ Enter Visual Mode by pressing `Esc` on an empty input line. This mode allows you
 | `b`   | Branch the conversation from the selected message. |
 | `Ctrl+A` | Apply code changes from the nearest AI response above the cursor. |
 | `Esc` | Exit Visual Mode.                    |
-
