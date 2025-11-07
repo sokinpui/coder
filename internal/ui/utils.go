@@ -20,6 +20,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const statusBarMessageDuration = 1 * time.Second
+
 // listenForStream waits for the next message from the generation stream.
 func listenForStream(sub chan string) tea.Cmd {
 	return func() tea.Msg {
@@ -87,8 +89,8 @@ func ctrlCTimeout() tea.Cmd {
 	})
 }
 
-func clearStatusBarCmd(d time.Duration) tea.Cmd {
-	return tea.Tick(d, func(t time.Time) tea.Msg {
+func clearStatusBarCmd() tea.Cmd {
+	return tea.Tick(statusBarMessageDuration, func(t time.Time) tea.Msg {
 		return clearStatusBarMsg{}
 	})
 }

@@ -3,11 +3,10 @@ package ui
 import (
 	"fmt"
 	"slices"
-	"time"
-	
-	"coder/internal/types"
+
 	"coder/internal/commands"
 	"coder/internal/history"
+	"coder/internal/types"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -73,7 +72,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		if !found {
 			m.StatusBarMessage = "No AI response found above the cursor to apply."
-			return m, clearStatusBarCmd(3 * time.Second), true
+			return m, clearStatusBarCmd(), true
 		}
 
 		// Execute itf
@@ -192,11 +191,11 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			newSess, err := m.Session.Branch(endMessageIndex)
 			if err != nil {
 				m.StatusBarMessage = fmt.Sprintf("Error branching session: %v", err)
-				cmd = clearStatusBarCmd(5 * time.Second)
+				cmd = clearStatusBarCmd()
 			} else {
 				m.Session = newSess
 				m.StatusBarMessage = "Branched to a new session."
-				cmd = clearStatusBarCmd(2 * time.Second)
+				cmd = clearStatusBarCmd()
 
 				// Exit visual mode and apply changes
 				m.State = stateIdle
@@ -373,7 +372,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 				if err := clipboard.WriteAll(content); err == nil {
 					m.StatusBarMessage = "Copied to clipboard."
-					cmd = clearStatusBarCmd(2 * time.Second)
+					cmd = clearStatusBarCmd()
 				}
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
@@ -422,7 +421,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 				m.Session.DeleteMessages(selectedIndices)
 				m.StatusBarMessage = "Deleted selected messages."
-				cmd = clearStatusBarCmd(2 * time.Second)
+				cmd = clearStatusBarCmd()
 				if m.IsStreaming {
 					messages := m.Session.GetMessages()
 					if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {

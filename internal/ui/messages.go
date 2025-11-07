@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"coder/internal/types"
 	"coder/internal/utils"
@@ -212,7 +211,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
 			m.State = stateIdle
 			m.TextArea.Focus()
-			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 		m.HistoryItems = msg.items
 
@@ -240,7 +239,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)
 			m.State = stateIdle
 			m.TextArea.Focus()
-			return m, tea.Batch(clearStatusBarCmd(5*time.Second), textarea.Blink), true
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
 		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
@@ -267,7 +266,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case pasteResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.err)
-			return m, clearStatusBarCmd(5 * time.Second), true
+			return m, clearStatusBarCmd(), true
 		}
 
 		if msg.isImage {
@@ -347,7 +346,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = fmt.Sprintf("Found match, but couldn't jump. See message %d.", msg.item.MsgIndex)
 		}
 
-		return m, tea.Batch(clearStatusBarCmd(3*time.Second), textarea.Blink), true
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 
 	case treeReadyMsg:
 		m.Tree.root = msg.root
@@ -362,12 +361,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		repoRoot, err := utils.FindRepoRoot()
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error finding repo root: %v", err)
-			return m, clearStatusBarCmd(5 * time.Second), true
+			return m, clearStatusBarCmd(), true
 		}
 		cwd, err := os.Getwd()
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error getting current directory: %v", err)
-			return m, clearStatusBarCmd(5 * time.Second), true
+			return m, clearStatusBarCmd(), true
 		}
 
 		cfg := m.Session.GetConfig()
@@ -393,7 +392,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if err := m.Session.LoadContext(); err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading context: %v", err)
-			return m, clearStatusBarCmd(5 * time.Second), true
+			return m, clearStatusBarCmd(), true
 		}
 
 		event := m.Session.HandleInput(":list")
