@@ -398,9 +398,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		event := m.Session.HandleInput(":list")
 		model, cmd := m.handleEvent(event)
 		if newModel, ok := model.(Model); ok {
-			if event.Type == types.MessagesUpdated {
-				newModel.TextArea.Reset()
-			}
 			return newModel, cmd, true
 		}
 		return model, cmd, true

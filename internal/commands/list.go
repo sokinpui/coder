@@ -32,7 +32,7 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	overview := formatContextSummary(context)
 
-	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI\n:" + string(fileList)
+	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI:\n" + string(fileList)
 
 	payload := summary
 

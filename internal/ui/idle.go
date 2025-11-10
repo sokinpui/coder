@@ -72,10 +72,8 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager())
 	case types.TreeModeStarted:
-		m.TextArea.Reset()
 		m.State = stateTree
 		m.TextArea.Blur()
-		m.Tree.Reset()
 		m.Tree.Visible = true
 		m.Tree.loadInitialSelection(m.Session.GetConfig())
 		return m, m.Tree.initCmd()
