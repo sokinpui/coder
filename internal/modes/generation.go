@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 )
 
@@ -45,25 +46,36 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 	}
 
 	// Convert relative image paths to absolute paths for the generation server.
+	var images [][]byte
 	if len(imgPaths) > 0 {
 		repoRoot, err := utils.FindRepoRoot()
 		if err != nil {
 			log.Printf("Error finding repo root for image paths: %v", err)
 			s.AddMessages(types.Message{
 				Type:    types.CommandErrorResultMessage,
-				Content: fmt.Sprintf("Failed to resolve image paths:\n%v", err),
+				Content: fmt.Sprintf("Failed to read images: could not find repository root: %v", err),
 			})
 			return types.Event{Type: types.MessagesUpdated}
 		}
-		for i, p := range imgPaths {
-			imgPaths[i] = filepath.Join(repoRoot, p)
+		for _, p := range imgPaths {
+			absPath := filepath.Join(repoRoot, p)
+			imgBytes, err := os.ReadFile(absPath)
+			if err != nil {
+				log.Printf("Error reading image file %s: %v", absPath, err)
+				s.AddMessages(types.Message{
+					Type:    types.CommandErrorResultMessage,
+					Content: fmt.Sprintf("Failed to read image file %s:\n%v", p, err),
+				})
+				return types.Event{Type: types.MessagesUpdated}
+			}
+			images = append(images, imgBytes)
 		}
 	}
 
 	streamChan := make(chan string)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
-	go s.GetGenerator().GenerateTask(ctx, prompt, imgPaths, streamChan, generationConfig)
+	go s.GetGenerator().GenerateTask(ctx, prompt, images, streamChan, generationConfig)
 
 	s.AddMessages(types.Message{Type: types.AIMessage, Content: ""}) // Placeholder for AI
 
