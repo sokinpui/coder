@@ -25,3 +25,5 @@ context:
     - "."
   # List of specific files to include.
   files:
+
+  exclusions:

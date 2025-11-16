@@ -75,35 +75,39 @@ func Load() (*Config, error) {
 	v.SetDefault("sources.files", []string{})
 	v.SetDefault("sources.exclusions", []string{})
 
-	// Look for config in repo root .coder/
-	repoRoot, err := utils.FindRepoRoot()
-	if err == nil {
-		v.AddConfigPath(filepath.Join(repoRoot, ".coder"))
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-	}
-
-	// Also look in ~/.config/coder/
+	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
 	if err == nil {
 		v.AddConfigPath(filepath.Join(home, ".config", "coder"))
 		v.SetConfigName("config")
 		v.SetConfigType("yaml")
+		if err := v.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				return nil, fmt.Errorf("failed to read global config file: %w", err)
+			}
+		}
+	}
+
+	// Local config in repo root .coder/
+	repoRoot, err := utils.FindRepoRoot()
+	if err == nil {
+		localViper := viper.New()
+		localViper.AddConfigPath(filepath.Join(repoRoot, ".coder"))
+		localViper.SetConfigName("config")
+		localViper.SetConfigType("yaml")
+		if err := localViper.ReadInConfig(); err == nil {
+			if err := v.MergeConfigMap(localViper.AllSettings()); err != nil {
+				return nil, fmt.Errorf("failed to merge local config: %w", err)
+			}
+		} else if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, fmt.Errorf("failed to read local config file: %w", err)
+		}
 	}
 
 	// Set environment variable handling
 	v.SetEnvPrefix("CODER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-
-	// Read config file
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			// Config file was found but another error was produced
-			return nil, fmt.Errorf("failed to read config file: %w", err)
-		}
-		// Config file not found; ignore error and use defaults/env vars
-	}
 
 	// Unmarshal the config into our struct
 	var cfg Config
