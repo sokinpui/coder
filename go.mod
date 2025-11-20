@@ -13,7 +13,7 @@ require (
 	github.com/eliben/go-sentencepiece v0.6.0
 	github.com/rmhubbert/bubbletea-overlay v0.4.4
 	github.com/sahilm/fuzzy v0.1.1
-	github.com/sokinpui/synapse.go/v2 v2.2.0
+	github.com/sokinpui/synapse.go/v2 v2.3.0
 	github.com/spf13/viper v1.21.0
 	google.golang.org/genai v1.25.0
 )
