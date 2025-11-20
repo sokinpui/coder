@@ -3,3 +3,4 @@ test.go
 .coder/
 context/
 .obsidian/
+.github/copilot-instructions.md
