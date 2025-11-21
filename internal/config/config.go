@@ -19,6 +19,9 @@ var AvailableModels = []string{
 	"gemini-2.0-flash",
 	"gemini-2.0-flash-lite",
 	"gemma-3-27b-it",
+	"z-ai/glm-4.5-air:free",
+	"qwen/qwen3-coder:free",
+	"tngtech/deepseek-r1t2-chimera:free",
 }
 
 type AppMode string
