@@ -94,6 +94,17 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ...
 ````
 
+`file1.md`
+
+````diff
+--- a/path/to/file
++++ b/path/to/file
+@@ -line,line +line,line @@
+ context line
+-removed line
++added line
+````
+
 ## multi Code Block Formatting
 
 **"Always place the triple backticks (```) for code blocks on their own separate lines."**
