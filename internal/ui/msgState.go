@@ -18,6 +18,11 @@ const (
 	stateTree
 )
 
+type modelsFetchedMsg struct {
+	models []string
+	err    error
+}
+
 type (
 	tokenizerInitializedMsg struct{ err error }
 	startGenerationMsg      struct{}

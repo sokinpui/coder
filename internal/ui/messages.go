@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,6 +26,43 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.State = stateIdle
 		return m, loadInitialContextCmd(m.Session), true
 
+	case modelsFetchedMsg:
+		m.IsFetchingModels = false
+		if msg.err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Failed to fetch models: %v", msg.err)
+			return m, clearStatusBarCmd(), true
+		}
+
+		cfg := m.Session.GetConfig()
+		cfg.AvailableModels = msg.models
+
+		if len(msg.models) == 0 {
+			m.StatusBarMessage = "Warning: Server returned no available models."
+			return m, clearStatusBarCmd(), true
+		}
+
+		// Validation
+		hasError := false
+		var errorStrings []string
+		if !slices.Contains(msg.models, cfg.Generation.ModelCode) {
+			errorStrings = append(errorStrings, fmt.Sprintf("Configured chat model '%s' is not in the available list.", cfg.Generation.ModelCode))
+			hasError = true
+		}
+		if !slices.Contains(msg.models, cfg.Generation.TitleModelCode) {
+			errorStrings = append(errorStrings, fmt.Sprintf("Configured title model '%s' is not in the available list.", cfg.Generation.TitleModelCode))
+			hasError = true
+		}
+
+		if hasError {
+			errorStrings = append(errorStrings, fmt.Sprintf("Available models: %v", msg.models))
+			m.Session.AddMessages(types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: strings.Join(errorStrings, "\n"),
+			})
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+		}
+		return m, nil, true
 	case startGenerationMsg:
 		if m.State != stateGenPending {
 			return m, nil, true // Debounce was cancelled

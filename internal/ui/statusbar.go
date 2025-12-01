@@ -94,6 +94,11 @@ func (m Model) StatusView() string {
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Spinner.View())
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
+	if m.IsFetchingModels {
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Fetching models "), m.Spinner.View())
+		rightStatusItems = append(rightStatusItems, spinnerWithText)
+	}
+
 	rightStatus := strings.Join(rightStatusItems, " | ")
 
 	var statusLine string

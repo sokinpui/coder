@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"coder/internal/config"
 	"coder/internal/history"
 	"coder/internal/session"
 	"coder/internal/token"
@@ -10,14 +11,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/synapse.go/v2/client"
 )
 
 const statusBarMessageDuration = 1 * time.Second
@@ -33,6 +35,23 @@ func listenForStream(sub chan string) tea.Cmd {
 			return errorMsg{errors.New(strings.TrimSpace(errMsg))}
 		}
 		return streamResultMsg(content)
+	}
+}
+
+func fetchModelsCmd(cfg *config.Config) tea.Cmd {
+	return func() tea.Msg {
+		c, err := client.New(cfg.GRPC.Addr)
+		if err != nil {
+			return modelsFetchedMsg{err: fmt.Errorf("error connecting to server: %w", err)}
+		}
+		defer c.Close()
+
+		models, err := c.ListModels(context.Background())
+		if err != nil {
+			return modelsFetchedMsg{err: fmt.Errorf("error fetching models from server: %w", err)}
+		}
+
+		return modelsFetchedMsg{models: models}
 	}
 }
 

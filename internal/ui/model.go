@@ -64,6 +64,7 @@ type Model struct {
 	IsCountingTokens         bool
 	ShowPalette              bool
 	AvailableCommands        []string
+	IsFetchingModels         bool
 	PaletteFilteredCommands  []string
 	PaletteCursor            int
 	LastInteractionFailed    bool
@@ -142,6 +143,7 @@ func NewModel(cfg *config.Config) (Model, error) {
 		TokenCount:               0,
 		IsCountingTokens:         false,
 		ShowPalette:              false,
+		IsFetchingModels:         true,
 		AvailableCommands:        availableCommands,
 		PaletteFilteredCommands:  []string{},
 		PaletteCursor:            0,
