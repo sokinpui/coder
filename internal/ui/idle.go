@@ -59,7 +59,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		for _, mode := range config.AvailableAppModes {
 			items = append(items, fmt.Sprintf("mode: %s", mode))
 		}
-		for _, model := range config.AvailableModels {
+		for _, model := range m.Session.GetConfig().AvailableModels {
 			items = append(items, fmt.Sprintf("model: %s", model))
 		}
 		m.Finder.AllItems = items

@@ -10,20 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var AvailableModels = []string{
-	"gemini-2.5-pro",
-	"gemini-2.5-flash-preview-09-2025",
-	"gemini-2.5-flash",
-	"gemini-2.5-flash-lite-preview-09-2025",
-	"gemini-2.5-flash-lite",
-	"gemini-2.0-flash",
-	"gemini-2.0-flash-lite",
-	"gemma-3-27b-it",
-	"z-ai/glm-4.5-air:free",
-	"qwen/qwen3-coder:free",
-	"tngtech/deepseek-r1t2-chimera:free",
-}
-
 type AppMode string
 
 const (
@@ -47,19 +33,21 @@ type GRPC struct {
 
 // Generation contains model generation parameters.
 type Generation struct {
-	ModelCode    string
-	Temperature  float32
-	TopP         float32
-	TopK         float32
-	OutputLength int32
+	ModelCode      string
+	TitleModelCode string
+	Temperature    float32
+	TopP           float32
+	TopK           float32
+	OutputLength   int32
 }
 
 // Config holds the application configuration.
 type Config struct {
-	AppMode    AppMode
-	GRPC       GRPC
-	Generation Generation
-	Context    Context
+	AppMode         AppMode
+	GRPC            GRPC
+	Generation      Generation
+	Context         Context
+	AvailableModels []string `yaml:"-"`
 }
 
 // Load loads the application configuration from file and environment variables.
@@ -70,6 +58,7 @@ func Load() (*Config, error) {
 	v.SetDefault("appmode", string(CodingMode))
 	v.SetDefault("grpc.addr", "localhost:50051")
 	v.SetDefault("generation.modelcode", "gemini-2.5-pro")
+	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite-preview-09-2025")
 	v.SetDefault("generation.temperature", 0.0)
 	v.SetDefault("generation.topp", 0.95)
 	v.SetDefault("generation.topk", 0)
