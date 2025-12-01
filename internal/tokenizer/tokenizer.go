@@ -385,7 +385,11 @@ func hashString(data []byte) string {
 // URL's data doesn't match the hash, an error is returned.
 func loadModelData(url string, wantHash string) ([]byte, error) {
 	urlhash := hashString([]byte(url))
-	cacheDir := filepath.Join(utils.UserHomeDir(), ".coder", "tokenizer")
+	homeDir := utils.UserHomeDir()
+	if homeDir == "" {
+		return nil, fmt.Errorf("could not determine user home directory for tokenizer cache")
+	}
+	cacheDir := filepath.Join(homeDir, ".config", "coder", "tokenizer")
 	cachePath := filepath.Join(cacheDir, urlhash)
 
 	cacheData, err := os.ReadFile(cachePath)
