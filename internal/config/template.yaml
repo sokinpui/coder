@@ -1,0 +1,29 @@
+# Application mode. Available modes: Coding, Documenting
+# appmode: Coding
+
+# gRPC server address for the generation service.
+# grpc:
+#   addr: localhost:50051
+
+# Model generation parameters.
+# generation:
+#   # The model code to use for generation.
+#   modelcode: gemini-2.5-pro
+#   # The temperature for sampling.
+#   temperature: 0.0
+#   # The top-p value for nucleus sampling.
+#   topp: 0.95
+#   # The top-k value for top-k sampling.
+#   topk: 0
+#   # The maximum output length.
+#   outputlength: 65536
+
+# Context specifies the files and directories to be included as project source.
+# sources:
+#   # Directories to include. Defaults to the current directory.
+#   dirs:
+#     - .
+#   # Specific files to include.
+#   files: []
+#   # Files/directories to exclude. Globs are supported.
+#   exclusions: []

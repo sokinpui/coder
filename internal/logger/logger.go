@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"coder/internal/config"
 	"coder/internal/utils"
 	"log"
 	"os"
@@ -24,6 +25,13 @@ func Init() {
 	coderPath := filepath.Join(repoRoot, coderDirName)
 	if err := os.MkdirAll(coderPath, 0755); err != nil {
 		log.Fatalf("failed to create .coder directory for log file: %v", err)
+	}
+
+	configPath := filepath.Join(coderPath, "config.yaml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		if err := os.WriteFile(configPath, []byte(config.ConfigTemplate), 0644); err != nil {
+			log.Printf("failed to write template config file: %v", err)
+		}
 	}
 
 	logFilePath := filepath.Join(coderPath, logFileName)
