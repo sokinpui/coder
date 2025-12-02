@@ -42,7 +42,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.BranchModeStarted:
 		return m.enterVisualMode(visualModeBranch)
 	case types.SearchModeStarted:
-		m.TextArea.Reset()
 		m.State = stateSearch
 		m.TextArea.Blur()
 		m.Search.AllItems = m.collectSearchableMessages()
@@ -52,7 +51,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Search.TextInput.Focus()
 		return m, textinput.Blink
 	case types.FzfModeStarted:
-		m.TextArea.Reset()
 		m.State = stateFinder
 		m.TextArea.Blur()
 		var items []string
