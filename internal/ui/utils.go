@@ -19,7 +19,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/sokinpui/synapse.go/v2/client"
+	"github.com/sokinpui/synapse.go/client"
 )
 
 const statusBarMessageDuration = 1 * time.Second

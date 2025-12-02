@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/sokinpui/synapse.go/v2/client"
+	"github.com/sokinpui/synapse.go/client"
 )
 
 // Generator handles communication with the code generation gRPC service.
