@@ -71,6 +71,10 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 			streamChan <- fmt.Sprintf("Error: Stream failed: %v", result.Err)
 			break
 		}
+		if result.IsKeepAlive {
+			log.Printf("Received keep-alive from server")
+			continue
+		}
 		log.Printf("Received raw chunk from server: %q", result.Text)
 		streamChan <- result.Text
 	}
