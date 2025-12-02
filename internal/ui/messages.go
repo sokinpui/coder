@@ -29,16 +29,26 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case modelsFetchedMsg:
 		m.IsFetchingModels = false
 		if msg.err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Failed to fetch models: %v", msg.err)
-			return m, clearStatusBarCmd(), true
+			m.Session.AddMessages(types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: fmt.Sprintf("Failed to fetch models: %v", msg.err),
+			})
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+			return m, nil, true
 		}
 
 		cfg := m.Session.GetConfig()
 		cfg.AvailableModels = msg.models
 
 		if len(msg.models) == 0 {
-			m.StatusBarMessage = "Warning: Server returned no available models."
-			return m, clearStatusBarCmd(), true
+			m.Session.AddMessages(types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: "Warning: Server returned no available models.",
+			})
+			m.Viewport.SetContent(m.renderConversation())
+			m.Viewport.GotoBottom()
+			return m, nil, true
 		}
 
 		// Validation
