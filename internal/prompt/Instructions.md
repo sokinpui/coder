@@ -35,8 +35,6 @@ file content
 
 list the name of the files to rename in a markdown code block tagged with `rename`.
 
-`Files to be renamed`
-
 ```rename
 /path/to/oldfile /path/to/newfile
 /path/to/oldfile2 /path/to/newfile2
@@ -59,8 +57,6 @@ If file need rename and modify, use the old file name in the diff output.
 ## File Delete:
 
 list the name of the files that are deleted in a markdown code block tagged with `delete`.
-
-`Files to be deleted`
 
 ```delete
 file1
@@ -96,14 +92,14 @@ If the markdown files contains codeblock inside, you should use four backticks f
 
 `file1.md`
 
-````diff
+```diff
 --- a/path/to/file
 +++ b/path/to/file
 @@ -line,line +line,line @@
  context line
 -removed line
 +added line
-````
+```
 
 ## multi Code Block Formatting
 
@@ -119,6 +115,48 @@ Good Example:
 `Title or filename.ext`
 
 ```tag
+...
+```
+
+## Files in parent Directories:
+
+When you need to modify, create, rename or delete files in parent directories, follow the same instructions above, and make sure to include the correct relative path from the current directory.
+
+Good Example:
+
+diff:
+`../parent_directory/filename.ext`
+
+```diff
+--- a/../parent_directory/filename.ext
++++ b/../parent_directory/filename.ext
+@@ -line,line +line,line @@
+ context line
+-removed line
++added line
+```
+
+create:
+`../parent_directory/filename.ext`
+
+```
+...
+file content
+...
+```
+
+rename:
+
+```rename
+../parent_directory/oldfile ../parent_directory/newfile
+...
+```
+
+delete:
+
+```delete
+../parent_directory/file1
+../parent_directory/file2
 ...
 ```
 
