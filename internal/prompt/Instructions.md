@@ -76,8 +76,9 @@ file content
 ...
 ```
 
-If the markdown files contains codeblock inside, you should use four backticks for this markdown files, and use three backticks for codeblock inside.
+You must use four backticks for markdown files or plain text files to avoid rendering issues.
 
+Good Example:
 `file1.md`
 
 ````markdown
@@ -86,7 +87,11 @@ If the markdown files contains codeblock inside, you should use four backticks f
 ```python
 ...
 ```
+...
+````
 
+`file2.md`
+````markdown
 ...
 ````
 
