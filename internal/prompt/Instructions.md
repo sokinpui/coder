@@ -19,6 +19,17 @@ output changes of files in unified diff format.
 +added line
 ```
 
+if appending lines to the end of the file, you should add a new line before the appended lines and after the last line of the file.
+
+```diff
+--- a/path/to/file
++++ b/path/to/file
+@@ -line +line,number @@
+ last line of the file
++
++appended line 1
+```
+
 ## File Create:
 
 output the content of the file.
