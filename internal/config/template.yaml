@@ -26,6 +26,6 @@
 #   dirs:
 #     - .
 #   # Specific files to include.
-#   files: []
+#   files:
 #   # Files/directories to exclude. Globs are supported.
-#   exclusions: []
+#   exclusions:
