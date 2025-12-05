@@ -21,7 +21,7 @@
 #   outputlength: 65536
 
 # Context specifies the files and directories to be included as project source.
-# sources:
+# context:
 #   # Directories to include. Defaults to the current directory.
 #   dirs:
 #     - .
