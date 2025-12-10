@@ -39,7 +39,7 @@ This directory contains the shared business logic for both applications.
 - **`history`**: Manages the persistence of conversations. Sessions are saved as Markdown files with YAML frontmatter in the `.coder/history` directory at the root of the Git repository.
 - **`ui`**: The implementation of the TUI, including all models, views, and updates for the `bubbletea` framework.
 
-Other key packages include `types` for fundamental data structures, `modes` for handling application behavior (`Coding`, `Documenting`), and `source` for context gathering.
+Other key packages include `types` for fundamental data structures, `modes` for handling application behavior, and `source` for context gathering.
 
 ## Data Flow
 

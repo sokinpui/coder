@@ -15,7 +15,7 @@ type CodingMode struct {
 
 // GetRolePrompt returns the coding role.
 func (m *CodingMode) GetRolePrompt() string {
-	return prompt.CodingRole
+	return ""
 }
 
 // LoadSourceCode loads context from the Context/ directory and project source files.

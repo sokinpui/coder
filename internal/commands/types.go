@@ -31,7 +31,6 @@ type SessionController interface {
 	GetMessages() []types.Message
 	GetConfig() *config.Config
 	SetTitle(title string)
-	SetMode(mode config.AppMode) error
 	LoadContext() error
 }
 

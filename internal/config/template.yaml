@@ -1,6 +1,3 @@
-# Application mode. Available modes: Coding, Documenting
-# appmode: Coding
-
 # gRPC server address for the generation service.
 # grpc:
 #   addr: localhost:50051

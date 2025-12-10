@@ -2,12 +2,6 @@
 
 This guide explains how to use the Coder TUI application. The application must be run from within a Git repository.
 
-## Application Modes
-
-Coder provides different modes to tailor the AI's behavior for specific tasks like coding or writing documentation. You can switch modes using the `:mode` command.
-
-For a detailed explanation of each mode and how it affects the AI's context and responses, see the [Modes Guide](./Modes.md).
-
 ## TUI (`coder`)
 
 The TUI provides a keyboard-centric interface for interacting with the AI.
@@ -61,7 +55,6 @@ Commands start with a colon (`:`) and are entered in the input area.
 | `:history`      | View and load past conversations.                    |
 | `:itf`          | Pipe the last AI response to the `itf` diff viewer.  |
 | `:list`         | List the current project source files being read by the AI. |
-| `:mode <name>`  | Switch the application mode (e.g., `Coding`, `Documenting`). |
 | `:model <name>` | Switch the AI model.                                 |
 | `:new`          | Start a new chat session.                            |
 | `:q` / `:quit`  | Quit the application.                                |

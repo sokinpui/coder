@@ -14,7 +14,6 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("appmode: %s\n", cfg.AppMode))
 	b.WriteString("grpc:\n")
 	b.WriteString(fmt.Sprintf("  addr: %s\n", cfg.GRPC.Addr))
 	b.WriteString("generation:\n")

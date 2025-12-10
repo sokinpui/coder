@@ -63,7 +63,6 @@ func (m Model) StatusView() string {
 		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
-	modeInfo := fmt.Sprintf("Mode: %s", m.Session.GetConfig().AppMode)
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
 	tempInfo := fmt.Sprintf("Temp: %.1f", m.Session.GetConfig().Generation.Temperature)
 
@@ -74,7 +73,6 @@ func (m Model) StatusView() string {
 		tokenInfo = fmt.Sprintf("Tokens: %d", m.TokenCount)
 	}
 
-	modePart := modelInfoStyle.Render(modeInfo)
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tempPart := modelInfoStyle.Render(tempInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
@@ -83,7 +81,7 @@ func (m Model) StatusView() string {
 		if tokenPart != "" {
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
-		rightStatusItems = append(rightStatusItems, modePart, modelPart, tempPart)
+		rightStatusItems = append(rightStatusItems, modelPart, tempPart)
 	}
 
 	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {

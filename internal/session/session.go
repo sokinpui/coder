@@ -54,7 +54,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message) (*Sess
 		titleGenerated:  false,
 		createdAt:       time.Now(),
 		historyFilename: "",
-		modeStrategy:    modes.NewStrategy(cfg.AppMode),
+		modeStrategy:    modes.NewStrategy(),
 	}, nil
 }
 

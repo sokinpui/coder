@@ -10,15 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type AppMode string
-
-const (
-	CodingMode      AppMode = "Coding"
-	DocumentingMode AppMode = "Documenting"
-)
-
-var AvailableAppModes = []AppMode{CodingMode, DocumentingMode}
-
 // Context specifies the files and directories to be included as project source.
 type Context struct {
 	Files      []string
@@ -43,7 +34,6 @@ type Generation struct {
 
 // Config holds the application configuration.
 type Config struct {
-	AppMode         AppMode
 	GRPC            GRPC
 	Generation      Generation
 	Context         Context
@@ -55,7 +45,6 @@ func Load() (*Config, error) {
 	v := viper.New()
 
 	// Set default values
-	v.SetDefault("appmode", string(CodingMode))
 	v.SetDefault("grpc.addr", "localhost:50051")
 	v.SetDefault("generation.modelcode", "gemini-2.5-pro")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite-preview-09-2025")

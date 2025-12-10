@@ -1,17 +1,6 @@
 package modes
 
-import (
-	"coder/internal/config"
-)
-
-// NewStrategy creates a new mode strategy based on the AppMode.
-func NewStrategy(mode config.AppMode) ModeStrategy {
-	switch mode {
-	case config.DocumentingMode:
-		return &DocumentingMode{}
-	case config.CodingMode:
-		fallthrough
-	default:
-		return &CodingMode{}
-	}
+// NewStrategy creates a new mode strategy.
+func NewStrategy() ModeStrategy {
+	return &CodingMode{}
 }

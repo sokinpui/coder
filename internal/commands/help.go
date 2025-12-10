@@ -36,7 +36,6 @@ var commandGroup = helpGroup{
 	{key: "history", desc: "View conversation history."},
 	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes."},
 	{key: "list", desc: "List the current project source files/directories."},
-	{key: "mode", desc: "Switch application mode (e.g., :mode Coding)."},
 	{key: "model", desc: "Switch generation model (e.g., :model gemini-2.5-pro)."},
 	{key: "new", desc: "Start a new chat session."},
 	{key: "q", desc: "Quit the application."},
