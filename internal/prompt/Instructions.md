@@ -75,7 +75,7 @@ list the name of the files to rename in a markdown code block tagged with `renam
 
 If file need rename and modify, use the old file name in the diff output.
 
-`path/to/newfile`
+`path/to/oldfile`
 
 ```diff
 --- a/path/to/oldfile
