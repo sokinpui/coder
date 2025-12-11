@@ -12,7 +12,7 @@ You should follow instruction below when write code:
 
 # Rules:
 
-- unless specified, you should not modify files in `# RELATED DOCUMENTS`.
+- Don't modify plain text or markdown files unless user request.
 - The latest version of project source code is placed at `# PROJECT SOURCE CODE`.
 - User can choose not to apply the code changes you make. In this case, you should adopt to it. Always refer to the source code provided in `# PROJECT SOURCE CODE`.
 - User can modify the source code after apply the changes you make. In this case, you should adopt to it. Always refer to the code provided in `# PROJECT SOURCE CODE`.
@@ -23,6 +23,7 @@ You should follow instruction below when write code:
 1. output changes of files in unified diff format. except files that are deleted and created.
 2. Use Markdown code block per file:
 3. code generation should always base on the latest version
+4. you should only output single codeblocker per files. either create, rename, delete or modify.
 
 ## File Modify:
 
@@ -128,14 +129,14 @@ Good Example:
 
 `file1.md`
 
-```diff
+````diff
 --- a/path/to/file
 +++ b/path/to/file
 @@ -line,line +line,line @@
  context line
 -removed line
 +added line
-```
+````
 
 ## multi Code Block Formatting
 
