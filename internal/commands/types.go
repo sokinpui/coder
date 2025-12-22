@@ -10,6 +10,7 @@ type CommandResultType int
 const (
 	CommandResultString CommandResultType = iota
 	CommandResultNewSession
+	CommandResultChatMode
 	CommandResultGenerateMode
 	CommandResultVisualMode
 	CommandResultEditMode

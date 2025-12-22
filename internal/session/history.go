@@ -3,6 +3,7 @@ package session
 import (
 	"coder/internal/config"
 	"coder/internal/history"
+	"coder/internal/modes"
 	"coder/internal/types"
 	"fmt"
 	"log"
@@ -101,14 +102,24 @@ func (s *Session) LoadConversation(filename string) error {
 }
 
 func (s *Session) newSession() {
+	s.resetSession(modes.NewStrategy())
+}
+
+func (s *Session) startChatSession() {
+	s.resetSession(modes.NewChatStrategy())
+}
+
+func (s *Session) resetSession(strategy modes.ModeStrategy) {
 	if err := s.SaveConversation(); err != nil {
-		log.Printf("Error saving conversation for /new command: %v", err)
+		log.Printf("Error saving conversation before reset: %v", err)
 	}
 	s.messages = []types.Message{} // Clear messages
 	s.title = "New Chat"
 	s.titleGenerated = false
 	s.createdAt = time.Now()
 	s.historyFilename = ""
+	s.modeStrategy = strategy
+
 	// Reload config to reset Context to their configured values,
 	// discarding any changes made with `:file` in the previous session.
 	newCfg, err := config.Load()

@@ -26,6 +26,9 @@ func (s *Session) HandleInput(input string) types.Event {
 		case commands.CommandResultNewSession:
 			s.newSession()
 			return types.Event{Type: types.NewSessionStarted}
+		case commands.CommandResultChatMode:
+			s.startChatSession()
+			return types.Event{Type: types.NewSessionStarted}
 		case commands.CommandResultVisualMode:
 			return types.Event{Type: types.VisualModeStarted}
 		case commands.CommandResultGenerateMode:

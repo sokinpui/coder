@@ -27,6 +27,7 @@ var behaviorGroup = helpGroup{
 
 var commandGroup = helpGroup{
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
+	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source."},

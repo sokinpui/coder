@@ -144,7 +144,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	model, cmd := m.handleEvent(event)
 	if newModel, ok := model.(Model); ok {
-		if event.Type == types.MessagesUpdated {
+		if event.Type == types.MessagesUpdated || event.Type == types.NewSessionStarted {
 			if !shouldPreserve {
 				newModel.TextArea.Reset()
 			}

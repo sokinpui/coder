@@ -4,3 +4,8 @@ package modes
 func NewStrategy() ModeStrategy {
 	return &CodingMode{}
 }
+
+// NewChatStrategy creates a strategy for pure chat.
+func NewChatStrategy() ModeStrategy {
+	return &ChatMode{}
+}
