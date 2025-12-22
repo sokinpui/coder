@@ -64,7 +64,7 @@ CONFIG_FILE="$CONFIG_DIR/config.yaml"
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Creating default configuration file at $CONFIG_FILE..."
   mkdir -p "$CONFIG_DIR"
-  cp ./config.yaml "$CONFIG_FILE"
+  cp ./internal/config/template.yaml "$CONFIG_FILE"
 else
   echo "Configuration file already exists at $CONFIG_FILE"
 fi
