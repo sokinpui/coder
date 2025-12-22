@@ -172,7 +172,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		prompt := m.Session.GetPrompt()
 		m.IsCountingTokens = true
 
-		return m, countTokensCmd(prompt), true
+		return m, tea.Batch(countTokensCmd(prompt), saveConversationCmd(m.Session)), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {

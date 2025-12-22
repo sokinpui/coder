@@ -90,6 +90,15 @@ func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
 	}
 }
 
+func saveConversationCmd(sess *session.Session) tea.Cmd {
+	return func() tea.Msg {
+		if err := sess.SaveConversation(); err != nil {
+			return errorMsg{err}
+		}
+		return nil
+	}
+}
+
 func renderTick() tea.Cmd {
 	return tea.Tick(250*time.Millisecond, func(t time.Time) tea.Msg {
 		return renderTickMsg{}
