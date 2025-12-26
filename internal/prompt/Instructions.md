@@ -24,6 +24,7 @@ You should follow instruction below when write code:
 2. Use Markdown code block per file:
 3. code generation should always base on the latest version
 4. you should only output single codeblocker per files. either create, rename, delete or modify.
+5. The Indent and content of context line and removed line should exactly same as original file.
 
 ## File Modify:
 
@@ -119,24 +120,26 @@ Good Example:
 ```python
 ...
 ```
+
 ...
 ````
 
 `file2.md`
-````markdown
+
+```markdown
 ...
-````
+```
 
 `file1.md`
 
-````diff
+```diff
 --- a/path/to/file
 +++ b/path/to/file
 @@ -line,line +line,line @@
  context line
 -removed line
 +added line
-````
+```
 
 ## multi Code Block Formatting
 
