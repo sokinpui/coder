@@ -56,13 +56,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true // Out of bounds
 		}
 
-		cursorMessageIndex := m.SelectableBlocks[m.VisualSelectCursor].startIdx
+		cursorBlock := m.SelectableBlocks[m.VisualSelectCursor]
 		var aiResponseToApply string
 		found := false
 		messages := m.Session.GetMessages()
 
-		// Search backwards from the message before the cursor's block
-		for i := cursorMessageIndex - 1; i >= 0; i-- {
+		// Search backwards from the end of current cursor's block
+		for i := cursorBlock.endIdx; i >= 0; i-- {
 			if messages[i].Type == types.AIMessage && messages[i].Content != "" {
 				aiResponseToApply = messages[i].Content
 				found = true
