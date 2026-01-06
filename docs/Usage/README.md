@@ -7,7 +7,7 @@ The `pcat` package can be integrated into other Go applications to find and form
 To use the `pcat` package in your project, install it using `go get`:
 
 ```sh
-go get github.com/sokinpui/pcat.go
+go get github.com/sokinpui/pcat
 ```
 
 ## Example
@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sokinpui/pcat.go/pcat"
+	"github.com/sokinpui/pcat/pcat"
 )
 
 func main() {
@@ -47,7 +47,7 @@ func main() {
 	// --- Or, if you already have a list of files ---
 
 	// You can use pcat.Read directly if you manage file discovery yourself.
-	files := []string{"pcat/pcat.go", "cmd/pcat/main.go"}
+	files := []string{"pcat/pcat", "cmd/pcat/main.go"}
 	readConfig := pcat.Config{WithLineNumbers: true}
 
 	output, err = pcat.Read(files, readConfig)

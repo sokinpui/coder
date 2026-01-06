@@ -45,13 +45,13 @@ source <(pcat --completion bash)
 # Installatoin
 
 ```
-go install github.com/sokinpui/pcat.go/cmd/pcat@latest
+go install github.com/sokinpui/pcat/cmd/pcat@latest
 ```
 
 locally:
 
 ```
-git clone https://github.com/sokinpui/pcat.go.git
-cd pcat.go
+git clone https://github.com/sokinpui/pcat.git
+cd pcat
 git install ./cmd/pcat
 ```
