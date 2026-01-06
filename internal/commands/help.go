@@ -43,7 +43,6 @@ var commandGroup = helpGroup{
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
 	{key: "search", desc: "Search the current conversation."},
-	{key: "shell", desc: "Execute a shell command."},
 	{key: "temperature", desc: "Set the generation temperature (e.g., :temp 0.5)."},
 	{key: "tree", desc: "Open a file tree to select files/directories for context."},
 	{key: "visual", desc: "Enter visual mode for message selection."},

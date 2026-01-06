@@ -16,7 +16,7 @@ Coder is a wrapper of LLM chat interface with a few shortcutes to help apply cod
 - **Conversation Management**: Sessions are automatically saved and can be browsed or resumed later.
 - **Extensible Commands**: A command system (`:mode`, `:model`) allows for runtime configuration changes.
 - **File Tree Navigation**: A built-in file tree (`:tree`, `Ctrl+T`) for easy context selection.
-- **Command Piping**: Chain commands together (e.g., `:shell ls -R | :file`).
+- **Command Piping**: Chain commands together (e.g., `:list | :itf`).
 
 ## Documentation
 
