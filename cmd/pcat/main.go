@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"github.com/sokinpui/pcat"
 
-	"github.com/sokinpui/pcat/internal/clipboard"
-	"github.com/sokinpui/pcat/pcat"
 	"github.com/spf13/cobra"
 )
 
@@ -141,7 +140,7 @@ func run(args []string) error {
 	}
 
 	if config.ToClipboard {
-		if err := clipboard.Write(output); err != nil {
+		if err := pcat.Write(output); err != nil {
 			return err
 		}
 		fmt.Fprintln(os.Stderr, "pcat: Copied to clipboard.")

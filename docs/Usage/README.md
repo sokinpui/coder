@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sokinpui/pcat/pcat"
+	"github.com/sokinpui/pcat"
 )
 
 func main() {
