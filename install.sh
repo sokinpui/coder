@@ -23,7 +23,6 @@ check_command() {
 check_command "go"
 check_command "git"
 check_command "fd"
-check_command "fzf"
 if [ "$(uname)" == "Linux" ]; then
   if [ "$XDG_SESSION_TYPE" == "wayland" ]; then
     check_command "wl-clipboard"
