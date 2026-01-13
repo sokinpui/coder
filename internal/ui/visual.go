@@ -52,11 +52,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	)
 	switch msg.Type {
 	case tea.KeyCtrlA:
-		if m.VisualSelectCursor >= len(m.SelectableBlocks) {
-			return m, nil, true // Out of bounds
-		}
-
-		cursorBlock := m.SelectableBlocks[m.VisualSelectCursor]
+		cursorBlock := m.getCurrentBlock()
 		var aiResponseToApply string
 		found := false
 		messages := m.Session.GetMessages()
@@ -122,13 +118,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, cmd, true
 
 	case tea.KeyEnter:
-		if m.VisualSelectCursor >= len(m.SelectableBlocks) {
-			return m, nil, true // Out of bounds, do nothing
-		}
-
+		block := m.getCurrentBlock()
 		switch m.VisualMode {
 		case visualModeGenerate:
-			block := m.SelectableBlocks[m.VisualSelectCursor]
 			msgIndex := -1
 			// Find the first user or image message at or before the start of the selected block
 			for i := block.startIdx; i >= 0; i-- {
@@ -159,7 +151,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			// fall through to exit visual mode.
 
 		case visualModeEdit:
-			block := m.SelectableBlocks[m.VisualSelectCursor]
 			userMsgIndex := -1
 			// Find the first user message at or before the start of the selected block
 			for i := block.startIdx; i >= 0; i-- {
@@ -179,7 +170,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			// Fall through to exit visual mode if no user message found.
 		case visualModeBranch:
-			block := m.SelectableBlocks[m.VisualSelectCursor]
 			endMessageIndex := block.endIdx
 
 			if m.IsStreaming {
@@ -298,10 +288,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, textarea.Blink, true
 		case "g":
 			if !m.VisualIsSelecting && m.VisualMode == visualModeNone {
-				if m.VisualSelectCursor >= len(m.SelectableBlocks) {
-					return m, nil, true // Out of bounds
-				}
-				block := m.SelectableBlocks[m.VisualSelectCursor]
+				block := m.getCurrentBlock()
 				msgIndex := -1
 				// Find the first user or image message at or before the start of the selected block
 				for i := block.startIdx; i >= 0; i-- {
@@ -331,10 +318,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 		case "e":
 			if !m.VisualIsSelecting && m.VisualMode == visualModeNone {
-				if m.VisualSelectCursor >= len(m.SelectableBlocks) {
-					return m, nil, true // Out of bounds
-				}
-				block := m.SelectableBlocks[m.VisualSelectCursor]
+				block := m.getCurrentBlock()
 				userMsgIndex := -1
 				// Find the first user message at or before the start of the selected block
 				for i := block.startIdx; i >= 0; i-- {
@@ -351,17 +335,14 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 			}
 		case "y":
-			if m.VisualIsSelecting && m.VisualMode == visualModeNone {
-				start, end := m.VisualSelectStart, m.VisualSelectCursor
-				if start > end {
-					start, end = end, start
+			if m.VisualMode == visualModeNone {
+				indices := m.getSelectedIndices()
+				if len(indices) == 0 {
+					return m, nil, true
 				}
 				var selectedMessages []types.Message
-				for i := start; i <= end; i++ {
-					block := m.SelectableBlocks[i]
-					for j := block.startIdx; j <= block.endIdx; j++ {
-						selectedMessages = append(selectedMessages, m.Session.GetMessages()[j])
-					}
+				for _, idx := range indices {
+					selectedMessages = append(selectedMessages, m.Session.GetMessages()[idx])
 				}
 
 				var content string
@@ -393,17 +374,10 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				return m, tea.Batch(textarea.Blink, cmd), true
 			}
 		case "d":
-			if m.VisualIsSelecting && m.VisualMode == visualModeNone {
-				start, end := m.VisualSelectStart, m.VisualSelectCursor
-				if start > end {
-					start, end = end, start
-				}
-				var selectedIndices []int
-				for i := start; i <= end; i++ {
-					block := m.SelectableBlocks[i]
-					for j := block.startIdx; j <= block.endIdx; j++ {
-						selectedIndices = append(selectedIndices, j)
-					}
+			if m.VisualMode == visualModeNone {
+				selectedIndices := m.getSelectedIndices()
+				if len(selectedIndices) == 0 {
+					return m, nil, true
 				}
 
 				isDeletingCurrentAIMessage := false
@@ -444,4 +418,38 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 	}
 	return m, nil, true
+}
+
+func (m Model) getSelectedIndices() []int {
+	var indices []int
+	if m.VisualIsSelecting {
+		start, end := m.VisualSelectStart, m.VisualSelectCursor
+		if start > end {
+			start, end = end, start
+		}
+		for i := start; i <= end; i++ {
+			if i < len(m.SelectableBlocks) {
+				block := m.SelectableBlocks[i]
+				for j := block.startIdx; j <= block.endIdx; j++ {
+					indices = append(indices, j)
+				}
+			}
+		}
+	} else if m.VisualSelectCursor < len(m.SelectableBlocks) {
+		block := m.SelectableBlocks[m.VisualSelectCursor]
+		for j := block.startIdx; j <= block.endIdx; j++ {
+			indices = append(indices, j)
+		}
+	}
+	return indices
+}
+
+func (m Model) getCurrentBlock() messageBlock {
+	if len(m.SelectableBlocks) == 0 {
+		return messageBlock{startIdx: -1, endIdx: -1}
+	}
+	if m.VisualSelectCursor >= len(m.SelectableBlocks) {
+		return m.SelectableBlocks[len(m.SelectableBlocks)-1]
+	}
+	return m.SelectableBlocks[m.VisualSelectCursor]
 }

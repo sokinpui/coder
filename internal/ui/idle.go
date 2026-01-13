@@ -108,11 +108,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	if !strings.HasPrefix(input, ":") {
 		// This is a prompt, apply debounce.
-		if m.LastInteractionFailed {
-			m.Session.RemoveLastInteraction()
-			m.LastInteractionFailed = false
-		}
-
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
 
 		var cmds []tea.Cmd

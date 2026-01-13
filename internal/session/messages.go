@@ -84,11 +84,3 @@ func (s *Session) EditMessage(index int, newContent string) error {
 	s.messages[index].Content = newContent
 	return nil
 }
-
-// RemoveLastInteraction removes the last user message and AI response,
-// typically after a failed or cancelled generation.
-func (s *Session) RemoveLastInteraction() {
-	if len(s.messages) >= 2 {
-		s.messages = s.messages[:len(s.messages)-2]
-	}
-}
