@@ -69,8 +69,8 @@ file content
 list the name of the files to rename in a markdown code block tagged with `rename`.
 
 ```rename
-/path/to/oldfile /path/to/newfile
-/path/to/oldfile2 /path/to/newfile2
+oldfile newfile
+oldfile2 newfile2
 ...
 ```
 
