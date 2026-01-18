@@ -42,17 +42,6 @@ output changes of files in unified diff format.
 +added line
 ```
 
-if appending lines to the end of the file, you should add a new line before the appended lines and after the last line of the file.
-
-```diff
---- a/path/to/file
-+++ b/path/to/file
-@@ -line +line,number @@
- last line of the file
-+
-+appended line 1
-```
-
 ## File Create:
 
 output the content of the file.
@@ -73,19 +62,6 @@ list the name of the files to rename in a markdown code block tagged with `renam
 oldfile newfile
 oldfile2 newfile2
 ...
-```
-
-If file need rename and modify, use the old file name in the diff output.
-
-`path/to/oldfile`
-
-```diff
---- a/path/to/oldfile
-+++ b/path/to/oldfile
-@@ -line,line +line,line @@
- context line
--removed line
-+added line
 ```
 
 ## File Delete:
@@ -140,7 +116,7 @@ Good Example:
 
 ## Files in parent Directories:
 
-When you need to modify, create, rename or delete files in parent directories, follow the same instructions above, and make sure to include the correct relative path from the current directory.
+When you need to modify, create, rename or delete files in parent directories, use relative path.
 
 Good Example:
 
