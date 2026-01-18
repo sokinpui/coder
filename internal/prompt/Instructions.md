@@ -110,37 +110,16 @@ file content
 ...
 ```
 
-You must use four backticks for markdown files or plain text files to avoid rendering issues.
+You must use four backticks "````" for markdown files or plain text files for file creation or printing
 
 Good Example:
 `file1.md`
 
 ````markdown
-...
-
 ```python
 ...
 ```
-
-...
 ````
-
-`file2.md`
-
-```markdown
-...
-```
-
-`file1.md`
-
-```diff
---- a/path/to/file
-+++ b/path/to/file
-@@ -line,line +line,line @@
- context line
--removed line
-+added line
-```
 
 ## multi Code Block Formatting
 
