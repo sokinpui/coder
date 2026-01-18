@@ -26,6 +26,12 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
 
+	if len(allFiles) == 0 {
+		overview := formatContextSummary(context)
+		summary := "Current project context:\n" + overview + "\n\n" + "No files found in the current context."
+		return CommandOutput{Type: CommandResultString, Payload: summary}, true
+	}
+
 	pcatArgs := append([]string{"-l"}, allFiles...)
 	cmd := exec.Command("pcat", pcatArgs...)
 	fileList, err := cmd.CombinedOutput()

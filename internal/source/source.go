@@ -19,6 +19,10 @@ func LoadProjectSource(context *config.Context) (string, error) {
 		return "", err
 	}
 
+	if len(allFiles) == 0 {
+		return "", nil
+	}
+
 	pcatArgs := append([]string{}, allFiles...)
 	cmd := exec.Command("pcat", pcatArgs...)
 	output, err := cmd.CombinedOutput()

@@ -67,6 +67,10 @@ func SourceToFileList(dirs []string, initialFiles []string, exclusions []string)
 		return nil, fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(output))
 	}
 
-	filesFromDirs := strings.Split(strings.TrimSpace(string(output)), "\n")
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr == "" {
+		return initialFiles, nil
+	}
+	filesFromDirs := strings.Split(outputStr, "\n")
 	return append(initialFiles, filesFromDirs...), nil
 }
