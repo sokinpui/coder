@@ -25,6 +25,7 @@ You should follow instruction below when write code:
 3. code generation should always base on the latest version
 4. you should only output single codeblocker per files. either create, rename, delete or modify.
 5. The Indent and content of context line and removed line should exactly same as original file.
+6. Use relative path from the current directory for all files.
 
 ## File Modify:
 
