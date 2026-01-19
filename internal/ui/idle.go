@@ -32,15 +32,25 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m.startGeneration(event)
 
 	case types.VisualModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeNone)
 
 	case types.GenerateModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeGenerate)
 	case types.EditModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeEdit)
 	case types.BranchModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeBranch)
 	case types.SearchModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		m.State = stateSearch
 		m.TextArea.Blur()
 		m.Search.AllItems = m.collectSearchableMessages()
@@ -48,8 +58,11 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Search.updateFoundItems()
 		m.Search.Visible = true
 		m.Search.TextInput.Focus()
-		return m, textinput.Blink
+		m.IsCountingTokens = true
+		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
 	case types.FzfModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		m.State = stateFinder
 		m.TextArea.Blur()
 		var items []string
@@ -60,17 +73,24 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Finder.FoundItems = items
 		m.Finder.Visible = true
 		m.Finder.TextInput.Focus()
-		return m, textinput.Blink
+		m.IsCountingTokens = true
+		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
 	case types.HistoryModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		m.State = stateHistorySelect
 		m.TextArea.Blur()
-		return m, listHistoryCmd(m.Session.GetHistoryManager())
+		m.IsCountingTokens = true
+		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()))
 	case types.TreeModeStarted:
+		m.Viewport.SetContent(m.renderConversation())
+		m.Viewport.GotoBottom()
 		m.State = stateTree
 		m.TextArea.Blur()
 		m.Tree.Visible = true
 		m.Tree.loadInitialSelection(m.Session.GetConfig())
-		return m, m.Tree.initCmd()
+		m.IsCountingTokens = true
+		return m, tea.Batch(m.Tree.initCmd(), countTokensCmd(m.Session.GetPrompt()))
 
 	case types.Quit:
 		m.Quitting = true
@@ -139,7 +159,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	model, cmd := m.handleEvent(event)
 	if newModel, ok := model.(Model); ok {
-		if event.Type == types.MessagesUpdated || event.Type == types.NewSessionStarted {
+		isCommand := strings.HasPrefix(input, ":")
+		if event.Type == types.MessagesUpdated ||
+			event.Type == types.NewSessionStarted ||
+			(isCommand && event.Type != types.NoOp) {
 			if !shouldPreserve {
 				newModel.TextArea.Reset()
 			}

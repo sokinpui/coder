@@ -29,25 +29,24 @@ func (s *Session) HandleInput(input string) types.Event {
 		case commands.CommandResultChatMode:
 			s.startChatSession()
 			return types.Event{Type: types.NewSessionStarted}
-		case commands.CommandResultVisualMode:
-			return types.Event{Type: types.VisualModeStarted}
-		case commands.CommandResultGenerateMode:
-			return types.Event{Type: types.GenerateModeStarted}
-		case commands.CommandResultEditMode:
-			return types.Event{Type: types.EditModeStarted}
-		case commands.CommandResultBranchMode:
-			return types.Event{Type: types.BranchModeStarted}
-		case commands.CommandResultSearchMode:
-			return types.Event{Type: types.SearchModeStarted, Data: cmdOutput.Payload}
-		case commands.CommandResultHistoryMode:
-			return types.Event{Type: types.HistoryModeStarted}
 		case commands.CommandResultQuit:
 			return types.Event{Type: types.Quit}
-		case commands.CommandResultTreeMode:
-			return types.Event{Type: types.TreeModeStarted}
-		case commands.CommandResultFzfMode:
-			return types.Event{Type: types.FzfModeStarted}
+		}
 
+		modeEvents := map[commands.CommandResultType]types.EventType{
+			commands.CommandResultVisualMode:   types.VisualModeStarted,
+			commands.CommandResultGenerateMode: types.GenerateModeStarted,
+			commands.CommandResultEditMode:     types.EditModeStarted,
+			commands.CommandResultBranchMode:   types.BranchModeStarted,
+			commands.CommandResultSearchMode:   types.SearchModeStarted,
+			commands.CommandResultHistoryMode:  types.HistoryModeStarted,
+			commands.CommandResultTreeMode:     types.TreeModeStarted,
+			commands.CommandResultFzfMode:      types.FzfModeStarted,
+		}
+
+		if eventType, ok := modeEvents[cmdOutput.Type]; ok {
+			s.messages = append(s.messages, types.Message{Type: types.CommandMessage, Content: input})
+			return types.Event{Type: eventType, Data: cmdOutput.Payload}
 		}
 	}
 
