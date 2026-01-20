@@ -25,12 +25,13 @@ type Session struct {
 	modeStrategy     modes.ModeStrategy
 }
 
-func New(cfg *config.Config) (*Session, error) {
-	return NewWithMessages(cfg, nil)
+func New(cfg *config.Config, mode string) (*Session, error) {
+	strategy := modes.GetStrategy(mode)
+	return NewWithMessages(cfg, nil, strategy)
 }
 
 // NewWithMessages creates a new session with a pre-existing set of messages.
-func NewWithMessages(cfg *config.Config, initialMessages []types.Message) (*Session, error) {
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -54,7 +55,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message) (*Sess
 		titleGenerated:  false,
 		createdAt:       time.Now(),
 		historyFilename: "",
-		modeStrategy:    modes.NewStrategy(),
+		modeStrategy:    strategy,
 	}, nil
 }
 

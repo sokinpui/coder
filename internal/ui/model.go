@@ -94,8 +94,8 @@ type Model struct {
 	commandHistoryModified   string
 }
 
-func NewModel(cfg *config.Config) (Model, error) {
-	sess, err := session.New(cfg)
+func NewModel(cfg *config.Config, mode string) (Model, error) {
+	sess, err := session.New(cfg, mode)
 	if err != nil {
 		return Model{}, err
 	}

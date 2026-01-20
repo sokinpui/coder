@@ -20,7 +20,15 @@ func main() {
 		Use:   "coder",
 		Short: "Coder is a TUI wrapper for LLM chat with code application shortcuts",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp()
+			startApp("coding")
+		},
+	}
+
+	chatCmd := &cobra.Command{
+		Use:   "chat",
+		Short: "Start Coder in chat mode (no project context)",
+		Run: func(cmd *cobra.Command, args []string) {
+			startApp("chat")
 		},
 	}
 
@@ -33,6 +41,7 @@ func main() {
 	}
 
 	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
+	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -101,10 +110,10 @@ func runEditor(path string) {
 	}
 }
 
-func startApp() {
+func startApp(mode string) {
 	validateWorkingDir()
 	logger.Init()
-	ui.Start()
+	ui.Start(mode)
 }
 
 func validateWorkingDir() {

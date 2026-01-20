@@ -150,7 +150,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
 	// NewWithMessages makes a defensive copy, so this is safe.
-	newSess, err := NewWithMessages(s.config, messagesToKeep)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy)
 	if err != nil {
 		return nil, err
 	}
