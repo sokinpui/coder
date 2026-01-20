@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var tmpMode bool
 var globalConfig bool
 
 func main() {
@@ -24,8 +23,6 @@ func main() {
 			startApp()
 		},
 	}
-
-	rootCmd.Flags().BoolVar(&tmpMode, "tmp", false, "Start in a temporary git repository")
 
 	configCmd := &cobra.Command{
 		Use:   "config",
@@ -105,34 +102,9 @@ func runEditor(path string) {
 }
 
 func startApp() {
-	if tmpMode {
-		setupTempEnvironment()
-	} else {
-		validateWorkingDir()
-	}
+	validateWorkingDir()
 	logger.Init()
 	ui.Start()
-}
-
-func setupTempEnvironment() {
-	dir, err := os.MkdirTemp("", "coder-tmp-*")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to create temporary directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := os.Chdir(dir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to change to temporary directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	cmd := exec.Command("git", "init")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to initialize git repository: %v\nOutput: %s\n", err, string(output))
-		os.Exit(1)
-	}
-	fmt.Printf("Started in temporary git repository: %s\n", dir)
-	fmt.Println("This directory will not be automatically cleaned up.")
 }
 
 func validateWorkingDir() {

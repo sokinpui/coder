@@ -52,7 +52,6 @@ The provided installation script can be used to install one or both applications
 ### Running
 
 - **Standard**: Run `coder` from within a Git repository.
-- **Temporary Session**: Run `coder --tmp` to start in a temporary directory with a new Git repository, perfect for quick experiments.
 
 # Web UI
 
