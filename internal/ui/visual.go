@@ -2,15 +2,13 @@ package ui
 
 import (
 	"fmt"
-	"os/exec"
 	"slices"
-	"strings"
 
 	"coder/internal/commands"
 	"coder/internal/history"
 	"coder/internal/types"
+	"coder/internal/utils"
 
-	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -354,20 +352,8 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					content = history.BuildHistorySnippet(selectedMessages)
 				}
 
-				var err error
 				cfg := m.Session.GetConfig()
-				if cfg.Clipboard.CopyCmd != "" {
-					parts := strings.Fields(cfg.Clipboard.CopyCmd)
-					if len(parts) > 0 {
-						cmd := exec.Command(parts[0], parts[1:]...)
-						cmd.Stdin = strings.NewReader(content)
-						err = cmd.Run()
-					} else {
-						err = fmt.Errorf("empty copy command configuration")
-					}
-				} else {
-					err = clipboard.WriteAll(content)
-				}
+				err := utils.Copy(content, cfg.Clipboard.CopyCmd)
 
 				if err == nil {
 					m.StatusBarMessage = "Copied to clipboard."
