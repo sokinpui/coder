@@ -2,7 +2,9 @@ package ui
 
 import (
 	"fmt"
+	"os/exec"
 	"slices"
+	"strings"
 
 	"coder/internal/commands"
 	"coder/internal/history"
@@ -351,7 +353,23 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					content = history.BuildHistorySnippet(selectedMessages)
 				}
-				if err := clipboard.WriteAll(content); err == nil {
+
+				var err error
+				cfg := m.Session.GetConfig()
+				if cfg.Clipboard.CopyCmd != "" {
+					parts := strings.Fields(cfg.Clipboard.CopyCmd)
+					if len(parts) > 0 {
+						cmd := exec.Command(parts[0], parts[1:]...)
+						cmd.Stdin = strings.NewReader(content)
+						err = cmd.Run()
+					} else {
+						err = fmt.Errorf("empty copy command configuration")
+					}
+				} else {
+					err = clipboard.WriteAll(content)
+				}
+
+				if err == nil {
 					m.StatusBarMessage = "Copied to clipboard."
 					cmd = clearStatusBarCmd()
 				}

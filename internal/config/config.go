@@ -17,6 +17,12 @@ type Context struct {
 	Exclusions []string
 }
 
+// Clipboard contains configuration for custom copy/paste commands.
+type Clipboard struct {
+	CopyCmd  string
+	PasteCmd string
+}
+
 // GRPC contains gRPC server configuration.
 type GRPC struct {
 	Addr string
@@ -37,6 +43,7 @@ type Config struct {
 	GRPC            GRPC
 	Generation      Generation
 	Context         Context
+	Clipboard       Clipboard
 	AvailableModels []string `yaml:"-"`
 }
 
@@ -55,6 +62,8 @@ func Load() (*Config, error) {
 	v.SetDefault("sources.dirs", []string{"."})
 	v.SetDefault("sources.files", []string{})
 	v.SetDefault("sources.exclusions", []string{})
+	v.SetDefault("clipboard.copycmd", "")
+	v.SetDefault("clipboard.pastecmd", "")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()

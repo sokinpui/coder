@@ -22,6 +22,9 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 	b.WriteString(fmt.Sprintf("  topp: %.2f\n", cfg.Generation.TopP))
 	b.WriteString(fmt.Sprintf("  topk: %.1f\n", cfg.Generation.TopK))
 	b.WriteString(fmt.Sprintf("  outputlength: %d\n", cfg.Generation.OutputLength))
+	b.WriteString("clipboard:\n")
+	b.WriteString(fmt.Sprintf("  copycmd: %s\n", cfg.Clipboard.CopyCmd))
+	b.WriteString(fmt.Sprintf("  pastecmd: %s\n", cfg.Clipboard.PasteCmd))
 	b.WriteString("context:\n")
 
 	if len(cfg.Context.Files) > 0 {

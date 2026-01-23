@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -224,8 +225,38 @@ func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDow
 // It uses `pngpaste` on macOS and `xclip` on Linux.
 // If an image is found, it's saved to `.coder/images` and the relative path is returned.
 // If not, it falls back to pasting text content.
-func handlePasteCmd() tea.Cmd {
+func handlePasteCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
+		if cfg.Clipboard.PasteCmd != "" {
+			parts := strings.Fields(cfg.Clipboard.PasteCmd)
+			if len(parts) > 0 {
+				cmd := exec.Command(parts[0], parts[1:]...)
+				output, err := cmd.Output()
+				if err != nil {
+					return pasteResultMsg{err: fmt.Errorf("custom paste command failed: %w", err)}
+				}
+
+				// Sniff the content type to detect images
+				contentType := http.DetectContentType(output)
+				if strings.HasPrefix(contentType, "image/") {
+					ext := ".png"
+					if contentType == "image/jpeg" {
+						ext = ".jpg"
+					} else if contentType == "image/webp" {
+						ext = ".webp"
+					}
+					// Add other extensions if needed
+
+					relPath, err := saveImageToRepo(output, ext)
+					if err != nil {
+						return pasteResultMsg{err: err}
+					}
+					return pasteResultMsg{isImage: true, content: relPath}
+				}
+				return pasteResultMsg{isImage: false, content: string(output)}
+			}
+		}
+
 		// Try to paste an image based on OS
 		switch runtime.GOOS {
 		case "darwin":
@@ -322,4 +353,27 @@ func handlePasteCmd() tea.Cmd {
 		}
 		return pasteResultMsg{isImage: false, content: content}
 	}
+}
+
+func saveImageToRepo(data []byte, ext string) (string, error) {
+	repoRoot, err := utils.FindRepoRoot()
+	if err != nil {
+		return "", fmt.Errorf("could not find repo root: %w", err)
+	}
+	imagesDir := filepath.Join(repoRoot, ".coder", "images")
+	if err := os.MkdirAll(imagesDir, 0755); err != nil {
+		return "", fmt.Errorf("could not create images directory: %w", err)
+	}
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+	filePath := filepath.Join(imagesDir, filename)
+
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return "", fmt.Errorf("failed to save image file: %w", err)
+	}
+
+	relPath, err := filepath.Rel(repoRoot, filePath)
+	if err != nil {
+		return filePath, nil
+	}
+	return filepath.ToSlash(relPath), nil
 }

@@ -375,7 +375,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlV:
-		return m, handlePasteCmd(), true
+		return m, handlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false
 }
