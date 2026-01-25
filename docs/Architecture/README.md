@@ -47,7 +47,7 @@ Other key packages include `types` for fundamental data structures, `modes` for 
 
 On startup, and before each generation, the application gathers context:
 
-1.  **Project Source**: The `source` package uses `sf` to find source files based on the `context` configuration in `config.yaml` (or the `.coder/config.yaml` file in the repository). This configuration, which defaults to the current directory, can be modified at runtime with the `:file` command. The file list is then piped to `pcat` to create a single formatted string of project code.
+1.  **Project Source**: The `source` package uses the internal `sf` library to find source files based on the `context` configuration in `config.yaml`. This configuration defaults to the current directory and can be modified at runtime with the `:file` command. The file list is then processed by the `pcat` library to create a single formatted string of project code.
 
 This context is combined with the system prompt and conversation history to form the full prompt sent to the AI service.
 

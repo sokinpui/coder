@@ -11,12 +11,7 @@ Before installation, ensure the following dependencies are installed and availab
 - **Go**: Version 1.24 or later.
 - **Git**: Required for context gathering and version control features.
 
-### Dependencies
-
-- **`sf`**: A simple, version of `fd`.
-- **`pcat`**: A syntax highlighting file viewer.
-- **`itf`**: An interactive diff viewer used to apply code changes.
-- **`fzf`**: A command-line fuzzy finder used for the command palette (`Ctrl+F`).
+### Optional Clipboard Tools
 - **Clipboard Tools** (for pasting images with `Ctrl+V`):
   - **macOS**: `pngpaste`
   - **Linux (X11)**: `xclip`

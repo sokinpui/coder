@@ -10,8 +10,6 @@ Ensure you have the following installed:
 
 - **Go**: Version 1.24 or later.
 - **Git**: For version control.
-- **TUI Tools**: `sf`, `pcat`, `itf` for running and testing the TUI.
-- **`fzf`**: For testing the command finder (`Ctrl+F`).
 - **Clipboard Tools**: `pngpaste` (macOS) or `xclip`/`wl-clipboard` (Linux) for testing image pasting.
 
 ### Getting Started
