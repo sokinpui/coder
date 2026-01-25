@@ -39,7 +39,7 @@ echo "Installing Go-based dependencies to $(go env GOPATH)/bin..."
 
 # if itf is not installed, install it
 if ! command -v itf &>/dev/null; then
-  echo "Installing itf (interactive diff tool)..."
+  echo "Installing itf (file operation tool)..."
   go install github.com/sokinpui/itf.go/cmd/itf@latest
 else
   echo "itf is already installed"
@@ -53,10 +53,10 @@ else
 fi
 
 if ! command -v sf &>/dev/null; then
-  echo "Installing pcat (code to prompt tool)..."
+  echo "Installing sf (simple fd)..."
   go install github.com/sokinpui/sf@latest
 else
-  echo "pcat is already installed"
+  echo "sf is already installed"
 fi
 
 # --- Install Application Binary ---
