@@ -117,8 +117,4 @@ func startApp(mode string) {
 }
 
 func validateWorkingDir() {
-	if _, err := utils.FindRepoRoot(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error: This application must be run from within a git repository.")
-		os.Exit(1)
-	}
 }

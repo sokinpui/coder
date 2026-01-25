@@ -52,11 +52,7 @@ type Manager struct {
 }
 
 func NewManager() (*Manager, error) {
-	repoRoot, err := utils.FindRepoRoot()
-	if err != nil {
-		return nil, fmt.Errorf("could not find git repository root: %w", err)
-	}
-
+	repoRoot := utils.GetProjectRoot()
 	historyPath := filepath.Join(repoRoot, historyDirName)
 	if err := os.MkdirAll(historyPath, 0755); err != nil {
 		return nil, fmt.Errorf("could not create history directory at %s: %w", historyPath, err)

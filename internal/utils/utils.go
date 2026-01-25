@@ -18,6 +18,16 @@ func FindRepoRoot() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// GetProjectRoot returns the git repository root if available, otherwise the current working directory.
+func GetProjectRoot() string {
+	root, err := FindRepoRoot()
+	if err == nil {
+		return root
+	}
+	cwd, _ := os.Getwd()
+	return cwd
+}
+
 func UserHomeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

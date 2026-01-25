@@ -263,10 +263,7 @@ func handlePasteCmd(cfg *config.Config) tea.Cmd {
 }
 
 func saveImageToRepo(data []byte, ext string) (string, error) {
-	repoRoot, err := utils.FindRepoRoot()
-	if err != nil {
-		return "", fmt.Errorf("could not find repo root: %w", err)
-	}
+	repoRoot := utils.GetProjectRoot()
 	imagesDir := filepath.Join(repoRoot, ".coder", "images")
 	if err := os.MkdirAll(imagesDir, 0755); err != nil {
 		return "", fmt.Errorf("could not create images directory: %w", err)

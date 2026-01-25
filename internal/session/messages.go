@@ -33,11 +33,7 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 
-	repoRoot, err := utils.FindRepoRoot()
-	if err != nil {
-		log.Printf("Error finding repo root for deleting image: %v", err)
-		repoRoot = ""
-	}
+	repoRoot := utils.GetProjectRoot()
 
 	toDelete := make(map[int]struct{})
 	for _, idx := range indices {

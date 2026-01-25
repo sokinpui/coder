@@ -406,11 +406,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.State = stateIdle
 		m.TextArea.Focus()
 
-		repoRoot, err := utils.FindRepoRoot()
-		if err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Error finding repo root: %v", err)
-			return m, clearStatusBarCmd(), true
-		}
+		repoRoot := utils.GetProjectRoot()
 		cwd, err := os.Getwd()
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error getting current directory: %v", err)

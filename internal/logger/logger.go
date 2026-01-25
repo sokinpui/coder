@@ -15,13 +15,7 @@ const (
 
 // Init sets up the global logger to write to a file.
 func Init() {
-	repoRoot, err := utils.FindRepoRoot()
-	if err != nil {
-		// If we can't find the repo root, we can't create the log file in the desired location.
-		// This is a fatal error as logging is essential and other parts of the app will also fail.
-		log.Fatalf("failed to find git repository root to initialize logger: %v", err)
-	}
-
+	repoRoot := utils.GetProjectRoot()
 	coderPath := filepath.Join(repoRoot, coderDirName)
 	if err := os.MkdirAll(coderPath, 0755); err != nil {
 		log.Fatalf("failed to create .coder directory for log file: %v", err)
