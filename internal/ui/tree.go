@@ -4,8 +4,8 @@ import (
 	"coder/internal/config"
 	// "coder/internal/source"
 	"coder/internal/utils"
+	"github.com/sokinpui/sf"
 	"fmt"
-	"os/exec"
 
 	"os"
 	"path/filepath"
@@ -80,23 +80,9 @@ func (m *TreeModel) initCmd() tea.Cmd {
 			return errorMsg{fmt.Errorf("failed to get absolute path for root: %w", err)}
 		}
 
-		// Get directories
-		dirCmd := exec.Command("sf", ".", "--hidden", "--type", "dir")
-		dirCmd.Dir = absRoot
-		dirOutput, err := dirCmd.Output()
-		if err != nil {
-			return errorMsg{fmt.Errorf("failed to list directories with fd: %w", err)}
-		}
-		dirPaths := strings.Split(strings.TrimSpace(string(dirOutput)), "\n")
-
-		// Get files
-		fileCmd := exec.Command("sf", ".", "--hidden", "--type", "file")
-		fileCmd.Dir = absRoot
-		fileOutput, err := fileCmd.Output()
-		if err != nil {
-			return errorMsg{fmt.Errorf("failed to list files with fd: %w", err)}
-		}
-		filePaths := strings.Split(strings.TrimSpace(string(fileOutput)), "\n")
+		os.Chdir(absRoot)
+		dirPaths := sf.Run([]string{"."}, "dir", nil, true)
+		filePaths := sf.Run([]string{"."}, "file", nil, true)
 
 		rootNode := &treeNode{
 			path:     absRoot,

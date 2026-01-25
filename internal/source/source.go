@@ -3,8 +3,8 @@ package source
 import (
 	"coder/internal/config"
 	"coder/internal/utils"
+	"github.com/sokinpui/pcat"
 	"fmt"
-	"os/exec"
 )
 
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code
@@ -23,11 +23,17 @@ func LoadProjectSource(context *config.Context) (string, error) {
 		return "", nil
 	}
 
-	pcatArgs := append([]string{}, allFiles...)
-	cmd := exec.Command("pcat", pcatArgs...)
-	output, err := cmd.CombinedOutput()
+	output, err := pcat.Run(
+		allFiles, // specificFiles
+		nil,      // directories
+		nil,      // extensions
+		nil,      // excludePatterns
+		false,    // withLineNumbers
+		true,     // hidden
+		false,    // listOnly
+	)
 	if err != nil {
-		return "", fmt.Errorf("failed to load project source with pcat: %w\nOutput: %s", err, string(output))
+		return "", fmt.Errorf("failed to load project source with pcat: %w", err)
 	}
-	return string(output), nil
+	return output, nil
 }

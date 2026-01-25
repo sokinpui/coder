@@ -2,7 +2,7 @@ package commands
 
 import (
 	"coder/internal/types"
-	"os/exec"
+	"github.com/sokinpui/itf"
 	"strings"
 )
 
@@ -12,14 +12,28 @@ func init() {
 
 // ExecuteItf runs the 'itf' command with the given content as stdin.
 func ExecuteItf(content string, args string) (string, bool) {
-	allArgs := append([]string{"--no-animation"}, strings.Fields(args)...)
-	cmd := exec.Command("itf", allArgs...)
-	cmd.Stdin = strings.NewReader(content)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "Error executing itf: " + err.Error() + "\n" + string(output), false
+	fields := strings.Fields(args)
+	config := itf.Config{}
+
+	for _, arg := range fields {
+		if strings.HasPrefix(arg, ".") {
+			config.Extensions = append(config.Extensions, arg)
+			continue
+		}
+		config.Files = append(config.Files, arg)
 	}
-	return string(output), true
+
+	results, err := itf.Apply(content, config)
+	if err != nil {
+		return "Error applying changes: " + err.Error(), false
+	}
+
+	summary := itf.FormatResult(results)
+	if summary == "" {
+		return "No changes applied.", true
+	}
+
+	return summary, true
 }
 
 func itfCmd(args string, s SessionController) (CommandOutput, bool) {
