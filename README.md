@@ -22,7 +22,6 @@ Coder is a wrapper of LLM chat interface with a few shortcutes to help apply cod
 
 Full documentation for the project can be found in the `docs/` directory.
 
-- **[Installation](./docs/Installation/README.md)**: How to install the application.
 - **[Usage](./docs/Usage/README.md)**: How to configure and use the TUI.
 - **[Architecture](./docs/Architecture/README.md)**: An overview of the project's architecture.
 - **[Developer Guide](./docs/Develop/README.md)**: Information for contributors.
@@ -38,12 +37,9 @@ You can also create a project-specific configuration at `.coder/config.yaml` in 
 ### Prerequisites
 
 - **Common**: Go, Git.
-- `fzf`
 - `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) or [`sync-clip` (sync clipboard for ssh)](https://github.com/sokinpui/sync-clip) for image pasting.
 
 ### Installation
-
-The provided installation script can be used to install one or both applications.
 
 ```sh
 go install github.com/sokinpui/coder/cmd/coder@latest
@@ -52,9 +48,3 @@ go install github.com/sokinpui/coder/cmd/coder@latest
 ### Running
 
 - **Standard**: Run `coder` from within a Git repository.
-
-# Web UI
-
-mantain in another branch: https://github.com/sokinpui/coder/tree/web-ui
-
-Latest feature will available in TUI first.
