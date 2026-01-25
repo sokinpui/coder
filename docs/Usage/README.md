@@ -25,34 +25,20 @@ import (
 )
 
 func main() {
-	// 1. Configure pcat's behavior.
-	config := pcat.Config{
-		Directories:     []string{"."},
-		Extensions:      []string{"go"},
-		ExcludePatterns: []string{"go.mod"},
-		WithLineNumbers: true,
-	}
+	// Execute pcat logic through a single entry point.
+	// pcat.Run(specificFiles, directories, extensions, excludePatterns, withLineNumbers, hidden, listOnly)
+	output, err := pcat.Run(
+		nil,               // specificFiles
+		[]string{"."},     // directories
+		[]string{"go"},    // extensions
+		[]string{"go.mod"},// excludePatterns
+		true,              // withLineNumbers
+		false,             // hidden
+		false,             // listOnly
+	)
 
-	// 2. Create a new pcat application instance and run it.
-	// The Run() method finds files based on the configuration,
-	// reads them, and returns the formatted output.
-	app := pcat.New(config)
-	output, err := app.Run()
 	if err != nil {
 		log.Fatalf("Failed to run pcat: %v", err)
-	}
-
-	fmt.Println(output)
-
-	// --- Or, if you already have a list of files ---
-
-	// You can use pcat.Read directly if you manage file discovery yourself.
-	files := []string{"pcat/pcat", "cmd/pcat/main.go"}
-	readConfig := pcat.Config{WithLineNumbers: true}
-
-	output, err = pcat.Read(files, readConfig)
-	if err != nil {
-		log.Fatalf("Failed to read files: %v", err)
 	}
 
 	fmt.Println(output)

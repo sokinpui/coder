@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/sokinpui/pcat"
 	"os"
 	"strings"
-	"github.com/sokinpui/pcat"
 
 	"github.com/spf13/cobra"
 )
@@ -118,28 +118,20 @@ func run(args []string) error {
 		}
 	}
 
-	if len(directories) > 0 && len(extensions) == 0 {
-		extensions = []string{"any"}
-	}
-
-	config := pcat.Config{
-		Directories:     directories,
-		Extensions:      extensions,
-		SpecificFiles:   specificFiles,
-		ExcludePatterns: excludePatterns,
-		WithLineNumbers: withLineNumbers,
-		Hidden:          hidden,
-		ListOnly:        listOnly,
-		ToClipboard:     toClipboard,
-	}
-
-	app := pcat.New(config)
-	output, err := app.Run()
+	output, err := pcat.Run(
+		specificFiles,
+		directories,
+		extensions,
+		excludePatterns,
+		withLineNumbers,
+		hidden,
+		listOnly,
+	)
 	if err != nil {
 		return err
 	}
 
-	if config.ToClipboard {
+	if toClipboard {
 		if err := pcat.Write(output); err != nil {
 			return err
 		}
