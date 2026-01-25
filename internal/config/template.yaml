@@ -1,6 +1,7 @@
 # # gRPC server address for the generation service.
 # grpc:
 #   addr: localhost:50051
+
 # # Model generation parameters.
 # generation:
 #   # The model code to use for generation.
@@ -15,6 +16,7 @@
 #   topk: 0
 #   # The maximum output length.
 #   outputlength: 65536
+
 # # Context specifies the files and directories to be included as project source.
 # context:
 #   # Directories to include. Defaults to the current directory.
@@ -24,3 +26,8 @@
 #   files:
 #   # Files/directories to exclude. Globs are supported.
 #   exclusions:
+
+# # Optional custom commands for clipboard operations.
+# clipboard:
+#   copycmd: ""
+#   pastecmd: ""

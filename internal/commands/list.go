@@ -3,8 +3,8 @@ package commands
 import (
 	"coder/internal/source"
 	"coder/internal/utils"
+	"github.com/sokinpui/pcat"
 	"fmt"
-	"os/exec"
 )
 
 func init() {
@@ -32,13 +32,19 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: CommandResultString, Payload: summary}, true
 	}
 
-	pcatArgs := append([]string{"-l"}, allFiles...)
-	cmd := exec.Command("pcat", pcatArgs...)
-	fileList, err := cmd.CombinedOutput()
+	fileList, err := pcat.Run(
+		allFiles, // specificFiles
+		nil,      // directories
+		nil,      // extensions
+		nil,      // excludePatterns
+		false,    // withLineNumbers
+		true,     // hidden
+		true,     // listOnly
+	)
 
 	overview := formatContextSummary(context)
 
-	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI:\n" + string(fileList)
+	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI:\n" + fileList
 
 	payload := summary
 

@@ -38,7 +38,7 @@ You can also create a project-specific configuration at `.coder/config.yaml` in 
 ### Prerequisites
 
 - **Common**: Go, Git.
-- `sf`, `pcat`, `itf`, `fzf`
+- `fzf`
 - `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) or [`sync-clip` (sync clipboard for ssh)](https://github.com/sokinpui/sync-clip) for image pasting.
 
 ### Installation
@@ -46,7 +46,7 @@ You can also create a project-specific configuration at `.coder/config.yaml` in 
 The provided installation script can be used to install one or both applications.
 
 ```sh
-./install.sh
+go install github.com/sokinpui/coder/cmd/coder@latest
 ```
 
 ### Running
