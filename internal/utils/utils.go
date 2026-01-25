@@ -55,13 +55,13 @@ func SourceToFileList(dirs []string, initialFiles []string, exclusions []string)
 		return initialFiles, nil
 	}
 
-	args := []string{".", "--type=file", "--hidden"}
+	args := []string{"--type", "file", "--hidden"}
 	for _, exclusion := range exclusions {
-		args = append(args, "-E", exclusion)
+		args = append(args, "-e", exclusion)
 	}
 	args = append(args, dirs...)
 
-	cmd := exec.Command("fd", args...)
+	cmd := exec.Command("sf", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list files with fd: %w\nOutput: %s", err, string(output))

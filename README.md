@@ -38,8 +38,8 @@ You can also create a project-specific configuration at `.coder/config.yaml` in 
 ### Prerequisites
 
 - **Common**: Go, Git.
-- `fd`, `pcat`, `itf`, `fzf`
-- `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) for image pasting.
+- `sf`, `pcat`, `itf`, `fzf`
+- `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) or [`sync-clip` (sync clipboard for ssh)](https://github.com/sokinpui/sync-clip) for image pasting.
 
 ### Installation
 

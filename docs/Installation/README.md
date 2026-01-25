@@ -13,7 +13,7 @@ Before installation, ensure the following dependencies are installed and availab
 
 ### Dependencies
 
-- **`fd`**: A simple, fast and user-friendly alternative to `find`.
+- **`sf`**: A simple, version of `fd`.
 - **`pcat`**: A syntax highlighting file viewer.
 - **`itf`**: An interactive diff viewer used to apply code changes.
 - **`fzf`**: A command-line fuzzy finder used for the command palette (`Ctrl+F`).
@@ -21,22 +21,25 @@ Before installation, ensure the following dependencies are installed and availab
   - **macOS**: `pngpaste`
   - **Linux (X11)**: `xclip`
   - **Linux (Wayland)**: `wl-clipboard`
+  - [**sync-clip (sync clipboard for ssh)**](https://github.com/sokinpui/sync-clip): `sc`
 
 ## Installation Methods
 
 ### Using the Installation Script (Recommended)
+
 The project includes a convenience script `install.sh` to automate the installation process. It checks for dependencies, installs the binary to your `GOPATH`, and creates a default configuration file.
 
 1.  Navigate to the root of the project directory.
 2.  Make the script executable: `chmod +x install.sh`
 3.  Run the script:
+
     ```sh
     ./install.sh
     ```
 
 4.  The script will create a default configuration file at `~/.config/coder/config.yaml` if one does not already exist.
 
-4.  Ensure `$(go env GOPATH)/bin` is in your system's `PATH`.
+5.  Ensure `$(go env GOPATH)/bin` is in your system's `PATH`.
 
 ### From Pre-built Binaries
 
@@ -49,12 +52,14 @@ Note that the application still requires the dependencies to be installed.
 You can also build and install the applications manually.
 
 1.  **Clone the repository:**
+
     ```sh
     git clone https://github.com/your-org/coder.git
     cd coder
     ```
 
 2.  **Install Go dependencies:**
+
     ```sh
     go mod tidy
     ```
@@ -63,4 +68,3 @@ You can also build and install the applications manually.
     ```sh
     go install ./cmd/coder
     ```
-

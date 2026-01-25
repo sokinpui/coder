@@ -22,7 +22,6 @@ check_command() {
 
 check_command "go"
 check_command "git"
-check_command "fd"
 if [ "$(uname)" == "Linux" ]; then
   if [ "$XDG_SESSION_TYPE" == "wayland" ]; then
     check_command "wl-clipboard"
@@ -49,6 +48,13 @@ fi
 if ! command -v pcat &>/dev/null; then
   echo "Installing pcat (code to prompt tool)..."
   go install github.com/sokinpui/pcat.go/cmd/pcat@latest
+else
+  echo "pcat is already installed"
+fi
+
+if ! command -v sf &>/dev/null; then
+  echo "Installing pcat (code to prompt tool)..."
+  go install github.com/sokinpui/sf@latest
 else
   echo "pcat is already installed"
 fi

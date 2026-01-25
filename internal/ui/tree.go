@@ -81,7 +81,7 @@ func (m *TreeModel) initCmd() tea.Cmd {
 		}
 
 		// Get directories
-		dirCmd := exec.Command("fd", ".", "--hidden", "--type", "d", "-E", ".git", "-E", ".coder")
+		dirCmd := exec.Command("sf", ".", "--hidden", "--type", "dir")
 		dirCmd.Dir = absRoot
 		dirOutput, err := dirCmd.Output()
 		if err != nil {
@@ -90,7 +90,7 @@ func (m *TreeModel) initCmd() tea.Cmd {
 		dirPaths := strings.Split(strings.TrimSpace(string(dirOutput)), "\n")
 
 		// Get files
-		fileCmd := exec.Command("fd", ".", "--hidden", "--type", "f", "-E", ".git", "-E", ".coder")
+		fileCmd := exec.Command("sf", ".", "--hidden", "--type", "file")
 		fileCmd.Dir = absRoot
 		fileOutput, err := fileCmd.Output()
 		if err != nil {
