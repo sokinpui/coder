@@ -1,57 +1,69 @@
-golang rewrite of python [pcat](https://github.com/sokinpui/pcat)
+# pcat
 
-# pcat: code to prompt
+`pcat` (Prompt Cat) is a CLI tool designed to concatenate source code files into a single, formatted output optimized for prompting Large Language Models (LLMs). It handles file extensions, ignores binary files, and can copy the output directly to your clipboard.
 
-```sh
-find Project/ | xargs cat
-```
+## Installation
 
-A tool to print source code from multiple directories and files in markdown format.
-
-Don't relay on `upload files` feature of LLM providers' web UI. Why AI studio doesn't support `.js` files upload?
-
-```
-Usage: pcat [flags] [PATH...]
-Concatenate and print files from specified paths (files and directories).
-If no paths are provided, paths are read from stdin.
-
-Options:
-  -c, --clipboard           Copy the output to the clipboard instead of printing to stdout.
-  -e, --extension strings   Filter by file extensions (e.g., 'py', 'js'). Can be repeated.
-  --hidden              Include hidden files and directories.
-  -l, --list                List the files that would be processed, without printing content.
-  --not strings         Exclude files matching glob patterns. Can be repeated.
-  -n, --with-line-numbers   Include line numbers for each file.
-
-Examples:
-  pcat -p ./src -p ./README.md    # Process all files in ./src and the specific file
-  pcat -p ./src -e 'py js'     # Process .py and .js files in ./src
-  pcat -p . --hidden           # Process all files in current dir, including hidden ones
-  pcat -p ./src --not '*_test.py' # Exclude test files
-  fd . -e py | pcat         # Process python files found by fd from stdin
-
-```
-
-# Shell Completion
-
-`pcat` supports generating completion scripts for Bash, Zsh, Fish, and PowerShell.
-
-Use the `pcat --completion [shell]` flag. For example, to enable completion for Bash, add the following to your `.bashrc` or `.bash_profile`:
+Ensure you have Go installed, then run:
 
 ```sh
-source <(pcat --completion bash)
-```
-
-# Installatoin
-
-```
 go install github.com/sokinpui/pcat/cmd/pcat@latest
 ```
 
-locally:
+## Usage
 
+### Basic Command
+
+```sh
+# Concatenate all files in the current directory
+pcat
+
+# Process specific files and directories
+pcat -p src/main.go -p pkg/
 ```
-git clone https://github.com/sokinpui/pcat.git
-cd pcat
-git install ./cmd/pcat
+
+### Filtering
+
+```sh
+# Filter by specific extensions (comma or space separated)
+pcat -e "go md"
+
+# Exclude files matching glob patterns
+pcat --not "**/test_*.go" --not "vendor/**"
 ```
+
+### Output Options
+
+```sh
+# Copy the result directly to the clipboard instead of stdout
+pcat src/ -c
+
+# Include line numbers for each file
+pcat main.go -n
+
+# Just list the files that would be processed without printing content
+pcat -l
+```
+
+### Pipe Support
+
+`pcat` reads paths from stdin if no paths are provided via flags or arguments:
+
+```sh
+fd . -e go | pcat -c
+```
+
+## Command Line Flags
+
+- `-p, --path`: Specify paths (files or directories). Can be repeated.
+- `-e, --extension`: Filter by file extensions (e.g., 'go', 'js').
+- `--not`: Exclude files matching glob patterns.
+- `-n, --with-line-numbers`: Include line numbers in the output.
+- `-c, --clipboard`: Copy output to clipboard.
+- `-l, --list`: List files instead of printing content.
+- `--hidden`: Include hidden files and directories.
+- `--completion`: Generate shell completion script (bash, zsh, fish, powershell).
+
+## Library Usage
+
+`pcat` can be integrated into your Go projects as a library. See [docs/Usage/README.md](./docs/Usage/README.md) for API details and examples.
