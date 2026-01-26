@@ -1,8 +1,8 @@
 package modes
 
 import (
-	"coder/internal/types"
-	"coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
 )
 
 // ModeStrategy defines the behavior for different application modes.

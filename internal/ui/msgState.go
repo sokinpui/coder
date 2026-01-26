@@ -1,6 +1,6 @@
 package ui
 
-import "coder/internal/history"
+import "github.com/sokinpui/coder/internal/history"
 
 type state int
 

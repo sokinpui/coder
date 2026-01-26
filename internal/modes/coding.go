@@ -1,10 +1,10 @@
 package modes
 
 import (
-	"coder/internal/config"
-	"coder/internal/prompt"
-	"coder/internal/source"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/prompt"
+	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/types"
 	"fmt"
 )
 

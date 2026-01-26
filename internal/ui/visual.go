@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"slices"
 
-	"coder/internal/commands"
-	"coder/internal/history"
-	"coder/internal/types"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"

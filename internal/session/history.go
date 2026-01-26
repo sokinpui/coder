@@ -1,10 +1,10 @@
 package session
 
 import (
-	"coder/internal/config"
-	"coder/internal/history"
-	"coder/internal/modes"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/types"
 	"fmt"
 	"log"
 	"os"

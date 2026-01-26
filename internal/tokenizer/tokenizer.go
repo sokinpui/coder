@@ -19,7 +19,7 @@ package tokenizer
 
 import (
 	"bytes"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/utils"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"

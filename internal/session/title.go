@@ -1,7 +1,7 @@
 package session
 
 import (
-	"coder/internal/prompt"
+	"github.com/sokinpui/coder/internal/prompt"
 	"context"
 	"log"
 	"strings"

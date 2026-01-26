@@ -3,7 +3,7 @@ package ui
 import (
 	"strings"
 
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/lipgloss"
 )

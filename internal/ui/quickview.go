@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"

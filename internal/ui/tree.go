@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"coder/internal/config"
+	"github.com/sokinpui/coder/internal/config"
 	// "coder/internal/source"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/sf"
 	"fmt"
 

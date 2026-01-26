@@ -1,4 +1,4 @@
-module coder
+module github.com/sokinpui/coder
 
 go 1.25.5
 

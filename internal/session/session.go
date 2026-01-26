@@ -1,11 +1,11 @@
 package session
 
 import (
-	"coder/internal/types"
-	"coder/internal/config"
-	"coder/internal/generation"
-	"coder/internal/history"
-	"coder/internal/modes"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/generation"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/modes"
 	"context"
 	"fmt"
 	"time"

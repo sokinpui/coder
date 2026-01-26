@@ -1,7 +1,7 @@
 package generation
 
 import (
-	"coder/internal/config"
+	"github.com/sokinpui/coder/internal/config"
 	"context"
 	"fmt"
 	"log"

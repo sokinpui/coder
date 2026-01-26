@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"

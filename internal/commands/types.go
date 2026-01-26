@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"coder/internal/config"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 type CommandResultType int

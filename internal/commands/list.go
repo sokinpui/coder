@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"coder/internal/source"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/pcat"
 	"fmt"
 )

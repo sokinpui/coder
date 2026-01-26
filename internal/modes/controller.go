@@ -1,8 +1,8 @@
 package modes
 
 import (
-	"coder/internal/generation"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/generation"
+	"github.com/sokinpui/coder/internal/types"
 	"context"
 )
 

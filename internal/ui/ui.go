@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"coder/internal/config"
+	"github.com/sokinpui/coder/internal/config"
 	"fmt"
 	"log"
 	"os"

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"coder/internal/config"
-	"coder/internal/logger"
-	"coder/internal/ui"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/logger"
+	"github.com/sokinpui/coder/internal/ui"
+	"github.com/sokinpui/coder/internal/utils"
 	"fmt"
 	"os"
 	"os/exec"

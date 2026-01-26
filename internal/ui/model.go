@@ -1,12 +1,12 @@
 package ui
 
 import (
-	"coder/internal/commands"
-	"coder/internal/config"
-	"coder/internal/history"
-	"coder/internal/session"
-	"coder/internal/types"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
 	"github.com/charmbracelet/bubbles/spinner"

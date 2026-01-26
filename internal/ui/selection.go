@@ -1,6 +1,6 @@
 package ui
 
-import "coder/internal/types"
+import "github.com/sokinpui/coder/internal/types"
 
 // filter out system messages and Directory messages into blocks
 func groupMessages(messages []types.Message) []messageBlock {

@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"coder/internal/commands"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"

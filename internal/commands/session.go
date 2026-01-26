@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 	"fmt"
 )
 

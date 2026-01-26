@@ -1,7 +1,7 @@
 package config
 
 import (
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/utils"
 	"fmt"
 	"os"
 	"path/filepath"

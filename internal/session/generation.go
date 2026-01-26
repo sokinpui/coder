@@ -1,7 +1,7 @@
 package session
 
 import (
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 	"context"
 )
 

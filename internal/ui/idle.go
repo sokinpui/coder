@@ -1,12 +1,12 @@
 package ui
 
 import (
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
 	"fmt"
 	"strings"
 	"time"
 
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/utils"
 
 	"github.com/charmbracelet/bubbles/textinput"
 

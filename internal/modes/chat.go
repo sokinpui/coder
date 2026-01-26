@@ -1,8 +1,8 @@
 package modes
 
 import (
-	"coder/internal/config"
-	"coder/internal/types"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 // ChatMode is a strategy for a pure chat session without project context or instructions.

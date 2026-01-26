@@ -1,7 +1,7 @@
 package token
 
 import (
-	"coder/internal/tokenizer"
+	"github.com/sokinpui/coder/internal/tokenizer"
 	"fmt"
 	"log"
 

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"coder/internal/types"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"

@@ -3,8 +3,8 @@ package history
 import (
 	"bufio"
 	"bytes"
-	"coder/internal/types"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"encoding/json"
 	"fmt"
 	"os"

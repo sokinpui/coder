@@ -1,9 +1,9 @@
 package modes
 
 import (
-	"coder/internal/config"
-	"coder/internal/types"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"context"
 	"fmt"
 	"log"

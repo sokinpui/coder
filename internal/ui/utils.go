@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"coder/internal/config"
-	"coder/internal/history"
-	"coder/internal/session"
-	"coder/internal/token"
-	"coder/internal/utils"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/token"
+	"github.com/sokinpui/coder/internal/utils"
 	"context"
 	"errors"
 	"fmt"
