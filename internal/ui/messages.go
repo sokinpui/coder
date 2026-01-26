@@ -368,6 +368,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.State = stateIdle
 		m.TextArea.Focus()
 
+		m.SearchQuery = msg.query
+		m.SearchFocusMsgIndex = msg.item.MsgIndex
+		m.SearchFocusLineNum = msg.item.LineNum
+
 		content, offsets := m.renderConversationWithOffsets()
 		m.messageLineOffsets = offsets
 		m.Viewport.SetContent(content)

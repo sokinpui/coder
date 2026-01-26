@@ -72,4 +72,11 @@ var (
 	statusBarTitleStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("228")). // Yellow
 				Bold(true)
+	searchHighlightStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("226")). // Bright Yellow
+				Foreground(lipgloss.Color("0")).   // Black
+				Bold(true)
+	searchIndicatorStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("226")).
+				Bold(true)
 )

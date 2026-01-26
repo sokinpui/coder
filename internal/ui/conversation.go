@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -15,6 +16,22 @@ func truncateMessage(content string, maxLines int) string {
 	}
 	truncatedLines := lines[:maxLines]
 	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
+}
+
+func (m Model) highlightMatches(text string) string {
+	if m.SearchQuery == "" {
+		return text
+	}
+
+	// Case-insensitive regex for the search query
+	re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(m.SearchQuery))
+	if err != nil {
+		return text
+	}
+
+	return re.ReplaceAllStringFunc(text, func(match string) string {
+		return searchHighlightStyle.Render(match)
+	})
 }
 
 // renderConversationWithOffsets renders the conversation and returns the content string
@@ -56,6 +73,15 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 			}
 		}
 
+		contentToRender := currentMsg.Content
+		if m.SearchQuery != "" {
+			switch currentMsg.Type {
+			case types.UserMessage, types.CommandMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
+				// Highlight text before applying Lipgloss borders/styles
+				contentToRender = m.highlightMatches(contentToRender)
+			}
+		}
+
 		var renderedMsg string
 		switch currentMsg.Type {
 		case types.InitMessage:
@@ -66,30 +92,54 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.UserMessage:
 			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
-			renderedMsg = userInputStyle.Width(blockWidth).Render(currentMsg.Content)
+			renderedMsg = userInputStyle.Width(blockWidth).Render(contentToRender)
 		case types.CommandMessage:
 			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
-			renderedMsg = commandInputStyle.Width(blockWidth).Render(currentMsg.Content)
+			renderedMsg = commandInputStyle.Width(blockWidth).Render(contentToRender)
 		case types.ImageMessage:
 			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
 		case types.AIMessage:
-			if currentMsg.Content == "" {
+			if contentToRender == "" {
 				continue
 			} else {
-				renderedAI, err := m.GlamourRenderer.Render(currentMsg.Content)
+				renderedAI, err := m.GlamourRenderer.Render(contentToRender)
 				if err != nil {
-					renderedAI = currentMsg.Content
+					renderedAI = contentToRender
 				}
-				renderedMsg = renderedAI
+				renderedMsg = m.highlightMatches(renderedAI)
 			}
 		case types.CommandResultMessage:
 			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
-			renderedMsg = commandResultStyle.Width(blockWidth).Render(currentMsg.Content)
+			renderedMsg = commandResultStyle.Width(blockWidth).Render(contentToRender)
 		case types.CommandErrorResultMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
-			renderedMsg = commandErrorStyle.Width(blockWidth).Render(currentMsg.Content)
+			renderedMsg = commandErrorStyle.Width(blockWidth).Render(contentToRender)
 
+		}
+
+		if i == m.SearchFocusMsgIndex {
+			lines := strings.Split(renderedMsg, "\n")
+			// Adjust for potential top border offset in styled blocks
+			borderOffset := 0
+			switch currentMsg.Type {
+			case types.UserMessage, types.CommandMessage, types.ImageMessage:
+				borderOffset = 1
+			}
+
+			targetLine := m.SearchFocusLineNum + borderOffset
+			indicatorStr := "▸ "
+			indicator := searchIndicatorStyle.Render(indicatorStr)
+			spacer := strings.Repeat(" ", lipgloss.Width(indicatorStr))
+
+			for l := range lines {
+				if l == targetLine {
+					lines[l] = indicator + lines[l]
+				} else {
+					lines[l] = spacer + lines[l]
+				}
+			}
+			renderedMsg = strings.Join(lines, "\n")
 		}
 
 		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {

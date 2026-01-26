@@ -75,8 +75,8 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 				selected := m.AllItems[m.FoundItems[m.Cursor].Index]
 				m.Visible = false
 				m.TextInput.Blur()
-				// m.TextInput.Reset()
-				return m, func() tea.Msg { return searchResultMsg{item: selected} }
+				query := m.TextInput.Value()
+				return m, func() tea.Msg { return searchResultMsg{item: selected, query: query} }
 			}
 			return m, nil
 		}

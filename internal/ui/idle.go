@@ -126,6 +126,11 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Clear search focus and query when submitting a new interaction
+	m.SearchQuery = ""
+	m.SearchFocusMsgIndex = -1
+	m.SearchFocusLineNum = -1
+
 	if !strings.HasPrefix(input, ":") {
 		// This is a prompt, apply debounce.
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})

@@ -58,6 +58,7 @@ type (
 	}
 	searchResultMsg struct {
 		item SearchItem
+		query string
 	}
 	treeReadyMsg struct {
 		root *treeNode
