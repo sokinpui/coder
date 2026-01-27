@@ -48,15 +48,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 	// Convert relative image paths to absolute paths for the generation server.
 	var images [][]byte
 	if len(imgPaths) > 0 {
-		repoRoot, err := utils.FindRepoRoot()
-		if err != nil {
-			log.Printf("Error finding repo root for image paths: %v", err)
-			s.AddMessages(types.Message{
-				Type:    types.CommandErrorResultMessage,
-				Content: fmt.Sprintf("Failed to read images: could not find repository root: %v", err),
-			})
-			return types.Event{Type: types.MessagesUpdated}
-		}
+		repoRoot := utils.GetProjectRoot()
 		for _, p := range imgPaths {
 			absPath := filepath.Join(repoRoot, p)
 			imgBytes, err := os.ReadFile(absPath)
