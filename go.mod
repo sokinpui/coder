@@ -11,7 +11,7 @@ require (
 	github.com/eliben/go-sentencepiece v0.7.0
 	github.com/rmhubbert/bubbletea-overlay v0.6.4
 	github.com/sahilm/fuzzy v0.1.1
-	github.com/sokinpui/itf v0.2.2
+	github.com/sokinpui/itf v0.2.3
 	github.com/sokinpui/pcat v0.2.0
 	github.com/sokinpui/sf v0.2.1
 	github.com/sokinpui/synapse.go v0.1.2
