@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
+	"io"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
@@ -112,5 +113,23 @@ func runEditor(path string) {
 
 func startApp(mode string) {
 	logger.Init()
-	ui.Start(mode)
+	ui.Start(mode, readPipedInput())
+}
+
+func readPipedInput() string {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return ""
+	}
+
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		return ""
+	}
+
+	bytes, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return ""
+	}
+
+	return string(bytes)
 }

@@ -529,6 +529,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Width = msg.Width
 		m.TextArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalFrameSize())
 		m.Viewport.Width = msg.Width
+		m = m.updateLayout()
+		m.TextArea.CursorEnd()
 
 		renderer, err := glamour.NewTermRenderer(
 			glamour.WithStandardStyle(m.Session.GetConfig().UI.MarkdownTheme),

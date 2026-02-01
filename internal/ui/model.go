@@ -100,7 +100,7 @@ type Model struct {
 	commandHistoryModified   string
 }
 
-func NewModel(cfg *config.Config, mode string) (Model, error) {
+func NewModel(cfg *config.Config, mode string, initialInput string) (Model, error) {
 	sess, err := session.New(cfg, mode)
 	if err != nil {
 		return Model{}, err
@@ -112,6 +112,8 @@ func NewModel(cfg *config.Config, mode string) (Model, error) {
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt..."
 	ta.Focus()
+	ta.SetValue(initialInput)
+	ta.CursorEnd()
 	ta.CharLimit = 0
 	ta.SetHeight(1)
 	ta.MaxHeight = 0
