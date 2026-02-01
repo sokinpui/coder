@@ -1,20 +1,19 @@
 package token
 
 import (
-	"github.com/sokinpui/coder/internal/tokenizer"
 	"fmt"
 	"log"
 
 	"google.golang.org/genai"
 )
 
-var tok *tokenizer.LocalTokenizer
+var tok *LocalTokenizer
 
 func Init() error {
 	var err error
 	// The tokenizer is compatible across Gemini models.
 	// Using NewLocalTokenizer as inspired by sllmi-go for offline tokenization.
-	tok, err = tokenizer.NewLocalTokenizer("gemini-2.5-flash")
+	tok, err = NewLocalTokenizer("gemini-2.5-flash")
 	if err != nil {
 		return fmt.Errorf("could not load tokenizer: %w", err)
 	}
