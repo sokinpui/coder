@@ -33,3 +33,8 @@
 # clipboard:
 #   copycmd: ""
 #   pastecmd: ""
+
+# # User interface settings.
+# ui:
+#   # The Glamour theme to use for Markdown rendering (e.g., dark, light, dracula). Use 'notty' for plain text without highlighting.
+#   markdowntheme: dark

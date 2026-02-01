@@ -56,5 +56,8 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 		b.WriteString("  exclusions: []\n")
 	}
 
+	b.WriteString("ui:\n")
+	b.WriteString(fmt.Sprintf("  markdowntheme: %s\n", cfg.UI.MarkdownTheme))
+
 	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true
 }

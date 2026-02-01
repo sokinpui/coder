@@ -531,7 +531,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Viewport.Width = msg.Width
 
 		renderer, err := glamour.NewTermRenderer(
-			glamour.WithStandardStyle("dark"),
+			glamour.WithStandardStyle(m.Session.GetConfig().UI.MarkdownTheme),
 			glamour.WithWordWrap(m.Viewport.Width),
 		)
 		if err == nil {

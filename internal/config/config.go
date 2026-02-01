@@ -39,12 +39,18 @@ type Generation struct {
 	StreamDelay    int
 }
 
+// UI contains configuration for the user interface.
+type UI struct {
+	MarkdownTheme string
+}
+
 // Config holds the application configuration.
 type Config struct {
 	GRPC            GRPC
 	Generation      Generation
 	Context         Context
 	Clipboard       Clipboard
+	UI              UI
 	AvailableModels []string `yaml:"-"`
 }
 
@@ -66,6 +72,7 @@ func Load() (*Config, error) {
 	v.SetDefault("sources.exclusions", []string{})
 	v.SetDefault("clipboard.copycmd", "")
 	v.SetDefault("clipboard.pastecmd", "")
+	v.SetDefault("ui.markdowntheme", "dark")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
