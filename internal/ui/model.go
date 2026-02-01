@@ -119,7 +119,7 @@ func NewModel(cfg *config.Config, mode string) (Model, error) {
 	vp := viewport.New(80, 20) // Initial size, will be updated
 
 	renderer, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStandardStyle("dark"),
 		glamour.WithWordWrap(vp.Width),
 	)
 	if err != nil {
