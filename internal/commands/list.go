@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/pcat"
 	"fmt"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -17,19 +18,19 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 	context := &cfg.Context
 
 	if len(context.Dirs) == 0 && len(context.Files) == 0 {
-		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or directories are set."}, true
 	}
 
 	finalExclusions := append(source.Exclusions, context.Exclusions...)
 	allFiles, err := utils.SourceToFileList(context.Dirs, context.Files, finalExclusions)
 	if err != nil {
-		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
 	}
 
 	if len(allFiles) == 0 {
 		overview := formatContextSummary(context)
 		summary := "Current project context:\n" + overview + "\n\n" + "No files found in the current context."
-		return CommandOutput{Type: CommandResultString, Payload: summary}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: summary}, true
 	}
 
 	fileList, err := pcat.Run(
@@ -48,7 +49,7 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	payload := summary
 
-	return CommandOutput{Type: CommandResultString, Payload: payload}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: payload}, true
 }
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -56,7 +57,7 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	context := &cfg.Context
 
 	if len(context.Dirs) == 0 && len(context.Files) == 0 {
-		return CommandOutput{Type: CommandResultString, Payload: "No project source files or directories are set."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or directories are set."}, true
 	}
 
 	overview := formatContextSummary(context)
@@ -65,5 +66,5 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	payload := summary
 
-	return CommandOutput{Type: CommandResultString, Payload: payload}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: payload}, true
 }

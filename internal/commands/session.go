@@ -29,43 +29,43 @@ func hasSelectableMessages(messages []types.Message) bool {
 func genCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter generate mode: no messages to select."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter generate mode: no messages to select."}, false
 	}
-	return CommandOutput{Type: CommandResultGenerateMode}, true
+	return CommandOutput{Type: types.GenerateModeStarted}, true
 }
 
 func editModeCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter edit mode: no messages to select."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter edit mode: no messages to select."}, false
 	}
-	return CommandOutput{Type: CommandResultEditMode}, true
+	return CommandOutput{Type: types.EditModeStarted}, true
 }
 
 func visualCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter visual mode: no messages to select."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter visual mode: no messages to select."}, false
 	}
-	return CommandOutput{Type: CommandResultVisualMode}, true
+	return CommandOutput{Type: types.VisualModeStarted}, true
 }
 
 func branchCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: CommandResultString, Payload: "Cannot enter branch mode: no messages to select."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter branch mode: no messages to select."}, false
 	}
-	return CommandOutput{Type: CommandResultBranchMode}, true
+	return CommandOutput{Type: types.BranchModeStarted}, true
 }
 
 func historyCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: CommandResultHistoryMode}, true
+	return CommandOutput{Type: types.HistoryModeStarted}, true
 }
 
 func renameCmd(args string, s SessionController) (CommandOutput, bool) {
 	if args == "" {
-		return CommandOutput{Type: CommandResultString, Payload: "Usage: :rename <new title>"}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: :rename <new title>"}, false
 	}
 	s.SetTitle(args)
-	return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Session title renamed to: %s", args)}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Session title renamed to: %s", args)}, true
 }

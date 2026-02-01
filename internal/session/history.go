@@ -101,11 +101,11 @@ func (s *Session) LoadConversation(filename string) error {
 	return s.LoadContext()
 }
 
-func (s *Session) newSession() {
+func (s *Session) NewSession() {
 	s.resetSession(modes.NewStrategy())
 }
 
-func (s *Session) startChatSession() {
+func (s *Session) StartChatSession() {
 	s.resetSession(modes.NewChatStrategy())
 }
 

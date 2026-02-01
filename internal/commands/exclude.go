@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -18,9 +19,9 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		cfg.Context.Exclusions = []string{}
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project source exclusions cleared, but failed to reload context: %v", err)
-			return CommandOutput{Type: CommandResultString, Payload: msg}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 		}
-		return CommandOutput{Type: CommandResultString, Payload: "Project source exclusions cleared."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project source exclusions cleared."}, true
 	}
 
 	var pathsToRemove []string
@@ -71,7 +72,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if err := s.LoadContext(); err != nil {
-		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
 	}
 
 	var payload strings.Builder
@@ -83,5 +84,5 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		payload.WriteString(summary)
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: payload.String()}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true
 }

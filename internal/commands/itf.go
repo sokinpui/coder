@@ -49,9 +49,9 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if !found {
-		return CommandOutput{Type: CommandResultString, Payload: "No AI response found to pipe to itf."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No AI response found to pipe to itf."}, false
 	}
 
 	result, success := ExecuteItf(lastAIResponse, args)
-	return CommandOutput{Type: CommandResultString, Payload: result}, success
+	return CommandOutput{Type: types.MessagesUpdated, Payload: result}, success
 }

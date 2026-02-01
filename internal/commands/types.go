@@ -5,26 +5,9 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-type CommandResultType int
-
-const (
-	CommandResultString CommandResultType = iota
-	CommandResultNewSession
-	CommandResultChatMode
-	CommandResultGenerateMode
-	CommandResultVisualMode
-	CommandResultEditMode
-	CommandResultBranchMode
-	CommandResultSearchMode
-	CommandResultHistoryMode
-	CommandResultFzfMode
-	CommandResultTreeMode
-	CommandResultQuit
-)
-
 // CommandOutput is the structured result of a command execution.
 type CommandOutput struct {
-	Type    CommandResultType
+	Type    types.EventType
 	Payload string
 }
 
@@ -33,6 +16,8 @@ type SessionController interface {
 	GetConfig() *config.Config
 	SetTitle(title string)
 	LoadContext() error
+	NewSession()
+	StartChatSession()
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

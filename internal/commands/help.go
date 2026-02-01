@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strings"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -112,5 +113,5 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: strings.TrimSpace(b.String())}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true
 }

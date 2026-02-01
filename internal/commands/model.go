@@ -4,6 +4,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"fmt"
 	"strings"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -24,15 +25,15 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 			fmt.Fprintf(&b, "- %s\n", m)
 		}
 		fmt.Fprint(&b, "Usage: :model <model_name>")
-		return CommandOutput{Type: CommandResultString, Payload: b.String()}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: b.String()}, true
 	}
 
 	for _, m := range cfg.AvailableModels {
 		if m == args {
 			cfg.Generation.ModelCode = args
-			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
+			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 		}
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args)}, false
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args)}, false
 }

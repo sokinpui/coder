@@ -23,30 +23,15 @@ func (s *Session) HandleInput(input string) types.Event {
 
 	if cmdSuccess {
 		switch cmdOutput.Type {
-		case commands.CommandResultNewSession:
-			s.newSession()
-			return types.Event{Type: types.NewSessionStarted}
-		case commands.CommandResultChatMode:
-			s.startChatSession()
-			return types.Event{Type: types.NewSessionStarted}
-		case commands.CommandResultQuit:
-			return types.Event{Type: types.Quit}
-		}
-
-		modeEvents := map[commands.CommandResultType]types.EventType{
-			commands.CommandResultVisualMode:   types.VisualModeStarted,
-			commands.CommandResultGenerateMode: types.GenerateModeStarted,
-			commands.CommandResultEditMode:     types.EditModeStarted,
-			commands.CommandResultBranchMode:   types.BranchModeStarted,
-			commands.CommandResultSearchMode:   types.SearchModeStarted,
-			commands.CommandResultHistoryMode:  types.HistoryModeStarted,
-			commands.CommandResultTreeMode:     types.TreeModeStarted,
-			commands.CommandResultFzfMode:      types.FzfModeStarted,
-		}
-
-		if eventType, ok := modeEvents[cmdOutput.Type]; ok {
+		case types.NewSessionStarted, types.Quit:
+			// These events typically don't log to the message history
+			return types.Event{Type: cmdOutput.Type}
+		case types.MessagesUpdated, types.NoOp:
+			// Fall through to standard logging below
+		default:
+			// Mode transition events: log the command call then return transition event.
 			s.messages = append(s.messages, types.Message{Type: types.CommandMessage, Content: input})
-			return types.Event{Type: eventType, Data: cmdOutput.Payload}
+			return types.Event{Type: cmdOutput.Type, Data: cmdOutput.Payload}
 		}
 	}
 

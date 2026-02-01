@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -20,9 +21,9 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		cfg.Context.Files = []string{}
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
-			return CommandOutput{Type: CommandResultString, Payload: msg}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 		}
-		return CommandOutput{Type: CommandResultString, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
 	}
 
 	var files []string
@@ -53,7 +54,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 				invalidPaths = append(invalidPaths, p)
 				continue
 			}
-			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Error accessing path %s: %v", p, err)}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error accessing path %s: %v", p, err)}, false
 		}
 		if info.IsDir() {
 			dirs = append(dirs, p)
@@ -87,7 +88,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if err := s.LoadContext(); err != nil {
-		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
 	}
 
 	var payload strings.Builder
@@ -102,5 +103,5 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		payload.WriteString(fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", ")))
 	}
 
-	return CommandOutput{Type: CommandResultString, Payload: payload.String()}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true
 }

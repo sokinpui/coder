@@ -4,6 +4,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"fmt"
 	"strings"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 var commands = make(map[string]commandFunc)
@@ -80,23 +81,23 @@ func processPipedCommands(trimmedInput string, s SessionController) (CommandOutp
 	for i, part := range commandParts {
 		part = strings.TrimSpace(part)
 		if part == "" {
-			return CommandOutput{Type: CommandResultString, Payload: "Invalid pipe syntax: empty command."}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid pipe syntax: empty command."}, false
 		}
 
 		var pipedArgs string
 		if i > 0 { // For commands after the first one in the pipe
 			if !lastSuccess {
-				return CommandOutput{Type: CommandResultString, Payload: "Error: previous command in pipe failed."}, false
+				return CommandOutput{Type: types.MessagesUpdated, Payload: "Error: previous command in pipe failed."}, false
 			}
-			if lastOutput.Type != CommandResultString {
-				return CommandOutput{Type: CommandResultString, Payload: "Error: command output is not pipeable."}, false
+			if lastOutput.Type != types.MessagesUpdated {
+				return CommandOutput{Type: types.MessagesUpdated, Payload: "Error: command output is not pipeable."}, false
 			}
 			pipedArgs = lastOutput.Payload
 		}
 
 		parts := strings.Fields(part)
 		if len(parts) == 0 {
-			return CommandOutput{Type: CommandResultString, Payload: "Invalid command syntax."}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax."}, false
 		}
 		cmdName := parts[0]
 		argsFromPart := strings.Join(parts[1:], " ")
@@ -114,7 +115,7 @@ func processPipedCommands(trimmedInput string, s SessionController) (CommandOutp
 
 		cmd, exists := commands[cmdName]
 		if !exists {
-			return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, false
+			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, false
 		}
 
 		lastOutput, lastSuccess = cmd(finalArgs, s)
@@ -137,7 +138,7 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 	// No pipe, original logic
 	parts := strings.Fields(trimmedInput)
 	if len(parts) == 0 {
-		return CommandOutput{Type: CommandResultString, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false
 	}
 
 	cmdName := parts[0]
@@ -145,7 +146,7 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 
 	cmd, exists := commands[cmdName]
 	if !exists {
-		return CommandOutput{Type: CommandResultString, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
 	}
 
 	result, success = cmd(args, s)
