@@ -17,7 +17,7 @@ require (
 	github.com/sokinpui/synapse.go v0.1.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	google.golang.org/genai v1.43.0
+	google.golang.org/genai v1.44.0
 )
 
 require (
