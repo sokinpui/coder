@@ -2,9 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"github.com/sokinpui/sf"
 	"os"
 	"os/exec"
-	"github.com/sokinpui/sf"
 	"strings"
 )
 
@@ -21,11 +21,11 @@ func FindRepoRoot() (string, error) {
 // GetProjectRoot returns the git repository root if available, otherwise the current working directory.
 func GetProjectRoot() string {
 	root, err := FindRepoRoot()
-	if err == nil {
-		return root
+	if err != nil {
+		cwd, _ := os.Getwd()
+		return cwd
 	}
-	cwd, _ := os.Getwd()
-	return cwd
+	return root
 }
 
 func UserHomeDir() string {

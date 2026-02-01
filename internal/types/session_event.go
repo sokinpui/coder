@@ -28,8 +28,6 @@ const (
 	TreeModeStarted
 	// fzf mode
 	FzfModeStarted
-	// Start a chat session
-	ChatModeStarted
 	// Quit indicates the application should quit.
 	Quit
 )

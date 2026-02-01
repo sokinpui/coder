@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -111,10 +111,6 @@ func runEditor(path string) {
 }
 
 func startApp(mode string) {
-	validateWorkingDir()
 	logger.Init()
 	ui.Start(mode)
-}
-
-func validateWorkingDir() {
 }

@@ -16,5 +16,4 @@ const (
 type Message struct {
 	Type    MessageType
 	Content string // For text content, or file path for images (for prompt)
-	DataURL string // For image base64 data (for UI rendering)
 }

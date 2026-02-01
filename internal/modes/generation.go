@@ -1,11 +1,11 @@
 package modes
 
 import (
+	"context"
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
-	"context"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
