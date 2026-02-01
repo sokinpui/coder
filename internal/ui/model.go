@@ -58,6 +58,9 @@ type Model struct {
 	Width                    int
 	GlamourRenderer          *glamour.TermRenderer
 	IsStreaming              bool
+	StreamBuffer             string
+	StreamDone               bool
+	IsStreamAnime            bool
 	LastRenderedAIPart       string
 	CtrlCPressed             bool
 	TokenCount               int
@@ -141,6 +144,9 @@ func NewModel(cfg *config.Config, mode string) (Model, error) {
 		State:                    stateInitializing,
 		GlamourRenderer:          renderer,
 		IsStreaming:              false,
+		StreamBuffer:             "",
+		StreamDone:               false,
+		IsStreamAnime:            false,
 		LastRenderedAIPart:       "",
 		CtrlCPressed:             false,
 		TokenCount:               0,

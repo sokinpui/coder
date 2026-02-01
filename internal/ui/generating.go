@@ -11,6 +11,9 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		m.State = stateIdle
+		m.StreamBuffer = ""
+		m.IsStreamAnime = false
+		m.StreamDone = false
 		m.TextArea.Focus()
 		m.Session.AddMessages(types.Message{
 			Type:    types.CommandResultMessage, // Re-use style for notification
@@ -29,6 +32,9 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	}
 	m.State = stateThinking
 	m.IsStreaming = true
+	m.StreamBuffer = ""
+	m.StreamDone = false
+	m.IsStreamAnime = false
 	m.StreamSub = event.Data.(chan string)
 	m.TextArea.Blur()
 	m.TextArea.Reset()

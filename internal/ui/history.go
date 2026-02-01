@@ -43,7 +43,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			}
 			m.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
-			return m, tea.Batch(listenForStream(m.StreamSub), renderTick(), m.Spinner.Tick), true
+			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd(), m.Spinner.Tick), true
 		} else {
 			// Return to idle
 			m.State = stateIdle

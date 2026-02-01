@@ -28,7 +28,7 @@ type (
 	startGenerationMsg      struct{}
 	streamResultMsg         string
 	streamFinishedMsg       struct{}
-	renderTickMsg           struct{}
+	streamAnimeMsg          struct{}
 	errorMsg                struct{ error }
 	ctrlCTimeoutMsg         struct{}
 	tokenCountResultMsg     int
@@ -57,7 +57,7 @@ type (
 		result string
 	}
 	searchResultMsg struct {
-		item SearchItem
+		item  SearchItem
 		query string
 	}
 	treeReadyMsg struct {

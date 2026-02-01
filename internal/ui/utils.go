@@ -1,16 +1,16 @@
 package ui
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/token"
 	"github.com/sokinpui/coder/internal/utils"
-	"context"
-	"errors"
-	"fmt"
-	"os/exec"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -97,9 +97,9 @@ func saveConversationCmd(sess *session.Session) tea.Cmd {
 	}
 }
 
-func renderTick() tea.Cmd {
-	return tea.Tick(250*time.Millisecond, func(t time.Time) tea.Msg {
-		return renderTickMsg{}
+func streamAnimeCmd() tea.Cmd {
+	return tea.Tick(0*time.Millisecond, func(t time.Time) tea.Msg {
+		return streamAnimeMsg{}
 	})
 }
 

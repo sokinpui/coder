@@ -2,9 +2,9 @@ package ui
 
 import (
 	"fmt"
-	"slices"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -121,25 +121,72 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, spinnerCmd, true
 
 	case streamResultMsg:
-		messages := m.Session.GetMessages()
-		lastMsg := messages[len(messages)-1]
-		switch m.State {
-		case stateThinking:
+		if m.State == stateThinking {
 			m.State = stateGenerating
-			lastMsg.Content += string(msg)
-			m.Session.ReplaceLastMessage(lastMsg)
-			return m, tea.Batch(listenForStream(m.StreamSub), renderTick()), true
 		}
-		lastMsg.Content += string(msg)
-		m.Session.ReplaceLastMessage(lastMsg)
+		m.StreamBuffer += string(msg)
+		if !m.IsStreamAnime {
+			m.IsStreamAnime = true
+			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd()), true
+		}
 		return m, listenForStream(m.StreamSub), true
 
+	case streamAnimeMsg:
+		if m.StreamBuffer == "" {
+			if m.StreamDone {
+				return m, func() tea.Msg { return streamFinishedMsg{} }, true
+			}
+			m.IsStreamAnime = false
+			return m, nil, true
+		}
+
+		// Adaptive anime: take more characters if the buffer is getting large
+		take := 1
+		bufLen := len(m.StreamBuffer)
+		if bufLen > 300 {
+			take = bufLen / 10
+		} else if bufLen > 50 {
+			take = 4
+		} else if bufLen > 10 {
+			take = 2
+		}
+
+		if take > len(m.StreamBuffer) {
+			take = len(m.StreamBuffer)
+		}
+
+		chunk := m.StreamBuffer[:take]
+		m.StreamBuffer = m.StreamBuffer[take:]
+
+		messages := m.Session.GetMessages()
+		if len(messages) > 0 {
+			lastMsg := messages[len(messages)-1]
+			lastMsg.Content += chunk
+			m.Session.ReplaceLastMessage(lastMsg)
+
+			if lastMsg.Content != m.LastRenderedAIPart {
+				wasAtBottom := m.Viewport.AtBottom()
+				m.Viewport.SetContent(m.renderConversation())
+				if wasAtBottom {
+					m.Viewport.GotoBottom()
+				}
+				m.LastRenderedAIPart = lastMsg.Content
+			}
+		}
+
+		return m, streamAnimeCmd(), true
+
 	case streamFinishedMsg:
-		if !m.IsStreaming {
+		if !m.IsStreaming || m.StreamBuffer != "" {
+			m.StreamDone = true
 			return m, nil, true
 		}
 
 		m.IsStreaming = false
+		m.IsStreamAnime = false
+		m.StreamBuffer = ""
+		m.StreamDone = false
+
 		messages := m.Session.GetMessages()
 
 		switch m.State {
@@ -230,24 +277,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.TextArea.SetValue(msg.originalContent)
 		m.TextArea.Focus()
 		return m, textarea.Blink, true
-
-	case renderTickMsg:
-		if m.State != stateGenerating || !m.IsStreaming {
-			return m, nil, true
-		}
-
-		messages := m.Session.GetMessages()
-		lastMsg := messages[len(messages)-1]
-		if lastMsg.Content != m.LastRenderedAIPart {
-			wasAtBottom := m.Viewport.AtBottom()
-			m.Viewport.SetContent(m.renderConversation())
-			if wasAtBottom {
-				m.Viewport.GotoBottom()
-			}
-			m.LastRenderedAIPart = lastMsg.Content
-		}
-
-		return m, renderTick(), true
 
 	case tokenCountResultMsg:
 		m.TokenCount = int(msg)
