@@ -36,6 +36,7 @@ type Generation struct {
 	TopP           float32
 	TopK           float32
 	OutputLength   int32
+	StreamDelay    int
 }
 
 // Config holds the application configuration.
@@ -59,6 +60,7 @@ func Load() (*Config, error) {
 	v.SetDefault("generation.topp", 0.95)
 	v.SetDefault("generation.topk", 0)
 	v.SetDefault("generation.outputlength", 65536)
+	v.SetDefault("generation.streamdelay", 0)
 	v.SetDefault("sources.dirs", []string{"."})
 	v.SetDefault("sources.files", []string{})
 	v.SetDefault("sources.exclusions", []string{})

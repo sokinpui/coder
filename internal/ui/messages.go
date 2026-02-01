@@ -124,10 +124,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if m.State == stateThinking {
 			m.State = stateGenerating
 		}
+		delay := m.Session.GetConfig().Generation.StreamDelay
 		m.StreamBuffer += string(msg)
 		if !m.IsStreamAnime {
 			m.IsStreamAnime = true
-			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd()), true
+			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd(delay)), true
 		}
 		return m, listenForStream(m.StreamSub), true
 
@@ -174,7 +175,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		return m, streamAnimeCmd(), true
+		delay := m.Session.GetConfig().Generation.StreamDelay
+		return m, streamAnimeCmd(delay), true
 
 	case streamFinishedMsg:
 		if !m.IsStreaming || m.StreamBuffer != "" {

@@ -16,6 +16,8 @@
 #   topk: 0
 #   # The maximum output length.
 #   outputlength: 65536
+#   # The delay in milliseconds for streaming text animation.
+#   streamdelay: 0
 
 # # Context specifies the files and directories to be included as project source.
 # context:

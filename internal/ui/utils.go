@@ -97,8 +97,8 @@ func saveConversationCmd(sess *session.Session) tea.Cmd {
 	}
 }
 
-func streamAnimeCmd() tea.Cmd {
-	return tea.Tick(0*time.Millisecond, func(t time.Time) tea.Msg {
+func streamAnimeCmd(delay int) tea.Cmd {
+	return tea.Tick(time.Duration(delay)*time.Millisecond, func(t time.Time) tea.Msg {
 		return streamAnimeMsg{}
 	})
 }
