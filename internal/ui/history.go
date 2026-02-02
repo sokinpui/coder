@@ -31,6 +31,14 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		m.Viewport.SetContent(m.historyView())
 		return m, nil, true
 
+	case tea.KeyUp, tea.KeyCtrlK:
+		m.moveHistoryCursor(-1)
+		return m, nil, true
+
+	case tea.KeyDown, tea.KeyCtrlJ:
+		m.moveHistoryCursor(1)
+		return m, nil, true
+
 	case tea.KeyEsc, tea.KeyCtrlC:
 		m.HistoryItems = nil
 		if m.IsStreaming {
@@ -84,28 +92,42 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			}
 			return m, nil, true
 		case "j":
-			if m.HistoryCussorPos < len(m.HistoryItems)-1 {
-				m.HistoryCussorPos++
-				headerHeight := 10 // offset to bottom
-				cursorLine := m.HistoryCussorPos + headerHeight
-				if cursorLine >= m.Viewport.YOffset+m.Viewport.Height {
-					m.Viewport.LineDown(1)
-				}
-				m.Viewport.SetContent(m.historyView()) // Re-render to update selection highlight
-			}
+			m.moveHistoryCursor(1)
 			return m, nil, true
 		case "k":
-			if m.HistoryCussorPos > 0 {
-				m.HistoryCussorPos--
-				headerHeight := -10 // offset to top
-				cursorLine := m.HistoryCussorPos + headerHeight
-				if cursorLine < m.Viewport.YOffset {
-					m.Viewport.LineUp(1)
-				}
-				m.Viewport.SetContent(m.historyView()) // Re-render to update selection highlight
-			}
+			m.moveHistoryCursor(-1)
 			return m, nil, true
 		}
 	}
 	return m, nil, true
+}
+
+func (m *Model) moveHistoryCursor(delta int) {
+	newPos := m.HistoryCussorPos + delta
+	if newPos < 0 || newPos >= len(m.HistoryItems) {
+		return
+	}
+
+	m.HistoryCussorPos = newPos
+
+	// Viewport auto-scroll logic
+	const headerHeight = 2
+	cursorLine := m.HistoryCussorPos + headerHeight
+
+	// Scroll Up
+	if delta < 0 {
+		if cursorLine < m.Viewport.YOffset {
+			m.Viewport.LineUp(1)
+		}
+	}
+
+	// Scroll Down
+	if delta > 0 {
+		// We use a buffer of 1 line to keep the selection clearly visible
+		if cursorLine >= m.Viewport.YOffset+m.Viewport.Height-1 {
+			m.Viewport.LineDown(1)
+		}
+	}
+
+	m.Viewport.SetContent(m.historyView())
 }
