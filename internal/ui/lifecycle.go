@@ -112,7 +112,14 @@ func (m Model) updateLayout() Model {
 
 	statusViewHeight := lipgloss.Height(m.StatusView())
 
-	viewportHeight := m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
+	var viewportHeight int
+	if m.State == stateHistorySelect {
+		headerHeight := lipgloss.Height(m.historyHeaderView())
+		viewportHeight = m.Height - headerHeight - statusViewHeight - 1
+	} else {
+		viewportHeight = m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
+	}
+
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}

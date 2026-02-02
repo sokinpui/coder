@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (m Model) historyView() string {
+func (m Model) historyHeaderView() string {
 	var b strings.Builder
 	if m.IsHistorySearching {
 		b.WriteString("Search History: ")
@@ -14,6 +14,11 @@ func (m Model) historyView() string {
 	} else {
 		b.WriteString("Select a conversation to load (type / to search):\n\n")
 	}
+	return b.String()
+}
+
+func (m Model) historyListView() string {
+	var b strings.Builder
 
 	if len(m.FilteredHistoryItems) == 0 {
 		b.WriteString("  No matching history found.")
@@ -21,11 +26,13 @@ func (m Model) historyView() string {
 	}
 
 	for i, item := range m.FilteredHistoryItems {
-		line := fmt.Sprintf("  %s (%s)", item.Title, item.ModifiedAt.Format("2006-01-02 15:04"))
+		title := item.Title
+		date := fmt.Sprintf("(%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
 		if i == m.HistoryCussorPos {
-			b.WriteString(paletteSelectedItemStyle.Render("▸" + line))
+			b.WriteString(paletteSelectedItemStyle.Render("▸  " + title))
+			b.WriteString(paletteItemStyle.Render(" " + date))
 		} else {
-			b.WriteString(paletteItemStyle.Render(" " + line))
+			b.WriteString(paletteItemStyle.Render("   " + title + " " + date))
 		}
 		b.WriteString("\n")
 	}

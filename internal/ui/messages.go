@@ -307,10 +307,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.HistoryCussorPos = initialCursorPos
 
-		m.Viewport.SetContent(m.historyView())
+		m.Viewport.SetContent(m.historyListView())
 		// Center the selected item in the viewport
-		const headerHeight = 2 // "Select a conversation...\n\n"
-		targetOffset := (initialCursorPos + headerHeight) - (m.Viewport.Height / 2)
+		targetOffset := initialCursorPos - (m.Viewport.Height / 2)
 		m.Viewport.SetYOffset(targetOffset)
 		return m, nil, true
 

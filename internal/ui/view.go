@@ -10,6 +10,9 @@ func (m Model) View() string {
 	}
 
 	var b strings.Builder
+	if m.State == stateHistorySelect {
+		b.WriteString(m.historyHeaderView())
+	}
 	b.WriteString(m.Viewport.View())
 	b.WriteString("\n")
 
