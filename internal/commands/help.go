@@ -84,6 +84,8 @@ var visualModeGroup = helpGroup{
 
 var historyViewGropu = helpGroup{
 	{key: "j / k", desc: "Move cursor down / up."},
+	{key: "u / d", desc: "Half-page up / down."},
+	{key: "Ctrl+U / D", desc: "Half-page up / down."},
 	{key: "gg / G", desc: "Go to top / bottom."},
 	{key: "/", desc: "Fuzzy search history."},
 	{key: "Enter", desc: "Load selected conversation."},

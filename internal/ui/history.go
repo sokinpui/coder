@@ -39,22 +39,10 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	switch msg.Type {
 	case tea.KeyCtrlD:
-		if len(m.FilteredHistoryItems) == 0 {
-			return m, nil, true
-		}
-		scrollAmount := m.Viewport.Height / 2
-		m.Viewport.HalfPageDown()
-		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), true)
-		m.Viewport.SetContent(m.historyListView())
+		m.scrollHistoryHalfPage(true)
 		return m, nil, true
 	case tea.KeyCtrlU:
-		if len(m.FilteredHistoryItems) == 0 {
-			return m, nil, true
-		}
-		scrollAmount := m.Viewport.Height / 2
-		m.Viewport.HalfPageUp()
-		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), false)
-		m.Viewport.SetContent(m.historyListView())
+		m.scrollHistoryHalfPage(false)
 		return m, nil, true
 
 	case tea.KeyUp, tea.KeyCtrlK:
@@ -124,6 +112,12 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 				m.Viewport.SetContent(m.historyListView())
 			}
 			return m, nil, true
+		case "d":
+			m.scrollHistoryHalfPage(true)
+			return m, nil, true
+		case "u":
+			m.scrollHistoryHalfPage(false)
+			return m, nil, true
 		case "j":
 			m.moveHistoryCursor(1)
 			return m, nil, true
@@ -142,26 +136,40 @@ func (m *Model) moveHistoryCursor(delta int) {
 	}
 
 	m.HistoryCussorPos = newPos
-
-	// Viewport auto-scroll logic
-	cursorLine := m.HistoryCussorPos
-
-	// Scroll Up
-	if delta < 0 {
-		if cursorLine < m.Viewport.YOffset {
-			m.Viewport.LineUp(1)
-		}
-	}
-
-	// Scroll Down
-	if delta > 0 {
-		// We use a buffer of 1 line to keep the selection clearly visible
-		if cursorLine >= m.Viewport.YOffset+m.Viewport.Height-1 {
-			m.Viewport.LineDown(1)
-		}
-	}
-
+	m.centerHistoryViewport()
 	m.Viewport.SetContent(m.historyListView())
+}
+
+func (m *Model) scrollHistoryHalfPage(down bool) {
+	if len(m.FilteredHistoryItems) == 0 {
+		return
+	}
+	scrollAmount := m.Viewport.Height / 2
+	m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), down)
+	m.centerHistoryViewport()
+	m.Viewport.SetContent(m.historyListView())
+}
+
+func (m *Model) centerHistoryViewport() {
+	if len(m.FilteredHistoryItems) == 0 {
+		return
+	}
+
+	halfHeight := m.Viewport.Height / 2
+	targetOffset := m.HistoryCussorPos - halfHeight
+
+	maxOffset := len(m.FilteredHistoryItems) - m.Viewport.Height
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+
+	if targetOffset < 0 {
+		targetOffset = 0
+	} else if targetOffset > maxOffset {
+		targetOffset = maxOffset
+	}
+
+	m.Viewport.SetYOffset(targetOffset)
 }
 
 func (m *Model) updateHistoryFilter() {
