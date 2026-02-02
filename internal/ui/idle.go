@@ -19,8 +19,8 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case types.MessagesUpdated:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m = m.updateLayout()
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPrompt())
@@ -32,27 +32,27 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m.startGeneration(event)
 
 	case types.VisualModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeNone)
 
 	case types.GenerateModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeGenerate)
 	case types.EditModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeEdit)
 	case types.BranchModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeBranch)
 	case types.SearchModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m.State = stateSearch
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		m.Search.AllItems = m.collectSearchableMessages()
 		m.Search.TextInput.SetValue(event.Data.(string))
 		m.Search.updateFoundItems()
@@ -61,10 +61,10 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.IsCountingTokens = true
 		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
 	case types.FzfModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m.State = stateFinder
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		var items []string
 		for _, model := range m.Session.GetConfig().AvailableModels {
 			items = append(items, fmt.Sprintf("model: %s", model))
@@ -76,17 +76,17 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.IsCountingTokens = true
 		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
 	case types.HistoryModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m.State = stateHistorySelect
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		m.IsCountingTokens = true
-		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()))
+		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
 	case types.TreeModeStarted:
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m.State = stateTree
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		m.Tree.Visible = true
 		m.Tree.loadInitialSelection(m.Session.GetConfig())
 		m.IsCountingTokens = true
@@ -107,11 +107,11 @@ func (m Model) newSession() (Model, tea.Cmd) {
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
 	// Reset UI and state flags.
-	m.LastInteractionFailed = false
-	m.LastRenderedAIPart = ""
-	m.TextArea.Focus()
-	m.Viewport.GotoTop()
-	m.Viewport.SetContent(m.renderConversation())
+	m.Chat.LastInteractionFailed = false
+	m.Chat.LastRenderedAIPart = ""
+	m.Chat.TextArea.Focus()
+	m.Chat.Viewport.GotoTop()
+	m.Chat.Viewport.SetContent(m.renderConversation())
 
 	// Recalculate the token count for the base context.
 	m.IsCountingTokens = true
@@ -119,7 +119,7 @@ func (m Model) newSession() (Model, tea.Cmd) {
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
-	input := m.TextArea.Value()
+	input := m.Chat.TextArea.Value()
 
 	// don't send if the input is empty
 	if strings.TrimSpace(input) == "" {
@@ -127,9 +127,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	// Clear search focus and query when submitting a new interaction
-	m.SearchQuery = ""
-	m.SearchFocusMsgIndex = -1
-	m.SearchFocusLineNum = -1
+	m.Chat.SearchQuery = ""
+	m.Chat.SearchFocusMsgIndex = -1
+	m.Chat.SearchFocusLineNum = -1
 
 	if !strings.HasPrefix(input, ":") {
 		// This is a prompt, apply debounce.
@@ -141,26 +141,26 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		}
 
 		m.State = stateGenPending
-		m.TextArea.Blur()
-		m.TextArea.Reset()
+		m.Chat.TextArea.Blur()
+		m.Chat.TextArea.Reset()
 		m = m.updateLayout()
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 
-		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }), m.Spinner.Tick)
+		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }), m.Chat.Spinner.Tick)
 		return m, tea.Batch(cmds...)
 	}
 
 	// This is a command, handle as before.
-	if len(m.CommandHistory) == 0 || m.CommandHistory[len(m.CommandHistory)-1] != input {
-		m.CommandHistory = append(m.CommandHistory, input)
+	if len(m.Chat.CommandHistory) == 0 || m.Chat.CommandHistory[len(m.Chat.CommandHistory)-1] != input {
+		m.Chat.CommandHistory = append(m.Chat.CommandHistory, input)
 	}
-	m.CommandHistoryCursor = len(m.CommandHistory)
-	m.commandHistoryModified = ""
+	m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
+	m.Chat.CommandHistoryModified = ""
 	event := m.Session.HandleInput(input)
 
-	shouldPreserve := m.PreserveInputOnSubmit
-	m.PreserveInputOnSubmit = false
+	shouldPreserve := m.Chat.PreserveInputOnSubmit
+	m.Chat.PreserveInputOnSubmit = false
 
 	model, cmd := m.handleEvent(event)
 	if newModel, ok := model.(Model); ok {
@@ -169,7 +169,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			event.Type == types.NewSessionStarted ||
 			(isCommand && event.Type != types.NoOp) {
 			if !shouldPreserve {
-				newModel.TextArea.Reset()
+				newModel.Chat.TextArea.Reset()
 			}
 		}
 		return newModel, cmd
@@ -181,29 +181,29 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
-		if strings.HasPrefix(m.TextArea.Value(), ":") {
-			if m.CommandHistoryCursor == len(m.CommandHistory) {
-				m.commandHistoryModified = m.TextArea.Value()
+		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
+			if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
+				m.Chat.CommandHistoryModified = m.Chat.TextArea.Value()
 			}
 
 			if msg.Type == tea.KeyUp {
-				if m.CommandHistoryCursor > 0 {
-					m.CommandHistoryCursor--
-					m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+				if m.Chat.CommandHistoryCursor > 0 {
+					m.Chat.CommandHistoryCursor--
+					m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
 					m = m.updateLayout()
-					m.TextArea.CursorEnd()
+					m.Chat.TextArea.CursorEnd()
 				}
 			} else { // KeyDown
-				if m.CommandHistoryCursor < len(m.CommandHistory) {
-					m.CommandHistoryCursor++
-					if m.CommandHistoryCursor == len(m.CommandHistory) {
-						m.TextArea.SetValue(m.commandHistoryModified)
+				if m.Chat.CommandHistoryCursor < len(m.Chat.CommandHistory) {
+					m.Chat.CommandHistoryCursor++
+					if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
+						m.Chat.TextArea.SetValue(m.Chat.CommandHistoryModified)
 						m = m.updateLayout()
 					} else {
-						m.TextArea.SetValue(m.CommandHistory[m.CommandHistoryCursor])
+						m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
 						m = m.updateLayout()
 					}
-					m.TextArea.CursorEnd()
+					m.Chat.TextArea.CursorEnd()
 				}
 			}
 			return m, nil, true
@@ -211,23 +211,23 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.Type == tea.KeyDown {
 			// If on the last line of the text area, move cursor to the end.
-			if m.TextArea.Line() == m.TextArea.LineCount()-1 {
-				m.TextArea.CursorEnd()
+			if m.Chat.TextArea.Line() == m.Chat.TextArea.LineCount()-1 {
+				m.Chat.TextArea.CursorEnd()
 				return m, nil, true
 			}
 		}
 
 	case tea.KeyCtrlC:
-		if m.TextArea.Value() != "" {
-			m.TextArea.Reset()
-			m.CtrlCPressed = false
+		if m.Chat.TextArea.Value() != "" {
+			m.Chat.TextArea.Reset()
+			m.Chat.CtrlCPressed = false
 			return m, nil, false // Allow layout recalculation in the same update cycle
 		}
-		if m.CtrlCPressed {
+		if m.Chat.CtrlCPressed {
 			m.Quitting = true
 			return m, tea.Quit, true
 		}
-		m.CtrlCPressed = true
+		m.Chat.CtrlCPressed = true
 		return m, ctrlCTimeout(), true
 
 	case tea.KeyEscape:
@@ -236,48 +236,48 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		numCommands := len(m.PaletteFilteredCommands)
-		numArgs := len(m.PaletteFilteredArguments)
+		numCommands := len(m.Chat.PaletteFilteredCommands)
+		numArgs := len(m.Chat.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
 
-		if !m.ShowPalette || totalItems == 0 {
+		if !m.Chat.ShowPalette || totalItems == 0 {
 			return m, nil, true
 		}
 
 		// On the first Tab press, we just want to complete with the current selection (cursor 0).
 		// On subsequent Tab presses, we cycle.
 		// `isCyclingCompletions` tracks if we are in a cycle.
-		if !m.IsCyclingCompletions {
+		if !m.Chat.IsCyclingCompletions {
 			// This is the first Tab/Shift+Tab press.
 			if msg.Type == tea.KeyShiftTab {
 				// If it's Shift+Tab, start from the end.
-				m.PaletteCursor = totalItems - 1
+				m.Chat.PaletteCursor = totalItems - 1
 			}
 			// For a normal Tab, cursor is already 0, so we do nothing.
 		} else {
 			// We are already in a completion cycle.
 			switch msg.Type {
 			case tea.KeyTab:
-				m.PaletteCursor = (m.PaletteCursor + 1) % totalItems
+				m.Chat.PaletteCursor = (m.Chat.PaletteCursor + 1) % totalItems
 			case tea.KeyShiftTab:
-				m.PaletteCursor--
-				if m.PaletteCursor < 0 {
-					m.PaletteCursor = totalItems - 1
+				m.Chat.PaletteCursor--
+				if m.Chat.PaletteCursor < 0 {
+					m.Chat.PaletteCursor = totalItems - 1
 				}
 			}
 		}
-		m.IsCyclingCompletions = true
+		m.Chat.IsCyclingCompletions = true
 
 		var selectedItem string
 		isArgument := false
-		if m.PaletteCursor < numCommands {
-			selectedItem = m.PaletteFilteredCommands[m.PaletteCursor]
+		if m.Chat.PaletteCursor < numCommands {
+			selectedItem = m.Chat.PaletteFilteredCommands[m.Chat.PaletteCursor]
 		} else {
-			selectedItem = m.PaletteFilteredArguments[m.PaletteCursor-numCommands]
+			selectedItem = m.Chat.PaletteFilteredArguments[m.Chat.PaletteCursor-numCommands]
 			isArgument = true
 		}
 
-		val := m.TextArea.Value()
+		val := m.Chat.TextArea.Value()
 		parts := strings.Fields(val)
 
 		if isArgument {
@@ -287,29 +287,29 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			} else {
 				prefixParts = parts
 			}
-			m.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+			m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
 			m = m.updateLayout()
 		} else { // command/action
-			m.TextArea.SetValue(selectedItem)
+			m.Chat.TextArea.SetValue(selectedItem)
 			m = m.updateLayout()
 		}
-		m.TextArea.CursorEnd()
+		m.Chat.TextArea.CursorEnd()
 		return m, nil, true
 
 	case tea.KeyEnter:
-		totalItems := len(m.PaletteFilteredCommands) + len(m.PaletteFilteredArguments)
-		if m.ShowPalette && totalItems == 1 {
+		totalItems := len(m.Chat.PaletteFilteredCommands) + len(m.Chat.PaletteFilteredArguments)
+		if m.Chat.ShowPalette && totalItems == 1 {
 			var selectedItem string
 			isArgument := false
-			if len(m.PaletteFilteredCommands) == 1 {
-				selectedItem = m.PaletteFilteredCommands[0]
+			if len(m.Chat.PaletteFilteredCommands) == 1 {
+				selectedItem = m.Chat.PaletteFilteredCommands[0]
 			} else {
-				selectedItem = m.PaletteFilteredArguments[0]
+				selectedItem = m.Chat.PaletteFilteredArguments[0]
 				isArgument = true
 			}
 
 			if isArgument {
-				val := m.TextArea.Value()
+				val := m.Chat.TextArea.Value()
 				parts := strings.Fields(val)
 				var prefixParts []string
 				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
@@ -317,17 +317,17 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					prefixParts = parts
 				}
-				m.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
 			} else {
-				m.TextArea.SetValue(selectedItem)
+				m.Chat.TextArea.SetValue(selectedItem)
 			}
-			m.TextArea.CursorEnd()
+			m.Chat.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
 
 		// Smart enter: submit if it's a command.
-		if strings.HasPrefix(m.TextArea.Value(), ":") {
+		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
@@ -340,8 +340,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlE:
-		if m.TextArea.Focused() {
-			return m, editInEditorCmd(m.TextArea.Value()), true
+		if m.Chat.TextArea.Focused() {
+			return m, editInEditorCmd(m.Chat.TextArea.Value()), true
 		}
 
 	case tea.KeyCtrlJ:

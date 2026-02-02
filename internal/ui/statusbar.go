@@ -12,7 +12,7 @@ func (m Model) StatusView() string {
 		return statusBarMsgStyle.Render(m.StatusBarMessage)
 	}
 
-	if m.CtrlCPressed && m.State == stateIdle && m.TextArea.Value() == "" {
+	if m.Chat.CtrlCPressed && m.State == stateIdle && m.Chat.TextArea.Value() == "" {
 		return statusStyle.Render("Press Ctrl+C again to quit.")
 	}
 
@@ -22,8 +22,8 @@ func (m Model) StatusView() string {
 
 	// Line 1: Title
 	var title string
-	if m.AnimatingTitle {
-		title = m.DisplayedTitle
+	if m.Chat.AnimatingTitle {
+		title = m.Chat.DisplayedTitle
 	} else {
 		title = m.Session.GetTitle()
 	}
@@ -35,12 +35,12 @@ func (m Model) StatusView() string {
 
 	switch m.State {
 	case stateInitializing:
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Initializing tokenizer "), m.Spinner.View())
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Initializing tokenizer "), m.Chat.Spinner.View())
 		statusLine := spinnerWithText
 		return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)
 	case stateVisualSelect:
 		var modeStr, helpStr string
-		switch m.VisualMode {
+		switch m.VisualSelect.Mode {
 		case visualModeGenerate:
 			modeStr = "GENERATE"
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
@@ -52,7 +52,7 @@ func (m Model) StatusView() string {
 			helpStr = "j/k: move | enter: confirm | esc: cancel"
 		default: // visualModeNone
 			modeStr = "VISUAL"
-			if m.VisualIsSelecting {
+			if m.VisualSelect.IsSelecting {
 				helpStr = "j/k: move | o/O: swap cursor | y: copy | d: delete | esc: cancel selection"
 			} else {
 				helpStr = "j/k: move | v: start selection | esc: cancel"
@@ -89,11 +89,11 @@ func (m Model) StatusView() string {
 		if m.State == stateGenerating {
 			statusText = "Generating"
 		}
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Spinner.View())
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Chat.Spinner.View())
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
-	if m.IsFetchingModels {
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Fetching models "), m.Spinner.View())
+	if m.Chat.IsFetchingModels {
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Fetching models "), m.Chat.Spinner.View())
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
 

@@ -11,16 +11,16 @@ func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		m.State = stateIdle
-		m.StreamBuffer = ""
-		m.IsStreamAnime = false
-		m.StreamDone = false
-		m.TextArea.Focus()
+		m.Chat.StreamBuffer = ""
+		m.Chat.IsStreamAnime = false
+		m.Chat.StreamDone = false
+		m.Chat.TextArea.Focus()
 		m.Session.AddMessages(types.Message{
 			Type:    types.CommandResultMessage, // Re-use style for notification
 			Content: "Generation cancelled.",
 		})
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		return m, textarea.Blink, true
 	}
 	return m, nil, true // Consume all key presses
@@ -31,24 +31,24 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 		return m, nil // Should not happen
 	}
 	m.State = stateThinking
-	m.IsStreaming = true
-	m.StreamBuffer = ""
-	m.StreamDone = false
-	m.IsStreamAnime = false
-	m.StreamSub = event.Data.(chan string)
-	m.TextArea.Blur()
-	m.TextArea.Reset()
+	m.Chat.IsStreaming = true
+	m.Chat.StreamBuffer = ""
+	m.Chat.StreamDone = false
+	m.Chat.IsStreamAnime = false
+	m.Chat.StreamSub = event.Data.(chan string)
+	m.Chat.TextArea.Blur()
+	m.Chat.TextArea.Reset()
 	m = m.updateLayout()
 
-	m.LastRenderedAIPart = ""
-	m.LastInteractionFailed = false
+	m.Chat.LastRenderedAIPart = ""
+	m.Chat.LastInteractionFailed = false
 
-	m.Viewport.SetContent(m.renderConversation())
-	m.Viewport.GotoBottom()
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.Chat.Viewport.GotoBottom()
 
 	prompt := m.Session.GetPrompt()
 	m.IsCountingTokens = true
-	return m, tea.Batch(listenForStream(m.StreamSub), m.Spinner.Tick, countTokensCmd(prompt))
+	return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick, countTokensCmd(prompt))
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -59,10 +59,10 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.State = stateCancelling
 		}
 	case tea.KeyCtrlN:
-		if m.IsStreaming {
+		if m.Chat.IsStreaming {
 			m.Session.CancelGeneration()
-			m.IsStreaming = false
-			m.StreamSub = nil
+			m.Chat.IsStreaming = false
+			m.Chat.StreamSub = nil
 		}
 		event := m.Session.HandleInput(":new")
 		switch event.Type {
@@ -81,13 +81,13 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		case types.MessagesUpdated:
 			// This handles the case where branching is not possible (e.g., no messages)
 			// and an error message was added to the session.
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
 	case tea.KeyCtrlH:
 		m.State = stateHistorySelect
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
 	case tea.KeyEscape:
 		// Allow entering visual mode even during generation.

@@ -11,7 +11,7 @@ import (
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	if msg.Type != tea.KeyCtrlC {
-		m.CtrlCPressed = false
+		m.Chat.CtrlCPressed = false
 	}
 
 	// If quick view is visible, it gets priority on key presses.
@@ -20,7 +20,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ:
 			m.QuickView.Visible = false
 			if m.State == stateIdle {
-				m.TextArea.Focus()
+				m.Chat.TextArea.Focus()
 				return m, textarea.Blink, true
 			}
 			return m, nil, true
@@ -55,7 +55,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		m.QuickView.SetMessages(messages)
 		m.QuickView.Visible = true
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		return m, nil, true
 	case tea.KeyCtrlZ:
 		return m, tea.Suspend, true // Suspend the application
@@ -84,7 +84,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		m.QuickView.SetMessages(lastTwo)
 		m.QuickView.Visible = true
-		m.TextArea.Blur()
+		m.Chat.TextArea.Blur()
 		return m, nil, true
 	}
 
@@ -92,10 +92,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	if m.State != stateHistorySelect {
 		switch msg.Type {
 		case tea.KeyCtrlU:
-			m.Viewport.HalfPageUp()
+			m.Chat.Viewport.HalfPageUp()
 			return m, nil, true
 		case tea.KeyCtrlD:
-			m.Viewport.HalfPageDown()
+			m.Chat.Viewport.HalfPageDown()
 			return m, nil, true
 		}
 	}
@@ -114,7 +114,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Finder = newFinder
 		if !m.Finder.Visible {
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, tea.Batch(cmd, textinput.Blink), true
 		}
 		return m, cmd, true
@@ -123,7 +123,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Search = newSearch
 		if !m.Search.Visible {
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, tea.Batch(cmd, textinput.Blink), true
 		}
 		return m, cmd, true
@@ -132,7 +132,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Tree = newTree
 		if !m.Tree.Visible {
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, tea.Batch(cmd, textarea.Blink), true
 		}
 		return m, cmd, true

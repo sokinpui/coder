@@ -19,12 +19,12 @@ func truncateMessage(content string, maxLines int) string {
 }
 
 func (m Model) highlightMatches(text string) string {
-	if m.SearchQuery == "" {
+	if m.Chat.SearchQuery == "" {
 		return text
 	}
 
 	// Case-insensitive regex for the search query
-	re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(m.SearchQuery))
+	re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(m.Chat.SearchQuery))
 	if err != nil {
 		return text
 	}
@@ -45,17 +45,17 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	selectedBlocks := make(map[int]struct{})
 
 	if m.State == stateVisualSelect {
-		for i, block := range m.SelectableBlocks {
+		for i, block := range m.VisualSelect.Blocks {
 			blockStarts[block.startIdx] = i
 		}
 
-		if m.VisualMode == visualModeNone && m.VisualIsSelecting {
-			start, end := m.VisualSelectStart, m.VisualSelectCursor
+		if m.VisualSelect.Mode == visualModeNone && m.VisualSelect.IsSelecting {
+			start, end := m.VisualSelect.Start, m.VisualSelect.Cursor
 			if start > end {
 				start, end = end, start
 			}
 
-			if end < len(m.SelectableBlocks) {
+			if end < len(m.VisualSelect.Blocks) {
 				for i := start; i <= end; i++ {
 					selectedBlocks[i] = struct{}{}
 				}
@@ -74,7 +74,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		}
 
 		contentToRender := currentMsg.Content
-		if m.SearchQuery != "" {
+		if m.Chat.SearchQuery != "" {
 			switch currentMsg.Type {
 			case types.UserMessage, types.CommandMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
 				// Highlight text before applying Lipgloss borders/styles
@@ -85,19 +85,19 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		var renderedMsg string
 		switch currentMsg.Type {
 		case types.InitMessage:
-			blockWidth := m.Viewport.Width - initMessageStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - initMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.DirectoryMessage:
-			blockWidth := m.Viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
 			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
 		case types.UserMessage:
-			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
 			renderedMsg = userInputStyle.Width(blockWidth).Render(contentToRender)
 		case types.CommandMessage:
-			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(contentToRender)
 		case types.ImageMessage:
-			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
 		case types.AIMessage:
 			if contentToRender == "" {
@@ -110,15 +110,15 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 				renderedMsg = m.highlightMatches(renderedAI)
 			}
 		case types.CommandResultMessage:
-			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(contentToRender)
 		case types.CommandErrorResultMessage:
-			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
+			blockWidth := m.Chat.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(contentToRender)
 
 		}
 
-		if i == m.SearchFocusMsgIndex {
+		if i == m.Chat.SearchFocusMsgIndex {
 			lines := strings.Split(renderedMsg, "\n")
 			// Adjust for potential top border offset in styled blocks
 			borderOffset := 0
@@ -127,7 +127,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 				borderOffset = 1
 			}
 
-			targetLine := m.SearchFocusLineNum + borderOffset
+			targetLine := m.Chat.SearchFocusLineNum + borderOffset
 			indicatorStr := "▸ "
 			indicator := searchIndicatorStyle.Render(indicatorStr)
 			spacer := strings.Repeat(" ", lipgloss.Width(indicatorStr))
@@ -143,10 +143,10 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		}
 
 		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {
-			isCursorOn := (blockIndex == m.VisualSelectCursor)
+			isCursorOn := (blockIndex == m.VisualSelect.Cursor)
 
 			var isSelected bool
-			switch m.VisualMode {
+			switch m.VisualSelect.Mode {
 			case visualModeGenerate, visualModeEdit, visualModeBranch:
 				isSelected = isCursorOn
 			default: // visualModeNone
@@ -184,7 +184,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 			Italic(true).
 			Render("Thinking ")
 
-		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Spinner.View())
+		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
 		// Apply padding to the container.
 		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 		parts = append(parts, block)

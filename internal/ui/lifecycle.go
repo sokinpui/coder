@@ -26,26 +26,26 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m.TextArea.Focused() {
-		originalValue := m.TextArea.Value()
-		m.TextArea, cmd = m.TextArea.Update(msg)
+	if m.Chat.TextArea.Focused() {
+		originalValue := m.Chat.TextArea.Value()
+		m.Chat.TextArea, cmd = m.Chat.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
 
-		if m.TextArea.Value() != originalValue && strings.HasPrefix(m.TextArea.Value(), ":") {
+		if m.Chat.TextArea.Value() != originalValue && strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
 			if key, ok := msg.(tea.KeyMsg); ok {
 				if key.Type != tea.KeyUp && key.Type != tea.KeyDown {
-					m.CommandHistoryCursor = len(m.CommandHistory)
-					m.commandHistoryModified = ""
+					m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
+					m.Chat.CommandHistoryModified = ""
 				}
 			}
 		}
 
 		if !isRuneKey && !isViewportNavKey {
-			m.Viewport, cmd = m.Viewport.Update(msg)
+			m.Chat.Viewport, cmd = m.Chat.Viewport.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 	} else {
-		m.Viewport, cmd = m.Viewport.Update(msg)
+		m.Chat.Viewport, cmd = m.Chat.Viewport.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -54,13 +54,13 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 
 // updatePalette updates the state of the command palette based on the textarea's content.
 func (m Model) updatePalette() Model {
-	if m.IsCyclingCompletions {
+	if m.Chat.IsCyclingCompletions {
 		return m
 	}
 
-	val := m.TextArea.Value()
-	m.PaletteFilteredCommands = []string{}
-	m.PaletteFilteredArguments = []string{}
+	val := m.Chat.TextArea.Value()
+	m.Chat.PaletteFilteredCommands = []string{}
+	m.Chat.PaletteFilteredArguments = []string{}
 
 	if m.State == stateIdle && strings.HasPrefix(val, ":") {
 		parts := strings.Fields(val)
@@ -74,7 +74,7 @@ func (m Model) updatePalette() Model {
 			prefix := strings.TrimPrefix(parts[0], ":")
 			for _, c := range m.AvailableCommands {
 				if strings.HasPrefix(c, prefix) {
-					m.PaletteFilteredCommands = append(m.PaletteFilteredCommands, ":"+c)
+					m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, ":"+c)
 				}
 			}
 		} else if len(parts) >= 1 {
@@ -88,27 +88,27 @@ func (m Model) updatePalette() Model {
 
 				for _, s := range suggestions {
 					if strings.HasPrefix(s, argPrefix) {
-						m.PaletteFilteredArguments = append(m.PaletteFilteredArguments, s)
+						m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
 					}
 				}
 			}
 		}
 	}
 
-	totalItems := len(m.PaletteFilteredCommands) + len(m.PaletteFilteredArguments)
-	m.ShowPalette = totalItems > 0
+	totalItems := len(m.Chat.PaletteFilteredCommands) + len(m.Chat.PaletteFilteredArguments)
+	m.Chat.ShowPalette = totalItems > 0
 
-	if m.PaletteCursor >= totalItems {
-		m.PaletteCursor = 0
+	if m.Chat.PaletteCursor >= totalItems {
+		m.Chat.PaletteCursor = 0
 	}
 	return m
 }
 
 // updateLayout recalculates the size and position of UI elements.
 func (m Model) updateLayout() Model {
-	visibleLines := getVisibleLines(m.TextArea.Value(), m.TextArea.Width())
+	visibleLines := getVisibleLines(m.Chat.TextArea.Value(), m.Chat.TextArea.Width())
 	inputHeight := min(visibleLines+1, m.Height/4)
-	m.TextArea.SetHeight(max(1, inputHeight))
+	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
 	statusViewHeight := lipgloss.Height(m.StatusView())
 
@@ -117,12 +117,12 @@ func (m Model) updateLayout() Model {
 		headerHeight := lipgloss.Height(m.historyHeaderView())
 		viewportHeight = m.Height - headerHeight - statusViewHeight - 1
 	} else {
-		viewportHeight = m.Height - m.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
+		viewportHeight = m.Height - m.Chat.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
 	}
 
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}
-	m.Viewport.Height = viewportHeight
+	m.Chat.Viewport.Height = viewportHeight
 	return m
 }

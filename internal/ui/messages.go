@@ -27,14 +27,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, loadInitialContextCmd(m.Session), true
 
 	case modelsFetchedMsg:
-		m.IsFetchingModels = false
+		m.Chat.IsFetchingModels = false
 		if msg.err != nil {
 			m.Session.AddMessages(types.Message{
 				Type:    types.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to fetch models: %v", msg.err),
 			})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 			return m, nil, true
 		}
 
@@ -46,8 +46,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: "Warning: Server returned no available models.",
 			})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 			return m, nil, true
 		}
 
@@ -69,8 +69,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: strings.Join(errorStrings, "\n"),
 			})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
 	case startGenerationMsg:
@@ -88,10 +88,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		switch event.Type {
 		case types.MessagesUpdated:
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true
 		}
 		return m, nil, true
@@ -106,16 +106,16 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		var spinnerCmd tea.Cmd
-		m.Spinner, spinnerCmd = m.Spinner.Update(msg)
+		m.Chat.Spinner, spinnerCmd = m.Chat.Spinner.Update(msg)
 
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
 		case stateThinking, stateGenPending:
-			wasAtBottom := m.Viewport.AtBottom()
-			m.Viewport.SetContent(m.renderConversation())
+			wasAtBottom := m.Chat.Viewport.AtBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
-				m.Viewport.GotoBottom()
+				m.Chat.Viewport.GotoBottom()
 			}
 		}
 		return m, spinnerCmd, true
@@ -125,25 +125,25 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.State = stateGenerating
 		}
 		delay := m.Session.GetConfig().Generation.StreamDelay
-		m.StreamBuffer += string(msg)
-		if !m.IsStreamAnime {
-			m.IsStreamAnime = true
-			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd(delay)), true
+		m.Chat.StreamBuffer += string(msg)
+		if !m.Chat.IsStreamAnime {
+			m.Chat.IsStreamAnime = true
+			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(delay)), true
 		}
-		return m, listenForStream(m.StreamSub), true
+		return m, listenForStream(m.Chat.StreamSub), true
 
 	case streamAnimeMsg:
-		if m.StreamBuffer == "" {
-			if m.StreamDone {
+		if m.Chat.StreamBuffer == "" {
+			if m.Chat.StreamDone {
 				return m, func() tea.Msg { return streamFinishedMsg{} }, true
 			}
-			m.IsStreamAnime = false
+			m.Chat.IsStreamAnime = false
 			return m, nil, true
 		}
 
 		// Adaptive anime: take more characters if the buffer is getting large
 		take := 1
-		bufLen := len(m.StreamBuffer)
+		bufLen := len(m.Chat.StreamBuffer)
 		if bufLen > 300 {
 			take = bufLen / 10
 		} else if bufLen > 50 {
@@ -152,12 +152,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			take = 2
 		}
 
-		if take > len(m.StreamBuffer) {
-			take = len(m.StreamBuffer)
+		if take > len(m.Chat.StreamBuffer) {
+			take = len(m.Chat.StreamBuffer)
 		}
 
-		chunk := m.StreamBuffer[:take]
-		m.StreamBuffer = m.StreamBuffer[take:]
+		chunk := m.Chat.StreamBuffer[:take]
+		m.Chat.StreamBuffer = m.Chat.StreamBuffer[take:]
 
 		messages := m.Session.GetMessages()
 		if len(messages) > 0 {
@@ -165,13 +165,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			lastMsg.Content += chunk
 			m.Session.ReplaceLastMessage(lastMsg)
 
-			if lastMsg.Content != m.LastRenderedAIPart {
-				wasAtBottom := m.Viewport.AtBottom()
-				m.Viewport.SetContent(m.renderConversation())
+			if lastMsg.Content != m.Chat.LastRenderedAIPart {
+				wasAtBottom := m.Chat.Viewport.AtBottom()
+				m.Chat.Viewport.SetContent(m.renderConversation())
 				if wasAtBottom {
-					m.Viewport.GotoBottom()
+					m.Chat.Viewport.GotoBottom()
 				}
-				m.LastRenderedAIPart = lastMsg.Content
+				m.Chat.LastRenderedAIPart = lastMsg.Content
 			}
 		}
 
@@ -179,15 +179,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, streamAnimeCmd(delay), true
 
 	case streamFinishedMsg:
-		if !m.IsStreaming || m.StreamBuffer != "" {
-			m.StreamDone = true
+		if !m.Chat.IsStreaming || m.Chat.StreamBuffer != "" {
+			m.Chat.StreamDone = true
 			return m, nil, true
 		}
 
-		m.IsStreaming = false
-		m.IsStreamAnime = false
-		m.StreamBuffer = ""
-		m.StreamDone = false
+		m.Chat.IsStreaming = false
+		m.Chat.IsStreamAnime = false
+		m.Chat.StreamBuffer = ""
+		m.Chat.StreamDone = false
 
 		messages := m.Session.GetMessages()
 
@@ -198,46 +198,46 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			lastMsg.Content = "Generation cancelled."
 			lastMsg.Type = types.CommandResultMessage // Re-use style for notification
 			m.Session.ReplaceLastMessage(lastMsg)
-			m.LastInteractionFailed = true
+			m.Chat.LastInteractionFailed = true
 		}
 
-		wasAtBottom := m.Viewport.AtBottom()
-		m.Viewport.SetContent(m.renderConversation())
+		wasAtBottom := m.Chat.Viewport.AtBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.GotoBottom()
 		}
 
 		m.State = stateIdle
-		m.StreamSub = nil
+		m.Chat.StreamSub = nil
 		m.Session.CancelGeneration()
-		m.TextArea.Reset()
+		m.Chat.TextArea.Reset()
 		m = m.updateLayout()
-		m.TextArea.Focus()
+		m.Chat.TextArea.Focus()
 
-		if m.LastInteractionFailed {
+		if m.Chat.LastInteractionFailed {
 			return m, nil, true // Don't count tokens on failure/cancellation
 		}
 
 		prompt := m.Session.GetPrompt()
 		m.IsCountingTokens = true
 
-		return m, tea.Batch(countTokensCmd(prompt), saveConversationCmd(m.Session)), true
+		return m, tea.Batch(countTokensCmd(prompt), saveConversationCmd(m.Session), m.Chat.Spinner.Tick), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
-			m.EditingMessageIndex = -1 // Also reset here
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
+			m.Chat.EditingMessageIndex = -1 // Also reset here
 			return m, nil, true
 		}
 
-		if m.EditingMessageIndex != -1 {
+		if m.Chat.EditingMessageIndex != -1 {
 			// This block handles the return from editing a previous message in the history.
 			// It updates the message in place and does not trigger a new generation.
 			if msg.content != msg.originalContent {
-				if err := m.Session.EditMessage(m.EditingMessageIndex, msg.content); err != nil {
+				if err := m.Session.EditMessage(m.Chat.EditingMessageIndex, msg.content); err != nil {
 					// This should ideally not happen if the logic for selecting an editable message is correct.
 					errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
 					m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
@@ -245,39 +245,39 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 
 			var cmd tea.Cmd
-			if m.IsStreaming {
+			if m.Chat.IsStreaming {
 				messages := m.Session.GetMessages()
 				if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 					m.State = stateThinking
 				} else {
 					m.State = stateGenerating
 				}
-				cmd = m.Spinner.Tick
+				cmd = m.Chat.Spinner.Tick
 			} else {
 				m.State = stateIdle
-				m.TextArea.Focus()
+				m.Chat.TextArea.Focus()
 				cmd = textarea.Blink
 			}
 
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 
-			m.EditingMessageIndex = -1 // Reset on success or failure
+			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
 			m.IsCountingTokens = true
 			return m, tea.Batch(cmd, countTokensCmd(m.Session.GetPrompt())), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
 		if msg.content != msg.originalContent {
-			m.TextArea.SetValue(msg.content)
-			m.TextArea.CursorEnd()
+			m.Chat.TextArea.SetValue(msg.content)
+			m.Chat.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
 
 		// Content is unchanged, just update textarea and focus.
-		m.TextArea.SetValue(msg.originalContent)
-		m.TextArea.Focus()
+		m.Chat.TextArea.SetValue(msg.originalContent)
+		m.Chat.TextArea.Focus()
 		return m, textarea.Blink, true
 
 	case tokenCountResultMsg:
@@ -289,11 +289,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
-		m.HistoryItems = msg.items
-		m.FilteredHistoryItems = msg.items
+		m.History.Items = msg.items
+		m.History.FilteredItems = msg.items
 
 		currentFilename := m.Session.GetHistoryFilename()
 		initialCursorPos := 0
@@ -305,9 +305,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				}
 			}
 		}
-		m.HistoryCussorPos = initialCursorPos
+		m.History.CursorPos = initialCursorPos
 
-		m.Viewport.SetContent(m.historyListView())
+		m.Chat.Viewport.SetContent(m.historyListView())
 		m.centerHistoryViewport()
 		return m, nil, true
 
@@ -315,7 +315,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)
 			m.State = stateIdle
-			m.TextArea.Focus()
+			m.Chat.TextArea.Focus()
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
@@ -324,20 +324,20 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Session.PrependMessages(welcome, dirInfo)
 
 		m.State = stateIdle
-		m.LastInteractionFailed = false
-		m.LastRenderedAIPart = ""
-		m.TextArea.Reset()
-		m.TextArea.SetHeight(1)
-		m.TextArea.Focus()
-		m.Viewport.SetContent(m.renderConversation())
-		m.Viewport.GotoBottom()
+		m.Chat.LastInteractionFailed = false
+		m.Chat.LastRenderedAIPart = ""
+		m.Chat.TextArea.Reset()
+		m.Chat.TextArea.SetHeight(1)
+		m.Chat.TextArea.Focus()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
 		m.IsCountingTokens = true
 		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
 
 	case titleGeneratedMsg:
-		m.AnimatingTitle = true
-		m.FullGeneratedTitle = msg.title
-		m.DisplayedTitle = ""
+		m.Chat.AnimatingTitle = true
+		m.Chat.FullGeneratedTitle = msg.title
+		m.Chat.DisplayedTitle = ""
 		return m, animateTitleTick(), true
 
 	case pasteResultMsg:
@@ -348,31 +348,31 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.isImage {
 			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 		} else {
-			m.TextArea.InsertString(msg.content)
+			m.Chat.TextArea.InsertString(msg.content)
 		}
 		return m, nil, false
 
 	case animateTitleTickMsg:
-		if !m.AnimatingTitle {
+		if !m.Chat.AnimatingTitle {
 			return m, nil, true
 		}
 
-		if len(m.DisplayedTitle) < len(m.FullGeneratedTitle) {
+		if len(m.Chat.DisplayedTitle) < len(m.Chat.FullGeneratedTitle) {
 			// Use rune-safe slicing to handle multi-byte characters
-			m.DisplayedTitle = string([]rune(m.FullGeneratedTitle)[:len([]rune(m.DisplayedTitle))+1])
+			m.Chat.DisplayedTitle = string([]rune(m.Chat.FullGeneratedTitle)[:len([]rune(m.Chat.DisplayedTitle))+1])
 			return m, animateTitleTick(), true
 		}
 
-		m.AnimatingTitle = false
+		m.Chat.AnimatingTitle = false
 		return m, nil, true
 
 	case finderResultMsg:
 		m.State = stateIdle
-		m.TextArea.Focus()
-		originalContent := m.TextArea.Value()
+		m.Chat.TextArea.Focus()
+		originalContent := m.Chat.TextArea.Value()
 
 		var commandToRun string
 		parts := strings.SplitN(msg.result, ": ", 2)
@@ -381,31 +381,31 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		} else {
 			commandToRun = ":" + msg.result
 		}
-		m.TextArea.SetValue(commandToRun)
-		m.TextArea.CursorEnd()
-		m.PreserveInputOnSubmit = true
+		m.Chat.TextArea.SetValue(commandToRun)
+		m.Chat.TextArea.CursorEnd()
+		m.Chat.PreserveInputOnSubmit = true
 		model, cmd := m.handleSubmit()
 
 		if newModel, ok := model.(Model); ok {
-			newModel.TextArea.SetValue(originalContent)
-			newModel.TextArea.CursorEnd()
+			newModel.Chat.TextArea.SetValue(originalContent)
+			newModel.Chat.TextArea.CursorEnd()
 			return newModel, cmd, true
 		}
 		return model, cmd, true
 
 	case searchResultMsg:
 		m.State = stateIdle
-		m.TextArea.Focus()
+		m.Chat.TextArea.Focus()
 
-		m.SearchQuery = msg.query
-		m.SearchFocusMsgIndex = msg.item.MsgIndex
-		m.SearchFocusLineNum = msg.item.LineNum
+		m.Chat.SearchQuery = msg.query
+		m.Chat.SearchFocusMsgIndex = msg.item.MsgIndex
+		m.Chat.SearchFocusLineNum = msg.item.LineNum
 
 		content, offsets := m.renderConversationWithOffsets()
-		m.messageLineOffsets = offsets
-		m.Viewport.SetContent(content)
+		m.Chat.MessageLineOffsets = offsets
+		m.Chat.Viewport.SetContent(content)
 
-		if line, ok := m.messageLineOffsets[msg.item.MsgIndex]; ok {
+		if line, ok := m.Chat.MessageLineOffsets[msg.item.MsgIndex]; ok {
 			// Determine if there's a border offset based on message type
 			borderOffset := 0
 			messageType := m.Session.GetMessages()[msg.item.MsgIndex].Type
@@ -417,11 +417,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			absoluteLine := line + borderOffset + msg.item.LineNum
 
 			// Center the found line in the viewport
-			offset := absoluteLine - (m.Viewport.Height / 2)
+			offset := absoluteLine - (m.Chat.Viewport.Height / 2)
 			if offset < 0 {
 				offset = 0
 			}
-			m.Viewport.SetYOffset(offset)
+			m.Chat.Viewport.SetYOffset(offset)
 			m.StatusBarMessage = fmt.Sprintf("Jumped to message %d, line %d.", msg.item.MsgIndex, msg.item.LineNum+1)
 		} else {
 			m.StatusBarMessage = fmt.Sprintf("Found match, but couldn't jump. See message %d.", msg.item.MsgIndex)
@@ -437,7 +437,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case treeSelectionResultMsg:
 		m.State = stateIdle
-		m.TextArea.Focus()
+		m.Chat.TextArea.Focus()
 
 		repoRoot := utils.GetProjectRoot()
 		cwd, err := os.Getwd()
@@ -484,15 +484,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case ctrlCTimeoutMsg:
-		m.CtrlCPressed = false
+		m.Chat.CtrlCPressed = false
 		return m, nil, true
 
 	case initialContextLoadedMsg:
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Viewport.SetContent(m.renderConversation())
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
 			return m, nil, true
 		}
 
@@ -501,42 +501,44 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, countTokensCmd(m.Session.GetPrompt()), true
 
 	case errorMsg:
-		m.IsStreaming = false
+		m.Chat.IsStreaming = false
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		messages := m.Session.GetMessages()
 		lastMsg := messages[len(messages)-1]
 		lastMsg.Content = errorContent
 		m.Session.ReplaceLastMessage(lastMsg)
-		m.LastInteractionFailed = true
+		m.Chat.LastInteractionFailed = true
 
-		wasAtBottom := m.Viewport.AtBottom()
-		m.Viewport.SetContent(m.renderConversation())
+		wasAtBottom := m.Chat.Viewport.AtBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
-			m.Viewport.GotoBottom()
+			m.Chat.Viewport.GotoBottom()
 		}
 		m.State = stateIdle
-		m.StreamSub = nil
+		m.Chat.StreamSub = nil
 		m.Session.CancelGeneration()
-		m.TextArea.Reset()
-		m.TextArea.Focus()
+		m.Chat.TextArea.Reset()
+		m.Chat.TextArea.Focus()
 		return m, nil, true
 
 	case tea.WindowSizeMsg:
 		m.Height = msg.Height
 		m.Width = msg.Width
-		m.TextArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalFrameSize())
-		m.Viewport.Width = msg.Width
+		m.Chat.TextArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalFrameSize())
+		m.Chat.Viewport.Width = msg.Width
 		m = m.updateLayout()
-		m.TextArea.CursorEnd()
+		m.Chat.TextArea.CursorEnd()
+
+		m.Chat.CtrlCPressed = false
 
 		renderer, err := glamour.NewTermRenderer(
 			glamour.WithStandardStyle(m.Session.GetConfig().UI.MarkdownTheme),
-			glamour.WithWordWrap(m.Viewport.Width),
+			glamour.WithWordWrap(m.Chat.Viewport.Width),
 		)
 		if err == nil {
 			m.GlamourRenderer = renderer
-			m.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.SetContent(m.renderConversation())
 		}
 		return m, nil, false
 	}

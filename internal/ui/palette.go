@@ -12,7 +12,7 @@ type PaletteOverlay struct{}
 
 // IsVisible checks if the command palette should be shown.
 func (p *PaletteOverlay) IsVisible(main *Model) bool {
-	return main.ShowPalette
+	return main.Chat.ShowPalette
 }
 
 // View renders the command palette overlay.
@@ -24,7 +24,7 @@ func (p *PaletteOverlay) View(main *Model) string {
 
 	paletteModel := simpleModel{content: paletteContent}
 
-	yOffset := (main.TextArea.Height() + lipgloss.Height(main.StatusView()) + 1) * -1
+	yOffset := (main.Chat.TextArea.Height() + lipgloss.Height(main.StatusView()) + 1) * -1
 
 	overlayModel := overlay.New(
 		paletteModel,
@@ -47,19 +47,19 @@ func (m simpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
 func (m simpleModel) View() string                            { return m.content }
 
 func (m Model) PaletteView() string {
-	if !m.ShowPalette || (len(m.PaletteFilteredCommands) == 0 && len(m.PaletteFilteredArguments) == 0) {
+	if !m.Chat.ShowPalette || (len(m.Chat.PaletteFilteredCommands) == 0 && len(m.Chat.PaletteFilteredArguments) == 0) {
 		return ""
 	}
 
 	var b strings.Builder
-	numCommands := len(m.PaletteFilteredCommands)
+	numCommands := len(m.Chat.PaletteFilteredCommands)
 
 	if numCommands > 0 {
 		b.WriteString(paletteHeaderStyle.Render("Commands"))
 		b.WriteString("\n")
-		for i, cmd := range m.PaletteFilteredCommands {
+		for i, cmd := range m.Chat.PaletteFilteredCommands {
 			cursorIndex := i
-			if cursorIndex == m.PaletteCursor {
+			if cursorIndex == m.Chat.PaletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + cmd))
 			} else {
 				b.WriteString(paletteItemStyle.Render("  " + cmd))
@@ -68,16 +68,16 @@ func (m Model) PaletteView() string {
 		}
 	}
 
-	if numCommands > 0 && len(m.PaletteFilteredArguments) > 0 {
+	if numCommands > 0 && len(m.Chat.PaletteFilteredArguments) > 0 {
 		b.WriteString("\n")
 	}
 
-	if len(m.PaletteFilteredArguments) > 0 {
+	if len(m.Chat.PaletteFilteredArguments) > 0 {
 		b.WriteString(paletteHeaderStyle.Render("Arguments"))
 		b.WriteString("\n")
-		for i, arg := range m.PaletteFilteredArguments {
+		for i, arg := range m.Chat.PaletteFilteredArguments {
 			cursorIndex := i + numCommands
-			if cursorIndex == m.PaletteCursor {
+			if cursorIndex == m.Chat.PaletteCursor {
 				b.WriteString(paletteSelectedItemStyle.Render("▸ " + arg))
 			} else {
 				b.WriteString(paletteItemStyle.Render("  " + arg))

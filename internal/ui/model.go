@@ -3,18 +3,12 @@ package ui
 import (
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func min(a, b int) int {
@@ -31,78 +25,25 @@ func max(a, b int) int {
 	return b
 }
 
-type visualMode int
-
-const (
-	visualModeNone visualMode = iota
-	visualModeGenerate
-	visualModeEdit
-	visualModeBranch
-)
-
-// messageBlock represents a single selectable unit in the conversation view.
-// It holds the start and end indices (inclusive) of messages in the session's
-// message slice that form a single logical block.
-type messageBlock struct {
-	startIdx int
-	endIdx   int
-}
-
 type Model struct {
-	TextArea                 textarea.Model
-	Viewport                 viewport.Model
-	Spinner                  spinner.Model
-	Session                  *session.Session
-	StreamSub                chan string
-	State                    state
-	Quitting                 bool
-	Height                   int
-	Width                    int
-	GlamourRenderer          *glamour.TermRenderer
-	IsStreaming              bool
-	StreamBuffer             string
-	StreamDone               bool
-	IsStreamAnime            bool
-	LastRenderedAIPart       string
-	CtrlCPressed             bool
-	TokenCount               int
-	IsCountingTokens         bool
-	ShowPalette              bool
-	AvailableCommands        []string
-	IsFetchingModels         bool
-	PaletteFilteredCommands  []string
-	PaletteCursor            int
-	LastInteractionFailed    bool
-	PaletteFilteredArguments []string
-	IsCyclingCompletions     bool
-	VisualMode               visualMode
-	Finder                   FinderModel
-	Search                   SearchModel
-	messageLineOffsets       map[int]int
-	SearchQuery              string
-	SearchFocusMsgIndex      int
-	SearchFocusLineNum       int
-	Tree                     TreeModel
-	QuickView                *QuickViewModel
-	VisualIsSelecting        bool
-	SelectableBlocks         []messageBlock
-	VisualSelectCursor       int
-	VisualSelectStart        int
-	StatusBarMessage         string
-	AnimatingTitle           bool
-	FullGeneratedTitle       string
-	DisplayedTitle           string
-	EditingMessageIndex      int
-	HistoryItems             []history.ConversationInfo
-	HistoryCussorPos         int
-	HistorySearchInput       textinput.Model
-	IsHistorySearching       bool
-	FilteredHistoryItems     []history.ConversationInfo
-	HistoryGGPressed         bool
-	PreserveInputOnSubmit    bool
-	CommandHistory           []string
-	CommandHistoryCursor     int
-	commandHistoryModified   string
+	Chat         ChatModel
+	VisualSelect VisualSelectModel
+	History      HistoryModel
+	Finder       FinderModel
+	Search       SearchModel
+	Tree         TreeModel
+	QuickView    *QuickViewModel
+
+	Session           *session.Session
+	State             state
+	Quitting          bool
+	Height            int
+	Width             int
+	GlamourRenderer   *glamour.TermRenderer
+	AvailableCommands []string
+	StatusBarMessage  string
+	TokenCount        int
+	IsCountingTokens  bool
 }
 
 func NewModel(cfg *config.Config, mode string, initialInput string) (Model, error) {
@@ -110,37 +51,10 @@ func NewModel(cfg *config.Config, mode string, initialInput string) (Model, erro
 	if err != nil {
 		return Model{}, err
 	}
-
-	s := spinner.New()
-	s.Spinner = typingSpinner
-
-	ta := textarea.New()
-	ta.Placeholder = "Enter your prompt..."
-	ta.Focus()
-	ta.SetValue(initialInput)
-	ta.CursorEnd()
-	ta.CharLimit = 0
-	ta.SetHeight(1)
-	ta.MaxHeight = 0
-	ta.MaxWidth = 0
-	ta.Prompt = ""
-	ta.ShowLineNumbers = false
-
-	hsi := textinput.New()
-	hsi.Placeholder = "Fuzzy search..."
-	hsi.Prompt = "/"
-	hsi.Width = 50
-	hsi.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-
-	vp := viewport.New(80, 20) // Initial size, will be updated
-
-	renderer, err := glamour.NewTermRenderer(
+	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithStandardStyle(cfg.UI.MarkdownTheme),
-		glamour.WithWordWrap(vp.Width),
+		glamour.WithWordWrap(80),
 	)
-	if err != nil {
-		return Model{}, err
-	}
 
 	sess.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 
@@ -150,55 +64,16 @@ func NewModel(cfg *config.Config, mode string, initialInput string) (Model, erro
 	sort.Strings(availableCommands)
 
 	return Model{
-		TextArea:                 ta,
-		Viewport:                 vp,
-		Spinner:                  s,
-		Session:                  sess,
-		State:                    stateInitializing,
-		GlamourRenderer:          renderer,
-		IsStreaming:              false,
-		StreamBuffer:             "",
-		StreamDone:               false,
-		IsStreamAnime:            false,
-		LastRenderedAIPart:       "",
-		CtrlCPressed:             false,
-		TokenCount:               0,
-		IsCountingTokens:         false,
-		ShowPalette:              false,
-		IsFetchingModels:         true,
-		AvailableCommands:        availableCommands,
-		PaletteFilteredCommands:  []string{},
-		PaletteCursor:            0,
-		LastInteractionFailed:    false,
-		PaletteFilteredArguments: []string{},
-		IsCyclingCompletions:     false,
-		VisualMode:               visualModeNone,
-		VisualIsSelecting:        false,
-		Search:                   NewSearch(),
-		Finder:                   NewFinder(),
-		Tree:                     NewTree(),
-		messageLineOffsets:       make(map[int]int),
-		SearchQuery:              "",
-		SearchFocusMsgIndex:      -1,
-		SearchFocusLineNum:       -1,
-		QuickView:                NewQuickView(),
-		SelectableBlocks:         []messageBlock{},
-		VisualSelectCursor:       0,
-		VisualSelectStart:        0,
-		StatusBarMessage:         "",
-		AnimatingTitle:           false,
-		FullGeneratedTitle:       "",
-		DisplayedTitle:           "",
-		EditingMessageIndex:      -1,
-		HistoryItems:             nil,
-		HistoryCussorPos:         0,
-		HistorySearchInput:       hsi,
-		IsHistorySearching:       false,
-		FilteredHistoryItems:     nil,
-		HistoryGGPressed:         false,
-		PreserveInputOnSubmit:    false,
-		CommandHistory:           []string{},
-		CommandHistoryCursor:     0,
-		commandHistoryModified:   "",
+		Chat:              NewChat(initialInput),
+		VisualSelect:      NewVisualSelect(),
+		History:           NewHistory(),
+		Search:            NewSearch(),
+		Finder:            NewFinder(),
+		Tree:              NewTree(),
+		QuickView:         NewQuickView(),
+		Session:           sess,
+		State:             stateInitializing,
+		GlamourRenderer:   renderer,
+		AvailableCommands: availableCommands,
 	}, nil
 }

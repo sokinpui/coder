@@ -13,11 +13,11 @@ func (m Model) View() string {
 	if m.State == stateHistorySelect {
 		b.WriteString(m.historyHeaderView())
 	}
-	b.WriteString(m.Viewport.View())
+	b.WriteString(m.Chat.Viewport.View())
 	b.WriteString("\n")
 
 	if m.State != stateHistorySelect {
-		b.WriteString(textAreaStyle.Render(m.TextArea.View()))
+		b.WriteString(textAreaStyle.Render(m.Chat.TextArea.View()))
 		b.WriteString("\n")
 	}
 	b.WriteString(m.StatusView())

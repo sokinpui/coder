@@ -1,41 +1,65 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/history"
-
-	"github.com/sahilm/fuzzy"
-	"github.com/sokinpui/coder/internal/types"
+	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/sahilm/fuzzy"
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/types"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type HistoryModel struct {
+	Items         []history.ConversationInfo
+	FilteredItems []history.ConversationInfo
+	CursorPos     int
+	SearchInput   textinput.Model
+	IsSearching   bool
+	GGPressed     bool
+}
+
+func NewHistory() HistoryModel {
+	hsi := textinput.New()
+	hsi.Placeholder = "Fuzzy search..."
+	hsi.Prompt = "/"
+	hsi.Width = 50
+	hsi.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
+	return HistoryModel{
+		SearchInput: hsi,
+	}
+}
+
 func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-	if m.IsHistorySearching {
+	if m.History.IsSearching {
 		switch msg.Type {
 		case tea.KeyEnter:
-			m.IsHistorySearching = false
-			m.HistorySearchInput.Blur()
-			m.Viewport.SetContent(m.historyListView())
+			m.History.IsSearching = false
+			m.History.SearchInput.Blur()
+			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		case tea.KeyEsc, tea.KeyCtrlC:
-			m.IsHistorySearching = false
-			m.HistorySearchInput.Blur()
-			m.HistorySearchInput.Reset()
+			m.History.IsSearching = false
+			m.History.SearchInput.Blur()
+			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
-			m.Viewport.SetContent(m.historyListView())
+			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		}
 
 		var cmd tea.Cmd
-		m.HistorySearchInput, cmd = m.HistorySearchInput.Update(msg)
+		m.History.SearchInput, cmd = m.History.SearchInput.Update(msg)
 		m.updateHistoryFilter()
-		m.Viewport.SetContent(m.historyListView())
+		m.Chat.Viewport.SetContent(m.historyListView())
 		return m, cmd, true
 	}
 
-	prevGGPressed := m.HistoryGGPressed
-	m.HistoryGGPressed = false // Reset by default
+	prevGGPressed := m.History.GGPressed
+	m.History.GGPressed = false // Reset by default
 
 	switch msg.Type {
 	case tea.KeyCtrlD:
@@ -54,8 +78,8 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		return m, nil, true
 
 	case tea.KeyEsc, tea.KeyCtrlC:
-		m.HistoryItems = nil
-		if m.IsStreaming {
+		m.History.Items = nil
+		if m.Chat.IsStreaming {
 			// Return to the generation view
 			messages := m.Session.GetMessages()
 			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
@@ -64,52 +88,52 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 				m.State = stateGenerating
 			}
 			delay := m.Session.GetConfig().Generation.StreamDelay
-			m.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
-			return m, tea.Batch(listenForStream(m.StreamSub), streamAnimeCmd(delay), m.Spinner.Tick), true
+			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(delay), m.Chat.Spinner.Tick), true
 		} else {
 			// Return to idle
 			m.State = stateIdle
-			m.TextArea.Focus()
-			m.Viewport.SetContent(m.renderConversation())
+			m.Chat.TextArea.Focus()
+			m.Chat.Viewport.SetContent(m.renderConversation())
 			return m, textarea.Blink, true
 		}
 
 	case tea.KeyEnter:
-		if len(m.FilteredHistoryItems) == 0 || m.HistoryCussorPos >= len(m.FilteredHistoryItems) {
+		if len(m.History.FilteredItems) == 0 || m.History.CursorPos >= len(m.History.FilteredItems) {
 			return m, nil, true
 		}
-		selectedItem := m.FilteredHistoryItems[m.HistoryCussorPos]
-		if m.IsStreaming {
+		selectedItem := m.History.FilteredItems[m.History.CursorPos]
+		if m.Chat.IsStreaming {
 			m.Session.CancelGeneration()
-			m.IsStreaming = false // Prevent streamFinishedMsg from running
-			m.StreamSub = nil
+			m.Chat.IsStreaming = false // Prevent streamFinishedMsg from running
+			m.Chat.StreamSub = nil
 		}
 		return m, loadConversationCmd(m.Session, selectedItem.Filename), true
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
 		case "/":
-			m.IsHistorySearching = true
-			m.HistorySearchInput.Focus()
-			m.HistorySearchInput.Reset()
+			m.History.IsSearching = true
+			m.History.SearchInput.Focus()
+			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
-			m.Viewport.SetContent(m.historyListView())
+			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		case "g":
 			if prevGGPressed {
-				m.HistoryCussorPos = 0
-				m.Viewport.GotoTop()
-				m.Viewport.SetContent(m.historyListView())
+				m.History.CursorPos = 0
+				m.Chat.Viewport.GotoTop()
+				m.Chat.Viewport.SetContent(m.historyListView())
 			} else {
-				m.HistoryGGPressed = true
+				m.History.GGPressed = true
 			}
 			return m, nil, true
 		case "G":
-			if len(m.FilteredHistoryItems) > 0 {
-				m.HistoryCussorPos = len(m.FilteredHistoryItems) - 1
-				m.Viewport.GotoBottom()
-				m.Viewport.SetContent(m.historyListView())
+			if len(m.History.FilteredItems) > 0 {
+				m.History.CursorPos = len(m.History.FilteredItems) - 1
+				m.Chat.Viewport.GotoBottom()
+				m.Chat.Viewport.SetContent(m.historyListView())
 			}
 			return m, nil, true
 		case "d":
@@ -130,35 +154,35 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 }
 
 func (m *Model) moveHistoryCursor(delta int) {
-	newPos := m.HistoryCussorPos + delta
-	if newPos < 0 || newPos >= len(m.FilteredHistoryItems) {
+	newPos := m.History.CursorPos + delta
+	if newPos < 0 || newPos >= len(m.History.FilteredItems) {
 		return
 	}
 
-	m.HistoryCussorPos = newPos
+	m.History.CursorPos = newPos
 	m.centerHistoryViewport()
-	m.Viewport.SetContent(m.historyListView())
+	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m *Model) scrollHistoryHalfPage(down bool) {
-	if len(m.FilteredHistoryItems) == 0 {
+	if len(m.History.FilteredItems) == 0 {
 		return
 	}
-	scrollAmount := m.Viewport.Height / 2
-	m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), down)
+	scrollAmount := m.Chat.Viewport.Height / 2
+	m.History.CursorPos = cursorPosAfterScroll(m.History.CursorPos, scrollAmount, len(m.History.FilteredItems), down)
 	m.centerHistoryViewport()
-	m.Viewport.SetContent(m.historyListView())
+	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m *Model) centerHistoryViewport() {
-	if len(m.FilteredHistoryItems) == 0 {
+	if len(m.History.FilteredItems) == 0 {
 		return
 	}
 
-	halfHeight := m.Viewport.Height / 2
-	targetOffset := m.HistoryCussorPos - halfHeight
+	halfHeight := m.Chat.Viewport.Height / 2
+	targetOffset := m.History.CursorPos - halfHeight
 
-	maxOffset := len(m.FilteredHistoryItems) - m.Viewport.Height
+	maxOffset := len(m.History.FilteredItems) - m.Chat.Viewport.Height
 	if maxOffset < 0 {
 		maxOffset = 0
 	}
@@ -169,29 +193,64 @@ func (m *Model) centerHistoryViewport() {
 		targetOffset = maxOffset
 	}
 
-	m.Viewport.SetYOffset(targetOffset)
+	m.Chat.Viewport.SetYOffset(targetOffset)
 }
 
 func (m *Model) updateHistoryFilter() {
-	query := m.HistorySearchInput.Value()
+	query := m.History.SearchInput.Value()
 	if query == "" {
-		m.FilteredHistoryItems = m.HistoryItems
+		m.History.FilteredItems = m.History.Items
 		return
 	}
 
-	targets := make([]string, len(m.HistoryItems))
-	for i, item := range m.HistoryItems {
+	targets := make([]string, len(m.History.Items))
+	for i, item := range m.History.Items {
 		targets[i] = item.Title + " " + item.Filename
 	}
 
 	matches := fuzzy.Find(query, targets)
 	var filtered []history.ConversationInfo
 	for _, match := range matches {
-		filtered = append(filtered, m.HistoryItems[match.Index])
+		filtered = append(filtered, m.History.Items[match.Index])
 	}
 
-	m.FilteredHistoryItems = filtered
-	if m.HistoryCussorPos >= len(m.FilteredHistoryItems) {
-		m.HistoryCussorPos = max(0, len(m.FilteredHistoryItems)-1)
+	m.History.FilteredItems = filtered
+	if m.History.CursorPos >= len(m.History.FilteredItems) {
+		m.History.CursorPos = max(0, len(m.History.FilteredItems)-1)
 	}
+}
+
+func (m Model) historyHeaderView() string {
+	var b strings.Builder
+	if m.History.IsSearching {
+		b.WriteString("Search History: ")
+		b.WriteString(m.History.SearchInput.View())
+		b.WriteString("\n\n")
+	} else {
+		b.WriteString("Select a conversation to load (type / to search):\n\n")
+	}
+	return b.String()
+}
+
+func (m Model) historyListView() string {
+	var b strings.Builder
+
+	if len(m.History.FilteredItems) == 0 {
+		b.WriteString("  No matching history found.")
+		return b.String()
+	}
+
+	for i, item := range m.History.FilteredItems {
+		title := item.Title
+		date := fmt.Sprintf("(%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
+		if i == m.History.CursorPos {
+			b.WriteString(paletteSelectedItemStyle.Render("▸  " + title))
+			b.WriteString(paletteItemStyle.Render(" " + date))
+		} else {
+			b.WriteString(paletteItemStyle.Render("   " + title + " " + date))
+		}
+		b.WriteString("\n")
+	}
+
+	return b.String()
 }

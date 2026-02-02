@@ -6,7 +6,7 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, initTokenizerCmd(), fetchModelsCmd(m.Session.GetConfig()), m.Spinner.Tick)
+	return tea.Batch(textarea.Blink, initTokenizerCmd(), fetchModelsCmd(m.Session.GetConfig()), m.Chat.Spinner.Tick)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -17,7 +17,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Reset cycling flag on any key press that is not Tab.
 	if key, ok := msg.(tea.KeyMsg); ok && key.Type != tea.KeyTab && key.Type != tea.KeyShiftTab {
-		m.IsCyclingCompletions = false
+		m.Chat.IsCyclingCompletions = false
 	}
 
 	// Handle state-specific messages and key presses.
