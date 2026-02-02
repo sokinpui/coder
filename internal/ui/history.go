@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"github.com/sokinpui/coder/internal/history"
+
+	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -8,26 +11,49 @@ import (
 )
 
 func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	if m.IsHistorySearching {
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.IsHistorySearching = false
+			m.HistorySearchInput.Blur()
+			m.Viewport.SetContent(m.historyView())
+			return m, nil, true
+		case tea.KeyEsc, tea.KeyCtrlC:
+			m.IsHistorySearching = false
+			m.HistorySearchInput.Blur()
+			m.HistorySearchInput.Reset()
+			m.updateHistoryFilter()
+			m.Viewport.SetContent(m.historyView())
+			return m, nil, true
+		}
+
+		var cmd tea.Cmd
+		m.HistorySearchInput, cmd = m.HistorySearchInput.Update(msg)
+		m.updateHistoryFilter()
+		m.Viewport.SetContent(m.historyView())
+		return m, cmd, true
+	}
+
 	prevGGPressed := m.HistoryGGPressed
 	m.HistoryGGPressed = false // Reset by default
 
 	switch msg.Type {
 	case tea.KeyCtrlD:
-		if len(m.HistoryItems) == 0 {
+		if len(m.FilteredHistoryItems) == 0 {
 			return m, nil, true
 		}
 		scrollAmount := m.Viewport.Height / 2
 		m.Viewport.HalfPageDown()
-		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.HistoryItems), true)
+		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), true)
 		m.Viewport.SetContent(m.historyView())
 		return m, nil, true
 	case tea.KeyCtrlU:
-		if len(m.HistoryItems) == 0 {
+		if len(m.FilteredHistoryItems) == 0 {
 			return m, nil, true
 		}
 		scrollAmount := m.Viewport.Height / 2
 		m.Viewport.HalfPageUp()
-		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.HistoryItems), false)
+		m.HistoryCussorPos = cursorPosAfterScroll(m.HistoryCussorPos, scrollAmount, len(m.FilteredHistoryItems), false)
 		m.Viewport.SetContent(m.historyView())
 		return m, nil, true
 
@@ -62,10 +88,10 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		}
 
 	case tea.KeyEnter:
-		if len(m.HistoryItems) == 0 || m.HistoryCussorPos >= len(m.HistoryItems) {
+		if len(m.FilteredHistoryItems) == 0 || m.HistoryCussorPos >= len(m.FilteredHistoryItems) {
 			return m, nil, true
 		}
-		selectedItem := m.HistoryItems[m.HistoryCussorPos]
+		selectedItem := m.FilteredHistoryItems[m.HistoryCussorPos]
 		if m.IsStreaming {
 			m.Session.CancelGeneration()
 			m.IsStreaming = false // Prevent streamFinishedMsg from running
@@ -75,6 +101,13 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
+		case "/":
+			m.IsHistorySearching = true
+			m.HistorySearchInput.Focus()
+			m.HistorySearchInput.Reset()
+			m.updateHistoryFilter()
+			m.Viewport.SetContent(m.historyView())
+			return m, nil, true
 		case "g":
 			if prevGGPressed {
 				m.HistoryCussorPos = 0
@@ -85,8 +118,8 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			}
 			return m, nil, true
 		case "G":
-			if len(m.HistoryItems) > 0 {
-				m.HistoryCussorPos = len(m.HistoryItems) - 1
+			if len(m.FilteredHistoryItems) > 0 {
+				m.HistoryCussorPos = len(m.FilteredHistoryItems) - 1
 				m.Viewport.GotoBottom()
 				m.Viewport.SetContent(m.historyView())
 			}
@@ -104,7 +137,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 func (m *Model) moveHistoryCursor(delta int) {
 	newPos := m.HistoryCussorPos + delta
-	if newPos < 0 || newPos >= len(m.HistoryItems) {
+	if newPos < 0 || newPos >= len(m.FilteredHistoryItems) {
 		return
 	}
 
@@ -130,4 +163,28 @@ func (m *Model) moveHistoryCursor(delta int) {
 	}
 
 	m.Viewport.SetContent(m.historyView())
+}
+
+func (m *Model) updateHistoryFilter() {
+	query := m.HistorySearchInput.Value()
+	if query == "" {
+		m.FilteredHistoryItems = m.HistoryItems
+		return
+	}
+
+	targets := make([]string, len(m.HistoryItems))
+	for i, item := range m.HistoryItems {
+		targets[i] = item.Title + " " + item.Filename
+	}
+
+	matches := fuzzy.Find(query, targets)
+	var filtered []history.ConversationInfo
+	for _, match := range matches {
+		filtered = append(filtered, m.HistoryItems[match.Index])
+	}
+
+	m.FilteredHistoryItems = filtered
+	if m.HistoryCussorPos >= len(m.FilteredHistoryItems) {
+		m.HistoryCussorPos = max(0, len(m.FilteredHistoryItems)-1)
+	}
 }

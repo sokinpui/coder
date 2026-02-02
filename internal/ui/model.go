@@ -9,10 +9,12 @@ import (
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func min(a, b int) int {
@@ -93,6 +95,9 @@ type Model struct {
 	EditingMessageIndex      int
 	HistoryItems             []history.ConversationInfo
 	HistoryCussorPos         int
+	HistorySearchInput       textinput.Model
+	IsHistorySearching       bool
+	FilteredHistoryItems     []history.ConversationInfo
 	HistoryGGPressed         bool
 	PreserveInputOnSubmit    bool
 	CommandHistory           []string
@@ -120,6 +125,12 @@ func NewModel(cfg *config.Config, mode string, initialInput string) (Model, erro
 	ta.MaxWidth = 0
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
+
+	hsi := textinput.New()
+	hsi.Placeholder = "Fuzzy search..."
+	hsi.Prompt = "/"
+	hsi.Width = 50
+	hsi.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
 	vp := viewport.New(80, 20) // Initial size, will be updated
 
@@ -181,6 +192,9 @@ func NewModel(cfg *config.Config, mode string, initialInput string) (Model, erro
 		EditingMessageIndex:      -1,
 		HistoryItems:             nil,
 		HistoryCussorPos:         0,
+		HistorySearchInput:       hsi,
+		IsHistorySearching:       false,
+		FilteredHistoryItems:     nil,
 		HistoryGGPressed:         false,
 		PreserveInputOnSubmit:    false,
 		CommandHistory:           []string{},

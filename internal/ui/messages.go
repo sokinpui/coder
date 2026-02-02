@@ -293,6 +293,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 		m.HistoryItems = msg.items
+		m.FilteredHistoryItems = msg.items
 
 		currentFilename := m.Session.GetHistoryFilename()
 		initialCursorPos := 0
