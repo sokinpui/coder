@@ -6,6 +6,8 @@ import (
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
+	"os"
+	"strings"
 	"sort"
 
 	"github.com/charmbracelet/glamour"
@@ -46,7 +48,7 @@ type Model struct {
 	IsCountingTokens  bool
 }
 
-func NewModel(cfg *config.Config, mode string, initialInput string) (Model, error) {
+func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string) (Model, error) {
 	sess, err := session.New(cfg, mode)
 	if err != nil {
 		return Model{}, err
@@ -55,6 +57,27 @@ func NewModel(cfg *config.Config, mode string, initialInput string) (Model, erro
 		glamour.WithStandardStyle(cfg.UI.MarkdownTheme),
 		glamour.WithWordWrap(80),
 	)
+
+	if len(contextFiles) > 0 {
+		cfg.Context.Dirs = []string{}
+		cfg.Context.Files = []string{}
+		cfg.Context.Exclusions = []string{}
+		for _, p := range contextFiles {
+			p = strings.TrimSpace(p)
+			if p == "" {
+				continue
+			}
+			info, err := os.Stat(p)
+			if err != nil {
+				continue
+			}
+			if info.IsDir() {
+				cfg.Context.Dirs = append(cfg.Context.Dirs, p)
+			} else {
+				cfg.Context.Files = append(cfg.Context.Files, p)
+			}
+		}
+	}
 
 	sess.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 

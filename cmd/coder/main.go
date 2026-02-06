@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,7 @@ func main() {
 		Use:   "coder",
 		Short: "Coder is a TUI wrapper for LLM chat with code application shortcuts",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp("coding")
+			startApp("coding", readPipedInput(), nil)
 		},
 	}
 
@@ -29,7 +30,20 @@ func main() {
 		Use:   "chat",
 		Short: "Start Coder in chat mode (no project context)",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp("chat")
+			startApp("chat", readPipedInput(), nil)
+		},
+	}
+
+	fileCmd := &cobra.Command{
+		Use:   "file",
+		Short: "Start Coder with specific files from stdin as context",
+		Run: func(cmd *cobra.Command, args []string) {
+			input := readPipedInput()
+			var files []string
+			if strings.TrimSpace(input) != "" {
+				files = strings.Split(strings.TrimSpace(input), "\n")
+			}
+			startApp("coding", "", files)
 		},
 	}
 
@@ -43,6 +57,7 @@ func main() {
 
 	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
 	rootCmd.AddCommand(chatCmd)
+	rootCmd.AddCommand(fileCmd)
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -111,9 +126,9 @@ func runEditor(path string) {
 	}
 }
 
-func startApp(mode string) {
+func startApp(mode string, prompt string, contextFiles []string) {
 	logger.Init()
-	ui.Start(mode, readPipedInput())
+	ui.Start(mode, prompt, contextFiles)
 }
 
 func readPipedInput() string {
