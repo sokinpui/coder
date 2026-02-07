@@ -236,64 +236,60 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyTab, tea.KeyShiftTab:
+		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), ":")
 		numCommands := len(m.Chat.PaletteFilteredCommands)
 		numArgs := len(m.Chat.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
+		isPaletteActive := isCommand && m.Chat.ShowPalette && totalItems > 0
 
-		if !m.Chat.ShowPalette || totalItems == 0 {
-			return m, nil, true
-		}
-
-		// On the first Tab press, we just want to complete with the current selection (cursor 0).
-		// On subsequent Tab presses, we cycle.
-		// `isCyclingCompletions` tracks if we are in a cycle.
-		if !m.Chat.IsCyclingCompletions {
-			// This is the first Tab/Shift+Tab press.
-			if msg.Type == tea.KeyShiftTab {
-				// If it's Shift+Tab, start from the end.
-				m.Chat.PaletteCursor = totalItems - 1
-			}
-			// For a normal Tab, cursor is already 0, so we do nothing.
-		} else {
-			// We are already in a completion cycle.
-			switch msg.Type {
-			case tea.KeyTab:
-				m.Chat.PaletteCursor = (m.Chat.PaletteCursor + 1) % totalItems
-			case tea.KeyShiftTab:
-				m.Chat.PaletteCursor--
-				if m.Chat.PaletteCursor < 0 {
+		switch {
+		case isPaletteActive:
+			if !m.Chat.IsCyclingCompletions {
+				if msg.Type == tea.KeyShiftTab {
 					m.Chat.PaletteCursor = totalItems - 1
 				}
-			}
-		}
-		m.Chat.IsCyclingCompletions = true
-
-		var selectedItem string
-		isArgument := false
-		if m.Chat.PaletteCursor < numCommands {
-			selectedItem = m.Chat.PaletteFilteredCommands[m.Chat.PaletteCursor]
-		} else {
-			selectedItem = m.Chat.PaletteFilteredArguments[m.Chat.PaletteCursor-numCommands]
-			isArgument = true
-		}
-
-		val := m.Chat.TextArea.Value()
-		parts := strings.Fields(val)
-
-		if isArgument {
-			var prefixParts []string
-			if len(parts) > 0 && !strings.HasSuffix(val, " ") {
-				prefixParts = parts[:len(parts)-1]
 			} else {
-				prefixParts = parts
+				if msg.Type == tea.KeyTab {
+					m.Chat.PaletteCursor = (m.Chat.PaletteCursor + 1) % totalItems
+				} else {
+					m.Chat.PaletteCursor = (m.Chat.PaletteCursor - 1 + totalItems) % totalItems
+				}
 			}
-			m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+			m.Chat.IsCyclingCompletions = true
+
+			var selectedItem string
+			isArgument := false
+			if m.Chat.PaletteCursor < numCommands {
+				selectedItem = m.Chat.PaletteFilteredCommands[m.Chat.PaletteCursor]
+			} else {
+				selectedItem = m.Chat.PaletteFilteredArguments[m.Chat.PaletteCursor-numCommands]
+				isArgument = true
+			}
+
+			val := m.Chat.TextArea.Value()
+			parts := strings.Fields(val)
+
+			if isArgument {
+				var prefixParts []string
+				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
+					prefixParts = parts[:len(parts)-1]
+				} else {
+					prefixParts = parts
+				}
+				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				m = m.updateLayout()
+			} else {
+				m.Chat.TextArea.SetValue(selectedItem)
+				m = m.updateLayout()
+			}
+			m.Chat.TextArea.CursorEnd()
+			return m, nil, true
+
+		case msg.Type == tea.KeyTab:
+			m.Chat.TextArea.InsertString("  ")
 			m = m.updateLayout()
-		} else { // command/action
-			m.Chat.TextArea.SetValue(selectedItem)
-			m = m.updateLayout()
+			return m, nil, true
 		}
-		m.Chat.TextArea.CursorEnd()
 		return m, nil, true
 
 	case tea.KeyEnter:
