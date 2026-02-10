@@ -16,6 +16,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/synapse.go/client"
 )
@@ -174,17 +175,14 @@ func editInEditorCmd(content string) tea.Cmd {
 
 // getVisibleLines calculates the number of lines a text block will occupy
 // in the textarea, considering word wrapping.
-func getVisibleLines(text string, width int) int {
+func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	if width <= 0 {
 		// Avoid division by zero and handle cases where width is not yet set.
 		return 1
 	}
-	if text == "" {
-		return 1
-	}
 
-	lines := strings.Split(text, "\n")
 	visibleLineCount := 0
+	lines := strings.Split(ta.Value(), "\n")
 	for _, line := range lines {
 		lineWidth := lipgloss.Width(line)
 		if lineWidth == 0 {
@@ -192,6 +190,9 @@ func getVisibleLines(text string, width int) int {
 		} else {
 			// Integer division to calculate wrapped lines.
 			visibleLineCount += (lineWidth-1)/width + 1
+		}
+		if maxLines > 0 && visibleLineCount > maxLines {
+			return visibleLineCount
 		}
 	}
 	return visibleLineCount

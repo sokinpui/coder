@@ -50,6 +50,9 @@ func NewChat(initialInput string) ChatModel {
 	ta.SetHeight(1)
 	ta.Prompt = ""
 	ta.ShowLineNumbers = false
+	ta.CharLimit = 0
+	ta.MaxHeight = 0
+	ta.MaxWidth = 0
 
 	return ChatModel{
 		TextArea:           ta,

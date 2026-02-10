@@ -106,8 +106,9 @@ func (m Model) updatePalette() Model {
 
 // updateLayout recalculates the size and position of UI elements.
 func (m Model) updateLayout() Model {
-	visibleLines := getVisibleLines(m.Chat.TextArea.Value(), m.Chat.TextArea.Width())
-	inputHeight := min(visibleLines+1, m.Height/4)
+	maxHeight := m.Height / 4
+	visibleLines := getVisibleLines(m.Chat.TextArea, m.Chat.TextArea.Width(), maxHeight+1)
+	inputHeight := min(visibleLines+1, maxHeight)
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
 	statusViewHeight := lipgloss.Height(m.StatusView())
