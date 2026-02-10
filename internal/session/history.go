@@ -1,22 +1,34 @@
 package session
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/types"
-	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
+func (s *Session) hasConservation() bool {
+	for _, msg := range s.messages {
+		switch msg.Type {
+		case types.UserMessage, types.ImageMessage:
+			return true
+		case types.AIMessage:
+			if strings.TrimSpace(msg.Content) != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
-	historyContent := history.BuildHistorySnippet(s.messages)
-
-	// Don't save a session if it's a fresh, unmodified one.
-	if historyContent == "" && s.title == "New Chat" {
+	if !s.hasConservation() && s.title == "New Chat" {
 		return nil
 	}
 

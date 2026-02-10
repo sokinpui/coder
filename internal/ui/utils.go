@@ -182,8 +182,7 @@ func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	}
 
 	visibleLineCount := 0
-	lines := strings.Split(ta.Value(), "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(ta.Value(), "\n") {
 		lineWidth := lipgloss.Width(line)
 		if lineWidth == 0 {
 			visibleLineCount++ // Empty line still takes up one line.
@@ -236,9 +235,10 @@ func handlePasteCmd(cfg *config.Config) tea.Cmd {
 			}
 
 			ext := ".png"
-			if contentType == "image/jpeg" {
+			switch contentType {
+			case "image/jpeg":
 				ext = ".jpg"
-			} else if contentType == "image/webp" {
+			case "image/webp":
 				ext = ".webp"
 			}
 
