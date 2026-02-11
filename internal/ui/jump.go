@@ -59,6 +59,21 @@ func (m JumpModel) Update(msg tea.Msg) (JumpModel, tea.Cmd) {
 			m.Visible = false
 			return m, nil
 
+		case tea.KeyRunes:
+			switch msg.String() {
+			case "q":
+				m.Visible = false
+				return m, nil
+			case "j":
+				if m.Cursor < len(m.Items)-1 {
+					m.Cursor++
+				}
+			case "k":
+				if m.Cursor > 0 {
+					m.Cursor--
+				}
+			}
+
 		case tea.KeyCtrlU:
 			m.Cursor -= m.Height / 2
 			if m.Cursor < 0 {
