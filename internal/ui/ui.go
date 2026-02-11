@@ -28,6 +28,7 @@ func Start(mode string, initialInput string, contextFiles []string) {
 		&SearchOverlay{},
 		&QuickViewOverlay{},
 		&TreeOverlay{},
+		&JumpOverlay{},
 	}
 
 	p := tea.NewProgram(

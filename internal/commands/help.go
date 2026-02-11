@@ -59,7 +59,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+F", desc: "Open command finder (fzf)."},
 	{key: "Ctrl+T", desc: "Open a file tree to select files/directories for context."},
 	{key: "Ctrl+P", desc: "Fuzzy Search current conversation."},
-	{key: "Ctrl+Q", desc: "Quick view of last two messages."},
+	{key: "Ctrl+Q", desc: "Open jump mode to jump to a message."},
 	{key: "Ctrl+L", desc: "Quick view of project context (:list-all)."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},

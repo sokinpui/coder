@@ -28,6 +28,8 @@ const (
 	TreeModeStarted
 	// fzf mode
 	FzfModeStarted
+	// jump mode
+	JumpModeStarted
 	// Quit indicates the application should quit.
 	Quit
 )

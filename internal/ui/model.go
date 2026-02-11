@@ -34,6 +34,7 @@ type Model struct {
 	Finder       FinderModel
 	Search       SearchModel
 	Tree         TreeModel
+	Jump         JumpModel
 	QuickView    *QuickViewModel
 
 	Session           *session.Session
@@ -93,6 +94,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		Search:            NewSearch(),
 		Finder:            NewFinder(),
 		Tree:              NewTree(),
+		Jump:              NewJump(),
 		QuickView:         NewQuickView(),
 		Session:           sess,
 		State:             stateInitializing,

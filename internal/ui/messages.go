@@ -429,6 +429,37 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 
+	case jumpResultMsg:
+		m.State = stateIdle
+		m.Chat.TextArea.Focus()
+
+		content, offsets := m.renderConversationWithOffsets()
+		m.Chat.MessageLineOffsets = offsets
+		m.Chat.Viewport.SetContent(content)
+
+		if line, ok := m.Chat.MessageLineOffsets[msg.msgIndex]; ok {
+			// Determine if there's a border offset based on message type
+			borderOffset := 0
+			messageType := m.Session.GetMessages()[msg.msgIndex].Type
+			if messageType == types.UserMessage {
+				borderOffset = 1
+			}
+
+			absoluteLine := line + borderOffset
+
+			// Center the message in the viewport
+			offset := absoluteLine - (m.Chat.Viewport.Height / 2)
+			if offset < 0 {
+				offset = 0
+			}
+			m.Chat.Viewport.SetYOffset(offset)
+			m.StatusBarMessage = fmt.Sprintf("Jumped to message %d.", msg.msgIndex)
+		} else {
+			m.StatusBarMessage = fmt.Sprintf("Could not find line offset for message %d.", msg.msgIndex)
+		}
+
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+
 	case treeReadyMsg:
 		m.Tree.root = msg.root
 		m.Tree.expandSelectedNodes()

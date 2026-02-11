@@ -16,6 +16,7 @@ const (
 	stateFinder
 	stateSearch
 	stateTree
+	stateJump
 )
 
 type modelsFetchedMsg struct {
@@ -65,5 +66,8 @@ type (
 	}
 	treeSelectionResultMsg struct {
 		selectedPaths []string
+	}
+	jumpResultMsg struct {
+		msgIndex int
 	}
 )

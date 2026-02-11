@@ -91,6 +91,15 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Tree.loadInitialSelection(m.Session.GetConfig())
 		m.IsCountingTokens = true
 		return m, tea.Batch(m.Tree.initCmd(), countTokensCmd(m.Session.GetPrompt()))
+	case types.JumpModeStarted:
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.State = stateJump
+		m.Chat.TextArea.Blur()
+		m.Jump.Visible = true
+		m.Jump.UpdateItems(m.Session.GetMessages())
+		m.IsCountingTokens = true
+		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()))
 
 	case types.Quit:
 		m.Quitting = true

@@ -70,32 +70,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlZ:
 		return m, tea.Suspend, true // Suspend the application
 	case tea.KeyCtrlQ:
-		// This now just opens the quick view
-		messages := m.Session.GetMessages()
-		var lastTwo []types.Message
-		var lastNMessages int = 4
-		count := 0
-		for i := len(messages) - 1; i >= 0 && count < lastNMessages; i-- {
-			msg := messages[i]
-			// Don't show system messages or empty AI messages
-			if msg.Type == types.InitMessage || msg.Type == types.DirectoryMessage {
-				continue
-			}
-			if msg.Type == types.AIMessage && msg.Content == "" {
-				continue
-			}
-			lastTwo = append(lastTwo, msg)
-			count++
-		}
-		// reverse to get correct order
-		for i, j := 0, len(lastTwo)-1; i < j; i, j = i+1, j-1 {
-			lastTwo[i], lastTwo[j] = lastTwo[j], lastTwo[i]
-		}
-
-		m.QuickView.SetMessages(lastTwo)
-		m.QuickView.Visible = true
-		m.Chat.TextArea.Blur()
-		return m, nil, true
+		event := m.Session.HandleInput(":jump")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
 	}
 
 	// Handle scrolling for non-history states.
@@ -141,6 +118,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		newTree, cmd := m.Tree.Update(msg)
 		m.Tree = newTree
 		if !m.Tree.Visible {
+			m.State = stateIdle
+			m.Chat.TextArea.Focus()
+			return m, tea.Batch(cmd, textarea.Blink), true
+		}
+		return m, cmd, true
+	case stateJump:
+		newJump, cmd := m.Jump.Update(msg)
+		m.Jump = newJump
+		if !m.Jump.Visible {
 			m.State = stateIdle
 			m.Chat.TextArea.Focus()
 			return m, tea.Batch(cmd, textarea.Blink), true
