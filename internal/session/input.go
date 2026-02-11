@@ -36,7 +36,9 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		case types.NewSessionStarted, types.Quit:
 			// These events typically don't log to the message history
 			return types.Event{Type: cmdOutput.Type}
-		case types.MessagesUpdated, types.NoOp:
+		case types.NoOp:
+			return types.Event{Type: types.NoOp}
+		case types.MessagesUpdated:
 			// Fall through to standard logging below
 		default:
 			// Mode transition events: log the command call then return transition event.

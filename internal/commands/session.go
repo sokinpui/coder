@@ -30,7 +30,7 @@ func hasSelectableMessages(messages []types.Message) bool {
 func genCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter generate mode: no messages to select."}, false
+		return CommandOutput{Type: types.NoOp}, true
 	}
 	return CommandOutput{Type: types.GenerateModeStarted}, true
 }
@@ -38,7 +38,7 @@ func genCmd(args string, s SessionController) (CommandOutput, bool) {
 func editModeCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter edit mode: no messages to select."}, false
+		return CommandOutput{Type: types.NoOp}, true
 	}
 	return CommandOutput{Type: types.EditModeStarted}, true
 }
@@ -46,7 +46,7 @@ func editModeCmd(args string, s SessionController) (CommandOutput, bool) {
 func visualCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter visual mode: no messages to select."}, false
+		return CommandOutput{Type: types.NoOp}, true
 	}
 	return CommandOutput{Type: types.VisualModeStarted}, true
 }
@@ -54,7 +54,7 @@ func visualCmd(args string, s SessionController) (CommandOutput, bool) {
 func branchCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter branch mode: no messages to select."}, false
+		return CommandOutput{Type: types.NoOp}, true
 	}
 	return CommandOutput{Type: types.BranchModeStarted}, true
 }
@@ -66,7 +66,7 @@ func historyCmd(args string, s SessionController) (CommandOutput, bool) {
 func jumpCmd(args string, s SessionController) (CommandOutput, bool) {
 	messages := s.GetMessages()
 	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Cannot enter jump mode: no messages to select."}, false
+		return CommandOutput{Type: types.NoOp}, true
 	}
 	return CommandOutput{Type: types.JumpModeStarted}, true
 }
