@@ -89,7 +89,7 @@ var historyViewGropu = helpGroup{
 	{key: "gg / G", desc: "Go to top / bottom."},
 	{key: "/", desc: "Fuzzy search history."},
 	{key: "Enter", desc: "Load selected conversation."},
-	{key: "Esc", desc: "Close history view."},
+	{key: "q / Esc", desc: "Close history view."},
 }
 
 var helpPageDesc = []helpSection{

@@ -113,6 +113,8 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
+		case "q":
+			return m.handleKeyPressHistory(tea.KeyMsg{Type: tea.KeyEsc})
 		case "/":
 			m.History.IsSearching = true
 			m.History.SearchInput.Focus()
