@@ -17,7 +17,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	// If quick view is visible, it gets priority on key presses.
 	if m.QuickView.Visible {
 		switch msg.Type {
-		case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ:
+		case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ, tea.KeyEnter:
 			m.QuickView.Visible = false
 			if m.State == stateIdle {
 				m.Chat.TextArea.Focus()
@@ -25,6 +25,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			return m, nil, true
 		}
+
+		if msg.Type == tea.KeyRunes && msg.String() == "q" {
+			m.QuickView.Visible = false
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+				return m, textarea.Blink, true
+			}
+			return m, nil, true
+		}
+
 		// Let quickview handle its own scrolling etc.
 		cmd := m.QuickView.Update(msg)
 		return m, cmd, true
