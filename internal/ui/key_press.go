@@ -70,7 +70,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case tea.KeyCtrlZ:
 		return m, tea.Suspend, true // Suspend the application
 	case tea.KeyCtrlQ:
-		event := m.Session.HandleInput(":jump")
+		event := m.Session.HandleShortcut(":jump")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 	}

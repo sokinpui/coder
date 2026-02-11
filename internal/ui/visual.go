@@ -102,11 +102,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		// Execute itf
 		result, success := commands.ExecuteItf(aiResponseToApply, "")
 
-		// Add messages to show command execution
-		m.Session.AddMessages(types.Message{
-			Type:    types.CommandMessage,
-			Content: ":itf (from visual mode)",
-		})
 		if success {
 			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: result})
 		} else {
@@ -297,7 +292,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.IsStreaming = false
 				m.Chat.StreamSub = nil
 			}
-			event := m.Session.HandleInput(":new")
+			event := m.Session.HandleShortcut(":new")
 			if event.Type == types.NewSessionStarted {
 				newModel, cmd := m.newSession()
 				newModel.State = stateIdle

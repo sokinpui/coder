@@ -340,7 +340,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 
 	case tea.KeyCtrlH:
-		event := m.Session.HandleInput(":history")
+		event := m.Session.HandleShortcut(":history")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
@@ -354,33 +354,33 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case tea.KeyCtrlN:
-		event := m.Session.HandleInput(":new")
+		event := m.Session.HandleShortcut(":new")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case tea.KeyCtrlB:
-		event := m.Session.HandleInput(":branch")
+		event := m.Session.HandleShortcut(":branch")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case tea.KeyCtrlF:
-		event := m.Session.HandleInput(":fzf")
+		event := m.Session.HandleShortcut(":fzf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case tea.KeyCtrlT:
-		event := m.Session.HandleInput(":tree")
+		event := m.Session.HandleShortcut(":tree")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
-		event := m.Session.HandleInput(":itf")
+		event := m.Session.HandleShortcut(":itf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case tea.KeyCtrlP:
-		event := m.Session.HandleInput(":search")
+		event := m.Session.HandleShortcut(":search")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
