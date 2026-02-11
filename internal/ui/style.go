@@ -59,10 +59,7 @@ var (
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("9")). // Red
 				Foreground(lipgloss.Color("9")).       // Red
-				Padding(0, 1).
-				BorderTop(false).
-				BorderBottom(false).
-				BorderRight(false)
+				Padding(0, 1)
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 	statusBarTitleStyle = lipgloss.NewStyle().
