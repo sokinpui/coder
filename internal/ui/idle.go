@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/types"
 	"fmt"
+	"github.com/sokinpui/coder/internal/types"
 	"strings"
 	"time"
 
@@ -375,7 +375,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyCtrlA:
 		// Equivalent to typing ":itf" and pressing enter.
-		event := m.Session.HandleShortcut(":itf")
+		event := m.Session.HandleInput(":itf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
