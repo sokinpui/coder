@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	projectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
-	conversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
+	ProjectSourceCodeHeader   = "# PROJECT SOURCE CODE\n\n"
+	ConversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 	Separator                 = "\n\n---\n\n"
 )
 
@@ -61,7 +61,7 @@ func RoleSection(role, instructions string) PromptSection {
 // ProjectSourceCodeSection creates a prompt section for project source code.
 func ProjectSourceCodeSection(content string) PromptSection {
 	return PromptSection{
-		Header:    projectSourceCodeHeader,
+		Header:    ProjectSourceCodeHeader,
 		Content:   content,
 		Separator: Separator,
 	}
@@ -70,19 +70,19 @@ func ProjectSourceCodeSection(content string) PromptSection {
 // ConversationHistorySection creates a prompt section for the conversation history.
 func ConversationHistorySection(messages []types.Message) PromptSection {
 	if len(messages) == 0 {
-		return PromptSection{Separator: Separator}
+		return PromptSection{}
 	}
 
-	content := BuildHistoryString(messages)
+	content := BuildChatString(messages)
 
 	return PromptSection{
-		Header:  conversationHistoryHeader,
+		Header:  ConversationHistoryHeader,
 		Content: content,
 	}
 }
 
-// BuildHistoryString constructs the conversation history part of the prompt.
-func BuildHistoryString(messages []types.Message) string {
+// BuildChatString constructs the conversation history part of the prompt.
+func BuildChatString(messages []types.Message) string {
 	var sb strings.Builder
 	for _, msg := range messages {
 		switch msg.Type {

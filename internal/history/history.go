@@ -3,10 +3,11 @@ package history
 import (
 	"bufio"
 	"bytes"
-	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"encoding/json"
 	"fmt"
+	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -71,10 +72,8 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	}
 
 	if historyContent != "" {
-		if contentBuilder.Len() > 0 {
-			contentBuilder.WriteString("\n\n---\n\n")
-		}
-		contentBuilder.WriteString("# CONVERSATION HISTORY\n\n")
+		contentBuilder.WriteString(modes.Separator)
+		contentBuilder.WriteString(modes.ConversationHistoryHeader)
 		contentBuilder.WriteString(historyContent)
 	}
 
