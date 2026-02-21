@@ -15,8 +15,8 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	var b strings.Builder
 
-	b.WriteString("grpc:\n")
-	b.WriteString(fmt.Sprintf("  addr: %s\n", cfg.GRPC.Addr))
+	b.WriteString("server:\n")
+	b.WriteString(fmt.Sprintf("  addr: %s\n", cfg.Server.Addr))
 	b.WriteString("generation:\n")
 	b.WriteString(fmt.Sprintf("  modelcode: %s\n", cfg.Generation.ModelCode))
 	b.WriteString(fmt.Sprintf("  temperature: %.1f\n", cfg.Generation.Temperature))

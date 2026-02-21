@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
@@ -9,16 +10,16 @@ import (
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/token"
 	"github.com/sokinpui/coder/internal/utils"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textarea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/sokinpui/synapse.go/client"
 )
 
 const statusBarMessageDuration = 1 * time.Second
@@ -39,18 +40,30 @@ func listenForStream(sub chan string) tea.Cmd {
 
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
-		c, err := client.New(cfg.GRPC.Addr)
+		addr := cfg.Server.Addr
+		if !strings.HasPrefix(addr, "http") {
+			addr = "http://" + addr
+		}
+		addr = strings.TrimSuffix(addr, "/")
+
+		resp, err := http.Get(addr + "/models")
 		if err != nil {
 			return modelsFetchedMsg{err: fmt.Errorf("error connecting to server: %w", err)}
 		}
-		defer c.Close()
+		defer resp.Body.Close()
 
-		models, err := c.ListModels(context.Background())
-		if err != nil {
-			return modelsFetchedMsg{err: fmt.Errorf("error fetching models from server: %w", err)}
+		if resp.StatusCode != http.StatusOK {
+			return modelsFetchedMsg{err: fmt.Errorf("server returned status %d", resp.StatusCode)}
 		}
 
-		return modelsFetchedMsg{models: models}
+		var result struct {
+			Models []string `json:"models"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return modelsFetchedMsg{err: fmt.Errorf("error decoding models: %w", err)}
+		}
+
+		return modelsFetchedMsg{models: result.Models}
 	}
 }
 

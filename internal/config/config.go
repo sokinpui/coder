@@ -23,9 +23,9 @@ type Clipboard struct {
 	PasteCmd string
 }
 
-// GRPC contains gRPC server configuration.
-type GRPC struct {
-	Addr string
+// Server contains the API server configuration.
+type Server struct {
+	Addr string // e.g. "http://localhost:8080"
 }
 
 // Generation contains model generation parameters.
@@ -46,7 +46,7 @@ type UI struct {
 
 // Config holds the application configuration.
 type Config struct {
-	GRPC            GRPC
+	Server          Server
 	Generation      Generation
 	Context         Context
 	Clipboard       Clipboard
@@ -59,7 +59,7 @@ func Load() (*Config, error) {
 	v := viper.New()
 
 	// Set default values
-	v.SetDefault("grpc.addr", "localhost:50051")
+	v.SetDefault("server.addr", "http://localhost:8080")
 	v.SetDefault("generation.modelcode", "gemini-2.5-pro")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite-preview-09-2025")
 	v.SetDefault("generation.temperature", 0.0)

@@ -1,6 +1,6 @@
-# # gRPC server address for the generation service.
-# grpc:
-#   addr: localhost:50051
+# # API server address for the generation service.
+# server:
+#   addr: http://localhost:8080
 
 # # Model generation parameters.
 # generation:
