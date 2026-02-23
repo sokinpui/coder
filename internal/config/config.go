@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/sokinpui/coder/internal/utils"
 	"fmt"
+	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -112,6 +112,10 @@ func Load() (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	if !strings.HasPrefix(cfg.Server.Addr, "http") {
+		cfg.Server.Addr = "http://" + cfg.Server.Addr
 	}
 
 	return &cfg, nil

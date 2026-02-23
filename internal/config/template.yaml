@@ -1,40 +1,24 @@
-# # API server address for the generation service.
 # server:
 #   addr: http://localhost:8080
 
-# # Model generation parameters.
 # generation:
-#   # The model code to use for generation.
 #   modelcode: gemini-3-flash-preview
-#   # The model code to use for title generation.
-#   titlemodelcode: gemini-2.5-flash-lite-preview-09-2025
-#   # The temperature for sampling.
+#   titlemodelcode: gemini-2.5-flash-lite
 #   temperature: 0.0
-#   # The top-p value for nucleus sampling.
 #   topp: 0.95
-#   # The top-k value for top-k sampling.
 #   topk: 0
-#   # The maximum output length.
 #   outputlength: 65536
-#   # The delay in milliseconds for streaming text animation.
 #   streamdelay: 0
 
-# # Context specifies the files and directories to be included as project source.
-# context:
-#   # Directories to include. Defaults to the current directory.
-#   dirs:
-#     - .
-#   # Specific files to include.
-#   files:
-#   # Files/directories to exclude. Globs are supported.
-#   exclusions:
-
-# # Optional custom commands for clipboard operations.
 # clipboard:
 #   copycmd: ""
 #   pastecmd: ""
 
-# # User interface settings.
+# context:
+#   dirs:
+#     - .
+#   files:
+#   exclusions:
+
 # ui:
-#   # The Glamour theme to use for Markdown rendering (e.g., dark, light, dracula). Use 'notty' for plain text without highlighting.
 #   markdowntheme: dark

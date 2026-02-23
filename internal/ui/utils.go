@@ -40,15 +40,11 @@ func listenForStream(sub chan string) tea.Cmd {
 
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
-		addr := cfg.Server.Addr
-		if !strings.HasPrefix(addr, "http") {
-			addr = "http://" + addr
-		}
-		addr = strings.TrimSuffix(addr, "/")
+		endpoint := strings.TrimSuffix(cfg.Server.Addr, "/") + "/models"
 
-		resp, err := http.Get(addr + "/models")
+		resp, err := http.Get(endpoint)
 		if err != nil {
-			return modelsFetchedMsg{err: fmt.Errorf("error connecting to server: %w", err)}
+			return modelsFetchedMsg{err: fmt.Errorf("failed to reach %s: %w", endpoint, err)}
 		}
 		defer resp.Body.Close()
 

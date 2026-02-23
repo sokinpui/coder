@@ -19,13 +19,9 @@ type Generator struct {
 }
 
 func New(cfg *config.Config) (*Generator, error) {
-	addr := cfg.Server.Addr
-	if !strings.HasPrefix(addr, "http") {
-		addr = "http://" + addr
-	}
 	return &Generator{
 		Config:     cfg.Generation,
-		ServerAddr: strings.TrimSuffix(addr, "/"),
+		ServerAddr: strings.TrimSuffix(cfg.Server.Addr, "/"),
 	}, nil
 }
 
