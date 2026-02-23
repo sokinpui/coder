@@ -35,14 +35,16 @@ func main() {
 	}
 
 	fileCmd := &cobra.Command{
-		Use:   "file",
-		Short: "Start Coder with specific files from stdin as context",
+		Use:   "file [files...]",
+		Short: "Start Coder with specific files as context (from args or stdin)",
 		Run: func(cmd *cobra.Command, args []string) {
-			input := readPipedInput()
 			var files []string
-			if strings.TrimSpace(input) != "" {
+			if len(args) > 0 {
+				files = args
+			} else if input := readPipedInput(); strings.TrimSpace(input) != "" {
 				files = strings.Split(strings.TrimSpace(input), "\n")
 			}
+
 			startApp("coding", "", files)
 		},
 	}
