@@ -11,6 +11,7 @@ import (
 // CodingMode is the strategy for the standard coding assistant mode.
 type CodingMode struct {
 	projectSourceCode string
+	instruction       string
 }
 
 // GetRolePrompt returns the coding role.
@@ -36,9 +37,14 @@ func (m *CodingMode) StartGeneration(s SessionController) types.Event {
 
 // BuildPrompt constructs the prompt for coding mode.
 func (m *CodingMode) BuildPrompt(messages []types.Message) string {
+	instr := m.instruction
+	if instr == "" {
+		instr = prompt.CoderInstructions
+	}
+
 	return BuildPrompt(PromptSectionArray{
 		Sections: []PromptSection{
-			RoleSection(m.GetRolePrompt(), prompt.CoderInstructions),
+			RoleSection(m.GetRolePrompt(), instr),
 			ProjectSourceCodeSection(m.projectSourceCode),
 			ConversationHistorySection(messages),
 		},

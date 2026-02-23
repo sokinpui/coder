@@ -49,8 +49,8 @@ type Model struct {
 	IsCountingTokens  bool
 }
 
-func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string) (Model, error) {
-	sess, err := session.New(cfg, mode)
+func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string, instruction string) (Model, error) {
+	sess, err := session.New(cfg, mode, instruction)
 	if err != nil {
 		return Model{}, err
 	}

@@ -16,13 +16,19 @@ import (
 )
 
 var globalConfig bool
+var initialPrompt string
+var customInstruction string
 
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "coder",
 		Short: "Coder is a TUI wrapper for LLM chat with code application shortcuts",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp("coding", readPipedInput(), nil)
+			prompt := initialPrompt
+			if prompt == "" {
+				prompt = readPipedInput()
+			}
+			startApp("coding", prompt, nil, customInstruction)
 		},
 	}
 
@@ -30,7 +36,7 @@ func main() {
 		Use:   "chat",
 		Short: "Start Coder in chat mode (no project context)",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp("chat", readPipedInput(), nil)
+			startApp("chat", readPipedInput(), nil, customInstruction)
 		},
 	}
 
@@ -45,7 +51,7 @@ func main() {
 				files = strings.Split(strings.TrimSpace(input), "\n")
 			}
 
-			startApp("coding", "", files)
+			startApp("coding", initialPrompt, files, customInstruction)
 		},
 	}
 
@@ -58,6 +64,8 @@ func main() {
 	}
 
 	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
+	rootCmd.PersistentFlags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
+	rootCmd.PersistentFlags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(fileCmd)
 	rootCmd.AddCommand(configCmd)
@@ -128,9 +136,9 @@ func runEditor(path string) {
 	}
 }
 
-func startApp(mode string, prompt string, contextFiles []string) {
+func startApp(mode string, prompt string, contextFiles []string, instruction string) {
 	logger.Init()
-	ui.Start(mode, prompt, contextFiles)
+	ui.Start(mode, prompt, contextFiles, instruction)
 }
 
 func readPipedInput() string {

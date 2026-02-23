@@ -8,14 +8,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func Start(mode string, initialInput string, contextFiles []string) {
+func Start(mode string, initialInput string, contextFiles []string, instruction string) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("Error loading configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	mainModel, err := NewModel(cfg, mode, initialInput, contextFiles)
+	mainModel, err := NewModel(cfg, mode, initialInput, contextFiles, instruction)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
 		os.Exit(1)

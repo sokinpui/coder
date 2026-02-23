@@ -23,15 +23,16 @@ type Session struct {
 	historyFilename  string
 	createdAt        time.Time
 	modeStrategy     modes.ModeStrategy
+	customInstruction string
 }
 
-func New(cfg *config.Config, mode string) (*Session, error) {
-	strategy := modes.GetStrategy(mode)
-	return NewWithMessages(cfg, nil, strategy)
+func New(cfg *config.Config, mode string, instruction string) (*Session, error) {
+	strategy := modes.GetStrategy(mode, instruction)
+	return NewWithMessages(cfg, nil, strategy, instruction)
 }
 
 // NewWithMessages creates a new session with a pre-existing set of messages.
-func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy) (*Session, error) {
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy, instruction string) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 		createdAt:       time.Now(),
 		historyFilename: "",
 		modeStrategy:    strategy,
+		customInstruction: instruction,
 	}, nil
 }
 

@@ -114,7 +114,7 @@ func (s *Session) LoadConversation(filename string) error {
 }
 
 func (s *Session) NewSession() {
-	s.resetSession(modes.NewStrategy())
+	s.resetSession(modes.NewStrategy(s.customInstruction))
 }
 
 func (s *Session) StartChatSession() {
@@ -162,7 +162,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
 	// NewWithMessages makes a defensive copy, so this is safe.
-	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.customInstruction)
 	if err != nil {
 		return nil, err
 	}
