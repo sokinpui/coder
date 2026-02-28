@@ -4,7 +4,7 @@ This document provides an overview of the Coder project's architecture, componen
 
 ## High-Level Overview
 
-Coder is a Terminal User Interface (TUI) application written in Go. It acts as a client to an external gRPC-based AI service for code generation, and is designed to be run locally from within a Git repository.
+Coder is a Terminal User Interface (TUI) application written in Go. It acts as a client to an external AI service (typically via a proxy like Synapse) for code generation, and is designed to be run locally from within a Git repository.
 
 ```
 +------------------+
@@ -18,7 +18,7 @@ Coder is a Terminal User Interface (TUI) application written in Go. It acts as a
 +------------------+
          |
 +------------------+
-|  gRPC Client for |
+|   HTTP Client for|
 |    AI Service    |
 +------------------+
 ```
@@ -35,7 +35,7 @@ This directory contains the shared business logic for both applications.
 
 - **`session`**: The central component for state management. It manages the conversation history, configuration, and orchestrates interactions between the UI and other components.
 - **`commands`**: Handles the processing of user input commands (e.g., `:mode`, `:file`).
-- **`generation`**: Contains the client for the external AI gRPC service. It is responsible for sending prompts and receiving generated content streams.
+- **`generation`**: Contains the client for the external AI service via HTTP. It is responsible for sending prompts and receiving generated content streams using Server-Sent Events (SSE) logic.
 - **`history`**: Manages the persistence of conversations. Sessions are saved as Markdown files with YAML frontmatter in the `.coder/history` directory at the root of the Git repository.
 - **`ui`**: The implementation of the TUI, including all models, views, and updates for the `bubbletea` framework.
 
@@ -57,7 +57,7 @@ The TUI flow uses direct function calls between the `ui` and `session` packages.
 
 1. The `ui` package sends the input string to the `session` manager.
 2. The `session` manager processes the input. It constructs the full prompt including system instructions, context, and conversation history using the current `mode` strategy.
-3. The `session` calls the `generation` client to send the prompt to the AI service.
-4. The `generation` client streams the response back to the `session`.
+3. The `session` calls the `generation` client to send the prompt to the AI service via an HTTP POST request.
+4. The `generation` client reads the response stream and sends tokens back to the `session`.
 5. The `session` forwards the stream to the `ui`, which updates the display in real-time.
 6. Upon completion, the `session` saves the full conversation to the history file.
