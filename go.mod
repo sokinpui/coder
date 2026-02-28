@@ -11,10 +11,9 @@ require (
 	github.com/eliben/go-sentencepiece v0.7.0
 	github.com/rmhubbert/bubbletea-overlay v0.6.4
 	github.com/sahilm/fuzzy v0.1.1
-	github.com/sokinpui/itf v0.2.3
+	github.com/sokinpui/itf v0.2.4
 	github.com/sokinpui/pcat v0.2.0
 	github.com/sokinpui/sf v0.2.2
-	github.com/sokinpui/synapse.go v0.1.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	google.golang.org/genai v1.44.0
@@ -69,7 +68,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/yuin/goldmark v1.7.16 // indirect
+	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
