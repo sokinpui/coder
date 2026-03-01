@@ -21,14 +21,23 @@ var customInstruction string
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "coder",
+		Use:   "coder [files...]",
 		Short: "Coder is a TUI wrapper for LLM chat with code application shortcuts",
 		Run: func(cmd *cobra.Command, args []string) {
-			prompt := initialPrompt
-			if prompt == "" {
-				prompt = readPipedInput()
+			files := args
+			piped := readPipedInput()
+
+			if piped != "" && isFileList(piped) {
+				lines := strings.Split(strings.TrimSpace(piped), "\n")
+				for _, line := range lines {
+					line = strings.TrimSpace(line)
+					if line != "" {
+						files = append(files, line)
+					}
+				}
 			}
-			startApp("coding", prompt, nil, customInstruction)
+
+			startApp("coding", initialPrompt, files, customInstruction)
 		},
 	}
 
@@ -36,22 +45,7 @@ func main() {
 		Use:   "chat",
 		Short: "Start Coder in chat mode (no project context)",
 		Run: func(cmd *cobra.Command, args []string) {
-			startApp("chat", readPipedInput(), nil, customInstruction)
-		},
-	}
-
-	fileCmd := &cobra.Command{
-		Use:   "file [files...]",
-		Short: "Start Coder with specific files as context (from args or stdin)",
-		Run: func(cmd *cobra.Command, args []string) {
-			var files []string
-			if len(args) > 0 {
-				files = args
-			} else if input := readPipedInput(); strings.TrimSpace(input) != "" {
-				files = strings.Split(strings.TrimSpace(input), "\n")
-			}
-
-			startApp("coding", initialPrompt, files, customInstruction)
+			startApp("chat", initialPrompt, nil, customInstruction)
 		},
 	}
 
@@ -67,7 +61,6 @@ func main() {
 	rootCmd.PersistentFlags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
 	rootCmd.PersistentFlags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 	rootCmd.AddCommand(chatCmd)
-	rootCmd.AddCommand(fileCmd)
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -157,4 +150,22 @@ func readPipedInput() string {
 	}
 
 	return string(bytes)
+}
+
+func isFileList(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return false
+	}
+	lines := strings.Split(trimmed, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if _, err := os.Stat(line); err != nil {
+			return false
+		}
+	}
+	return true
 }
