@@ -244,6 +244,11 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.GotoBottom()
 		return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...)), true
 
+	case tea.KeyCtrlH:
+		event := m.Session.HandleShortcut(":history")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
+
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
 		case "j":
