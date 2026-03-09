@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/sokinpui/pcat"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -17,8 +18,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "pcat",
-	Short: "Concatenate and print files from specified paths (files and directories).",
+	Use:     "pcat",
+	Version: getVersion(),
+	Short:   "Concatenate and print files from specified paths (files and directories).",
 	Long: `Concatenate and print files from specified paths (files and directories).
 If no paths are provided, paths are read from stdin.`,
 	Example: `  pcat -p ./src -p ./README.md # Process all files in ./src and the specific file
@@ -143,4 +145,17 @@ func run(args []string) error {
 	}
 
 	return nil
+}
+
+func getVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "dev"
+	}
+
+	if info.Main.Version == "" {
+		return "dev"
+	}
+
+	return info.Main.Version
 }
