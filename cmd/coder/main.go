@@ -22,6 +22,7 @@ var customInstruction string
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "coder [files...]",
+		Version: utils.GetVersion(),
 		Short: "Coder is a TUI wrapper for LLM chat with code application shortcuts",
 		Run: func(cmd *cobra.Command, args []string) {
 			files := args

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (m Model) StatusView() string {
@@ -65,6 +66,7 @@ func (m Model) StatusView() string {
 
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
 	tempInfo := fmt.Sprintf("Temp: %.1f", m.Session.GetConfig().Generation.Temperature)
+	versionPart := modelInfoStyle.Render(fmt.Sprintf("v%s", utils.GetVersion()))
 
 	var tokenInfo string
 	if m.IsCountingTokens {
@@ -81,7 +83,7 @@ func (m Model) StatusView() string {
 		if tokenPart != "" {
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
-		rightStatusItems = append(rightStatusItems, modelPart, tempPart)
+		rightStatusItems = append(rightStatusItems, versionPart, modelPart, tempPart)
 	}
 
 	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
