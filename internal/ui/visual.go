@@ -42,9 +42,14 @@ func NewVisualSelect() VisualSelectModel {
 }
 
 func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
+	blocks := groupMessages(m.Session.GetMessages())
+	if len(blocks) == 0 {
+		return m, nil
+	}
+
 	m.State = stateVisualSelect
 	m.VisualSelect.Mode = mode
-	m.VisualSelect.Blocks = groupMessages(m.Session.GetMessages())
+	m.VisualSelect.Blocks = blocks
 
 	isSelectionMode := mode != visualModeNone
 	m.VisualSelect.IsSelecting = isSelectionMode
