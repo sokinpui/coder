@@ -14,6 +14,37 @@ Navigate to your project's root directory (or any subdirectory within a Git repo
 coder
 ```
 
+### Shell Completion
+
+`coder` supports generating completion scripts for various shells.
+
+#### Zsh
+
+Add this to your `~/.zshrc`:
+
+```zsh
+source <(coder completion zsh)
+```
+
+#### Bash
+
+Add this to your `~/.bashrc`:
+
+```bash
+source <(coder completion bash)
+```
+
+#### Fish
+
+```fish
+coder completion fish | source
+```
+
+To load completions for every session:
+```fish
+coder completion fish > ~/.config/fish/completions/coder.fish
+```
+
 ### Interface Overview
 
 - **Conversation View**: The main area displaying the chat history.
