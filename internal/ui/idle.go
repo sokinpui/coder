@@ -266,6 +266,13 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			m.Chat.IsCyclingCompletions = true
 
+			maxPaletteItems := max(5, m.Height/4)
+			if m.Chat.PaletteCursor < m.Chat.PaletteOffset {
+				m.Chat.PaletteOffset = m.Chat.PaletteCursor
+			} else if m.Chat.PaletteCursor >= m.Chat.PaletteOffset+maxPaletteItems {
+				m.Chat.PaletteOffset = m.Chat.PaletteCursor - maxPaletteItems + 1
+			}
+
 			var selectedItem string
 			isArgument := false
 			if m.Chat.PaletteCursor < numCommands {

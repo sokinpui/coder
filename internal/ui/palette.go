@@ -51,36 +51,60 @@ func (m Model) PaletteView() string {
 		return ""
 	}
 
+	maxItems := max(5, m.Height/4)
 	var b strings.Builder
 	numCommands := len(m.Chat.PaletteFilteredCommands)
+	numArgs := len(m.Chat.PaletteFilteredArguments)
+	total := numCommands + numArgs
 
-	if numCommands > 0 {
+	start := m.Chat.PaletteOffset
+	end := start + maxItems
+	if end > total {
+		end = total
+	}
+
+	renderedCmds := 0
+	if start < numCommands {
 		b.WriteString(paletteHeaderStyle.Render("Commands"))
 		b.WriteString("\n")
-		for i, cmd := range m.Chat.PaletteFilteredCommands {
-			cursorIndex := i
-			if cursorIndex == m.Chat.PaletteCursor {
-				b.WriteString(paletteSelectedItemStyle.Render("▸ " + cmd))
+
+		secEnd := numCommands
+		if end < numCommands {
+			secEnd = end
+		}
+
+		for i := start; i < secEnd; i++ {
+			item := m.Chat.PaletteFilteredCommands[i]
+			if i == m.Chat.PaletteCursor {
+				b.WriteString(paletteSelectedItemStyle.Render("▸ " + item))
 			} else {
-				b.WriteString(paletteItemStyle.Render("  " + cmd))
+				b.WriteString(paletteItemStyle.Render("  " + item))
 			}
 			b.WriteString("\n")
+			renderedCmds++
 		}
 	}
 
-	if numCommands > 0 && len(m.Chat.PaletteFilteredArguments) > 0 {
-		b.WriteString("\n")
-	}
+	if end > numCommands {
+		if start <= numCommands {
+			if renderedCmds > 0 {
+				b.WriteString("\n")
+			}
+			b.WriteString(paletteHeaderStyle.Render("Arguments"))
+			b.WriteString("\n")
+		}
 
-	if len(m.Chat.PaletteFilteredArguments) > 0 {
-		b.WriteString(paletteHeaderStyle.Render("Arguments"))
-		b.WriteString("\n")
-		for i, arg := range m.Chat.PaletteFilteredArguments {
-			cursorIndex := i + numCommands
-			if cursorIndex == m.Chat.PaletteCursor {
-				b.WriteString(paletteSelectedItemStyle.Render("▸ " + arg))
+		secStart := numCommands
+		if start > numCommands {
+			secStart = start
+		}
+
+		for i := secStart; i < end; i++ {
+			item := m.Chat.PaletteFilteredArguments[i-numCommands]
+			if i == m.Chat.PaletteCursor {
+				b.WriteString(paletteSelectedItemStyle.Render("▸ " + item))
 			} else {
-				b.WriteString(paletteItemStyle.Render("  " + arg))
+				b.WriteString(paletteItemStyle.Render("  " + item))
 			}
 			b.WriteString("\n")
 		}

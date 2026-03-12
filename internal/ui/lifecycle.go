@@ -101,6 +101,10 @@ func (m Model) updatePalette() Model {
 	if m.Chat.PaletteCursor >= totalItems {
 		m.Chat.PaletteCursor = 0
 	}
+
+	if !m.Chat.IsCyclingCompletions {
+		m.Chat.PaletteOffset = 0
+	}
 	return m
 }
 

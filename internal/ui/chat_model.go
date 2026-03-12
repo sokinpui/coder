@@ -22,6 +22,7 @@ type ChatModel struct {
 	PaletteFilteredCommands []string
 	PaletteFilteredArguments []string
 	PaletteCursor          int
+	PaletteOffset          int
 	IsCyclingCompletions   bool
 	IsFetchingModels       bool
 	AnimatingTitle         bool
