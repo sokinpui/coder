@@ -2,14 +2,48 @@ package commands
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
-	registerCommand("file", fileCmd, nil)
+	registerCommand("file", fileCmd, PathArgumentCompleter)
+}
+
+// PathArgumentCompleter provides file and directory path completions based on the prefix.
+func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
+	dir := "."
+	if lastSlash := strings.LastIndex(prefix, "/"); lastSlash != -1 {
+		dir = prefix[:lastSlash+1]
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var results []string
+	for _, entry := range entries {
+		name := entry.Name()
+		fullPath := name
+		if dir != "." {
+			fullPath = filepath.Join(dir, name)
+		}
+
+		fullPath = filepath.ToSlash(fullPath)
+		if entry.IsDir() {
+			fullPath += "/"
+		}
+
+		if fullPath == prefix {
+			continue
+		}
+		results = append(results, fullPath)
+	}
+	return results
 }
 
 func fileCmd(args string, s SessionController) (CommandOutput, bool) {

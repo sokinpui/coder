@@ -11,7 +11,7 @@ func init() {
 	registerCommand("model", modelCmd, modelArgumentCompleter)
 }
 
-func modelArgumentCompleter(cfg *config.Config) []string {
+func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
 	return cfg.AvailableModels
 }
 

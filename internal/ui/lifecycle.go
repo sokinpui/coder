@@ -79,13 +79,13 @@ func (m Model) updatePalette() Model {
 			}
 		} else if len(parts) >= 1 {
 			cmdName := strings.TrimPrefix(parts[0], ":")
-			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig())
-			if suggestions != nil {
-				var argPrefix string
-				if len(parts) > 1 && !hasTrailingSpace {
-					argPrefix = parts[len(parts)-1]
-				}
+			var argPrefix string
+			if len(parts) > 1 && !hasTrailingSpace {
+				argPrefix = parts[len(parts)-1]
+			}
 
+			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig(), argPrefix)
+			if suggestions != nil {
 				for _, s := range suggestions {
 					if strings.HasPrefix(s, argPrefix) {
 						m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)

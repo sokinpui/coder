@@ -56,9 +56,9 @@ func registerCommand(name string, fn commandFunc, completer argumentCompleter) {
 }
 
 // GetCommandArgumentSuggestions returns suggestions for a command's arguments.
-func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config) []string {
+func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix string) []string {
 	if completer, ok := commandArgumentCompleters[cmdName]; ok {
-		return completer(cfg)
+		return completer(cfg, prefix)
 	}
 	return nil
 }

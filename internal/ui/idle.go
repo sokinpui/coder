@@ -285,12 +285,14 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					prefixParts = parts
 				}
-				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				itemToInsert := strings.TrimSuffix(selectedItem, "/")
+				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
 				m = m.updateLayout()
 			} else {
-				m.Chat.TextArea.SetValue(selectedItem)
+				m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
 				m = m.updateLayout()
 			}
+
 			m.Chat.TextArea.CursorEnd()
 			return m, nil, true
 
@@ -322,9 +324,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				} else {
 					prefixParts = parts
 				}
-				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, selectedItem), " "))
+				itemToInsert := strings.TrimSuffix(selectedItem, "/")
+				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
 			} else {
-				m.Chat.TextArea.SetValue(selectedItem)
+				m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
 			}
 			m.Chat.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
