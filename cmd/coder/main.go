@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"io"
 	"github.com/sokinpui/coder/internal/logger"
+	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
 	"os"
@@ -58,11 +59,62 @@ func main() {
 		},
 	}
 
+	contextCmd := &cobra.Command{
+		Use:   "context [files...]",
+		Short: "Print the instructions and project context that would be sent to the AI",
+		Run: func(cmd *cobra.Command, args []string) {
+			files := args
+			piped := readPipedInput()
+
+			if piped != "" && isFileList(piped) {
+				lines := strings.Split(strings.TrimSpace(piped), "\n")
+				for _, line := range lines {
+					line = strings.TrimSpace(line)
+					if line != "" {
+						files = append(files, line)
+					}
+				}
+			}
+
+			cfg, err := config.Load()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			if len(files) > 0 {
+				cfg.Context.Dirs = []string{}
+				cfg.Context.Files = []string{}
+				cfg.Context.Exclusions = []string{}
+				for _, p := range files {
+					info, err := os.Stat(p)
+					if err != nil {
+						continue
+					}
+					if info.IsDir() {
+						cfg.Context.Dirs = append(cfg.Context.Dirs, p)
+					} else {
+						cfg.Context.Files = append(cfg.Context.Files, p)
+					}
+				}
+			}
+
+			strategy := modes.GetStrategy("coding", customInstruction)
+			if err := strategy.LoadSourceCode(cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Print(strategy.BuildPrompt(nil))
+		},
+	}
+
 	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
 	rootCmd.PersistentFlags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
 	rootCmd.PersistentFlags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(contextCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
