@@ -141,6 +141,11 @@ func (s *Session) resetSession(strategy modes.ModeStrategy) {
 	} else {
 		s.config.Context = newCfg.Context
 	}
+
+	if len(s.initialContextFiles) > 0 {
+		s.applyContextFiles(s.initialContextFiles)
+	}
+
 	if err := s.LoadContext(); err != nil {
 		// Log and add an error message for the user to see.
 		log.Printf("Error reloading context for new session: %v", err)
@@ -162,7 +167,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
 	// NewWithMessages makes a defensive copy, so this is safe.
-	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.customInstruction)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.customInstruction, s.initialContextFiles)
 	if err != nil {
 		return nil, err
 	}

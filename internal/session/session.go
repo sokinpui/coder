@@ -24,15 +24,16 @@ type Session struct {
 	createdAt        time.Time
 	modeStrategy     modes.ModeStrategy
 	customInstruction string
+	initialContextFiles []string
 }
 
-func New(cfg *config.Config, mode string, instruction string) (*Session, error) {
+func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
 	strategy := modes.GetStrategy(mode, instruction)
-	return NewWithMessages(cfg, nil, strategy, instruction)
+	return NewWithMessages(cfg, nil, strategy, instruction, contextFiles)
 }
 
 // NewWithMessages creates a new session with a pre-existing set of messages.
-func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy, instruction string) (*Session, error) {
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy, instruction string, contextFiles []string) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	messages := make([]types.Message, len(initialMessages))
 	copy(messages, initialMessages)
 
-	return &Session{
+	s := &Session{
 		config:          cfg,
 		generator:       gen,
 		historyManager:  hist,
@@ -58,7 +59,13 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 		historyFilename: "",
 		modeStrategy:    strategy,
 		customInstruction: instruction,
-	}, nil
+		initialContextFiles: contextFiles,
+	}
+
+	if len(contextFiles) > 0 {
+		s.applyContextFiles(contextFiles)
+	}
+	return s, nil
 }
 
 func (s *Session) GetConfig() *config.Config {
