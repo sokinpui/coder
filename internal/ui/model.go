@@ -35,6 +35,7 @@ type Model struct {
 	Jump         JumpModel
 	QuickView    *QuickViewModel
 
+	ActiveSessions    []*session.Session
 	Session           *session.Session
 	State             state
 	Quitting          bool
@@ -65,6 +66,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	sort.Strings(availableCommands)
 
 	return Model{
+		ActiveSessions:    []*session.Session{sess},
 		Chat:              NewChat(initialInput),
 		VisualSelect:      NewVisualSelect(),
 		History:           NewHistory(),

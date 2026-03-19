@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -13,13 +14,22 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type HistoryTab int
+
+const (
+	TabHistory HistoryTab = iota
+	TabActive
+)
+
 type HistoryModel struct {
 	Items         []history.ConversationInfo
 	FilteredItems []history.ConversationInfo
+	ActiveItems   []history.ConversationInfo
 	CursorPos     int
 	SearchInput   textinput.Model
 	IsSearching   bool
 	GGPressed     bool
+	Tab           HistoryTab
 }
 
 func NewHistory() HistoryModel {
@@ -31,6 +41,7 @@ func NewHistory() HistoryModel {
 
 	return HistoryModel{
 		SearchInput: hsi,
+		Tab:         TabHistory,
 	}
 }
 
@@ -42,11 +53,13 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.History.SearchInput.Blur()
 			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
+
 		case tea.KeyEsc, tea.KeyCtrlC:
 			m.History.IsSearching = false
 			m.History.SearchInput.Blur()
 			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
+			m.updateActiveFilter()
 			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		}
@@ -54,6 +67,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		var cmd tea.Cmd
 		m.History.SearchInput, cmd = m.History.SearchInput.Update(msg)
 		m.updateHistoryFilter()
+		m.updateActiveFilter()
 		m.Chat.Viewport.SetContent(m.historyListView())
 		return m, cmd, true
 	}
@@ -62,9 +76,23 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 	m.History.GGPressed = false // Reset by default
 
 	switch msg.Type {
+	case tea.KeyTab, tea.KeyShiftTab:
+		if m.History.Tab == TabHistory {
+			m.History.Tab = TabActive
+		} else {
+			m.History.Tab = TabHistory
+		}
+		m.History.CursorPos = 0
+		m.updateHistoryFilter()
+		m.updateActiveFilter()
+		m.centerHistoryViewport()
+		m.Chat.Viewport.SetContent(m.historyListView())
+		return m, nil, true
+
 	case tea.KeyCtrlD:
 		m.scrollHistoryHalfPage(true)
 		return m, nil, true
+
 	case tea.KeyCtrlU:
 		m.scrollHistoryHalfPage(false)
 		return m, nil, true
@@ -100,15 +128,24 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		}
 
 	case tea.KeyEnter:
-		if len(m.History.FilteredItems) == 0 || m.History.CursorPos >= len(m.History.FilteredItems) {
+		currentItems := m.getHistoryCurrentList()
+		if len(currentItems) == 0 || m.History.CursorPos >= len(currentItems) {
 			return m, nil, true
 		}
-		selectedItem := m.History.FilteredItems[m.History.CursorPos]
+		selectedItem := currentItems[m.History.CursorPos]
+
 		if m.Chat.IsStreaming {
 			m.Session.CancelGeneration()
 			m.Chat.IsStreaming = false // Prevent streamFinishedMsg from running
 			m.Chat.StreamSub = nil
 		}
+
+		if m.History.Tab == TabActive {
+			// Load the actual pointer from the active session list
+			targetSess := m.ActiveSessions[m.History.CursorPos]
+			return m, func() tea.Msg { return switchActiveSessionMsg{sess: targetSess} }, true
+		}
+
 		return m, loadConversationCmd(m.Session, selectedItem.Filename), true
 
 	case tea.KeyRunes:
@@ -120,6 +157,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.History.SearchInput.Focus()
 			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
+			m.updateActiveFilter()
 			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		case "g":
@@ -132,8 +170,9 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			}
 			return m, nil, true
 		case "G":
-			if len(m.History.FilteredItems) > 0 {
-				m.History.CursorPos = len(m.History.FilteredItems) - 1
+			currentItems := m.getHistoryCurrentList()
+			if len(currentItems) > 0 {
+				m.History.CursorPos = len(currentItems) - 1
 				m.Chat.Viewport.GotoBottom()
 				m.Chat.Viewport.SetContent(m.historyListView())
 			}
@@ -155,9 +194,17 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 	return m, nil, true
 }
 
+func (m Model) getHistoryCurrentList() []history.ConversationInfo {
+	if m.History.Tab == TabHistory {
+		return m.History.FilteredItems
+	}
+	return m.History.ActiveItems
+}
+
 func (m *Model) moveHistoryCursor(delta int) {
+	currentItems := m.getHistoryCurrentList()
 	newPos := m.History.CursorPos + delta
-	if newPos < 0 || newPos >= len(m.History.FilteredItems) {
+	if newPos < 0 || newPos >= len(currentItems) {
 		return
 	}
 
@@ -167,24 +214,26 @@ func (m *Model) moveHistoryCursor(delta int) {
 }
 
 func (m *Model) scrollHistoryHalfPage(down bool) {
-	if len(m.History.FilteredItems) == 0 {
+	currentItems := m.getHistoryCurrentList()
+	if len(currentItems) == 0 {
 		return
 	}
 	scrollAmount := m.Chat.Viewport.Height / 2
-	m.History.CursorPos = cursorPosAfterScroll(m.History.CursorPos, scrollAmount, len(m.History.FilteredItems), down)
+	m.History.CursorPos = cursorPosAfterScroll(m.History.CursorPos, scrollAmount, len(currentItems), down)
 	m.centerHistoryViewport()
 	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m *Model) centerHistoryViewport() {
-	if len(m.History.FilteredItems) == 0 {
+	currentItems := m.getHistoryCurrentList()
+	if len(currentItems) == 0 {
 		return
 	}
 
 	halfHeight := m.Chat.Viewport.Height / 2
 	targetOffset := m.History.CursorPos - halfHeight
 
-	maxOffset := len(m.History.FilteredItems) - m.Chat.Viewport.Height
+	maxOffset := len(currentItems) - m.Chat.Viewport.Height
 	if maxOffset < 0 {
 		maxOffset = 0
 	}
@@ -222,6 +271,39 @@ func (m *Model) updateHistoryFilter() {
 	}
 }
 
+func (m *Model) updateActiveFilter() {
+	var activeItems []history.ConversationInfo
+	for _, sess := range m.ActiveSessions {
+		activeItems = append(activeItems, history.ConversationInfo{
+			Title:      sess.GetTitle(),
+			Filename:   sess.GetHistoryFilename(),
+			ModifiedAt: time.Now(), // Active sessions are "now"
+		})
+	}
+
+	query := m.History.SearchInput.Value()
+	if query == "" {
+		m.History.ActiveItems = activeItems
+		return
+	}
+
+	targets := make([]string, len(activeItems))
+	for i, item := range activeItems {
+		targets[i] = item.Title
+	}
+
+	matches := fuzzy.Find(query, targets)
+	var filtered []history.ConversationInfo
+	for _, match := range matches {
+		filtered = append(filtered, activeItems[match.Index])
+	}
+
+	m.History.ActiveItems = filtered
+	if m.History.CursorPos >= len(m.History.ActiveItems) {
+		m.History.CursorPos = max(0, len(m.History.ActiveItems)-1)
+	}
+}
+
 func (m Model) historyHeaderView() string {
 	var b strings.Builder
 	if m.History.IsSearching {
@@ -229,27 +311,44 @@ func (m Model) historyHeaderView() string {
 		b.WriteString(m.History.SearchInput.View())
 		b.WriteString("\n\n")
 	} else {
-		b.WriteString("Select a conversation to load (type / to search):\n\n")
+		b.WriteString("Select a conversation to load (type / to search):\n")
 	}
+
+	historyTabStr := "[ History ]"
+	activeTabStr := "[ Active ]"
+
+	if m.History.Tab == TabHistory {
+		historyTabStr = activeTabStyle.Render(historyTabStr)
+		activeTabStr = tabStyle.Render(activeTabStr)
+	} else {
+		historyTabStr = tabStyle.Render(historyTabStr)
+		activeTabStr = activeTabStyle.Render(activeTabStr)
+	}
+
+	b.WriteString(fmt.Sprintf("%s  %s\n\n", historyTabStr, activeTabStr))
+
 	return b.String()
 }
 
 func (m Model) historyListView() string {
 	var b strings.Builder
+	currentItems := m.getHistoryCurrentList()
 
-	if len(m.History.FilteredItems) == 0 {
+	if len(currentItems) == 0 {
 		b.WriteString("  No matching history found.")
 		return b.String()
 	}
 
-	for i, item := range m.History.FilteredItems {
+	for i, item := range currentItems {
 		title := item.Title
-		date := fmt.Sprintf("(%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
+		dateStr := ""
+		if m.History.Tab == TabHistory {
+			dateStr = fmt.Sprintf(" (%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
+		}
 		if i == m.History.CursorPos {
-			b.WriteString(paletteSelectedItemStyle.Render("▸  " + title))
-			b.WriteString(paletteItemStyle.Render(" " + date))
+			b.WriteString(paletteSelectedItemStyle.Render(fmt.Sprintf("▸  %s%s", title, dateStr)))
 		} else {
-			b.WriteString(paletteItemStyle.Render("   " + title + " " + date))
+			b.WriteString(paletteItemStyle.Render(fmt.Sprintf("   %s%s", title, dateStr)))
 		}
 		b.WriteString("\n")
 	}

@@ -1,6 +1,9 @@
 package ui
 
-import "github.com/sokinpui/coder/internal/history"
+import (
+	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/session"
+)
 
 type state int
 
@@ -48,6 +51,9 @@ type (
 	}
 	conversationLoadedMsg struct {
 		err error
+	}
+	switchActiveSessionMsg struct {
+		sess *session.Session
 	}
 	pasteResultMsg struct {
 		isImage bool

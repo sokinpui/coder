@@ -13,6 +13,7 @@ func init() {
 	registerCommand("history", historyCmd, nil)
 	registerCommand("rename", renameCmd, nil)
 	registerCommand("jump", jumpCmd, nil)
+	registerCommand("active", activeCmd, nil)
 }
 
 func hasSelectableMessages(messages []types.Message) bool {
@@ -61,6 +62,10 @@ func branchCmd(args string, s SessionController) (CommandOutput, bool) {
 
 func historyCmd(args string, s SessionController) (CommandOutput, bool) {
 	return CommandOutput{Type: types.HistoryModeStarted}, true
+}
+
+func activeCmd(args string, s SessionController) (CommandOutput, bool) {
+	return CommandOutput{Type: types.ActiveModeStarted}, true
 }
 
 func jumpCmd(args string, s SessionController) (CommandOutput, bool) {

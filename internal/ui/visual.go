@@ -212,6 +212,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				cmd = clearStatusBarCmd()
 			} else {
 				m.Session = newSess
+				m.ActiveSessions = append(m.ActiveSessions, m.Session)
 				m.StatusBarMessage = "Branched to a new session."
 				cmd = clearStatusBarCmd()
 

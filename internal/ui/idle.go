@@ -81,6 +81,16 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.State = stateHistorySelect
 		m.Chat.TextArea.Blur()
 		m.IsCountingTokens = true
+		m.History.Tab = TabHistory
+		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
+	case types.ActiveModeStarted:
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.State = stateHistorySelect
+		m.Chat.TextArea.Blur()
+		m.IsCountingTokens = true
+		m.History.Tab = TabActive
+		m.updateActiveFilter()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
 	case types.TreeModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
@@ -109,13 +119,13 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) newSession() (Model, tea.Cmd) {
-	// The session handles saving and clearing messages.
-	// The UI just needs to reset its state.
+	m.Session.NewSession()
+
+	m.ActiveSessions = append(m.ActiveSessions, m.Session)
 	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 	dirMsg := utils.GetDirInfoContent()
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
-	// Reset UI and state flags.
 	m.Chat.LastInteractionFailed = false
 	m.Chat.LastRenderedAIPart = ""
 	m.Chat.TextArea.Focus()

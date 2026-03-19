@@ -72,4 +72,11 @@ var (
 	searchIndicatorStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("226")).
 				Bold(true)
+	tabStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240")).
+			Padding(0, 1)
+	activeTabStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("228")).
+			Bold(true).
+			Padding(0, 1)
 )

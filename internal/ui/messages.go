@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -319,6 +320,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
+		// When loading from history, this loaded session becomes the active one
+		if !slices.Contains(m.ActiveSessions, m.Session) {
+			m.ActiveSessions = append(m.ActiveSessions, m.Session)
+		}
+
 		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
 		m.Session.PrependMessages(welcome, dirInfo)
@@ -329,6 +335,31 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
 		m.Chat.TextArea.Focus()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.IsCountingTokens = true
+		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
+
+	case switchActiveSessionMsg:
+		if m.Session != nil {
+			if err := m.Session.SaveConversation(); err != nil {
+				log.Printf("Error saving current conversation before switching: %v", err)
+			}
+		}
+
+		m.Session = msg.sess
+		m.State = stateIdle
+		m.Chat.LastInteractionFailed = false
+		m.Chat.LastRenderedAIPart = ""
+		m.Chat.TextArea.Reset()
+		m.Chat.TextArea.SetHeight(1)
+		m.Chat.TextArea.Focus()
+
+		// Reload context to be safe
+		if err := m.Session.LoadContext(); err != nil {
+			log.Printf("Error reloading context for switched session: %v", err)
+		}
+
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.IsCountingTokens = true

@@ -22,6 +22,8 @@ const (
 	SearchModeStarted
 	// HistoryModeStarted indicates the UI should enter history browsing mode.
 	HistoryModeStarted
+	// ActiveModeStarted indicates the UI should enter active sessions browsing mode.
+	ActiveModeStarted
 	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
 	// tree mode
