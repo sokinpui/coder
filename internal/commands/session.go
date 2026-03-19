@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/sokinpui/coder/internal/types"
 	"fmt"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {

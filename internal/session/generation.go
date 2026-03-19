@@ -1,8 +1,8 @@
 package session
 
 import (
-	"github.com/sokinpui/coder/internal/types"
 	"context"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 // SetCancelGeneration sets the context cancel function for the current generation.

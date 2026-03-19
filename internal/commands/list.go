@@ -1,11 +1,11 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/pcat"
-	"fmt"
-	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {

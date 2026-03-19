@@ -1,9 +1,9 @@
 package modes
 
 import (
+	"context"
 	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/types"
-	"context"
 )
 
 // SessionController defines the parts of a session that a mode strategy can control.

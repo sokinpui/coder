@@ -1,9 +1,9 @@
 package session
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"

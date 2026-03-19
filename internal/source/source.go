@@ -1,10 +1,10 @@
 package source
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/pcat"
-	"fmt"
 )
 
 // LoadProjectSource executes `fd` and pipes it to `pcat` to get formatted source code

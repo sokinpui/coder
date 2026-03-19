@@ -1,29 +1,29 @@
 package session
 
 import (
-	"github.com/sokinpui/coder/internal/types"
+	"context"
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/modes"
-	"context"
-	"fmt"
+	"github.com/sokinpui/coder/internal/types"
 	"time"
 )
 
 type Session struct {
-	config           *config.Config
-	generator        *generation.Generator
-	historyManager   *history.Manager
-	messages         []types.Message
-	cancelGeneration context.CancelFunc
-	title            string
-	context          string // Role instruction + source code
-	titleGenerated   bool
-	historyFilename  string
-	createdAt        time.Time
-	modeStrategy     modes.ModeStrategy
-	customInstruction string
+	config              *config.Config
+	generator           *generation.Generator
+	historyManager      *history.Manager
+	messages            []types.Message
+	cancelGeneration    context.CancelFunc
+	title               string
+	context             string // Role instruction + source code
+	titleGenerated      bool
+	historyFilename     string
+	createdAt           time.Time
+	modeStrategy        modes.ModeStrategy
+	customInstruction   string
 	initialContextFiles []string
 }
 
@@ -49,16 +49,16 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	copy(messages, initialMessages)
 
 	s := &Session{
-		config:          cfg,
-		generator:       gen,
-		historyManager:  hist,
-		messages:        messages,
-		title:           "New Chat",
-		titleGenerated:  false,
-		createdAt:       time.Now(),
-		historyFilename: "",
-		modeStrategy:    strategy,
-		customInstruction: instruction,
+		config:              cfg,
+		generator:           gen,
+		historyManager:      hist,
+		messages:            messages,
+		title:               "New Chat",
+		titleGenerated:      false,
+		createdAt:           time.Now(),
+		historyFilename:     "",
+		modeStrategy:        strategy,
+		customInstruction:   instruction,
 		initialContextFiles: contextFiles,
 	}
 

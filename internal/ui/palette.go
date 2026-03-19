@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"strings"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rmhubbert/bubbletea-overlay"
+	"strings"
 )
 
 // PaletteOverlay implements the Overlay interface for the command palette.

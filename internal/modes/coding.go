@@ -1,11 +1,11 @@
 package modes
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
-	"fmt"
 )
 
 // CodingMode is the strategy for the standard coding assistant mode.

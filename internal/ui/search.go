@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/types"
 	"fmt"
+	"github.com/sokinpui/coder/internal/types"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"

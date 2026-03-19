@@ -7,11 +7,11 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/types"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 type HistoryTab int

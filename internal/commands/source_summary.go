@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/sokinpui/coder/internal/config"
 	"fmt"
+	"github.com/sokinpui/coder/internal/config"
 	"strings"
 )
 

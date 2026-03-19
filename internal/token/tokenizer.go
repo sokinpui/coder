@@ -19,10 +19,10 @@ package token
 
 import (
 	"bytes"
-	"github.com/sokinpui/coder/internal/utils"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/sokinpui/coder/internal/utils"
 	"io"
 	"net/http"
 	"os"

@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/config"
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/config"
 	"log"
 	"os"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func Start(mode string, initialInput string, contextFiles []string, instruction string) {

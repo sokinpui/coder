@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"github.com/sokinpui/coder/internal/config"
 	"fmt"
-	"strings"
+	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
+	"strings"
 )
 
 var commands = make(map[string]commandFunc)
