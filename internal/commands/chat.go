@@ -7,6 +7,5 @@ func init() {
 }
 
 func chatCmd(args string, s SessionController) (CommandOutput, bool) {
-	s.StartChatSession()
-	return CommandOutput{Type: types.NewSessionStarted}, true
+	return CommandOutput{Type: types.NewSessionStarted, Mode: "chat"}, true
 }

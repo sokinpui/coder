@@ -5,6 +5,8 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 	"time"
+	"log"
+	"github.com/sokinpui/coder/internal/session"
 
 	"github.com/sokinpui/coder/internal/utils"
 
@@ -26,7 +28,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m, countTokensCmd(m.Session.GetPrompt())
 
 	case types.NewSessionStarted:
-		return m.newSession()
+		return m.newSession(event.Mode)
 
 	case types.GenerationStarted:
 		return m.startGeneration(event)
@@ -118,10 +120,23 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) newSession() (Model, tea.Cmd) {
-	m.Session.NewSession()
+func (m Model) newSession(mode string) (Model, tea.Cmd) {
+	if err := m.Session.SaveConversation(); err != nil {
+		log.Printf("Error saving conversation before switching: %v", err)
+	}
 
-	m.ActiveSessions = append(m.ActiveSessions, m.Session)
+	if mode == "" {
+		mode = "coding"
+	}
+
+	newSess, err := session.New(m.Session.GetConfig(), mode, m.Session.GetCustomInstruction(), m.Session.GetInitialContextFiles())
+	if err != nil {
+		log.Printf("Error creating new session: %v", err)
+		return m, nil
+	}
+
+	m.Session = newSess
+	m.addActiveSession(newSess)
 	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 	dirMsg := utils.GetDirInfoContent()
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})

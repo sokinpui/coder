@@ -12,6 +12,7 @@ import (
 )
 
 type Session struct {
+	ID                  string
 	config              *config.Config
 	generator           *generation.Generator
 	historyManager      *history.Manager
@@ -48,8 +49,15 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	messages := make([]types.Message, len(initialMessages))
 	copy(messages, initialMessages)
 
+	// Clone config to ensure each session has its own independent context (tabs).
+	cfgCopy := *cfg
+	cfgCopy.Context.Files = append([]string{}, cfg.Context.Files...)
+	cfgCopy.Context.Dirs = append([]string{}, cfg.Context.Dirs...)
+	cfgCopy.Context.Exclusions = append([]string{}, cfg.Context.Exclusions...)
+
 	s := &Session{
-		config:              cfg,
+		ID:                  fmt.Sprintf("%d", time.Now().UnixNano()),
+		config:              &cfgCopy,
 		generator:           gen,
 		historyManager:      hist,
 		messages:            messages,
@@ -78,4 +86,12 @@ func (s *Session) GetGenerator() *generation.Generator {
 
 func (s *Session) GetHistoryManager() *history.Manager {
 	return s.historyManager
+}
+
+func (s *Session) GetCustomInstruction() string {
+	return s.customInstruction
+}
+
+func (s *Session) GetInitialContextFiles() []string {
+	return s.initialContextFiles
 }

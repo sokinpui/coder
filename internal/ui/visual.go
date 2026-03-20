@@ -212,7 +212,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				cmd = clearStatusBarCmd()
 			} else {
 				m.Session = newSess
-				m.ActiveSessions = append(m.ActiveSessions, m.Session)
+				m.addActiveSession(newSess)
 				m.StatusBarMessage = "Branched to a new session."
 				cmd = clearStatusBarCmd()
 
@@ -305,7 +305,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			event := m.Session.HandleShortcut(":new")
 			if event.Type == types.NewSessionStarted {
-				newModel, cmd := m.newSession()
+				newModel, cmd := m.newSession(event.Mode)
 				newModel.State = stateIdle
 				newModel.VisualSelect.Mode = visualModeNone
 				newModel.VisualSelect.IsSelecting = false

@@ -35,7 +35,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		switch cmdOutput.Type {
 		case types.NewSessionStarted, types.Quit:
 			// These events typically don't log to the message history
-			return types.Event{Type: cmdOutput.Type}
+			return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
 		case types.NoOp:
 			return types.Event{Type: types.NoOp}
 		case types.MessagesUpdated:

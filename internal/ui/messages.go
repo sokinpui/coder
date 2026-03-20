@@ -320,10 +320,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
-		// When loading from history, this loaded session becomes the active one
-		if !slices.Contains(m.ActiveSessions, m.Session) {
-			m.ActiveSessions = append(m.ActiveSessions, m.Session)
+		if m.Session != nil {
+			if err := m.Session.SaveConversation(); err != nil {
+				log.Printf("Error saving current conversation before switching: %v", err)
+			}
 		}
+
+		// When loading from history, this loaded session becomes the active one
+		m.Session = msg.sess
+		m.addActiveSession(msg.sess)
 
 		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}

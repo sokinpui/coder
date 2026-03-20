@@ -9,6 +9,7 @@ import (
 type CommandOutput struct {
 	Type    types.EventType
 	Payload string
+	Mode    string
 }
 
 type SessionController interface {
@@ -16,8 +17,6 @@ type SessionController interface {
 	GetConfig() *config.Config
 	SetTitle(title string)
 	LoadContext() error
-	NewSession()
-	StartChatSession()
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

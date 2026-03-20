@@ -50,6 +50,7 @@ type (
 		err   error
 	}
 	conversationLoadedMsg struct {
+		sess *session.Session
 		err error
 	}
 	switchActiveSessionMsg struct {

@@ -2,14 +2,11 @@ package session
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 func (s *Session) hasConservation() bool {
@@ -111,46 +108,6 @@ func (s *Session) LoadConversation(filename string) error {
 
 	// The context, including project source, is loaded based on the current mode.
 	return s.LoadContext()
-}
-
-func (s *Session) NewSession() {
-	s.resetSession(modes.NewStrategy(s.customInstruction))
-}
-
-func (s *Session) StartChatSession() {
-	s.resetSession(modes.NewChatStrategy())
-}
-
-func (s *Session) resetSession(strategy modes.ModeStrategy) {
-	if err := s.SaveConversation(); err != nil {
-		log.Printf("Error saving conversation before reset: %v", err)
-	}
-	s.messages = []types.Message{} // Clear messages
-	s.title = "New Chat"
-	s.titleGenerated = false
-	s.createdAt = time.Now()
-	s.historyFilename = ""
-	s.modeStrategy = strategy
-
-	// Reload config to reset Context to their configured values,
-	// discarding any changes made with `:file` in the previous session.
-	newCfg, err := config.Load()
-	if err != nil {
-		log.Printf("Error reloading config for new session, falling back to default Context: %v", err)
-		s.config.Context = config.Context{Dirs: []string{"."}, Files: []string{}}
-	} else {
-		s.config.Context = newCfg.Context
-	}
-
-	if len(s.initialContextFiles) > 0 {
-		s.applyContextFiles(s.initialContextFiles)
-	}
-
-	if err := s.LoadContext(); err != nil {
-		// Log and add an error message for the user to see.
-		log.Printf("Error reloading context for new session: %v", err)
-		s.messages = append(s.messages, types.Message{Type: types.CommandErrorResultMessage, Content: fmt.Sprintf("Failed to reload context for new session: %v", err)})
-	}
 }
 
 // Branch saves the current session and creates a new one containing messages

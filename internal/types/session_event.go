@@ -40,4 +40,5 @@ const (
 type Event struct {
 	Type EventType
 	Data any // Can be a stream channel for GenerationStarted or an error for ErrorOccurred
+	Mode string
 }

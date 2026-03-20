@@ -142,8 +142,16 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 		if m.History.Tab == TabActive {
 			// Load the actual pointer from the active session list
-			targetSess := m.ActiveSessions[m.History.CursorPos]
-			return m, func() tea.Msg { return switchActiveSessionMsg{sess: targetSess} }, true
+			currentItems := m.getHistoryCurrentList()
+			selectedItem := currentItems[m.History.CursorPos]
+			return m, m.switchSessionByID(selectedItem.ID), true
+		}
+
+		// Check if the history file is already open in an active session.
+		for _, sess := range m.ActiveSessions {
+			if sess.GetHistoryFilename() == selectedItem.Filename {
+				return m, m.switchSessionByID(sess.ID), true
+			}
 		}
 
 		return m, loadConversationCmd(m.Session, selectedItem.Filename), true
@@ -273,8 +281,10 @@ func (m *Model) updateHistoryFilter() {
 
 func (m *Model) updateActiveFilter() {
 	var activeItems []history.ConversationInfo
-	for _, sess := range m.ActiveSessions {
+	for i := len(m.ActiveSessions) - 1; i >= 0; i-- {
+		sess := m.ActiveSessions[i]
 		activeItems = append(activeItems, history.ConversationInfo{
+			ID:         sess.ID,
 			Title:      sess.GetTitle(),
 			Filename:   sess.GetHistoryFilename(),
 			ModifiedAt: time.Now(), // Active sessions are "now"

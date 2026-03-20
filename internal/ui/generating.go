@@ -67,7 +67,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		event := m.Session.HandleInput(":new")
 		switch event.Type {
 		case types.NewSessionStarted:
-			newModel, cmd := m.newSession()
+			newModel, cmd := m.newSession(event.Mode)
 			newModel.State = stateIdle
 			return newModel, cmd, true
 		}

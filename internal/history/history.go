@@ -31,6 +31,7 @@ type Metadata struct {
 }
 
 type ConversationInfo struct {
+	ID         string    `json:"id"`
 	Filename   string    `json:"filename"`
 	Title      string    `json:"title"`
 	ModifiedAt time.Time `json:"modifiedAt"`

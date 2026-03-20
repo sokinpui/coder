@@ -7,6 +7,7 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/charmbracelet/glamour"
 )
@@ -80,4 +81,28 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		GlamourRenderer:   renderer,
 		AvailableCommands: availableCommands,
 	}, nil
+}
+
+func (m *Model) addActiveSession(sess *session.Session) {
+	for i, s := range m.ActiveSessions {
+		if s.ID == sess.ID {
+			m.ActiveSessions[i] = sess
+			return
+		}
+		// If a session with the same history file is already active, replace it.
+		if sess.GetHistoryFilename() != "" && s.GetHistoryFilename() == sess.GetHistoryFilename() {
+			m.ActiveSessions[i] = sess
+			return
+		}
+	}
+	m.ActiveSessions = append(m.ActiveSessions, sess)
+}
+
+func (m Model) switchSessionByID(id string) tea.Cmd {
+	for _, sess := range m.ActiveSessions {
+		if sess.ID == id {
+			return func() tea.Msg { return switchActiveSessionMsg{sess: sess} }
+		}
+	}
+	return nil
 }
