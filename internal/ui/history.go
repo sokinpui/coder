@@ -26,6 +26,8 @@ type HistoryModel struct {
 	FilteredItems []history.ConversationInfo
 	ActiveItems   []history.ConversationInfo
 	CursorPos     int
+	HistoryCursor int
+	ActiveCursor  int
 	SearchInput   textinput.Model
 	IsSearching   bool
 	GGPressed     bool
@@ -77,16 +79,11 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	switch msg.Type {
 	case tea.KeyTab, tea.KeyShiftTab:
-		if m.History.Tab == TabHistory {
-			m.History.Tab = TabActive
-		} else {
-			m.History.Tab = TabHistory
+		target := TabActive
+		if m.History.Tab == TabActive {
+			target = TabHistory
 		}
-		m.History.CursorPos = 0
-		m.updateHistoryFilter()
-		m.updateActiveFilter()
-		m.centerHistoryViewport()
-		m.Chat.Viewport.SetContent(m.historyListView())
+		m.switchTab(target)
 		return m, nil, true
 
 	case tea.KeyCtrlD:
@@ -168,6 +165,20 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.updateActiveFilter()
 			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
+		case "h":
+			target := TabHistory
+			if m.History.Tab == TabHistory {
+				target = TabActive
+			}
+			m.switchTab(target)
+			return m, nil, true
+		case "l":
+			target := TabActive
+			if m.History.Tab == TabActive {
+				target = TabHistory
+			}
+			m.switchTab(target)
+			return m, nil, true
 		case "g":
 			if prevGGPressed {
 				m.History.CursorPos = 0
@@ -200,6 +211,29 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		}
 	}
 	return m, nil, true
+}
+
+func (m *Model) switchTab(target HistoryTab) {
+	if m.History.Tab == target {
+		return
+	}
+
+	if m.History.Tab == TabHistory {
+		m.History.HistoryCursor = m.History.CursorPos
+	} else {
+		m.History.ActiveCursor = m.History.CursorPos
+	}
+
+	m.History.Tab = target
+	m.History.CursorPos = m.History.HistoryCursor
+	if target == TabActive {
+		m.History.CursorPos = m.History.ActiveCursor
+	}
+
+	m.updateHistoryFilter()
+	m.updateActiveFilter()
+	m.centerHistoryViewport()
+	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m Model) getHistoryCurrentList() []history.ConversationInfo {
@@ -274,8 +308,11 @@ func (m *Model) updateHistoryFilter() {
 	}
 
 	m.History.FilteredItems = filtered
-	if m.History.CursorPos >= len(m.History.FilteredItems) {
-		m.History.CursorPos = max(0, len(m.History.FilteredItems)-1)
+	if m.History.Tab == TabHistory {
+		if m.History.CursorPos >= len(m.History.FilteredItems) {
+			m.History.CursorPos = max(0, len(m.History.FilteredItems)-1)
+		}
+		m.History.HistoryCursor = m.History.CursorPos
 	}
 }
 
@@ -309,8 +346,11 @@ func (m *Model) updateActiveFilter() {
 	}
 
 	m.History.ActiveItems = filtered
-	if m.History.CursorPos >= len(m.History.ActiveItems) {
-		m.History.CursorPos = max(0, len(m.History.ActiveItems)-1)
+	if m.History.Tab == TabActive {
+		if m.History.CursorPos >= len(m.History.ActiveItems) {
+			m.History.CursorPos = max(0, len(m.History.ActiveItems)-1)
+		}
+		m.History.ActiveCursor = m.History.CursorPos
 	}
 }
 
