@@ -171,6 +171,8 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	newSess.title = fmt.Sprintf("branch of %s", s.title)
+	newSess.titleGenerated = true
 
 	if err := newSess.LoadContext(); err != nil {
 		return nil, fmt.Errorf("failed to load context for branched session: %w", err)
