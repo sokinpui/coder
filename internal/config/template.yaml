@@ -1,78 +1,78 @@
-# server:
-#   addr: http://localhost:8080
+server:
+  addr: http://localhost:8080
 
-# generation:
-#   modelcode: gemini-3-flash-preview
-#   titlemodelcode: gemini-2.5-flash-lite
-#   temperature: 0.0
-#   topp: 0.95
-#   topk: 0
-#   outputlength: 65536
-#   streamdelay: 0
+generation:
+  modelcode: gemini-3-flash-preview
+  titlemodelcode: gemini-2.5-flash-lite
+  temperature: 0.0
+  topp: 0.95
+  topk: 0
+  outputlength: 65536
+  streamdelay: 0
 
-# clipboard:
-#   copycmd: ""
-#   pastecmd: ""
+clipboard:
+  copycmd: ""
+  pastecmd: ""
 
-# context:
-#   dirs:
-#     - .
-#   files:
-#   exclusions:
+context:
+  dirs:
+    - .
+  files:
+  exclusions:
 
-# ui:
-#   markdowntheme: dark
+ui:
+  markdowntheme: dark
 
-# keymap:
-#   submit: ctrl+j
-#   editor: ctrl+e
-#   paste: ctrl+v
-#   history: ctrl+h
-#   new: ctrl+n
-#   branch: ctrl+b
-#   finder: ctrl+f
-#   tree: ctrl+t
-#   search: ctrl+p
-#   jump: ctrl+q
-#   contextlist: ctrl+l
-#   applyitf: ctrl+a
-#   scrollup: ctrl+u
-#   scrolldown: ctrl+d
-#   suspend: ctrl+z
-#   visual: esc
-#   visualmode:
-#     up: k
-#     down: j
-#     select: v
-#     swap: o
-#     copy: y
-#     delete: d
-#     regenerate: g
-#     edit: e
-#     branch: b
-#     new: n
-#     exit: i
-#   historyview:
-#     up: k
-#     down: j
-#     halfpageup: u
-#     halfpagedown: d
-#     top: g
-#     bottom: G
-#     search: /
-#     historytab: h
-#     activetab: l
-#     exit: q
-#   treeview:
-#     up: k
-#     down: j
-#     expand: l
-#     collapse: h
-#     top: g
-#     bottom: G
-#     toggle: space
-#     exit: q
-#   jumpview:
-#     up: k
-#     down: j
-#     exit: q
+keymap:
+  submit: ctrl+j
+  editor: ctrl+e
+  paste: ctrl+v
+  history: ctrl+h
+  new: ctrl+n
+  branch: ctrl+b
+  finder: ctrl+f
+  tree: ctrl+t
+  search: ctrl+p
+  jump: ctrl+q
+  contextlist: ctrl+l
+  applyitf: ctrl+a
+  scrollup: ctrl+u
+  scrolldown: ctrl+d
+  suspend: ctrl+z
+  visual: esc
+  visualmode:
+    up: k
+    down: j
+    select: v
+    swap: o
+    copy: y
+    delete: d
+    regenerate: g
+    edit: e
+    branch: b
+    new: n
+    exit: i
+  historyview:
+    up: k
+    down: j
+    halfpageup: u
+    halfpagedown: d
+    top: g
+    bottom: G
+    search: /
+    historytab: h
+    activetab: l
+    exit: q
+  treeview:
+    up: k
+    down: j
+    expand: l
+    collapse: h
+    top: g
+    bottom: G
+    toggle: space
+    exit: q
+  jumpview:
+    up: k
+    down: j
+    exit: q

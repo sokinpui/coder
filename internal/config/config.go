@@ -206,7 +206,10 @@ func Load() (*Config, error) {
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
 	if err == nil {
-		v.AddConfigPath(filepath.Join(home, ".config", "coder"))
+		configDir := filepath.Join(home, ".config", "coder")
+		_ = ensureDirAndFile(configDir, "config.yaml", ConfigTemplate)
+
+		v.AddConfigPath(configDir)
 		v.SetConfigName("config")
 		v.SetConfigType("yaml")
 		if err := v.ReadInConfig(); err != nil {
@@ -248,4 +251,17 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func ensureDirAndFile(dir, filename, content string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	path := filepath.Join(dir, filename)
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	}
+
+	return os.WriteFile(path, []byte(content), 0644)
 }
