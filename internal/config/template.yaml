@@ -39,3 +39,40 @@
 #   scrollup: ctrl+u
 #   scrolldown: ctrl+d
 #   suspend: ctrl+z
+#   visual: esc
+#   visualmode:
+#     up: k
+#     down: j
+#     select: v
+#     swap: o
+#     copy: y
+#     delete: d
+#     regenerate: g
+#     edit: e
+#     branch: b
+#     new: n
+#     exit: i
+#   historyview:
+#     up: k
+#     down: j
+#     halfpageup: u
+#     halfpagedown: d
+#     top: g
+#     bottom: G
+#     search: /
+#     historytab: h
+#     activetab: l
+#     exit: q
+#   treeview:
+#     up: k
+#     down: j
+#     expand: l
+#     collapse: h
+#     top: g
+#     bottom: G
+#     toggle: space
+#     exit: q
+#   jumpview:
+#     up: k
+#     down: j
+#     exit: q

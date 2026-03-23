@@ -159,9 +159,9 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
-		case "q":
+		case km.HistoryView.Exit:
 			return m.handleKeyPressHistory(tea.KeyMsg{Type: tea.KeyEsc})
-		case "/":
+		case km.HistoryView.Search:
 			m.History.IsSearching = true
 			m.History.SearchInput.Focus()
 			m.History.SearchInput.Reset()
@@ -169,22 +169,22 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.updateActiveFilter()
 			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
-		case "h":
+		case km.HistoryView.HistoryTab:
 			target := TabHistory
 			if m.History.Tab == TabHistory {
 				target = TabActive
 			}
 			m.switchTab(target)
 			return m, nil, true
-		case "l":
+		case km.HistoryView.ActiveTab:
 			target := TabActive
 			if m.History.Tab == TabActive {
 				target = TabHistory
 			}
 			m.switchTab(target)
 			return m, nil, true
-		case "g":
-			if prevGGPressed {
+		case km.HistoryView.Top:
+			if prevGGPressed || km.HistoryView.Top != "g" {
 				m.History.CursorPos = 0
 				m.Chat.Viewport.GotoTop()
 				m.Chat.Viewport.SetContent(m.historyListView())
@@ -192,7 +192,7 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 				m.History.GGPressed = true
 			}
 			return m, nil, true
-		case "G":
+		case km.HistoryView.Bottom:
 			currentItems := m.getHistoryCurrentList()
 			if len(currentItems) > 0 {
 				m.History.CursorPos = len(currentItems) - 1
@@ -200,16 +200,16 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 				m.Chat.Viewport.SetContent(m.historyListView())
 			}
 			return m, nil, true
-		case "d":
+		case km.HistoryView.HalfPageDown:
 			m.scrollHistoryHalfPage(true)
 			return m, nil, true
-		case "u":
+		case km.HistoryView.HalfPageUp:
 			m.scrollHistoryHalfPage(false)
 			return m, nil, true
-		case "j":
+		case km.HistoryView.Down:
 			m.moveHistoryCursor(1)
 			return m, nil, true
-		case "k":
+		case km.HistoryView.Up:
 			m.moveHistoryCursor(-1)
 			return m, nil, true
 		}

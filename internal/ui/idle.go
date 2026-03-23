@@ -267,11 +267,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.CtrlCPressed = true
 		return m, ctrlCTimeout(), true
 
-	case tea.KeyEscape:
-		// Enter visual mode, preserving the text in the text area.
-		model, cmd := m.enterVisualMode(visualModeNone)
-		return model, cmd, true
-
 	case tea.KeyTab, tea.KeyShiftTab:
 		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), ":")
 		numCommands := len(m.Chat.PaletteFilteredCommands)
@@ -380,6 +375,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	switch keyStr {
+	case km.Visual:
+		model, cmd := m.enterVisualMode(visualModeNone)
+		return model, cmd, true
+
 	case km.History:
 		event := m.Session.HandleShortcut(":history")
 		model, cmd := m.handleEvent(event)

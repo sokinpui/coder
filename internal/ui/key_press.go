@@ -118,7 +118,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, cmd, true
 	case stateTree:
-		newTree, cmd := m.Tree.Update(msg)
+		newTree, cmd := m.Tree.Update(msg, m.Session.GetConfig().Keymap)
 		m.Tree = newTree
 		if !m.Tree.Visible {
 			m.State = stateIdle
@@ -127,7 +127,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, cmd, true
 	case stateJump:
-		newJump, cmd := m.Jump.Update(msg)
+		newJump, cmd := m.Jump.Update(msg, m.Session.GetConfig().Keymap)
 		m.Jump = newJump
 		if !m.Jump.Visible {
 			m.State = stateIdle

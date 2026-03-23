@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"github.com/sokinpui/coder/internal/config"
 
 	"github.com/sokinpui/coder/internal/types"
 
@@ -51,7 +52,7 @@ func (m *JumpModel) UpdateItems(messages []types.Message) {
 	}
 }
 
-func (m JumpModel) Update(msg tea.Msg) (JumpModel, tea.Cmd) {
+func (m JumpModel) Update(msg tea.Msg, km config.Keymap) (JumpModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -61,14 +62,14 @@ func (m JumpModel) Update(msg tea.Msg) (JumpModel, tea.Cmd) {
 
 		case tea.KeyRunes:
 			switch msg.String() {
-			case "q":
+			case km.JumpView.Exit:
 				m.Visible = false
 				return m, nil
-			case "j":
+			case km.JumpView.Down:
 				if m.Cursor < len(m.Items)-1 {
 					m.Cursor++
 				}
-			case "k":
+			case km.JumpView.Up:
 				if m.Cursor > 0 {
 					m.Cursor--
 				}

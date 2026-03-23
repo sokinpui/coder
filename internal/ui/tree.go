@@ -205,7 +205,7 @@ func (m *TreeModel) buildVisibleNodes() {
 	}
 }
 
-func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
+func (m TreeModel) Update(msg tea.Msg, km config.Keymap) (TreeModel, tea.Cmd) {
 	prevGGPressed := m.ggPressed
 	m.ggPressed = false
 
@@ -227,28 +227,28 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 
 		case tea.KeyRunes:
 			switch msg.String() {
-			case "q":
+			case km.TreeView.Exit:
 				m.Visible = false
 				return m, nil
-			case "k":
+			case km.TreeView.Up:
 				if m.cursor > 0 {
 					m.cursor--
 				}
-			case "j":
+			case km.TreeView.Down:
 				if m.cursor < len(m.visibleNodes)-1 {
 					m.cursor++
 				}
-			case "g":
-				if prevGGPressed {
+			case km.TreeView.Top:
+				if prevGGPressed || km.TreeView.Top != "g" {
 					m.cursor = 0
 				} else {
 					m.ggPressed = true
 				}
-			case "G":
+			case km.TreeView.Bottom:
 				if len(m.visibleNodes) > 0 {
 					m.cursor = len(m.visibleNodes) - 1
 				}
-			case "l": // expand
+			case km.TreeView.Expand:
 				if len(m.visibleNodes) > 0 {
 					node := m.visibleNodes[m.cursor]
 					if node.isDir && !node.expanded {
@@ -256,7 +256,7 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 						m.buildVisibleNodes()
 					}
 				}
-			case "h": // collapse
+			case km.TreeView.Collapse:
 				if len(m.visibleNodes) > 0 {
 					node := m.visibleNodes[m.cursor]
 					if node.isDir && node.expanded {
@@ -287,7 +287,10 @@ func (m TreeModel) Update(msg tea.Msg) (TreeModel, tea.Cmd) {
 				}
 			}
 			return m, func() tea.Msg { return treeSelectionResultMsg{selectedPaths: paths} }
-		case tea.KeySpace:
+		}
+
+		switch msg.String() {
+		case km.TreeView.Toggle:
 			if len(m.visibleNodes) > 0 {
 				node := m.visibleNodes[m.cursor]
 				if _, ok := m.selected[node.path]; ok {

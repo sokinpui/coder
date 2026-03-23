@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/history"
@@ -262,7 +263,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {
-		case "j":
+		case km.VisualMode.Down:
 			if m.VisualSelect.Cursor < len(m.VisualSelect.Blocks)-1 {
 				m.VisualSelect.Cursor++
 				offset := m.Chat.Viewport.YOffset
@@ -271,7 +272,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			// Allow the viewport to handle the key press for scrolling
 			return m, nil, false
-		case "k":
+		case km.VisualMode.Up:
 			if m.VisualSelect.Cursor > 0 {
 				m.VisualSelect.Cursor--
 				offset := m.Chat.Viewport.YOffset
@@ -280,13 +281,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			// Allow the viewport to handle the key press for scrolling
 			return m, nil, false
-		case "o", "O":
+		case km.VisualMode.Swap, strings.ToUpper(km.VisualMode.Swap):
 			if m.VisualSelect.IsSelecting {
 				m.VisualSelect.Cursor, m.VisualSelect.Start = m.VisualSelect.Start, m.VisualSelect.Cursor
 				m.Chat.Viewport.SetContent(m.renderConversation())
 			}
 			return m, nil, true
-		case "v", "V":
+		case km.VisualMode.Select, strings.ToUpper(km.VisualMode.Select):
 			if m.VisualSelect.IsSelecting {
 				m.VisualSelect.IsSelecting = false
 			} else {
@@ -295,14 +296,14 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			return m, nil, true
-		case "b":
+		case km.VisualMode.Branch:
 			if !m.VisualSelect.IsSelecting && m.VisualSelect.Mode == visualModeNone {
 				m.VisualSelect.Mode = visualModeBranch
 				m.VisualSelect.IsSelecting = true // branch is a single-selection mode
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				return m, nil, true
 			}
-		case "n":
+		case km.VisualMode.New:
 			if m.Chat.IsStreaming {
 				m.Session.CancelGeneration()
 				m.Chat.IsStreaming = false
@@ -317,7 +318,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				return newModel, cmd, true
 			}
 			return m, nil, true
-		case "i":
+		case km.VisualMode.Exit:
 			m.State = stateIdle
 			m.VisualSelect.Mode = visualModeNone
 			m.VisualSelect.IsSelecting = false
@@ -325,7 +326,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 			return m, textarea.Blink, true
-		case "g":
+		case km.VisualMode.Regenerate:
 			if !m.VisualSelect.IsSelecting && m.VisualSelect.Mode == visualModeNone {
 				block := m.getCurrentBlock()
 				msgIndex := -1
@@ -355,7 +356,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					return model, cmd, true
 				}
 			}
-		case "e":
+		case km.VisualMode.Edit:
 			if !m.VisualSelect.IsSelecting && m.VisualSelect.Mode == visualModeNone {
 				block := m.getCurrentBlock()
 				userMsgIndex := -1
@@ -373,7 +374,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					return m, editInEditorCmd(originalContent), true
 				}
 			}
-		case "y":
+		case km.VisualMode.Copy:
 			if m.VisualSelect.Mode == visualModeNone {
 				indices := m.getSelectedIndices()
 				if len(indices) == 0 {
@@ -416,7 +417,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.Viewport.GotoBottom()
 				return m, tea.Batch(textarea.Blink, cmd), true
 			}
-		case "d":
+		case km.VisualMode.Delete:
 			if m.VisualSelect.Mode == visualModeNone {
 				selectedIndices := m.getSelectedIndices()
 				if len(selectedIndices) == 0 {

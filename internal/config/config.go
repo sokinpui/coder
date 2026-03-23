@@ -44,6 +44,54 @@ type UI struct {
 	MarkdownTheme string
 }
 
+// VisualKeymap contains keys for Visual Mode.
+type VisualKeymap struct {
+	Up         string
+	Down       string
+	Select     string
+	Swap       string
+	Copy       string
+	Delete     string
+	Regenerate string
+	Edit       string
+	Branch     string
+	New        string
+	Exit       string
+}
+
+// HistoryKeymap contains keys for the History View.
+type HistoryKeymap struct {
+	Up           string
+	Down         string
+	HalfPageUp   string
+	HalfPageDown string
+	Top          string
+	Bottom       string
+	Search       string
+	HistoryTab   string
+	ActiveTab    string
+	Exit         string
+}
+
+// TreeKeymap contains keys for the File Tree.
+type TreeKeymap struct {
+	Up       string
+	Down     string
+	Expand   string
+	Collapse string
+	Top      string
+	Bottom   string
+	Toggle   string
+	Exit     string
+}
+
+// JumpKeymap contains keys for Jump Mode.
+type JumpKeymap struct {
+	Up   string
+	Down string
+	Exit string
+}
+
 // Keymap contains custom keybindings for global shortcuts.
 type Keymap struct {
 	Submit      string
@@ -61,6 +109,12 @@ type Keymap struct {
 	ScrollUp    string
 	ScrollDown  string
 	Suspend     string
+	Visual      string
+
+	VisualMode  VisualKeymap  `mapstructure:"visualmode"`
+	HistoryView HistoryKeymap `mapstructure:"historyview"`
+	TreeView    TreeKeymap    `mapstructure:"treeview"`
+	JumpView    JumpKeymap    `mapstructure:"jumpview"`
 }
 
 // Config holds the application configuration.
@@ -108,6 +162,46 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.scrollup", "ctrl+u")
 	v.SetDefault("keymap.scrolldown", "ctrl+d")
 	v.SetDefault("keymap.suspend", "ctrl+z")
+	v.SetDefault("keymap.visual", "esc")
+
+	// Visual Mode defaults
+	v.SetDefault("keymap.visualmode.up", "k")
+	v.SetDefault("keymap.visualmode.down", "j")
+	v.SetDefault("keymap.visualmode.select", "v")
+	v.SetDefault("keymap.visualmode.swap", "o")
+	v.SetDefault("keymap.visualmode.copy", "y")
+	v.SetDefault("keymap.visualmode.delete", "d")
+	v.SetDefault("keymap.visualmode.regenerate", "g")
+	v.SetDefault("keymap.visualmode.edit", "e")
+	v.SetDefault("keymap.visualmode.branch", "b")
+	v.SetDefault("keymap.visualmode.new", "n")
+	v.SetDefault("keymap.visualmode.exit", "i")
+
+	// History View defaults
+	v.SetDefault("keymap.historyview.up", "k")
+	v.SetDefault("keymap.historyview.down", "j")
+	v.SetDefault("keymap.historyview.halfpageup", "u")
+	v.SetDefault("keymap.historyview.halfpagedown", "d")
+	v.SetDefault("keymap.historyview.top", "g")
+	v.SetDefault("keymap.historyview.bottom", "G")
+	v.SetDefault("keymap.historyview.search", "/")
+	v.SetDefault("keymap.historyview.historytab", "h")
+	v.SetDefault("keymap.historyview.activetab", "l")
+	v.SetDefault("keymap.historyview.exit", "q")
+
+	// Tree View defaults
+	v.SetDefault("keymap.treeview.up", "k")
+	v.SetDefault("keymap.treeview.down", "j")
+	v.SetDefault("keymap.treeview.expand", "l")
+	v.SetDefault("keymap.treeview.collapse", "h")
+	v.SetDefault("keymap.treeview.top", "g")
+	v.SetDefault("keymap.treeview.bottom", "G")
+	v.SetDefault("keymap.treeview.toggle", "space")
+	v.SetDefault("keymap.treeview.exit", "q")
+
+	v.SetDefault("keymap.jumpview.up", "k")
+	v.SetDefault("keymap.jumpview.down", "j")
+	v.SetDefault("keymap.jumpview.exit", "q")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
