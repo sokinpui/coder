@@ -149,7 +149,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 
 	// Recalculate the token count for the base context.
 	m.IsCountingTokens = true
-	return m, countTokensCmd(m.Session.GetPrompt())
+	return m, loadInitialContextCmd(m.Session)
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
