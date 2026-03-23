@@ -44,6 +44,25 @@ type UI struct {
 	MarkdownTheme string
 }
 
+// Keymap contains custom keybindings for global shortcuts.
+type Keymap struct {
+	Submit      string
+	Editor      string
+	Paste       string
+	History     string
+	New         string
+	Branch      string
+	Finder      string
+	Tree        string
+	Search      string
+	Jump        string
+	ContextList string
+	ApplyITF    string
+	ScrollUp    string
+	ScrollDown  string
+	Suspend     string
+}
+
 // Config holds the application configuration.
 type Config struct {
 	Server          Server
@@ -51,6 +70,7 @@ type Config struct {
 	Context         Context
 	Clipboard       Clipboard
 	UI              UI
+	Keymap          Keymap
 	AvailableModels []string `yaml:"-"`
 }
 
@@ -73,6 +93,21 @@ func Load() (*Config, error) {
 	v.SetDefault("clipboard.copycmd", "")
 	v.SetDefault("clipboard.pastecmd", "")
 	v.SetDefault("ui.markdowntheme", "dark")
+	v.SetDefault("keymap.submit", "ctrl+j")
+	v.SetDefault("keymap.editor", "ctrl+e")
+	v.SetDefault("keymap.paste", "ctrl+v")
+	v.SetDefault("keymap.history", "ctrl+h")
+	v.SetDefault("keymap.new", "ctrl+n")
+	v.SetDefault("keymap.branch", "ctrl+b")
+	v.SetDefault("keymap.finder", "ctrl+f")
+	v.SetDefault("keymap.tree", "ctrl+t")
+	v.SetDefault("keymap.search", "ctrl+p")
+	v.SetDefault("keymap.jump", "ctrl+q")
+	v.SetDefault("keymap.contextlist", "ctrl+l")
+	v.SetDefault("keymap.applyitf", "ctrl+a")
+	v.SetDefault("keymap.scrollup", "ctrl+u")
+	v.SetDefault("keymap.scrolldown", "ctrl+d")
+	v.SetDefault("keymap.suspend", "ctrl+z")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()

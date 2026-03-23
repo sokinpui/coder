@@ -48,6 +48,9 @@ func NewHistory() HistoryModel {
 }
 
 func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	keyStr := msg.String()
+	km := m.Session.GetConfig().Keymap
+
 	if m.History.IsSearching {
 		switch msg.Type {
 		case tea.KeyEnter:
@@ -77,6 +80,15 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 	prevGGPressed := m.History.GGPressed
 	m.History.GGPressed = false // Reset by default
 
+	switch keyStr {
+	case km.ScrollDown:
+		m.scrollHistoryHalfPage(true)
+		return m, nil, true
+	case km.ScrollUp:
+		m.scrollHistoryHalfPage(false)
+		return m, nil, true
+	}
+
 	switch msg.Type {
 	case tea.KeyTab, tea.KeyShiftTab:
 		target := TabActive
@@ -84,14 +96,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			target = TabHistory
 		}
 		m.switchTab(target)
-		return m, nil, true
-
-	case tea.KeyCtrlD:
-		m.scrollHistoryHalfPage(true)
-		return m, nil, true
-
-	case tea.KeyCtrlU:
-		m.scrollHistoryHalfPage(false)
 		return m, nil, true
 
 	case tea.KeyUp, tea.KeyCtrlK:

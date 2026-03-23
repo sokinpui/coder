@@ -22,3 +22,20 @@
 
 # ui:
 #   markdowntheme: dark
+
+# keymap:
+#   submit: ctrl+j
+#   editor: ctrl+e
+#   paste: ctrl+v
+#   history: ctrl+h
+#   new: ctrl+n
+#   branch: ctrl+b
+#   finder: ctrl+f
+#   tree: ctrl+t
+#   search: ctrl+p
+#   jump: ctrl+q
+#   contextlist: ctrl+l
+#   applyitf: ctrl+a
+#   scrollup: ctrl+u
+#   scrolldown: ctrl+d
+#   suspend: ctrl+z

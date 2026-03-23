@@ -2,11 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
+	"log"
 	"strings"
 	"time"
-	"log"
-	"github.com/sokinpui/coder/internal/session"
 
 	"github.com/sokinpui/coder/internal/utils"
 
@@ -213,6 +213,9 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	keyStr := msg.String()
+	km := m.Session.GetConfig().Keymap
+
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
 		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
@@ -374,52 +377,55 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		// Otherwise, fall through to let the textarea handle the newline.
 		return m, nil, false
 
-	case tea.KeyCtrlH:
+	}
+
+	switch keyStr {
+	case km.History:
 		event := m.Session.HandleShortcut(":history")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlE:
+	case km.Editor:
 		if m.Chat.TextArea.Focused() {
 			return m, editInEditorCmd(m.Chat.TextArea.Value()), true
 		}
 
-	case tea.KeyCtrlJ:
+	case km.Submit:
 		model, cmd := m.handleSubmit()
 		return model, cmd, true
 
-	case tea.KeyCtrlN:
+	case km.New:
 		event := m.Session.HandleShortcut(":new")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlB:
+	case km.Branch:
 		event := m.Session.HandleShortcut(":branch")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlF:
+	case km.Finder:
 		event := m.Session.HandleShortcut(":fzf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlT:
+	case km.Tree:
 		event := m.Session.HandleShortcut(":tree")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlA:
+	case km.ApplyITF:
 		// Equivalent to typing ":itf" and pressing enter.
 		event := m.Session.HandleInput(":itf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlP:
+	case km.Search:
 		event := m.Session.HandleShortcut(":search")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
-	case tea.KeyCtrlV:
+	case km.Paste:
 		return m, handlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false

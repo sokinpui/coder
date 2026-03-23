@@ -1,13 +1,13 @@
 package ui
 
 import (
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
-	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/charmbracelet/glamour"
 )

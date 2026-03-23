@@ -52,6 +52,9 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	keyStr := msg.String()
+	km := m.Session.GetConfig().Keymap
+
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		if m.State != stateCancelling {
@@ -59,6 +62,19 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.State = stateCancelling
 		}
 	case tea.KeyCtrlN:
+		event := m.Session.HandleInput(":new")
+		if event.Type != types.NewSessionStarted {
+			return m, nil, true
+		}
+		newModel, cmd := m.newSession(event.Mode)
+		newModel.State = stateIdle
+		return newModel, cmd, true
+	case tea.KeyEscape:
+		m, _ = m.enterVisualMode(visualModeNone)
+	}
+
+	switch keyStr {
+	case km.New:
 		if m.Chat.IsStreaming {
 			m.Session.CancelGeneration()
 			m.Chat.IsStreaming = false
@@ -72,7 +88,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			return newModel, cmd, true
 		}
 		return m, nil, true
-	case tea.KeyCtrlB:
+	case km.Branch:
 		event := m.Session.HandleInput(":branch")
 		switch event.Type {
 		case types.BranchModeStarted:
@@ -85,13 +101,10 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
-	case tea.KeyCtrlH:
+	case km.History:
 		m.State = stateHistorySelect
 		m.Chat.TextArea.Blur()
 		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
-	case tea.KeyEscape:
-		// Allow entering visual mode even during generation.
-		m, _ = m.enterVisualMode(visualModeNone)
 	}
 	return m, nil, true
 }

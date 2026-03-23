@@ -40,9 +40,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, cmd, true
 	}
 
+	keyStr := msg.String()
+	km := m.Session.GetConfig().Keymap
+
 	// Handle global keybindings first
-	switch msg.Type {
-	case tea.KeyCtrlL:
+	switch keyStr {
+	case km.ContextList:
 		cmdOutput, _, cmdSuccess := commands.ProcessCommand(":list-all", m.Session)
 
 		var messages []types.Message
@@ -67,9 +70,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.QuickView.Visible = true
 		m.Chat.TextArea.Blur()
 		return m, nil, true
-	case tea.KeyCtrlZ:
+	case km.Suspend:
 		return m, tea.Suspend, true // Suspend the application
-	case tea.KeyCtrlQ:
+	case km.Jump:
 		event := m.Session.HandleShortcut(":jump")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
@@ -77,11 +80,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	// Handle scrolling for non-history states.
 	if m.State != stateHistorySelect {
-		switch msg.Type {
-		case tea.KeyCtrlU:
+		switch keyStr {
+		case km.ScrollUp:
 			m.Chat.Viewport.HalfPageUp()
 			return m, nil, true
-		case tea.KeyCtrlD:
+		case km.ScrollDown:
 			m.Chat.Viewport.HalfPageDown()
 			return m, nil, true
 		}

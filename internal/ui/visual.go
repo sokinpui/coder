@@ -83,8 +83,11 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
-	switch msg.Type {
-	case tea.KeyCtrlA:
+	keyStr := msg.String()
+	km := m.Session.GetConfig().Keymap
+
+	switch keyStr {
+	case km.ApplyITF:
 		cursorBlock := m.getCurrentBlock()
 		var aiResponseToApply string
 		found := false
@@ -120,6 +123,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		return m, textarea.Blink, true
+	case km.History:
+		event := m.Session.HandleShortcut(":history")
+		model, cmd := m.handleEvent(event)
+		return model, cmd, true
+	}
+
+	switch msg.Type {
 	case tea.KeyEsc, tea.KeyCtrlC:
 		if m.VisualSelect.IsSelecting {
 			m.VisualSelect.IsSelecting = false
@@ -249,11 +259,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...)), true
-
-	case tea.KeyCtrlH:
-		event := m.Session.HandleShortcut(":history")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
 
 	case tea.KeyRunes:
 		switch string(msg.Runes) {

@@ -51,7 +51,7 @@ type (
 	}
 	conversationLoadedMsg struct {
 		sess *session.Session
-		err error
+		err  error
 	}
 	switchActiveSessionMsg struct {
 		sess *session.Session
