@@ -64,10 +64,6 @@ func (m Model) StatusView() string {
 		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
-	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
-	tempInfo := fmt.Sprintf("Temp: %.1f", m.Session.GetConfig().Generation.Temperature)
-	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", utils.GetVersion()))
-
 	var tokenInfo string
 	if m.IsCountingTokens {
 		tokenInfo = "Tokens: counting..."
@@ -75,6 +71,9 @@ func (m Model) StatusView() string {
 		tokenInfo = fmt.Sprintf("Tokens: %d", m.TokenCount)
 	}
 
+	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
+	tempInfo := fmt.Sprintf("Temp: %.1f", m.Session.GetConfig().Generation.Temperature)
+	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", utils.GetVersion()))
 	modelPart := modelInfoStyle.Render(modelInfo)
 	tempPart := modelInfoStyle.Render(tempInfo)
 	tokenPart := tokenCountStyle.Render(tokenInfo)
@@ -86,9 +85,12 @@ func (m Model) StatusView() string {
 		rightStatusItems = append(rightStatusItems, versionPart, modelPart, tempPart)
 	}
 
-	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
-		statusText := "Thinking" // Default for genpending and thinking
-		if m.State == stateGenerating {
+	if m.State == stateGenPending || m.State == stateQueuing || m.State == stateThinking || m.State == stateGenerating {
+		statusText := "Thinking"
+		switch m.State {
+		case stateQueuing, stateGenPending:
+			statusText = "Queuing"
+		case stateGenerating:
 			statusText = "Generating"
 		}
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Chat.Spinner.View())

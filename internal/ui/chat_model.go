@@ -14,8 +14,10 @@ type ChatModel struct {
 	IsStreaming              bool
 	StreamBuffer             string
 	StreamDone               bool
+	ThoughtBuffer            string
 	IsStreamAnime            bool
 	LastRenderedAIPart       string
+	LastRenderedThought      string
 	CtrlCPressed             bool
 	LastInteractionFailed    bool
 	ShowPalette              bool

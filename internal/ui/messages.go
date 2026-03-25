@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"encoding/json"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 
@@ -100,7 +101,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case spinner.TickMsg:
 		// Tick the spinner during all generation phases.
 		switch m.State {
-		case stateInitializing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
+		case stateInitializing, stateQueuing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
 			// Continue to spinner update logic
 		default:
 			return m, nil, true
@@ -112,7 +113,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
-		case stateThinking, stateGenPending:
+		case stateThinking, stateQueuing, stateGenPending:
 			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
@@ -122,12 +123,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, spinnerCmd, true
 
 	case streamResultMsg:
-		if m.State == stateThinking {
-			m.State = stateGenerating
-		}
 		delay := m.Session.GetConfig().Generation.StreamDelay
 		m.Chat.StreamBuffer += string(msg)
 		if !m.Chat.IsStreamAnime {
+			if m.State == stateQueuing {
+				// Transition out of queuing once we get first data
+				m.State = stateThinking
+			}
 			m.Chat.IsStreamAnime = true
 			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(delay)), true
 		}
@@ -142,38 +144,59 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		// Adaptive anime: take more characters if the buffer is getting large
-		take := 1
-		bufLen := len(m.Chat.StreamBuffer)
-		if bufLen > 300 {
-			take = bufLen / 10
-		} else if bufLen > 50 {
-			take = 4
-		} else if bufLen > 10 {
-			take = 2
+		// We need to parse the JSON chunk to see if it's thought or text
+		// The StreamBuffer is now a collection of JSON objects
+		var chunkData struct {
+			Text    string `json:"text"`
+			Thought string `json:"thought"`
 		}
 
-		if take > len(m.Chat.StreamBuffer) {
-			take = len(m.Chat.StreamBuffer)
+		// Split by standard JSON boundaries or handle the sequence
+		// Simple approach: find first "}"
+		endIdx := strings.Index(m.Chat.StreamBuffer, "}")
+		if endIdx == -1 {
+			return m, streamAnimeCmd(m.Session.GetConfig().Generation.StreamDelay), true
 		}
 
-		chunk := m.Chat.StreamBuffer[:take]
-		m.Chat.StreamBuffer = m.Chat.StreamBuffer[take:]
+		rawJSON := m.Chat.StreamBuffer[:endIdx+1]
+		m.Chat.StreamBuffer = m.Chat.StreamBuffer[endIdx+1:]
 
-		messages := m.Session.GetMessages()
-		if len(messages) > 0 {
-			lastMsg := messages[len(messages)-1]
-			lastMsg.Content += chunk
-			m.Session.ReplaceLastMessage(lastMsg)
+		if err := json.Unmarshal([]byte(rawJSON), &chunkData); err != nil {
+			return m, streamAnimeCmd(m.Session.GetConfig().Generation.StreamDelay), true
+		}
 
-			if lastMsg.Content != m.Chat.LastRenderedAIPart {
-				wasAtBottom := m.Chat.Viewport.AtBottom()
-				m.Chat.Viewport.SetContent(m.renderConversation())
-				if wasAtBottom {
-					m.Chat.Viewport.GotoBottom()
-				}
-				m.Chat.LastRenderedAIPart = lastMsg.Content
+		if chunkData.Thought != "" {
+			m.Chat.ThoughtBuffer += chunkData.Thought
+		}
+
+		if chunkData.Text != "" {
+			if m.State == stateThinking || m.State == stateQueuing {
+				m.State = stateGenerating
 			}
+
+			messages := m.Session.GetMessages()
+			if len(messages) > 0 {
+				lastMsg := messages[len(messages)-1]
+				lastMsg.Content += chunkData.Text
+				m.Session.ReplaceLastMessage(lastMsg)
+			}
+		}
+
+		// Refresh UI if content changed
+		messages := m.Session.GetMessages()
+		lastMsgContent := ""
+		if len(messages) > 0 {
+			lastMsgContent = messages[len(messages)-1].Content
+		}
+
+		if lastMsgContent != m.Chat.LastRenderedAIPart || m.Chat.ThoughtBuffer != m.Chat.LastRenderedThought {
+			wasAtBottom := m.Chat.Viewport.AtBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if wasAtBottom {
+				m.Chat.Viewport.GotoBottom()
+			}
+			m.Chat.LastRenderedAIPart = lastMsgContent
+			m.Chat.LastRenderedThought = m.Chat.ThoughtBuffer
 		}
 
 		delay := m.Session.GetConfig().Generation.StreamDelay
@@ -189,6 +212,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.IsStreamAnime = false
 		m.Chat.StreamBuffer = ""
 		m.Chat.StreamDone = false
+		m.Chat.ThoughtBuffer = ""
+		m.Chat.LastRenderedThought = ""
 
 		messages := m.Session.GetMessages()
 

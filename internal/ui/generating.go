@@ -30,10 +30,11 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	if event.Type != types.GenerationStarted {
 		return m, nil // Should not happen
 	}
-	m.State = stateThinking
+	m.State = stateQueuing
 	m.Chat.IsStreaming = true
 	m.Chat.StreamBuffer = ""
 	m.Chat.StreamDone = false
+	m.Chat.ThoughtBuffer = ""
 	m.Chat.IsStreamAnime = false
 	m.Chat.StreamSub = event.Data.(chan string)
 	m.Chat.TextArea.Blur()
