@@ -93,7 +93,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch m.State {
 	case stateGenPending:
 		return m.handleKeyPressGenPending(msg)
-	case stateThinking, stateGenerating, stateCancelling:
+	case stateQueuing, stateThinking, stateGenerating, stateCancelling:
 		return m.handleKeyPressGenerating(msg)
 	case stateHistorySelect:
 		return m.handleKeyPressHistory(msg)
