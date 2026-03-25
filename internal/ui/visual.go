@@ -139,13 +139,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		var cmd tea.Cmd = textarea.Blink
 		if m.Chat.IsStreaming {
-			messages := m.Session.GetMessages()
-			// Check if the last message is an empty AI message, which indicates 'thinking' state.
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateThinking
-			} else {
-				m.State = stateGenerating
-			}
+			m.State = m.determineStreamingState()
 			cmd = tea.Batch(cmd, m.Chat.Spinner.Tick)
 		} else {
 			m.State = stateIdle

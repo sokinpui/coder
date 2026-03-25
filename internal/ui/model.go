@@ -106,3 +106,29 @@ func (m Model) switchSessionByID(id string) tea.Cmd {
 	}
 	return nil
 }
+
+func (m Model) determineStreamingState() state {
+	if !m.Chat.IsStreaming {
+		return stateIdle
+	}
+
+	messages := m.Session.GetMessages()
+	if len(messages) == 0 {
+		return stateQueuing
+	}
+
+	lastMsg := messages[len(messages)-1]
+	if lastMsg.Type != types.AIMessage {
+		return stateQueuing
+	}
+
+	if lastMsg.Content != "" {
+		return stateGenerating
+	}
+
+	if m.Chat.ThoughtBuffer != "" {
+		return stateThinking
+	}
+
+	return stateQueuing
+}
