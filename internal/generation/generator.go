@@ -80,16 +80,13 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 		}
 
 		var result struct {
-			Text    string `json:"text"`
-			Thought string `json:"thought"`
+			Text string `json:"text"`
 		}
 		if err := json.Unmarshal([]byte(data), &result); err != nil {
 			continue
 		}
-
-		// Encode the chunk as JSON so the UI can distinguish between thought and text
-		if encoded, err := json.Marshal(result); err == nil {
-			streamChan <- string(encoded)
+		if result.Text != "" {
+			streamChan <- result.Text
 		}
 	}
 

@@ -177,32 +177,14 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		currentLine += strings.Count(renderedMsg, "\n") + 1
 	}
 
-	if m.State == stateThinking || m.State == stateQueuing || m.State == stateGenPending {
-		statusText := "Thinking"
-		if m.State == stateQueuing || m.State == stateGenPending {
-			statusText = "Queuing"
-		}
-
+	if m.State == stateThinking || m.State == stateGenPending {
 		// The spinner has its own colors, so we can't render it with the same style as the text.
-		statusStyle := lipgloss.NewStyle().
+		thinkingText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244")).
 			Italic(true).
-			Render(statusText + " ")
+			Render("Thinking ")
 
-		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle, m.Chat.Spinner.View())
-
-		// Add thought buffer if in thinking state
-		if m.State == stateThinking && m.Chat.ThoughtBuffer != "" {
-			thoughtStyle := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("242")).
-				Italic(true).
-				MaxHeight(m.Height / 6).
-				PaddingLeft(2).
-				Border(lipgloss.NormalBorder(), false, false, false, true).
-				BorderForeground(lipgloss.Color("238"))
-			fullMessage += "\n" + thoughtStyle.Render(m.Chat.ThoughtBuffer)
-		}
-
+		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
 		// Apply padding to the container.
 		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 		parts = append(parts, block)

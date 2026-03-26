@@ -10,7 +10,6 @@ type state int
 const (
 	stateInitializing state = iota
 	stateIdle
-	stateQueuing
 	stateGenPending
 	stateThinking
 	stateGenerating

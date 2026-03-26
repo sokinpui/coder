@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 type HistoryTab int
@@ -109,7 +110,12 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		m.History.Items = nil
 		if m.Chat.IsStreaming {
 			// Return to the generation view
-			m.State = m.determineStreamingState()
+			messages := m.Session.GetMessages()
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
+				m.State = stateThinking
+			} else {
+				m.State = stateGenerating
+			}
 			delay := m.Session.GetConfig().Generation.StreamDelay
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
