@@ -7,11 +7,10 @@ import (
 )
 
 type cachedRender struct {
-	rendered    string
+	lines       []string
 	content     string
 	width       int
 	isVisual    bool
-	searchQuery string
 }
 
 type ChatModel struct {
