@@ -83,6 +83,10 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	}, nil
 }
 
+func (m *Model) ClearCache() {
+	m.Chat.RenderCache = make(map[int]cachedRender)
+}
+
 func (m *Model) addActiveSession(sess *session.Session) {
 	for i, s := range m.ActiveSessions {
 		if s.ID == sess.ID {

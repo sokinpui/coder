@@ -6,6 +6,14 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 )
 
+type cachedRender struct {
+	rendered    string
+	content     string
+	width       int
+	isVisual    bool
+	searchQuery string
+}
+
 type ChatModel struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
@@ -37,6 +45,7 @@ type ChatModel struct {
 	CommandHistoryCursor     int
 	CommandHistoryModified   string
 	PreserveInputOnSubmit    bool
+	RenderCache              map[int]cachedRender
 }
 
 func NewChat(initialInput string) ChatModel {
@@ -64,5 +73,6 @@ func NewChat(initialInput string) ChatModel {
 		SearchFocusMsgIndex: -1,
 		SearchFocusLineNum:  -1,
 		EditingMessageIndex: -1,
+		RenderCache:         make(map[int]cachedRender),
 	}
 }

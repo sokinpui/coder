@@ -38,6 +38,7 @@ func (m Model) highlightMatches(text string) string {
 // and a map of message index to its starting line number.
 func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	messageLineOffsets := make(map[int]int)
+	viewportWidth := m.Chat.Viewport.Width
 	currentLine := 0
 	var parts []string
 
@@ -63,66 +64,86 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		}
 	}
 
+	isVisualState := m.State == stateVisualSelect
+
 	for i, msg := range m.Session.GetMessages() {
 		messageLineOffsets[i] = currentLine
-		currentMsg := msg // Make a copy to modify content for visual mode
-		if m.State == stateVisualSelect {
-			switch currentMsg.Type {
-			case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
-				currentMsg.Content = truncateMessage(currentMsg.Content, 4)
-			}
-		}
-
-		contentToRender := currentMsg.Content
-		if m.Chat.SearchQuery != "" {
-			switch currentMsg.Type {
-			case types.UserMessage, types.CommandMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
-				// Highlight text before applying Lipgloss borders/styles
-				contentToRender = m.highlightMatches(contentToRender)
-			}
-		}
 
 		var renderedMsg string
-		switch currentMsg.Type {
-		case types.InitMessage:
-			blockWidth := m.Chat.Viewport.Width - initMessageStyle.GetHorizontalFrameSize()
-			renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
-		case types.DirectoryMessage:
-			blockWidth := m.Chat.Viewport.Width - directoryWelcomeStyle.GetHorizontalFrameSize()
-			renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
-		case types.UserMessage:
-			blockWidth := m.Chat.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
-			renderedMsg = userInputStyle.Width(blockWidth).Render(contentToRender)
-		case types.CommandMessage:
-			blockWidth := m.Chat.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
-			renderedMsg = commandInputStyle.Width(blockWidth).Render(contentToRender)
-		case types.ImageMessage:
-			blockWidth := m.Chat.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
-			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
-		case types.AIMessage:
-			if contentToRender == "" {
-				continue
-			} else {
-				renderedAI, err := m.GlamourRenderer.Render(contentToRender)
-				if err != nil {
-					renderedAI = contentToRender
+		cache, ok := m.Chat.RenderCache[i]
+		if ok && cache.content == msg.Content && cache.width == viewportWidth &&
+			cache.isVisual == isVisualState && cache.searchQuery == m.Chat.SearchQuery {
+			renderedMsg = cache.rendered
+		} else {
+			currentMsg := msg // Make a copy to modify content for visual mode
+			if isVisualState {
+				switch currentMsg.Type {
+				case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
+					currentMsg.Content = truncateMessage(currentMsg.Content, 4)
 				}
-				renderedMsg = m.highlightMatches(renderedAI)
 			}
-		case types.CommandResultMessage:
-			blockWidth := m.Chat.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
-			renderedMsg = commandResultStyle.Width(blockWidth).Render(contentToRender)
-		case types.CommandErrorResultMessage:
-			blockWidth := m.Chat.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
-			renderedMsg = commandErrorStyle.Width(blockWidth).Render(contentToRender)
 
+			contentToRender := currentMsg.Content
+			if m.Chat.SearchQuery != "" {
+				switch currentMsg.Type {
+				case types.UserMessage, types.CommandMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
+					// Highlight text before applying Lipgloss borders/styles
+					contentToRender = m.highlightMatches(contentToRender)
+				}
+			}
+
+			switch currentMsg.Type {
+			case types.InitMessage:
+				blockWidth := viewportWidth - initMessageStyle.GetHorizontalFrameSize()
+				renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
+			case types.DirectoryMessage:
+				blockWidth := viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()
+				renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
+			case types.UserMessage:
+				blockWidth := viewportWidth - userInputStyle.GetHorizontalFrameSize()
+				renderedMsg = userInputStyle.Width(blockWidth).Render(contentToRender)
+			case types.CommandMessage:
+				blockWidth := viewportWidth - commandInputStyle.GetHorizontalFrameSize()
+				renderedMsg = commandInputStyle.Width(blockWidth).Render(contentToRender)
+			case types.ImageMessage:
+				blockWidth := viewportWidth - imageMessageStyle.GetHorizontalFrameSize()
+				renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
+			case types.AIMessage:
+				if contentToRender != "" {
+					renderedAI, err := m.GlamourRenderer.Render(contentToRender)
+					if err != nil {
+						renderedAI = contentToRender
+					}
+					renderedMsg = m.highlightMatches(renderedAI)
+				}
+			case types.CommandResultMessage:
+				blockWidth := viewportWidth - commandResultStyle.GetHorizontalFrameSize()
+				renderedMsg = commandResultStyle.Width(blockWidth).Render(contentToRender)
+			case types.CommandErrorResultMessage:
+				blockWidth := viewportWidth - commandErrorStyle.GetHorizontalFrameSize()
+				renderedMsg = commandErrorStyle.Width(blockWidth).Render(contentToRender)
+			}
+
+			if renderedMsg != "" || msg.Type == types.AIMessage {
+				m.Chat.RenderCache[i] = cachedRender{
+					rendered:    renderedMsg,
+					content:     msg.Content,
+					width:       viewportWidth,
+					isVisual:    isVisualState,
+					searchQuery: m.Chat.SearchQuery,
+				}
+			}
+		}
+
+		if renderedMsg == "" && msg.Type == types.AIMessage {
+			continue
 		}
 
 		if i == m.Chat.SearchFocusMsgIndex {
 			lines := strings.Split(renderedMsg, "\n")
 			// Adjust for potential top border offset in styled blocks
 			borderOffset := 0
-			switch currentMsg.Type {
+			switch msg.Type {
 			case types.UserMessage, types.CommandMessage, types.ImageMessage:
 				borderOffset = 1
 			}

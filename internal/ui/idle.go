@@ -136,6 +136,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	}
 
 	m.Session = newSess
+	m.ClearCache()
 	m.addActiveSession(newSess)
 	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
 	dirMsg := utils.GetDirInfoContent()

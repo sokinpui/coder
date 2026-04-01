@@ -438,6 +438,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.Chat.StreamSub = nil
 				}
 				m.Session.DeleteMessages(selectedIndices)
+				m.ClearCache()
 				m.StatusBarMessage = "Deleted selected messages."
 				cmd = clearStatusBarCmd()
 				if m.Chat.IsStreaming {

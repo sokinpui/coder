@@ -328,6 +328,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// When loading from history, this loaded session becomes the active one
 		m.Session = msg.sess
+		m.ClearCache()
 		m.addActiveSession(msg.sess)
 
 		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
@@ -353,6 +354,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.Session = msg.sess
+		m.ClearCache()
 		m.State = stateIdle
 		m.Chat.LastInteractionFailed = false
 		m.Chat.LastRenderedAIPart = ""
@@ -596,6 +598,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.Width = msg.Width
 		m = m.updateLayout()
 		m.Chat.TextArea.CursorEnd()
+		m.ClearCache()
 
 		m.Chat.CtrlCPressed = false
 
