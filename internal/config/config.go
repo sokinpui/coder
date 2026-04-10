@@ -207,7 +207,6 @@ func Load() (*Config, error) {
 	home, err := os.UserHomeDir()
 	if err == nil {
 		configDir := filepath.Join(home, ".config", "coder")
-		_ = ensureDirAndFile(configDir, "config.yaml", ConfigTemplate)
 
 		v.AddConfigPath(configDir)
 		v.SetConfigName("config")
@@ -251,6 +250,27 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// InitConfig creates a default configuration file.
+// If isLocal is true, it creates .coder/config.yaml in the repo root.
+// Otherwise, it creates ~/.config/coder/config.yaml.
+func InitConfig(isLocal bool) error {
+	var configDir string
+	if isLocal {
+		repoRoot, err := utils.FindRepoRoot()
+		if err != nil {
+			return fmt.Errorf("failed to find repo root: %w", err)
+		}
+		configDir = filepath.Join(repoRoot, ".coder")
+	} else {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		configDir = filepath.Join(home, ".config", "coder")
+	}
+	return ensureDirAndFile(configDir, "config.yaml", ConfigTemplate)
 }
 
 func ensureDirAndFile(dir, filename, content string) error {
