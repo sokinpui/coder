@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
 	"io"
@@ -43,14 +44,14 @@ func main() {
 				return
 			}
 
-			if contextMode {
-				printContext(args)
-				return
-			}
-
 			mode := "coding"
 			if chatMode {
 				mode = "chat"
+			}
+
+			if contextMode {
+				printContext(mode, args)
+				return
 			}
 
 			files := args
@@ -63,8 +64,8 @@ func main() {
 	}
 
 	rootCmd.Flags().BoolVar(&chatMode, "chat", false, "Start Coder in chat mode (no project context)")
-	rootCmd.Flags().BoolVar(&configMode, "config", false, "Edit the configuration file")
-	rootCmd.Flags().BoolVar(&contextMode, "context", false, "Print the instructions and project context")
+	rootCmd.Flags().BoolVarP(&configMode, "config", "c", false, "Edit the configuration file")
+	rootCmd.Flags().BoolVarP(&contextMode, "context", "C", false, "Print the instructions and project context")
 	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script for (bash, zsh, fish, powershell)")
 	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration (used with --config)")
 	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
@@ -152,7 +153,7 @@ func ensureConfigFile(path string) error {
 	return os.WriteFile(path, []byte(config.ConfigTemplate), 0644)
 }
 
-func printContext(args []string) {
+func printContext(mode string, args []string) {
 	files := collectFiles(args)
 
 	cfg, err := config.Load()
@@ -178,13 +179,18 @@ func printContext(args []string) {
 		}
 	}
 
-	strategy := modes.GetStrategy("coding", customInstruction)
+	strategy := modes.GetStrategy(mode, customInstruction)
 	if err := strategy.LoadSourceCode(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Print(strategy.BuildPrompt(nil))
+	var messages []types.Message
+	if initialPrompt != "" {
+		messages = append(messages, types.Message{Type: types.UserMessage, Content: initialPrompt})
+	}
+
+	fmt.Print(strategy.BuildPrompt(messages))
 }
 
 func runEditor(path string) {
