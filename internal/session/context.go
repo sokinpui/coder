@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// LoadContext loads the initial context for the session using the current mode strategy.
 func (s *Session) LoadContext() error {
 	if err := s.modeStrategy.LoadSourceCode(s.config); err != nil {
 		return err
@@ -14,7 +13,6 @@ func (s *Session) LoadContext() error {
 	return nil
 }
 
-// applyContextFiles overrides the current config context with specific paths.
 func (s *Session) applyContextFiles(paths []string) {
 	s.config.Context.Dirs = []string{}
 	s.config.Context.Files = []string{}

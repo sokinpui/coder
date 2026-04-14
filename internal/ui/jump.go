@@ -34,7 +34,6 @@ func (m *JumpModel) UpdateItems(messages []types.Message) {
 	m.Items = []jumpItem{}
 	for i, msg := range messages {
 		if msg.Type == types.UserMessage {
-			// Clean up content for preview: take first line and trim
 			preview := strings.Split(msg.Content, "\n")[0]
 			preview = strings.TrimSpace(preview)
 			if len(preview) > 60 {

@@ -6,12 +6,10 @@ import (
 	"strings"
 )
 
-// HandleInput processes user input (prompts, commands, actions).
 func (s *Session) HandleInput(input string) types.Event {
 	return s.processInput(input, false)
 }
 
-// HandleShortcut processes a command triggered by a shortcut silently.
 func (s *Session) HandleShortcut(input string) types.Event {
 	return s.processInput(input, true)
 }
@@ -34,7 +32,6 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	if cmdSuccess {
 		switch cmdOutput.Type {
 		case types.NewSessionStarted, types.Quit:
-			// These events typically don't log to the message history
 			return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
 		case types.NoOp:
 			return types.Event{Type: types.NoOp}

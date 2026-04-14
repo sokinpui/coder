@@ -5,7 +5,6 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-// CommandOutput is the structured result of a command execution.
 type CommandOutput struct {
 	Type    types.EventType
 	Payload string

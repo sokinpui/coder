@@ -106,7 +106,6 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 	fmt.Fprintln(&b, "Coder Help")
 	fmt.Fprintln(&b)
 
-	// Shortcuts
 	fmt.Fprintln(&b, "Shortcuts:")
 
 	for _, section := range helpPageDesc {

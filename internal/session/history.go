@@ -21,7 +21,6 @@ func (s *Session) hasConservation() bool {
 	return false
 }
 
-// SaveConversation saves the current conversation to history.
 func (s *Session) SaveConversation() error {
 	if !s.hasConservation() && s.title == "New Chat" {
 		return nil
@@ -33,7 +32,6 @@ func (s *Session) SaveConversation() error {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		// Log the error but don't fail the save.
 		log.Printf("could not get working directory when saving session: %v", err)
 		wd = ""
 	}
@@ -52,17 +50,13 @@ func (s *Session) SaveConversation() error {
 	return s.historyManager.SaveConversation(data)
 }
 
-// GetHistoryFilename returns the filename for the current conversation in history.
-// It returns an empty string if the session hasn't been saved yet.
 func (s *Session) GetHistoryFilename() string {
 	return s.historyFilename
 }
 
-// LoadConversation loads a conversation from a history file, replacing the current session state.
 func (s *Session) LoadConversation(filename string) error {
 	if len(s.messages) > 0 {
 		if err := s.SaveConversation(); err != nil {
-			// Log the error but continue, as loading a new session is more important.
 			log.Printf("Error saving current conversation before loading another: %v", err)
 		}
 	}
@@ -72,10 +66,8 @@ func (s *Session) LoadConversation(filename string) error {
 		return fmt.Errorf("failed to load conversation %s: %w", filename, err)
 	}
 
-	// Change directory if specified in history.
 	if metadata.WorkingDir != "" {
 		if err := os.Chdir(metadata.WorkingDir); err != nil {
-			// Log the error but continue. The user might have moved the project.
 			log.Printf("could not switch to working directory '%s' from history file '%s': %v", metadata.WorkingDir, filename, err)
 		}
 	}
@@ -86,8 +78,6 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 
-	// Update Context from history. If not present in history (e.g. old format),
-	// clear them to match the state when the conversation was saved.
 	if metadata.Files != nil {
 		s.config.Context.Files = metadata.Files
 	} else {
@@ -104,12 +94,9 @@ func (s *Session) LoadConversation(filename string) error {
 		s.config.Context.Exclusions = []string{}
 	}
 
-	// The context, including project source, is loaded based on the current mode.
 	return s.LoadContext()
 }
 
-// Branch saves the current session and creates a new one containing messages
-// up to the specified index.
 func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	if err := s.SaveConversation(); err != nil {
 		return nil, fmt.Errorf("failed to save current session before branching: %w", err)
@@ -121,7 +108,6 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
-	// NewWithMessages makes a defensive copy, so this is safe.
 	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.customInstruction, s.initialContextFiles)
 	if err != nil {
 		return nil, err
@@ -136,8 +122,6 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	return newSess, nil
 }
 
-// RegenerateFrom truncates the message history to the specified user message
-// and starts a new generation.
 func (s *Session) RegenerateFrom(messageIndex int) types.Event {
 	if messageIndex < 0 || messageIndex >= len(s.messages) {
 		s.messages = append(s.messages, types.Message{

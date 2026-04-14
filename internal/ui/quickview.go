@@ -10,7 +10,6 @@ import (
 	"github.com/rmhubbert/bubbletea-overlay"
 )
 
-// QuickViewModel is the model for the quick view overlay.
 type QuickViewModel struct {
 	Viewport        viewport.Model
 	Visible         bool
@@ -19,7 +18,6 @@ type QuickViewModel struct {
 	needsRender     bool
 }
 
-// NewQuickView creates a new quick view model.
 func NewQuickView() *QuickViewModel {
 	vp := viewport.New(80, 20) // Initial size, will be updated
 	return &QuickViewModel{
@@ -88,7 +86,6 @@ func (m *QuickViewModel) View() string {
 	return paletteContainerStyle.Render(m.Viewport.View())
 }
 
-// QuickViewOverlay implements the Overlay interface for the quick view.
 type QuickViewOverlay struct{}
 
 func (f *QuickViewOverlay) IsVisible(main *Model) bool {

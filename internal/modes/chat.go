@@ -5,7 +5,6 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-// ChatMode is a strategy for a pure chat session without project context or instructions.
 type ChatMode struct{}
 
 func (m *ChatMode) GetRolePrompt() string {

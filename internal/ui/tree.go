@@ -389,7 +389,6 @@ func (m *TreeModel) View() string {
 	return paletteContainerStyle.Width(m.Width).Render(b.String())
 }
 
-// TreeOverlay implements the Overlay interface for the file tree explorer.
 type TreeOverlay struct{}
 
 func (t *TreeOverlay) IsVisible(main *Model) bool {

@@ -7,15 +7,12 @@ import (
 	"strings"
 )
 
-// PaletteOverlay implements the Overlay interface for the command palette.
 type PaletteOverlay struct{}
 
-// IsVisible checks if the command palette should be shown.
 func (p *PaletteOverlay) IsVisible(main *Model) bool {
 	return main.Chat.ShowPalette
 }
 
-// View renders the command palette overlay.
 func (p *PaletteOverlay) View(main *Model) string {
 	paletteContent := main.PaletteView()
 	if paletteContent == "" {
@@ -37,7 +34,6 @@ func (p *PaletteOverlay) View(main *Model) string {
 	return overlayModel.View()
 }
 
-// simpleModel is a basic tea.Model for rendering a static string.
 type simpleModel struct {
 	content string
 }

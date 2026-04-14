@@ -1,38 +1,22 @@
 package types
 
-// EventType defines the type of event returned by the session.
 type EventType int
 
 const (
-	// NoOp indicates that no significant action was taken.
 	NoOp EventType = iota
-	// MessagesUpdated indicates that the message list was updated.
 	MessagesUpdated
-	// GenerationStarted indicates a new AI generation task has begun.
 	GenerationStarted
-	// VisualModeStarted indicates the UI should enter visual mode.
 	VisualModeStarted
-	// GenerateModeStarted indicates the UI should enter visual generate mode.
 	GenerateModeStarted
-	// EditModeStarted indicates the UI should enter visual edit mode.
 	EditModeStarted
-	// BranchModeStarted indicates the UI should enter visual branch mode.
 	BranchModeStarted
-	// SearchModeStarted indicates the UI should enter search mode.
 	SearchModeStarted
-	// HistoryModeStarted indicates the UI should enter history browsing mode.
 	HistoryModeStarted
-	// ActiveModeStarted indicates the UI should enter active sessions browsing mode.
 	ActiveModeStarted
-	// NewSessionStarted indicates the session has been reset.
 	NewSessionStarted
-	// tree mode
 	TreeModeStarted
-	// fzf mode
 	FzfModeStarted
-	// jump mode
 	JumpModeStarted
-	// Quit indicates the application should quit.
 	Quit
 )
 

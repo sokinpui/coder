@@ -10,7 +10,7 @@ func init() {
 	registerCommand("itf", itfCmd, nil)
 }
 
-// ExecuteItf runs the 'itf' command with the given content as stdin.
+// Use itf to apply file operations
 func ExecuteItf(content string, args string) (string, bool) {
 	fields := strings.Fields(args)
 	config := itf.Config{}

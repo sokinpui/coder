@@ -10,7 +10,6 @@ import (
 var commands = make(map[string]commandFunc)
 var commandArgumentCompleters = make(map[string]argumentCompleter)
 
-// splitPipedCommands splits a string by the pipe symbol '|', respecting quotes and escapes.
 func splitPipedCommands(input string) []string {
 	var parts []string
 	var currentPart strings.Builder
@@ -55,7 +54,6 @@ func registerCommand(name string, fn commandFunc, completer argumentCompleter) {
 	}
 }
 
-// GetCommandArgumentSuggestions returns suggestions for a command's arguments.
 func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix string) []string {
 	if completer, ok := commandArgumentCompleters[cmdName]; ok {
 		return completer(cfg, prefix)
@@ -63,7 +61,6 @@ func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix st
 	return nil
 }
 
-// GetCommands returns a slice of available command names.
 func GetCommands() []string {
 	commandNames := make([]string, 0, len(commands))
 	for name := range commands {
@@ -72,7 +69,6 @@ func GetCommands() []string {
 	return commandNames
 }
 
-// processPipedCommands handles the logic for executing a series of commands linked by pipes.
 func processPipedCommands(trimmedInput string, s SessionController) (CommandOutput, bool) {
 	commandParts := splitPipedCommands(trimmedInput)
 	var lastOutput CommandOutput
@@ -132,8 +128,6 @@ func errorOutput(msg string) (CommandOutput, bool) {
 	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 }
 
-// ProcessCommand tries to execute a command from the input string.
-// It returns the result and a boolean indicating if it was a command.
 func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, ":") {
 		return CommandOutput{}, false, false // Not a command

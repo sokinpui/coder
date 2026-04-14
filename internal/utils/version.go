@@ -4,8 +4,6 @@ import (
 	"runtime/debug"
 )
 
-// GetVersion returns the version of the application.
-// It tries to read the version from build info, falling back to the VCS revision if available.
 func GetVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {

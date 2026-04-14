@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// FindRepoRoot finds the root directory of the current git repository.
 func FindRepoRoot() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	output, err := cmd.Output()
@@ -18,7 +17,6 @@ func FindRepoRoot() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// GetProjectRoot returns the git repository root if available, otherwise the current working directory.
 func GetProjectRoot() string {
 	root, err := FindRepoRoot()
 	if err != nil {
@@ -36,7 +34,6 @@ func UserHomeDir() string {
 	return home
 }
 
-// ShortenPath replaces the user's home directory with ~ in a given path.
 func ShortenPath(path string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -48,7 +45,6 @@ func ShortenPath(path string) string {
 	return path
 }
 
-// GetDirInfoContent returns a formatted string with the current directory and project root.
 func GetDirInfoContent() string {
 	var dirInfoParts []string
 	if cwd, err := os.Getwd(); err == nil {
@@ -60,7 +56,6 @@ func GetDirInfoContent() string {
 	return strings.Join(dirInfoParts, "\n")
 }
 
-// SourceToFileList constructs a final list of files from given directories and an initial file list.
 func SourceToFileList(dirs []string, initialFiles []string, exclusions []string) ([]string, error) {
 	if len(dirs) == 0 {
 		return initialFiles, nil

@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tokenizer provides local token counting for Gemini models. This
-// tokenizer downloads its model from the web, but otherwise doesn't require
-// an API call for every [CountTokens] invocation.
 package token
 
 import (
@@ -32,7 +29,6 @@ import (
 	"google.golang.org/genai"
 )
 
-// geminiModelsToLocalTokenizerNames maps model names to their tokenizer types
 var geminiModelsToLocalTokenizerNames = map[string]string{
 	"gemini-1.0-pro":        "gemma2",
 	"gemini-1.5-pro":        "gemma2",
@@ -44,7 +40,6 @@ var geminiModelsToLocalTokenizerNames = map[string]string{
 	"gemini-2.0-flash-lite": "gemma3",
 }
 
-// geminiStableModelsToLocalTokenizerNames maps stable model names to their tokenizer types
 var geminiStableModelsToLocalTokenizerNames = map[string]string{
 	"gemini-1.0-pro-001":                  "gemma2",
 	"gemini-1.0-pro-002":                  "gemma2",
@@ -63,13 +58,11 @@ var geminiStableModelsToLocalTokenizerNames = map[string]string{
 	"gemini-2.0-flash-lite-001":           "gemma3",
 }
 
-// tokenizerConfig holds the configuration for a tokenizer
 type tokenizerConfig struct {
 	modelURL  string
 	modelHash string
 }
 
-// tokenizers maps tokenizer names to their configurations
 var tokenizers = map[string]tokenizerConfig{
 	"gemma2": {
 		modelURL:  "https://raw.githubusercontent.com/google/gemma_pytorch/33b652c465537c6158f9a472ea5700e5e770ad3f/tokenizer/tokenizer.model",
@@ -81,7 +74,6 @@ var tokenizers = map[string]tokenizerConfig{
 	},
 }
 
-// getLocalTokenizerName returns the tokenizer name for the given model name
 func getLocalTokenizerName(modelName string) (string, error) {
 	if tokenizerName, ok := geminiModelsToLocalTokenizerNames[modelName]; ok {
 		return tokenizerName, nil
@@ -102,13 +94,10 @@ func getLocalTokenizerName(modelName string) (string, error) {
 	return "", fmt.Errorf("model %s is not supported. Supported models: %v", modelName, supportedModels)
 }
 
-// LocalTokenizer is a local tokenizer for text.
 type LocalTokenizer struct {
 	processor *sentencepiece.Processor
 }
 
-// NewLocalTokenizer creates a new [LocalTokenizer] from a model name; the model name is the same
-// as you would pass to a [genai.Client.GenerativeModel].
 func NewLocalTokenizer(modelName string) (*LocalTokenizer, error) {
 
 	tokenizerName, err := getLocalTokenizerName(modelName)
@@ -134,8 +123,6 @@ func NewLocalTokenizer(modelName string) (*LocalTokenizer, error) {
 	return &LocalTokenizer{processor: processor}, nil
 }
 
-// CountTokens counts tokens in the given contents with optional configuration,
-// similar to the Python LocalLocalTokenizer.count_tokens method.
 func (tok *LocalTokenizer) CountTokens(contents []*genai.Content, config *genai.CountTokensConfig) (*genai.CountTokensResult, error) {
 	textAccumulator := newTextsAccumulator()
 
@@ -171,8 +158,6 @@ func (tok *LocalTokenizer) CountTokens(contents []*genai.Content, config *genai.
 	return &genai.CountTokensResult{TotalTokens: int32(totalTokens)}, nil
 }
 
-// ComputeTokens computes detailed token information for the given contents,
-// similar to the Python LocalLocalTokenizer.compute_tokens method.
 func (tok *LocalTokenizer) ComputeTokens(contents []*genai.Content) (*genai.ComputeTokensResult, error) {
 	var tokensInfo []*genai.TokensInfo
 
@@ -210,31 +195,26 @@ func (tok *LocalTokenizer) ComputeTokens(contents []*genai.Content) (*genai.Comp
 	return &genai.ComputeTokensResult{TokensInfo: tokensInfo}, nil
 }
 
-// textsAccumulator accumulates text from Content objects for tokenization.
 type textsAccumulator struct {
 	texts []string
 }
 
-// newTextsAccumulator creates a new textsAccumulator.
 func newTextsAccumulator() *textsAccumulator {
 	return &textsAccumulator{
 		texts: make([]string, 0),
 	}
 }
 
-// getTexts returns the accumulated texts.
 func (ta *textsAccumulator) getTexts() []string {
 	return ta.texts
 }
 
-// addContents processes multiple Content objects and extracts text.
 func (ta *textsAccumulator) addContents(contents []*genai.Content) {
 	for _, content := range contents {
 		ta.addContent(content)
 	}
 }
 
-// addContent processes a single Content object and extracts text.
 func (ta *textsAccumulator) addContent(content *genai.Content) {
 	if content == nil || content.Parts == nil {
 		return
@@ -253,7 +233,6 @@ func (ta *textsAccumulator) addContent(content *genai.Content) {
 	}
 }
 
-// addFunctionCall extracts text from a function call.
 func (ta *textsAccumulator) addFunctionCall(fc *genai.FunctionCall) {
 	if fc == nil {
 		return
@@ -266,7 +245,6 @@ func (ta *textsAccumulator) addFunctionCall(fc *genai.FunctionCall) {
 	}
 }
 
-// addFunctionResponse extracts text from a function response.
 func (ta *textsAccumulator) addFunctionResponse(fr *genai.FunctionResponse) {
 	if fr == nil {
 		return
@@ -279,14 +257,12 @@ func (ta *textsAccumulator) addFunctionResponse(fr *genai.FunctionResponse) {
 	}
 }
 
-// addTools processes tools and extracts text.
 func (ta *textsAccumulator) addTools(tools []*genai.Tool) {
 	for _, tool := range tools {
 		ta.addTool(tool)
 	}
 }
 
-// addTool processes a single tool and extracts text.
 func (ta *textsAccumulator) addTool(tool *genai.Tool) {
 	if tool == nil || tool.FunctionDeclarations == nil {
 		return
@@ -305,7 +281,6 @@ func (ta *textsAccumulator) addTool(tool *genai.Tool) {
 	}
 }
 
-// addSchema processes a schema and extracts text.
 func (ta *textsAccumulator) addSchema(schema *genai.Schema) {
 	if schema == nil {
 		return
@@ -331,7 +306,6 @@ func (ta *textsAccumulator) addSchema(schema *genai.Schema) {
 	}
 }
 
-// traverseMap recursively extracts strings from a map.
 func (ta *textsAccumulator) traverseMap(m map[string]any) {
 	for key, value := range m {
 		ta.texts = append(ta.texts, key)
@@ -339,7 +313,6 @@ func (ta *textsAccumulator) traverseMap(m map[string]any) {
 	}
 }
 
-// traverseAny recursively extracts strings from any value.
 func (ta *textsAccumulator) traverseAny(value any) {
 	switch v := value.(type) {
 	case string:
@@ -353,7 +326,6 @@ func (ta *textsAccumulator) traverseAny(value any) {
 	}
 }
 
-// downloadModelFile downloads a file from the given URL.
 func downloadModelFile(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -364,25 +336,11 @@ func downloadModelFile(url string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-// hashString computes a hex string of the SHA256 hash of data.
 func hashString(data []byte) string {
 	hash256 := sha256.Sum256(data)
 	return hex.EncodeToString(hash256[:])
 }
 
-// loadModelData loads model data from the given URL, using a local file-system
-// cache. wantHash is the hash (as returned by [hashString] expected on the
-// loaded data.
-//
-// Caching logic:
-//
-// Assuming $TEMP_DIR is the temporary directory used by the OS, this function
-// uses the file $TEMP_DIR/vertexai_tokenizer_model/$urlhash as a cache, where
-// $urlhash is hashString(url).
-//
-// If this cache file doesn't exist, or the data it contains doesn't match
-// wantHash, downloads data from the URL and writes it into the cache. If the
-// URL's data doesn't match the hash, an error is returned.
 func loadModelData(url string, wantHash string) ([]byte, error) {
 	urlhash := hashString([]byte(url))
 	homeDir := utils.UserHomeDir()

@@ -219,7 +219,6 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 	}
 }
 
-// renderConversation renders the entire message history.
 func (m Model) renderConversation() string {
 	content, _ := m.renderConversationWithOffsets()
 	return content

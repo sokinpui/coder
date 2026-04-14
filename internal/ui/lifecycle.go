@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// updateComponents handles updates for the textarea and viewport based on focus.
 func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -50,7 +49,6 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// updatePalette updates the state of the command palette based on the textarea's content.
 func (m Model) updatePalette() Model {
 	if m.Chat.IsCyclingCompletions {
 		return m
@@ -106,7 +104,6 @@ func (m Model) updatePalette() Model {
 	return m
 }
 
-// updateLayout recalculates the size and position of UI elements.
 func (m Model) updateLayout() Model {
 	maxHeight := m.Height / 4
 	visibleLines := getVisibleLines(m.Chat.TextArea, m.Chat.TextArea.Width(), maxHeight+1)

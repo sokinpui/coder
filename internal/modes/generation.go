@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 )
 
-// StartGeneration provides a default implementation for starting a generation task,
-// optionally allowing a specific generation config to be used.
 func StartGeneration(s SessionController, generationConfig *config.Generation) types.Event {
 	// Reload context, which includes project source, before every generation
 	// to pick up any file changes.

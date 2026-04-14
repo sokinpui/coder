@@ -24,7 +24,6 @@ import (
 
 const statusBarMessageDuration = 1 * time.Second
 
-// listenForStream waits for the next message from the generation stream.
 func listenForStream(sub chan string) tea.Cmd {
 	return func() tea.Msg {
 		content, ok := <-sub
@@ -187,8 +186,6 @@ func editInEditorCmd(content string) tea.Cmd {
 	})
 }
 
-// getVisibleLines calculates the number of lines a text block will occupy
-// in the textarea, considering word wrapping.
 func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	if width <= 0 {
 		// Avoid division by zero and handle cases where width is not yet set.
@@ -211,7 +208,6 @@ func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	return visibleLineCount
 }
 
-// cursorPosAfterScroll calculates the new cursor position after a half-page scroll.
 func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDown bool) int {
 	if totalItems == 0 {
 		return 0
@@ -232,10 +228,6 @@ func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDow
 	return newCursor
 }
 
-// handlePasteCmd checks the clipboard for an image.
-// It uses `pngpaste` on macOS and `xclip` on Linux.
-// If an image is found, it's saved to `.coder/images` and the relative path is returned.
-// If not, it falls back to pasting text content.
 func handlePasteCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
 		if cfg.Clipboard.PasteCmd != "" {

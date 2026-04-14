@@ -13,7 +13,6 @@ func init() {
 	registerCommand("file", fileCmd, PathArgumentCompleter)
 }
 
-// PathArgumentCompleter provides file and directory path completions based on the prefix.
 func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
 	dir := "."
 	if lastSlash := strings.LastIndex(prefix, "/"); lastSlash != -1 {

@@ -12,7 +12,6 @@ const (
 	logFileName  = "coder.log"
 )
 
-// Init sets up the global logger to write to a file.
 func Init() {
 	repoRoot := utils.GetProjectRoot()
 	coderPath := filepath.Join(repoRoot, coderDirName)

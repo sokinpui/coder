@@ -45,7 +45,6 @@ func (s *Session) DeleteMessages(indices []int) {
 		msg := s.messages[idx]
 		if msg.Type == types.ImageMessage && repoRoot != "" {
 			imagePath := filepath.Join(repoRoot, msg.Content)
-			// Security check to prevent path traversal
 			if !strings.HasPrefix(imagePath, filepath.Join(repoRoot, ".coder", "images")) {
 				log.Printf("Skipping deletion of potential path traversal: %s", msg.Content)
 				continue
@@ -67,8 +66,6 @@ func (s *Session) DeleteMessages(indices []int) {
 	s.messages = newMessages
 }
 
-// EditMessage updates the content of a user message at a given index.
-// It only allows editing of UserMessage types.
 func (s *Session) EditMessage(index int, newContent string) error {
 	if index < 0 || index >= len(s.messages) {
 		return fmt.Errorf("index out of bounds: %d", index)

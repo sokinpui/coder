@@ -33,7 +33,6 @@ func New(cfg *config.Config, mode string, instruction string, contextFiles []str
 	return NewWithMessages(cfg, nil, strategy, instruction, contextFiles)
 }
 
-// NewWithMessages creates a new session with a pre-existing set of messages.
 func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy, instruction string, contextFiles []string) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
@@ -45,11 +44,9 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 		return nil, fmt.Errorf("failed to initialize history manager: %w", err)
 	}
 
-	// Make a defensive copy of the slice to avoid external modifications.
 	messages := make([]types.Message, len(initialMessages))
 	copy(messages, initialMessages)
 
-	// Clone config to ensure each session has its own independent context (tabs).
 	cfgCopy := *cfg
 	cfgCopy.Context.Files = append([]string{}, cfg.Context.Files...)
 	cfgCopy.Context.Dirs = append([]string{}, cfg.Context.Dirs...)

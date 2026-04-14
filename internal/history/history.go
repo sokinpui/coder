@@ -125,8 +125,6 @@ var roleToMessageType = map[string]types.MessageType{
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
 
-// processMessageContent trims whitespace and handles special message content parsing,
-// like extracting the path from a markdown image link for ImageMessages.
 func processMessageContent(msg *types.Message, rawContent string) {
 	content := strings.TrimSpace(rawContent)
 	if msg.Type == types.ImageMessage {
@@ -241,7 +239,6 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	return metadata, messages, nil
 }
 
-// ParseFileMetadata reads the YAML frontmatter from a history file to get its metadata.
 func ParseFileMetadata(filePath string) (*Metadata, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -327,7 +324,6 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	return conversations, nil
 }
 
-// BuildHistorySnippet constructs a string representation of a list of messages for copying.
 func BuildHistorySnippet(messages []types.Message) string {
 	var sb strings.Builder
 

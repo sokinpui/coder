@@ -11,8 +11,6 @@ var tok *LocalTokenizer
 
 func Init() error {
 	var err error
-	// The tokenizer is compatible across Gemini models.
-	// Using NewLocalTokenizer as inspired by sllmi-go for offline tokenization.
 	tok, err = NewLocalTokenizer("gemini-2.5-flash")
 	if err != nil {
 		return fmt.Errorf("could not load tokenizer: %w", err)

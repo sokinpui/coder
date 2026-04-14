@@ -9,7 +9,6 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-// FinderModel is the model for the fuzzy finder.
 type FinderModel struct {
 	TextInput  textinput.Model
 	AllItems   []string
@@ -20,7 +19,6 @@ type FinderModel struct {
 	Visible    bool
 }
 
-// NewFinder creates a new finder model.
 func NewFinder() FinderModel {
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
@@ -132,7 +130,6 @@ func (m FinderModel) View() string {
 	return paletteContainerStyle.Width(m.Width).Render(b.String())
 }
 
-// FinderOverlay implements the Overlay interface for the fuzzy finder.
 type FinderOverlay struct{}
 
 func (f *FinderOverlay) IsVisible(main *Model) bool {

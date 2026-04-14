@@ -10,25 +10,21 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Context specifies the files and directories to be included as project source.
 type Context struct {
 	Files      []string
 	Dirs       []string
 	Exclusions []string
 }
 
-// Clipboard contains configuration for custom copy/paste commands.
 type Clipboard struct {
 	CopyCmd  string
 	PasteCmd string
 }
 
-// Server contains the API server configuration.
 type Server struct {
 	Addr string // e.g. "http://localhost:8080"
 }
 
-// Generation contains model generation parameters.
 type Generation struct {
 	ModelCode      string
 	TitleModelCode string
@@ -39,12 +35,10 @@ type Generation struct {
 	StreamDelay    int
 }
 
-// UI contains configuration for the user interface.
 type UI struct {
 	MarkdownTheme string
 }
 
-// VisualKeymap contains keys for Visual Mode.
 type VisualKeymap struct {
 	Up         string
 	Down       string
@@ -59,7 +53,6 @@ type VisualKeymap struct {
 	Exit       string
 }
 
-// HistoryKeymap contains keys for the History View.
 type HistoryKeymap struct {
 	Up           string
 	Down         string
@@ -73,7 +66,6 @@ type HistoryKeymap struct {
 	Exit         string
 }
 
-// TreeKeymap contains keys for the File Tree.
 type TreeKeymap struct {
 	Up       string
 	Down     string
@@ -85,14 +77,12 @@ type TreeKeymap struct {
 	Exit     string
 }
 
-// JumpKeymap contains keys for Jump Mode.
 type JumpKeymap struct {
 	Up   string
 	Down string
 	Exit string
 }
 
-// Keymap contains custom keybindings for global shortcuts.
 type Keymap struct {
 	Submit      string
 	Editor      string
@@ -117,7 +107,6 @@ type Keymap struct {
 	JumpView    JumpKeymap    `mapstructure:"jumpview"`
 }
 
-// Config holds the application configuration.
 type Config struct {
 	Server          Server
 	Generation      Generation
@@ -128,11 +117,9 @@ type Config struct {
 	AvailableModels []string `yaml:"-"`
 }
 
-// Load loads the application configuration from file and environment variables.
 func Load() (*Config, error) {
 	v := viper.New()
 
-	// Set default values
 	v.SetDefault("server.addr", "http://localhost:8080")
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
@@ -164,7 +151,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.suspend", "ctrl+z")
 	v.SetDefault("keymap.visual", "esc")
 
-	// Visual Mode defaults
 	v.SetDefault("keymap.visualmode.up", "k")
 	v.SetDefault("keymap.visualmode.down", "j")
 	v.SetDefault("keymap.visualmode.select", "v")
@@ -177,7 +163,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.visualmode.new", "n")
 	v.SetDefault("keymap.visualmode.exit", "i")
 
-	// History View defaults
 	v.SetDefault("keymap.historyview.up", "k")
 	v.SetDefault("keymap.historyview.down", "j")
 	v.SetDefault("keymap.historyview.halfpageup", "u")
@@ -189,7 +174,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.historyview.activetab", "l")
 	v.SetDefault("keymap.historyview.exit", "q")
 
-	// Tree View defaults
 	v.SetDefault("keymap.treeview.up", "k")
 	v.SetDefault("keymap.treeview.down", "j")
 	v.SetDefault("keymap.treeview.expand", "l")
@@ -234,12 +218,10 @@ func Load() (*Config, error) {
 		}
 	}
 
-	// Set environment variable handling
 	v.SetEnvPrefix("CODER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	// Unmarshal the config into our struct
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
@@ -252,9 +234,6 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// InitConfig creates a default configuration file.
-// If isLocal is true, it creates .coder/config.yaml in the repo root.
-// Otherwise, it creates ~/.config/coder/config.yaml.
 func InitConfig(isLocal bool) error {
 	var configDir string
 	if isLocal {

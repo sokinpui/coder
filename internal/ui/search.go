@@ -17,7 +17,6 @@ type SearchItem struct {
 	Text     string
 }
 
-// SearchModel is the model for the fuzzy finder.
 type SearchModel struct {
 	TextInput  textinput.Model
 	AllItems   []SearchItem
@@ -28,7 +27,6 @@ type SearchModel struct {
 	Visible    bool
 }
 
-// NewSearch creates a new search model.
 func NewSearch() SearchModel {
 	ti := textinput.New()
 	ti.Placeholder = "Search conversation..."
@@ -146,7 +144,6 @@ func (m SearchModel) View() string {
 	return paletteContainerStyle.Width(m.Width).Render(b.String())
 }
 
-// SearchOverlay implements the Overlay interface for the fuzzy finder.
 type SearchOverlay struct{}
 
 func (f *SearchOverlay) IsVisible(main *Model) bool {

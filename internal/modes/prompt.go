@@ -12,19 +12,16 @@ const (
 	Separator                 = "\n\n---\n\n"
 )
 
-// PromptSection represents a distinct part of a larger prompt.
 type PromptSection struct {
 	Header    string
 	Content   string
 	Separator string
 }
 
-// PromptSectionArray holds a slice of PromptSection structs.
 type PromptSectionArray struct {
 	Sections []PromptSection
 }
 
-// BuildPrompt constructs the full prompt from a series of sections.
 func BuildPrompt(promptSections PromptSectionArray) string {
 	var sb strings.Builder
 	hasContent := false
@@ -46,7 +43,6 @@ func BuildPrompt(promptSections PromptSectionArray) string {
 	return sb.String()
 }
 
-// RoleSection creates a prompt section for the role and initial instructions.
 func RoleSection(role, instructions string) PromptSection {
 	var content strings.Builder
 	if role != "" {
@@ -58,7 +54,6 @@ func RoleSection(role, instructions string) PromptSection {
 	return PromptSection{Content: content.String(), Separator: Separator}
 }
 
-// ProjectSourceCodeSection creates a prompt section for project source code.
 func ProjectSourceCodeSection(content string) PromptSection {
 	return PromptSection{
 		Header:    ProjectSourceCodeHeader,
@@ -67,7 +62,6 @@ func ProjectSourceCodeSection(content string) PromptSection {
 	}
 }
 
-// ConversationHistorySection creates a prompt section for the conversation history.
 func ConversationHistorySection(messages []types.Message) PromptSection {
 	if len(messages) == 0 {
 		return PromptSection{}
@@ -81,7 +75,6 @@ func ConversationHistorySection(messages []types.Message) PromptSection {
 	}
 }
 
-// BuildChatString constructs the conversation history part of the prompt.
 func BuildChatString(messages []types.Message) string {
 	var sb strings.Builder
 	for _, msg := range messages {

@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// formatContextSummary creates a vertical, indented list of source directories and files.
 func formatContextSummary(context *config.Context) string {
 	if len(context.Dirs) == 0 && len(context.Files) == 0 && len(context.Exclusions) == 0 {
 		return ""
