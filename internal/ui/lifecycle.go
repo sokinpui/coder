@@ -31,13 +31,11 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 		m.Chat.TextArea, cmd = m.Chat.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
 
-		if m.Chat.TextArea.Value() != originalValue && strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
-			if key, ok := msg.(tea.KeyMsg); ok {
-				if key.Type != tea.KeyUp && key.Type != tea.KeyDown {
-					m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
-					m.Chat.CommandHistoryModified = ""
-				}
-			}
+		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), ":")
+		key, isKey := msg.(tea.KeyMsg)
+		if isCommand && m.Chat.TextArea.Value() != originalValue && isKey && key.Type != tea.KeyUp && key.Type != tea.KeyDown {
+			m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
+			m.Chat.CommandHistoryModified = ""
 		}
 
 		if !isRuneKey && !isViewportNavKey {
@@ -115,14 +113,11 @@ func (m Model) updateLayout() Model {
 	inputHeight := min(visibleLines+1, maxHeight)
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
-	statusViewHeight := lipgloss.Height(m.StatusView())
-
 	var viewportHeight int
 	if m.State == stateHistorySelect {
-		headerHeight := lipgloss.Height(m.historyHeaderView())
-		viewportHeight = m.Height - headerHeight - statusViewHeight - 1
+		viewportHeight = m.Height - lipgloss.Height(m.historyHeaderView()) - lipgloss.Height(m.StatusView()) - 1
 	} else {
-		viewportHeight = m.Height - m.Chat.TextArea.Height() - statusViewHeight - textAreaStyle.GetVerticalPadding() - 2
+		viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalPadding() - 2
 	}
 
 	if viewportHeight < 0 {

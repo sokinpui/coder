@@ -11,13 +11,11 @@ import (
 
 func (s *Session) hasConservation() bool {
 	for _, msg := range s.messages {
-		switch msg.Type {
-		case types.UserMessage, types.ImageMessage:
+		if msg.Type == types.UserMessage || msg.Type == types.ImageMessage {
 			return true
-		case types.AIMessage:
-			if strings.TrimSpace(msg.Content) != "" {
-				return true
-			}
+		}
+		if msg.Type == types.AIMessage && strings.TrimSpace(msg.Content) != "" {
+			return true
 		}
 	}
 	return false

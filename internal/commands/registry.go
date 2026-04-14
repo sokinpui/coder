@@ -81,46 +81,55 @@ func processPipedCommands(trimmedInput string, s SessionController) (CommandOutp
 	for i, part := range commandParts {
 		part = strings.TrimSpace(part)
 		if part == "" {
-			return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid pipe syntax: empty command."}, false
+			return errorOutput("Invalid pipe syntax: empty command.")
 		}
 
 		var pipedArgs string
 		if i > 0 { // For commands after the first one in the pipe
 			if !lastSuccess {
-				return CommandOutput{Type: types.MessagesUpdated, Payload: "Error: previous command in pipe failed."}, false
+				return errorOutput("Error: previous command in pipe failed.")
 			}
+
 			if lastOutput.Type != types.MessagesUpdated {
-				return CommandOutput{Type: types.MessagesUpdated, Payload: "Error: command output is not pipeable."}, false
+				return errorOutput("Error: command output is not pipeable.")
 			}
+
 			pipedArgs = lastOutput.Payload
 		}
 
 		parts := strings.Fields(part)
 		if len(parts) == 0 {
-			return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax."}, false
+			return errorOutput("Invalid command syntax.")
 		}
 		cmdName := parts[0]
 		argsFromPart := strings.Join(parts[1:], " ")
 
-		finalArgs := argsFromPart
-		if pipedArgs != "" {
-			// Normalize whitespace and newlines from the piped output to pass as arguments.
-			normalizedPipedArgs := strings.Join(strings.Fields(pipedArgs), " ")
-			if finalArgs != "" {
-				finalArgs += " " + normalizedPipedArgs
-			} else {
-				finalArgs = normalizedPipedArgs
-			}
-		}
+		finalArgs := buildFinalArgs(argsFromPart, pipedArgs)
 
 		cmd, exists := commands[cmdName]
 		if !exists {
-			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, false
+			return errorOutput(fmt.Sprintf("Unknown command: %s", cmdName))
 		}
 
 		lastOutput, lastSuccess = cmd(finalArgs, s)
 	}
 	return lastOutput, lastSuccess
+}
+
+func buildFinalArgs(argsFromPart, pipedArgs string) string {
+	if pipedArgs == "" {
+		return argsFromPart
+	}
+
+	normalizedPipedArgs := strings.Join(strings.Fields(pipedArgs), " ")
+	if argsFromPart != "" {
+		return argsFromPart + " " + normalizedPipedArgs
+	}
+	return normalizedPipedArgs
+}
+
+func errorOutput(msg string) (CommandOutput, bool) {
+	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 }
 
 // ProcessCommand tries to execute a command from the input string.
@@ -145,10 +154,9 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 	args := strings.Join(parts[1:], " ")
 
 	cmd, exists := commands[cmdName]
-	if !exists {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
+	if exists {
+		result, success = cmd(args, s)
+		return result, true, success
 	}
-
-	result, success = cmd(args, s)
-	return result, true, success
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Unknown command: %s", cmdName)}, true, false
 }

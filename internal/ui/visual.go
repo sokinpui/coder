@@ -137,24 +137,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			return m, nil, true
 		}
-		var cmd tea.Cmd = textarea.Blink
-		if m.Chat.IsStreaming {
-			messages := m.Session.GetMessages()
-			// Check if the last message is an empty AI message, which indicates 'thinking' state.
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateThinking
-			} else {
-				m.State = stateGenerating
-			}
-			cmd = tea.Batch(cmd, m.Chat.Spinner.Tick)
-		} else {
-			m.State = stateIdle
-		}
-		m.VisualSelect.Mode = visualModeNone
-		m.Chat.TextArea.Focus()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m, cmd, true
+		return m.exitVisualMode()
 
 	case tea.KeyEnter:
 		block := m.getCurrentBlock()
@@ -319,13 +302,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			return m, nil, true
 		case km.VisualMode.Exit:
-			m.State = stateIdle
-			m.VisualSelect.Mode = visualModeNone
-			m.VisualSelect.IsSelecting = false
-			m.Chat.TextArea.Focus()
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			return m, textarea.Blink, true
+			return m.exitVisualMode()
 		case km.VisualMode.Regenerate:
 			if !m.VisualSelect.IsSelecting && m.VisualSelect.Mode == visualModeNone {
 				block := m.getCurrentBlock()
@@ -497,4 +474,26 @@ func (m Model) getCurrentBlock() messageBlock {
 		return m.VisualSelect.Blocks[len(m.VisualSelect.Blocks)-1]
 	}
 	return m.VisualSelect.Blocks[m.VisualSelect.Cursor]
+}
+
+func (m Model) exitVisualMode() (Model, tea.Cmd, bool) {
+	var cmd tea.Cmd = textarea.Blink
+	if m.Chat.IsStreaming {
+		messages := m.Session.GetMessages()
+		// Check if the last message is an empty AI message, which indicates 'thinking' state.
+		if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
+			m.State = stateThinking
+		} else {
+			m.State = stateGenerating
+		}
+		cmd = tea.Batch(cmd, m.Chat.Spinner.Tick)
+	} else {
+		m.State = stateIdle
+	}
+	m.VisualSelect.Mode = visualModeNone
+	m.VisualSelect.IsSelecting = false
+	m.Chat.TextArea.Focus()
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.Chat.Viewport.GotoBottom()
+	return m, cmd, true
 }

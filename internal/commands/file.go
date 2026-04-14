@@ -64,22 +64,8 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	var dirs []string
 	var invalidPaths []string
 
-	var expandedPaths []string
-	for _, p := range paths {
-		if strings.ContainsAny(p, "*?[]") {
-			matches, err := filepath.Glob(p)
-			if err != nil {
-				invalidPaths = append(invalidPaths, fmt.Sprintf("%s (glob error: %v)", p, err))
-				continue
-			}
-			if len(matches) == 0 {
-				invalidPaths = append(invalidPaths, p)
-			}
-			expandedPaths = append(expandedPaths, matches...)
-		} else {
-			expandedPaths = append(expandedPaths, p)
-		}
-	}
+	expandedPaths, invalidPatterns := ExpandPaths(paths)
+	invalidPaths = append(invalidPaths, invalidPatterns...)
 
 	for _, p := range expandedPaths {
 		info, err := os.Stat(p)
@@ -97,29 +83,8 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
-	// De-duplicate and append directories
-	dirLookup := make(map[string]struct{})
-	for _, d := range cfg.Context.Dirs {
-		dirLookup[d] = struct{}{}
-	}
-	for _, d := range dirs {
-		if _, exists := dirLookup[d]; !exists {
-			cfg.Context.Dirs = append(cfg.Context.Dirs, d)
-			dirLookup[d] = struct{}{}
-		}
-	}
-
-	// De-duplicate and append files
-	fileLookup := make(map[string]struct{})
-	for _, f := range cfg.Context.Files {
-		fileLookup[f] = struct{}{}
-	}
-	for _, f := range files {
-		if _, exists := fileLookup[f]; !exists {
-			cfg.Context.Files = append(cfg.Context.Files, f)
-			fileLookup[f] = struct{}{}
-		}
-	}
+	cfg.Context.Dirs = AppendUnique(cfg.Context.Dirs, dirs)
+	cfg.Context.Files = AppendUnique(cfg.Context.Files, files)
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false

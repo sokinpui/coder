@@ -3,6 +3,7 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
+	// Message Styles
 	initMessageStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244")).
 				Italic(true).
@@ -13,9 +14,13 @@ var (
 				Italic(true).
 				Bold(true).
 				Padding(0, 1)
-	statusStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
-	modelInfoStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
-	tokenCountStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))  // Green
+
+	// Status Bar Styles
+	statusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
+	modelInfoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
+	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))  // Green
+
+	// Palette Styles
 	paletteContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("240")).
@@ -29,6 +34,8 @@ var (
 	paletteSelectedItemStyle = lipgloss.NewStyle().
 					Foreground(lipgloss.Color("208")). // Orange, to match header
 					Bold(true)
+
+	// Input Styles
 	textAreaStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240"))
@@ -41,9 +48,6 @@ var (
 				Foreground(lipgloss.Color("244")).
 				BorderForeground(lipgloss.Color("244")).
 				Padding(0, 1)
-	generatingStatusStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("51")). // Cyan
-				Italic(true)
 	commandInputStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("99")).
@@ -60,6 +64,11 @@ var (
 				BorderForeground(lipgloss.Color("9")). // Red
 				Foreground(lipgloss.Color("9")).       // Red
 				Padding(0, 1)
+
+	// UI State Styles
+	generatingStatusStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("51")). // Cyan
+				Italic(true)
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 	statusBarTitleStyle = lipgloss.NewStyle().

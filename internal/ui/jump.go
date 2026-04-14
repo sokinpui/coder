@@ -2,8 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 	"github.com/sokinpui/coder/internal/config"
+	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
 

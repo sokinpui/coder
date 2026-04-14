@@ -14,50 +14,29 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 
 	var b strings.Builder
+	b.WriteString(fmt.Sprintf("server:\n  addr: %s\n", cfg.Server.Addr))
+	b.WriteString(fmt.Sprintf("generation:\n  modelcode: %s\n  temperature: %.1f\n  topp: %.2f\n  topk: %.1f\n  outputlength: %d\n  streamdelay: %d\n",
+		cfg.Generation.ModelCode, cfg.Generation.Temperature, cfg.Generation.TopP, cfg.Generation.TopK, cfg.Generation.OutputLength, cfg.Generation.StreamDelay))
 
-	b.WriteString("server:\n")
-	b.WriteString(fmt.Sprintf("  addr: %s\n", cfg.Server.Addr))
-	b.WriteString("generation:\n")
-	b.WriteString(fmt.Sprintf("  modelcode: %s\n", cfg.Generation.ModelCode))
-	b.WriteString(fmt.Sprintf("  temperature: %.1f\n", cfg.Generation.Temperature))
-	b.WriteString(fmt.Sprintf("  topp: %.2f\n", cfg.Generation.TopP))
-	b.WriteString(fmt.Sprintf("  topk: %.1f\n", cfg.Generation.TopK))
-	b.WriteString(fmt.Sprintf("  outputlength: %d\n", cfg.Generation.OutputLength))
-	b.WriteString(fmt.Sprintf("  streamdelay: %d\n", cfg.Generation.StreamDelay))
-	b.WriteString("clipboard:\n")
-	b.WriteString(fmt.Sprintf("  copycmd: %s\n", cfg.Clipboard.CopyCmd))
-	b.WriteString(fmt.Sprintf("  pastecmd: %s\n", cfg.Clipboard.PasteCmd))
+	b.WriteString(fmt.Sprintf("clipboard:\n  copycmd: %s\n  pastecmd: %s\n", cfg.Clipboard.CopyCmd, cfg.Clipboard.PasteCmd))
+
 	b.WriteString("context:\n")
+	writeList(&b, "files", cfg.Context.Files)
+	writeList(&b, "dirs", cfg.Context.Dirs)
+	writeList(&b, "exclusions", cfg.Context.Exclusions)
 
-	if len(cfg.Context.Files) > 0 {
-		b.WriteString("  files:\n")
-		for _, f := range cfg.Context.Files {
-			b.WriteString(fmt.Sprintf("    - %s\n", f))
-		}
-	} else {
-		b.WriteString("  files: []\n")
-	}
-
-	if len(cfg.Context.Dirs) > 0 {
-		b.WriteString("  dirs:\n")
-		for _, d := range cfg.Context.Dirs {
-			b.WriteString(fmt.Sprintf("    - %s\n", d))
-		}
-	} else {
-		b.WriteString("  dirs: []\n")
-	}
-
-	if len(cfg.Context.Exclusions) > 0 {
-		b.WriteString("  exclusions:\n")
-		for _, e := range cfg.Context.Exclusions {
-			b.WriteString(fmt.Sprintf("    - %s\n", e))
-		}
-	} else {
-		b.WriteString("  exclusions: []\n")
-	}
-
-	b.WriteString("ui:\n")
-	b.WriteString(fmt.Sprintf("  markdowntheme: %s\n", cfg.UI.MarkdownTheme))
+	fmt.Fprintf(&b, "ui:\n  markdowntheme: %s\n", cfg.UI.MarkdownTheme)
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true
+}
+
+func writeList(b *strings.Builder, label string, items []string) {
+	if len(items) == 0 {
+		fmt.Fprintf(b, "  %s: []\n", label)
+		return
+	}
+	fmt.Fprintf(b, "  %s:\n", label)
+	for _, item := range items {
+		fmt.Fprintf(b, "    - %s\n", item)
+	}
 }

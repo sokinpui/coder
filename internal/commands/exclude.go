@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/types"
-	"path/filepath"
 	"strings"
 )
 
@@ -24,17 +23,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project source exclusions cleared."}, true
 	}
 
-	var pathsToRemove []string
-	for _, p := range paths {
-		if strings.ContainsAny(p, "*?[]") {
-			matches, err := filepath.Glob(p)
-			if err == nil { // ignore glob errors, just won't remove anything
-				pathsToRemove = append(pathsToRemove, matches...)
-			}
-		} else {
-			pathsToRemove = append(pathsToRemove, p)
-		}
-	}
+	pathsToRemove, _ := ExpandPaths(paths)
 
 	pathsToModify := make(map[string]struct{})
 	for _, p := range pathsToRemove {
@@ -42,34 +31,13 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	// Remove from Dirs
-	newDirs := make([]string, 0, len(cfg.Context.Dirs))
-	for _, d := range cfg.Context.Dirs {
-		if _, found := pathsToModify[d]; !found {
-			newDirs = append(newDirs, d)
-		}
-	}
-	cfg.Context.Dirs = newDirs
+	cfg.Context.Dirs = filterPaths(cfg.Context.Dirs, pathsToModify)
 
 	// Remove from Files
-	newFiles := make([]string, 0, len(cfg.Context.Files))
-	for _, f := range cfg.Context.Files {
-		if _, found := pathsToModify[f]; !found {
-			newFiles = append(newFiles, f)
-		}
-	}
-	cfg.Context.Files = newFiles
+	cfg.Context.Files = filterPaths(cfg.Context.Files, pathsToModify)
 
 	// Add to Exclusions
-	exclusionLookup := make(map[string]struct{})
-	for _, e := range cfg.Context.Exclusions {
-		exclusionLookup[e] = struct{}{}
-	}
-	for _, p := range paths {
-		if _, exists := exclusionLookup[p]; !exists {
-			cfg.Context.Exclusions = append(cfg.Context.Exclusions, p)
-			exclusionLookup[p] = struct{}{}
-		}
-	}
+	cfg.Context.Exclusions = AppendUnique(cfg.Context.Exclusions, paths)
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
@@ -85,4 +53,14 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true
+}
+
+func filterPaths(original []string, toRemove map[string]struct{}) []string {
+	filtered := make([]string, 0, len(original))
+	for _, p := range original {
+		if _, found := toRemove[p]; !found {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
 }

@@ -33,12 +33,12 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 		genConfig = *generationConfig
 	}
 
-	body := map[string]interface{}{
+	body := map[string]any{
 		"prompt":     prompt,
 		"model_code": genConfig.ModelCode,
 		"stream":     true,
 		"images":     images,
-		"config": map[string]interface{}{
+		"config": map[string]any{
 			"temperature":   genConfig.Temperature,
 			"top_p":         genConfig.TopP,
 			"top_k":         genConfig.TopK,
@@ -96,11 +96,11 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"prompt":     prompt,
 		"model_code": g.Config.TitleModelCode,
 		"stream":     false,
-		"config": map[string]interface{}{
+		"config": map[string]any{
 			"temperature":   1.0,
 			"output_length": 256,
 		},

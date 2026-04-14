@@ -71,55 +71,15 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		if ok && cache.content == msg.Content && cache.width == viewportWidth && cache.isVisual == isVisualState {
 			lines = cache.lines
 		} else {
-			var renderedMsg string
-			currentMsg := msg // Make a copy to modify content for visual mode
-			if isVisualState {
-				switch currentMsg.Type {
-				case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
-					currentMsg.Content = truncateMessage(currentMsg.Content, 4)
-				}
-			}
-
-			contentToRender := currentMsg.Content
-			switch currentMsg.Type {
-			case types.InitMessage:
-				blockWidth := viewportWidth - initMessageStyle.GetHorizontalFrameSize()
-				renderedMsg = initMessageStyle.Width(blockWidth).Render(currentMsg.Content)
-			case types.DirectoryMessage:
-				blockWidth := viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()
-				renderedMsg = directoryWelcomeStyle.Width(blockWidth).Render(currentMsg.Content)
-			case types.UserMessage:
-				blockWidth := viewportWidth - userInputStyle.GetHorizontalFrameSize()
-				renderedMsg = userInputStyle.Width(blockWidth).Render(contentToRender)
-			case types.CommandMessage:
-				blockWidth := viewportWidth - commandInputStyle.GetHorizontalFrameSize()
-				renderedMsg = commandInputStyle.Width(blockWidth).Render(contentToRender)
-			case types.ImageMessage:
-				blockWidth := viewportWidth - imageMessageStyle.GetHorizontalFrameSize()
-				renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + currentMsg.Content)
-			case types.AIMessage:
-				if contentToRender != "" {
-					renderedAI, err := m.GlamourRenderer.Render(contentToRender)
-					if err != nil {
-						renderedAI = contentToRender
-					}
-					renderedMsg = renderedAI
-				}
-			case types.CommandResultMessage:
-				blockWidth := viewportWidth - commandResultStyle.GetHorizontalFrameSize()
-				renderedMsg = commandResultStyle.Width(blockWidth).Render(contentToRender)
-			case types.CommandErrorResultMessage:
-				blockWidth := viewportWidth - commandErrorStyle.GetHorizontalFrameSize()
-				renderedMsg = commandErrorStyle.Width(blockWidth).Render(contentToRender)
-			}
+			renderedMsg := m.renderMessage(msg, viewportWidth, isVisualState)
 
 			if renderedMsg != "" || msg.Type == types.AIMessage {
 				lines = strings.Split(renderedMsg, "\n")
 				m.Chat.RenderCache[i] = cachedRender{
-					lines:       lines,
-					content:     msg.Content,
-					width:       viewportWidth,
-					isVisual:    isVisualState,
+					lines:    lines,
+					content:  msg.Content,
+					width:    viewportWidth,
+					isVisual: isVisualState,
 				}
 			}
 		}
@@ -218,6 +178,45 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		allLines = append(allLines, strings.Split(block, "\n")...)
 	}
 	return strings.Join(allLines, "\n"), messageLineOffsets
+}
+
+func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool) string {
+	currentMsg := msg
+	if isVisual {
+		switch currentMsg.Type {
+		case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
+			currentMsg.Content = truncateMessage(currentMsg.Content, 4)
+		}
+	}
+
+	content := currentMsg.Content
+	switch currentMsg.Type {
+	case types.InitMessage:
+		return initMessageStyle.Width(viewportWidth - initMessageStyle.GetHorizontalFrameSize()).Render(content)
+	case types.DirectoryMessage:
+		return directoryWelcomeStyle.Width(viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()).Render(content)
+	case types.UserMessage:
+		return userInputStyle.Width(viewportWidth - userInputStyle.GetHorizontalFrameSize()).Render(content)
+	case types.CommandMessage:
+		return commandInputStyle.Width(viewportWidth - commandInputStyle.GetHorizontalFrameSize()).Render(content)
+	case types.ImageMessage:
+		return imageMessageStyle.Width(viewportWidth - imageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
+	case types.AIMessage:
+		if content == "" {
+			return ""
+		}
+		renderedAI, err := m.GlamourRenderer.Render(content)
+		if err != nil {
+			return content
+		}
+		return renderedAI
+	case types.CommandResultMessage:
+		return commandResultStyle.Width(viewportWidth - commandResultStyle.GetHorizontalFrameSize()).Render(content)
+	case types.CommandErrorResultMessage:
+		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
+	default:
+		return ""
+	}
 }
 
 // renderConversation renders the entire message history.

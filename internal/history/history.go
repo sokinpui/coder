@@ -146,57 +146,64 @@ func parseStringSlice(value string) []string {
 	return s
 }
 
-func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
-	parts := bytes.SplitN(content, []byte("---\n"), 3)
-	if len(parts) < 3 {
-		return nil, nil, fmt.Errorf("invalid file format: missing YAML frontmatter")
-	}
-
+func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 	metadata := &Metadata{}
-	metaScanner := bufio.NewScanner(bytes.NewReader(parts[1]))
-	for metaScanner.Scan() {
-		line := metaScanner.Text()
-		if line == "" {
-			continue
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "---" {
+			return metadata, true
 		}
+
 		kv := strings.SplitN(line, ":", 2)
 		if len(kv) != 2 {
 			continue
 		}
+
 		key, value := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
 		switch key {
 		case "title":
 			metadata.Title = value
-		case "createdAt":
-			t, err := time.Parse(time.RFC3339Nano, value)
-			if err == nil {
-				metadata.CreatedAt = t
-			}
-		case "modifiedAt":
-			t, err := time.Parse(time.RFC3339Nano, value)
-			if err == nil {
-				metadata.ModifiedAt = t
-			}
+		case "workingDir":
+			metadata.WorkingDir = value
 		case "files":
 			metadata.Files = parseStringSlice(value)
 		case "dirs":
 			metadata.Dirs = parseStringSlice(value)
 		case "exclusions":
 			metadata.Exclusions = parseStringSlice(value)
-		case "workingDir":
-			metadata.WorkingDir = value
+		case "createdAt", "modifiedAt":
+			t, err := time.Parse(time.RFC3339Nano, value)
+			if err != nil {
+				continue
+			}
+			if key == "createdAt" {
+				metadata.CreatedAt = t
+			} else {
+				metadata.ModifiedAt = t
+			}
 		}
 	}
+	return metadata, false
+}
+
+func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
+	parts := bytes.SplitN(content, []byte("---\n"), 3)
+	if len(parts) < 3 {
+		return nil, nil, fmt.Errorf("invalid file format: missing YAML frontmatter")
+	}
+
+	metaScanner := bufio.NewScanner(bytes.NewReader(parts[1]))
+	metadata, _ := parseFrontmatter(metaScanner)
 
 	bodyBytes := parts[2]
 	historyHeader := []byte("# CONVERSATION HISTORY")
-	historyIndex := bytes.Index(bodyBytes, historyHeader)
-	if historyIndex == -1 {
+	_, after, ok := bytes.Cut(bodyBytes, historyHeader)
+	if !ok {
 		// No conversation history, but not an error.
 		return metadata, []types.Message{}, nil
 	}
 
-	conversationContentBytes := bodyBytes[historyIndex+len(historyHeader):]
+	conversationContentBytes := after
 	conversationContentBytes = bytes.TrimSpace(conversationContentBytes)
 
 	var messages []types.Message
@@ -249,49 +256,13 @@ func ParseFileMetadata(filePath string) (*Metadata, error) {
 		return nil, fmt.Errorf("invalid file format: missing YAML frontmatter start")
 	}
 
-	metadata := &Metadata{}
-	inFrontmatter := true
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "---" {
-			inFrontmatter = false
-			break
-		}
-
-		kv := strings.SplitN(line, ":", 2)
-		if len(kv) != 2 {
-			continue
-		}
-		key, value := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
-		switch key {
-		case "title":
-			metadata.Title = value
-		case "createdAt":
-			t, err := time.Parse(time.RFC3339Nano, value)
-			if err == nil {
-				metadata.CreatedAt = t
-			}
-		case "modifiedAt":
-			t, err := time.Parse(time.RFC3339Nano, value)
-			if err == nil {
-				metadata.ModifiedAt = t
-			}
-		case "files":
-			metadata.Files = parseStringSlice(value)
-		case "dirs":
-			metadata.Dirs = parseStringSlice(value)
-		case "exclusions":
-			metadata.Exclusions = parseStringSlice(value)
-		case "workingDir":
-			metadata.WorkingDir = value
-		}
-	}
+	metadata, closed := parseFrontmatter(scanner)
 
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	if inFrontmatter {
+	if !closed {
 		return nil, fmt.Errorf("invalid file format: YAML frontmatter not closed")
 	}
 

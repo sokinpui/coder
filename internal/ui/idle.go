@@ -220,31 +220,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
 		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
-			if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
-				m.Chat.CommandHistoryModified = m.Chat.TextArea.Value()
-			}
-
-			if msg.Type == tea.KeyUp {
-				if m.Chat.CommandHistoryCursor > 0 {
-					m.Chat.CommandHistoryCursor--
-					m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
-					m = m.updateLayout()
-					m.Chat.TextArea.CursorEnd()
-				}
-			} else { // KeyDown
-				if m.Chat.CommandHistoryCursor < len(m.Chat.CommandHistory) {
-					m.Chat.CommandHistoryCursor++
-					if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
-						m.Chat.TextArea.SetValue(m.Chat.CommandHistoryModified)
-						m = m.updateLayout()
-					} else {
-						m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
-						m = m.updateLayout()
-					}
-					m.Chat.TextArea.CursorEnd()
-				}
-			}
-			return m, nil, true
+			return m.handleCommandHistory(msg)
 		}
 
 		if msg.Type == tea.KeyDown {
@@ -429,4 +405,32 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, handlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false
+}
+
+func (m Model) handleCommandHistory(msg tea.KeyMsg) (Model, tea.Cmd, bool) {
+	if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
+		m.Chat.CommandHistoryModified = m.Chat.TextArea.Value()
+	}
+
+	if msg.Type == tea.KeyUp {
+		if m.Chat.CommandHistoryCursor > 0 {
+			m.Chat.CommandHistoryCursor--
+			m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
+			m = m.updateLayout()
+			m.Chat.TextArea.CursorEnd()
+		}
+	} else { // KeyDown
+		if m.Chat.CommandHistoryCursor < len(m.Chat.CommandHistory) {
+			m.Chat.CommandHistoryCursor++
+			if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
+				m.Chat.TextArea.SetValue(m.Chat.CommandHistoryModified)
+				m = m.updateLayout()
+			} else {
+				m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
+				m = m.updateLayout()
+			}
+			m.Chat.TextArea.CursorEnd()
+		}
+	}
+	return m, nil, true
 }
