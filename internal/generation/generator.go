@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,35 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 )
+
+type openAIMessage struct {
+	Role    string `json:"role"`
+	Content any    `json:"content"`
+}
+
+type openAIImageURL struct {
+	URL string `json:"url"`
+}
+
+type openAIContentPart struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+}
+
+type openAIStreamResponse struct {
+	Choices []struct {
+		Delta struct {
+			Content string `json:"content"`
+		} `json:"delta"`
+	} `json:"choices"`
+}
+
+type openAIResponse struct {
+	Choices []struct {
+		Message openAIMessage `json:"message"`
+	} `json:"choices"`
+}
 
 type Generator struct {
 	Config     config.Generation
@@ -33,21 +63,40 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 		genConfig = *generationConfig
 	}
 
+	contentParts := []openAIContentPart{
+		{Type: "text", Text: prompt},
+	}
+
+	for _, img := range images {
+		b64 := base64.StdEncoding.EncodeToString(img)
+		// Detecting mime type roughly or defaulting to png
+		mimeType := "image/png"
+		if len(img) > 4 && bytes.Equal(img[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+			mimeType = "image/jpeg"
+		}
+		contentParts = append(contentParts, openAIContentPart{
+			Type: "image_url",
+			ImageURL: &openAIImageURL{
+				URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+			},
+		})
+	}
+
 	body := map[string]any{
-		"prompt":     prompt,
-		"model_code": genConfig.ModelCode,
-		"stream":     true,
-		"images":     images,
-		"config": map[string]any{
-			"temperature":   genConfig.Temperature,
-			"top_p":         genConfig.TopP,
-			"top_k":         genConfig.TopK,
-			"output_length": genConfig.OutputLength,
+		"model":  genConfig.ModelCode,
+		"stream": true,
+		"messages": []openAIMessage{
+			{Role: "user", Content: contentParts},
 		},
+		"temperature": genConfig.Temperature,
+		"top_p":       genConfig.TopP,
+		"max_tokens":  genConfig.OutputLength,
 	}
 
 	jsonBody, _ := json.Marshal(body)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.ServerAddr+"/generate", bytes.NewBuffer(jsonBody))
+
+	url := fmt.Sprintf("%s/v1/chat/completions", g.ServerAddr)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- fmt.Sprintf("Error: Failed to create request: %v", err)
 		return
@@ -70,23 +119,26 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !strings.HasPrefix(line, "data: ") {
+		if line == "" || !strings.HasPrefix(line, "data: ") {
 			continue
 		}
 
 		data := strings.TrimPrefix(line, "data: ")
-		if data == "[DONE]" {
+		if strings.TrimSpace(data) == "[DONE]" {
 			break
 		}
 
-		var result struct {
-			Text string `json:"text"`
-		}
-		if err := json.Unmarshal([]byte(data), &result); err != nil {
+		var streamResp openAIStreamResponse
+		if err := json.Unmarshal([]byte(data), &streamResp); err != nil {
 			continue
 		}
-		if result.Text != "" {
-			streamChan <- result.Text
+
+		if len(streamResp.Choices) == 0 {
+			continue
+		}
+
+		if text := streamResp.Choices[0].Delta.Content; text != "" {
+			streamChan <- text
 		}
 	}
 
@@ -97,17 +149,17 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
 	body := map[string]any{
-		"prompt":     prompt,
-		"model_code": g.Config.TitleModelCode,
-		"stream":     false,
-		"config": map[string]any{
-			"temperature":   1.0,
-			"output_length": 256,
+		"model":  g.Config.TitleModelCode,
+		"stream": false,
+		"messages": []openAIMessage{
+			{Role: "user", Content: prompt},
 		},
+		"temperature": 1.0,
+		"max_tokens":  256,
 	}
 
 	jsonBody, _ := json.Marshal(body)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.ServerAddr+"/generate", bytes.NewBuffer(jsonBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.ServerAddr+"/v1/chat/completions", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", err
 	}
@@ -119,12 +171,19 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 	}
 	defer resp.Body.Close()
 
-	var result struct {
-		Text string `json:"text"`
+	if resp.StatusCode != http.StatusOK {
+		errMsg, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("server error %d: %s", resp.StatusCode, string(errMsg))
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+
+	var openAIResp openAIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
 		return "", err
 	}
 
-	return strings.TrimSpace(result.Text), nil
+	if len(openAIResp.Choices) == 0 {
+		return "", fmt.Errorf("empty choices in title generation")
+	}
+
+	return strings.TrimSpace(openAIResp.Choices[0].Message.Content.(string)), nil
 }
