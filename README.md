@@ -12,6 +12,16 @@ A simple one-step AI code editor
 
 ### Installation
 
+From source (recommended for correct versioning):
+
+```bash
+git clone https://github.com/sokinpui/coder.git
+cd coder
+./install.sh
+```
+
+Or via Go directly:
+
 ```sh
 go install github.com/sokinpui/coder/cmd/coder@latest
 ```

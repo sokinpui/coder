@@ -1,47 +1,50 @@
 package utils
 
 import (
-	"os/exec"
 	"runtime/debug"
-	"strings"
 )
 
+var Version = "devel"
+
 func GetVersion() string {
+	if Version != "devel" {
+		return Version
+	}
+
 	info, ok := debug.ReadBuildInfo()
-	if ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+	if !ok {
+		return "unknown"
+	}
+
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
 
-	if tag := getGitTag(); tag != "" {
-		return tag
-	}
-
-	return getRevision(info)
+	return getVCSVersion(info)
 }
 
-func getRevision(info *debug.BuildInfo) string {
-	if info == nil {
-		return "devel"
-	}
+func getVCSVersion(info *debug.BuildInfo) string {
+	var rev string
+	var modified bool
 
-	for _, setting := range info.Settings {
-		if setting.Key == "vcs.revision" {
-			rev := setting.Value
-			if len(rev) > 7 {
-				rev = rev[:7]
-			}
-			return "devel-" + rev
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			rev = s.Value
+		case "vcs.modified":
+			modified = s.Value == "true"
 		}
 	}
 
-	return "devel"
-}
-
-func getGitTag() string {
-	cmd := exec.Command("git", "describe", "--tags", "--always", "--dirty")
-	output, err := cmd.Output()
-	if err != nil {
-		return ""
+	if rev == "" {
+		return "devel"
 	}
-	return strings.TrimSpace(string(output))
+	if len(rev) > 7 {
+		rev = rev[:7]
+	}
+	version := "devel-" + rev
+	if modified {
+		version += "-dirty"
+	}
+	return version
 }

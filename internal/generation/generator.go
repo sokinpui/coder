@@ -73,7 +73,6 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		case types.InitMessage:
 			role = "system"
 			content = msg.Content
-		// case types.UserMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
 		case types.UserMessage:
 			role = "user"
 			content = msg.Content
