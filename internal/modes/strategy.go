@@ -12,5 +12,5 @@ type ModeStrategy interface {
 
 	StartGeneration(s SessionController) types.Event
 
-	BuildPrompt(messages []types.Message) string
+	BuildPrompt(messages []types.Message) []types.Message
 }

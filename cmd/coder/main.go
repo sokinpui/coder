@@ -190,7 +190,10 @@ func printContext(mode string, args []string) {
 		messages = append(messages, types.Message{Type: types.UserMessage, Content: initialPrompt})
 	}
 
-	fmt.Print(strategy.BuildPrompt(messages))
+	fullPrompt := strategy.BuildPrompt(messages)
+	for _, msg := range fullPrompt {
+		fmt.Printf("[%s]\n%s\n\n", msg.Type, msg.Content)
+	}
 }
 
 func runEditor(path string) {
@@ -231,8 +234,8 @@ func collectFiles(args []string) []string {
 
 	// Handle piped input if it looks like a file list
 	if piped := readPipedInput(); piped != "" && isFileList(piped) {
-		lines := strings.Split(strings.TrimSpace(piped), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(strings.TrimSpace(piped), "\n")
+		for line := range lines {
 			trimmed := strings.TrimSpace(line)
 			if trimmed == "" {
 				continue
@@ -270,8 +273,8 @@ func isFileList(input string) bool {
 	if trimmed == "" {
 		return false
 	}
-	lines := strings.Split(trimmed, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(trimmed, "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue

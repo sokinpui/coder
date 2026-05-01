@@ -9,6 +9,7 @@ import (
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/token"
+	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"net/http"
 	"os"
@@ -69,9 +70,9 @@ func initTokenizerCmd() tea.Cmd {
 	}
 }
 
-func countTokensCmd(text string) tea.Cmd {
+func countTokensCmd(messages []types.Message) tea.Cmd {
 	return func() tea.Msg {
-		count := token.CountTokens(text)
+		count := token.CountTokens(messages)
 		return tokenCountResultMsg(count)
 	}
 }

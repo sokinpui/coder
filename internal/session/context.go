@@ -1,6 +1,7 @@
 package session
 
 import (
+	"github.com/sokinpui/coder/internal/history"
 	"os"
 	"strings"
 )
@@ -9,7 +10,12 @@ func (s *Session) LoadContext() error {
 	if err := s.modeStrategy.LoadSourceCode(s.config); err != nil {
 		return err
 	}
-	s.context = s.modeStrategy.BuildPrompt(nil) // return only the Role instruction + source code
+
+	// Get the system prompt part for history saving
+	msgs := s.modeStrategy.BuildPrompt(nil)
+	if len(msgs) > 0 {
+		s.context = history.BuildHistorySnippet(msgs)
+	}
 	return nil
 }
 

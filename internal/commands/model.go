@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
+	"slices"
 	"strings"
 )
 
@@ -28,11 +29,9 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: b.String()}, true
 	}
 
-	for _, m := range cfg.AvailableModels {
-		if m == args {
-			cfg.Generation.ModelCode = args
-			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
-		}
+	if slices.Contains(cfg.AvailableModels, args) {
+		cfg.Generation.ModelCode = args
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 	}
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error: model '%s' not found. Use ':model' to see available models.", args)}, false

@@ -13,6 +13,6 @@ type SessionController interface {
 
 	GetGenerator() *generation.Generator
 	SetCancelGeneration(cancel context.CancelFunc)
-	GetPrompt() string
+	GetPrompt() []types.Message
 	LoadContext() error
 }

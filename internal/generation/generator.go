@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 type openAIMessage struct {
@@ -55,7 +56,7 @@ func New(cfg *config.Config) (*Generator, error) {
 	}, nil
 }
 
-func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]byte, streamChan chan<- string, generationConfig *config.Generation) {
+func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- string, generationConfig *config.Generation) {
 	defer close(streamChan)
 
 	genConfig := g.Config
@@ -63,31 +64,68 @@ func (g *Generator) GenerateTask(ctx context.Context, prompt string, images [][]
 		genConfig = *generationConfig
 	}
 
-	contentParts := []openAIContentPart{
-		{Type: "text", Text: prompt},
-	}
+	var apiMessages []openAIMessage
+	for _, msg := range messages {
+		role := ""
+		var content any
 
-	for _, img := range images {
-		b64 := base64.StdEncoding.EncodeToString(img)
-		// Detecting mime type roughly or defaulting to png
-		mimeType := "image/png"
-		if len(img) > 4 && bytes.Equal(img[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
-			mimeType = "image/jpeg"
+		switch msg.Type {
+		case types.InitMessage:
+			role = "system"
+			content = msg.Content
+		// case types.UserMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
+		case types.UserMessage:
+			role = "user"
+			content = msg.Content
+		case types.AIMessage:
+			role = "assistant"
+			content = msg.Content
+		case types.ImageMessage:
+			role = "user"
+			if msg.Data == nil {
+				continue
+			}
+			b64 := base64.StdEncoding.EncodeToString(msg.Data)
+			mimeType := "image/png"
+			if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+				mimeType = "image/jpeg"
+			}
+			content = []openAIContentPart{
+				{
+					Type: "image_url",
+					ImageURL: &openAIImageURL{
+						URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+					},
+				},
+			}
+		default:
+			continue
 		}
-		contentParts = append(contentParts, openAIContentPart{
-			Type: "image_url",
-			ImageURL: &openAIImageURL{
-				URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
-			},
+
+		if role == "" || content == "" && msg.Type != types.ImageMessage {
+			continue
+		}
+
+		// Collapse consecutive messages of the same role if they are simple text
+		if len(apiMessages) > 0 && apiMessages[len(apiMessages)-1].Role == role {
+			prevContent, isPrevStr := apiMessages[len(apiMessages)-1].Content.(string)
+			currContent, isCurrStr := content.(string)
+			if isPrevStr && isCurrStr {
+				apiMessages[len(apiMessages)-1].Content = prevContent + "\n\n" + currContent
+				continue
+			}
+		}
+
+		apiMessages = append(apiMessages, openAIMessage{
+			Role:    role,
+			Content: content,
 		})
 	}
 
 	body := map[string]any{
-		"model":  genConfig.ModelCode,
-		"stream": true,
-		"messages": []openAIMessage{
-			{Role: "user", Content: contentParts},
-		},
+		"model":       genConfig.ModelCode,
+		"stream":      true,
+		"messages":    apiMessages,
 		"temperature": genConfig.Temperature,
 		"top_p":       genConfig.TopP,
 		"max_tokens":  genConfig.OutputLength,

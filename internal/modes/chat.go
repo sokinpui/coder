@@ -20,10 +20,15 @@ func (m *ChatMode) StartGeneration(s SessionController) types.Event {
 	return StartGeneration(s, nil)
 }
 
-func (m *ChatMode) BuildPrompt(messages []types.Message) string {
-	return BuildPrompt(PromptSectionArray{
-		Sections: []PromptSection{
-			ConversationHistorySection(messages),
-		},
-	})
+func (m *ChatMode) BuildPrompt(messages []types.Message) []types.Message {
+	var result []types.Message
+	role := m.GetRolePrompt()
+	if role != "" {
+		result = append(result, types.Message{
+			Type:    types.InitMessage,
+			Content: role,
+		})
+	}
+	result = append(result, messages...)
+	return result
 }

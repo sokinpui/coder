@@ -15,7 +15,7 @@ func (s *Session) CancelGeneration() {
 	}
 }
 
-func (s *Session) GetPrompt() string {
+func (s *Session) GetPrompt() []types.Message {
 	return s.modeStrategy.BuildPrompt(s.messages)
 }
 

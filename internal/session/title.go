@@ -24,10 +24,7 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	if err != nil {
 		log.Printf("Error generating title, falling back to first few words: %v", err)
 		words := strings.Fields(userPrompt)
-		numWords := 5
-		if len(words) < numWords {
-			numWords = len(words)
-		}
+		numWords := min(len(words), 5)
 		fallbackTitle := strings.Join(words[:numWords], " ")
 		if len(words) > numWords {
 			fallbackTitle += "..."

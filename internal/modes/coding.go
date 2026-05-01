@@ -31,17 +31,25 @@ func (m *CodingMode) StartGeneration(s SessionController) types.Event {
 	return StartGeneration(s, nil)
 }
 
-func (m *CodingMode) BuildPrompt(messages []types.Message) string {
+func (m *CodingMode) BuildPrompt(messages []types.Message) []types.Message {
 	instr := m.instruction
 	if instr == "" {
 		instr = prompt.CoderInstructions
 	}
 
-	return BuildPrompt(PromptSectionArray{
-		Sections: []PromptSection{
-			RoleSection(m.GetRolePrompt(), instr),
-			ProjectSourceCodeSection(m.projectSourceCode),
-			ConversationHistorySection(messages),
-		},
+	var result []types.Message
+
+	// System message contains instructions and source code context
+	systemContent := instr
+	if m.projectSourceCode != "" {
+		systemContent += "\n\n" + ProjectSourceCodeHeader + m.projectSourceCode
+	}
+
+	result = append(result, types.Message{
+		Type:    types.InitMessage, // We'll treat Init as System role in generator
+		Content: systemContent,
 	})
+
+	result = append(result, messages...)
+	return result
 }
