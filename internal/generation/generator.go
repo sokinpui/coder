@@ -46,13 +46,13 @@ type openAIResponse struct {
 
 type Generator struct {
 	Config     config.Generation
-	ServerAddr string
+	URL        string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
 	return &Generator{
 		Config:     cfg.Generation,
-		ServerAddr: strings.TrimSuffix(cfg.Server.Addr, "/"),
+		URL:        cfg.Server.URL,
 	}, nil
 }
 
@@ -132,8 +132,7 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	jsonBody, _ := json.Marshal(body)
 
-	url := fmt.Sprintf("%s/v1/chat/completions", g.ServerAddr)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.URL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- fmt.Sprintf("Error: Failed to create request: %v", err)
 		return
@@ -196,7 +195,7 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 	}
 
 	jsonBody, _ := json.Marshal(body)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.ServerAddr+"/v1/chat/completions", bytes.NewBuffer(jsonBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.URL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", err
 	}

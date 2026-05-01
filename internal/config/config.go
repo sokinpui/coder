@@ -22,7 +22,7 @@ type Clipboard struct {
 }
 
 type Server struct {
-	Addr string // e.g. "http://localhost:8080"
+	URL string // e.g. "http://localhost:9001/v1/chat/completions"
 }
 
 type Generation struct {
@@ -120,7 +120,7 @@ type Config struct {
 func Load() (*Config, error) {
 	v := viper.New()
 
-	v.SetDefault("server.addr", "http://localhost:8080")
+	v.SetDefault("server.url", "http://localhost:9001/v1/chat/completions")
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
 	v.SetDefault("generation.temperature", 0.0)
@@ -227,8 +227,8 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	if !strings.HasPrefix(cfg.Server.Addr, "http") {
-		cfg.Server.Addr = "http://" + cfg.Server.Addr
+	if !strings.HasPrefix(cfg.Server.URL, "http") {
+		cfg.Server.URL = "http://" + cfg.Server.URL
 	}
 
 	return &cfg, nil

@@ -40,7 +40,7 @@ func listenForStream(sub chan string) tea.Cmd {
 
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
-		endpoint := strings.TrimSuffix(cfg.Server.Addr, "/") + "/models"
+		endpoint := strings.Replace(cfg.Server.URL, "/chat/completions", "/models", 1)
 
 		resp, err := http.Get(endpoint)
 		if err != nil {
@@ -52,14 +52,24 @@ func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 			return modelsFetchedMsg{err: fmt.Errorf("server returned status %d", resp.StatusCode)}
 		}
 
-		var result struct {
-			Models []string `json:"models"`
+		type openAIModel struct {
+			ID string `json:"id"`
 		}
+		type openAIModelList struct {
+			Data []openAIModel `json:"data"`
+		}
+
+		var result openAIModelList
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			return modelsFetchedMsg{err: fmt.Errorf("error decoding models: %w", err)}
 		}
 
-		return modelsFetchedMsg{models: result.Models}
+		modelIDs := make([]string, len(result.Data))
+		for i, m := range result.Data {
+			modelIDs[i] = m.ID
+		}
+
+		return modelsFetchedMsg{models: modelIDs}
 	}
 }
 

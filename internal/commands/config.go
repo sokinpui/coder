@@ -14,7 +14,7 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("server:\n  addr: %s\n", cfg.Server.Addr))
+	b.WriteString(fmt.Sprintf("server:\n  url: %s\n", cfg.Server.URL))
 	b.WriteString(fmt.Sprintf("generation:\n  modelcode: %s\n  temperature: %.1f\n  topp: %.2f\n  topk: %.1f\n  outputlength: %d\n  streamdelay: %d\n",
 		cfg.Generation.ModelCode, cfg.Generation.Temperature, cfg.Generation.TopP, cfg.Generation.TopK, cfg.Generation.OutputLength, cfg.Generation.StreamDelay))
 
