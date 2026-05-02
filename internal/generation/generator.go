@@ -47,12 +47,14 @@ type openAIResponse struct {
 type Generator struct {
 	Config     config.Generation
 	BaseURL    string
+	APIKey     string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
 	return &Generator{
 		Config:     cfg.Generation,
 		BaseURL:    cfg.Server.URL,
+		APIKey:     cfg.Server.APIKey,
 	}, nil
 }
 
@@ -143,6 +145,10 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
+	if g.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+g.APIKey)
+	}
+
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		streamChan <- fmt.Sprintf("Error: Failed to connect to server: %v", err)
@@ -204,6 +210,10 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 		return "", err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+
+	if g.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+g.APIKey)
+	}
 
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {

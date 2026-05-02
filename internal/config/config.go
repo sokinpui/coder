@@ -23,6 +23,7 @@ type Clipboard struct {
 
 type Server struct {
 	URL string // e.g. "http://localhost:9001/v1/chat/completions"
+	APIKey string
 }
 
 type Generation struct {
@@ -221,6 +222,7 @@ func Load() (*Config, error) {
 	v.SetEnvPrefix("CODER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
+	v.BindEnv("server.apikey", "CODER_API_KEY")
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
