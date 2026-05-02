@@ -120,7 +120,7 @@ type Config struct {
 func Load() (*Config, error) {
 	v := viper.New()
 
-	v.SetDefault("server.url", "http://localhost:9001/v1/chat/completions")
+	v.SetDefault("server.url", "http://localhost:9001/v1")
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
 	v.SetDefault("generation.temperature", 0.0)

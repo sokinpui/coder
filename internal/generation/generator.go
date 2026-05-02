@@ -46,14 +46,18 @@ type openAIResponse struct {
 
 type Generator struct {
 	Config     config.Generation
-	URL        string
+	BaseURL    string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
 	return &Generator{
 		Config:     cfg.Generation,
-		URL:        cfg.Server.URL,
+		BaseURL:    cfg.Server.URL,
 	}, nil
+}
+
+func (g *Generator) getChatURL() string {
+	return strings.TrimSuffix(g.BaseURL, "/") + "/chat/completions"
 }
 
 func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- string, generationConfig *config.Generation) {
@@ -132,7 +136,7 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	jsonBody, _ := json.Marshal(body)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.URL, bytes.NewBuffer(jsonBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getChatURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- fmt.Sprintf("Error: Failed to create request: %v", err)
 		return
@@ -195,7 +199,7 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 	}
 
 	jsonBody, _ := json.Marshal(body)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.URL, bytes.NewBuffer(jsonBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getChatURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", err
 	}

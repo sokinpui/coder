@@ -40,7 +40,7 @@ func listenForStream(sub chan string) tea.Cmd {
 
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
-		endpoint := strings.Replace(cfg.Server.URL, "/chat/completions", "/models", 1)
+		endpoint := strings.TrimSuffix(cfg.Server.URL, "/") + "/models"
 
 		resp, err := http.Get(endpoint)
 		if err != nil {
