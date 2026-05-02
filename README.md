@@ -80,23 +80,23 @@ export CODER_API_KEY="your-api-key-here"
 
 ### Global Shortcuts
 
-| Shortcut       | Action                                                                                          |
-| :------------- | :---------------------------------------------------------------------------------------------- |
-| `Ctrl+J`       | Send message / Submit command                                                                   |
-| `Ctrl+E`       | Edit current prompt in external editor (`$EDITOR`)                                              |
-| `Ctrl+V`       | Paste from clipboard (supports images)                                                          |
-| `Ctrl+A`       | Apply code changes from the last AI response (via `[itf](https://github.com/sokinpui/itf.git)`) |
-| `Ctrl+H`       | View conversation history                                                                       |
-| `Ctrl+N`       | Start a new chat session                                                                        |
-| `Ctrl+F`       | Open command finder (fuzzy search all commands)                                                 |
-| `Ctrl+T`       | Open file tree to select context                                                                |
-| `Ctrl+P`       | Fuzzy search current conversation                                                               |
-| `Ctrl+Q`       | Jump to a specific user message                                                                 |
-| `Ctrl+L`       | Quick view of current project context (files read by AI)                                        |
-| `Ctrl+U` / `D` | Scroll conversation view up / down                                                              |
-| `Esc`          | Enter **Visual Mode**                                                                           |
-| `Ctrl+C`       | Clear input (or double press on empty line to quit)                                             |
-| `Tab`          | Autocomplete commands and arguments                                                             |
+| Shortcut       | Action                                                                                        |
+| :------------- | :-------------------------------------------------------------------------------------------- |
+| `Ctrl+J`       | Send message / Submit command                                                                 |
+| `Ctrl+E`       | Edit current prompt in external editor (`$EDITOR`)                                            |
+| `Ctrl+V`       | Paste from clipboard (supports images)                                                        |
+| `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/itf.git)) |
+| `Ctrl+H`       | View conversation history                                                                     |
+| `Ctrl+N`       | Start a new chat session                                                                      |
+| `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |
+| `Ctrl+T`       | Open file tree to select context                                                              |
+| `Ctrl+P`       | Fuzzy search current conversation                                                             |
+| `Ctrl+Q`       | Jump to a specific user message                                                               |
+| `Ctrl+L`       | Quick view of current project context (files read by AI)                                      |
+| `Ctrl+U` / `D` | Scroll conversation view up / down                                                            |
+| `Esc`          | Enter **Visual Mode**                                                                         |
+| `Ctrl+C`       | Clear input (or double press on empty line to quit)                                           |
+| `Tab`          | Autocomplete commands and arguments                                                           |
 
 ### Commands
 
