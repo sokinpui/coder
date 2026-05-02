@@ -61,7 +61,6 @@ To use `coder` with your preferred provider, update your `config.yaml`:
 ```yaml
 server:
   url: https://api.openai.com/v1 # Base URL of the provider
-  apikey: "" # (Optional) Leave empty to use env var
 
 generation:
   modelcode: gpt-4o # The model ID used for chat

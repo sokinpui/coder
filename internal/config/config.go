@@ -23,7 +23,7 @@ type Clipboard struct {
 
 type Server struct {
 	URL string // e.g. "http://localhost:9001/v1/chat/completions"
-	APIKey string
+	APIKey string `yaml:"-"`
 }
 
 type Generation struct {
@@ -221,13 +221,12 @@ func Load() (*Config, error) {
 
 	v.SetEnvPrefix("CODER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-	v.BindEnv("server.apikey", "CODER_API_KEY")
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+	cfg.Server.APIKey = os.Getenv("CODER_API_KEY")
 
 	if !strings.HasPrefix(cfg.Server.URL, "http") {
 		cfg.Server.URL = "http://" + cfg.Server.URL
