@@ -113,6 +113,9 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.IsCountingTokens = true
 		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()))
 
+	case types.ExternalEditorStarted:
+		return m, openInEditorCmd(event.Data.(string))
+
 	case types.Quit:
 		m.Quitting = true
 		return m, tea.Quit

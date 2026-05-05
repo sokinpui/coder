@@ -31,6 +31,7 @@ var commandGroup = helpGroup{
 	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
+	{key: "editor", desc: "Open file(s) in external editor (alias: :e)."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source."},
 	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all."},
 	{key: "gen", desc: "Enter generate mode to re-generate a response."},

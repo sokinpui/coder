@@ -17,6 +17,7 @@ const (
 	TreeModeStarted
 	FzfModeStarted
 	JumpModeStarted
+	ExternalEditorStarted
 	Quit
 )
 
