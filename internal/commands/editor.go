@@ -11,6 +11,15 @@ func init() {
 }
 
 func editorCmd(args string, s SessionController) (CommandOutput, bool) {
+	if strings.Contains(args, "%s") {
+		lastModified := s.GetLastModifiedFiles()
+		if len(lastModified) == 0 {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Error: No files were affected by the last itf run."}, false
+		}
+
+		args = strings.ReplaceAll(args, "%s", strings.Join(lastModified, " "))
+	}
+
 	paths := strings.Fields(args)
 	if len(paths) == 0 {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: :editor <file paths>"}, false

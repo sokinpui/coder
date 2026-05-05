@@ -11,7 +11,7 @@ func init() {
 }
 
 // Use itf to apply file operations
-func ExecuteItf(content string, args string) (string, bool) {
+func ExecuteItf(content string, args string) (string, []string, bool) {
 	fields := strings.Fields(args)
 	config := itf.Config{}
 
@@ -25,15 +25,33 @@ func ExecuteItf(content string, args string) (string, bool) {
 
 	results, err := itf.Apply(content, config)
 	if err != nil {
-		return "Error applying changes: " + err.Error(), false
+		return "Error applying changes: " + err.Error(), nil, false
+	}
+
+	var affectedFiles []string
+	affectedFiles = append(affectedFiles, results["Created"]...)
+	affectedFiles = append(affectedFiles, results["Modified"]...)
+
+	for _, p := range results["Renamed"] {
+		parts := strings.Split(p, " -> ")
+		if len(parts) == 2 {
+			affectedFiles = append(affectedFiles, parts[1])
+		}
 	}
 
 	summary := itf.FormatResult(results)
 	if summary == "" {
-		return "No changes applied.", true
+		return "No changes applied.", nil, true
 	}
 
-	return summary, true
+	// Remove duplicates
+	seen := make(map[string]struct{})
+	uniqueFiles := []string{}
+	for _, f := range affectedFiles {
+		if _, ok := seen[f]; !ok { seen[f] = struct{}{}; uniqueFiles = append(uniqueFiles, f) }
+	}
+
+	return summary, uniqueFiles, true
 }
 
 func itfCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -52,6 +70,7 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No AI response found to pipe to itf."}, false
 	}
 
-	result, success := ExecuteItf(lastAIResponse, args)
+	result, affected, success := ExecuteItf(lastAIResponse, args)
+	s.SetLastModifiedFiles(affected)
 	return CommandOutput{Type: types.MessagesUpdated, Payload: result}, success
 }

@@ -109,7 +109,8 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		// Execute itf
-		result, success := commands.ExecuteItf(aiResponseToApply, "")
+		result, affected, success := commands.ExecuteItf(aiResponseToApply, "")
+		m.Session.SetLastModifiedFiles(affected)
 
 		if success {
 			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: result})

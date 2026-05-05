@@ -26,6 +26,7 @@ type Session struct {
 	modeStrategy        modes.ModeStrategy
 	customInstruction   string
 	initialContextFiles []string
+	lastModifiedFiles   []string
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
@@ -91,4 +92,12 @@ func (s *Session) GetCustomInstruction() string {
 
 func (s *Session) GetInitialContextFiles() []string {
 	return s.initialContextFiles
+}
+
+func (s *Session) GetLastModifiedFiles() []string {
+	return s.lastModifiedFiles
+}
+
+func (s *Session) SetLastModifiedFiles(files []string) {
+	s.lastModifiedFiles = files
 }

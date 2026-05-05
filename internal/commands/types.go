@@ -16,6 +16,8 @@ type SessionController interface {
 	GetConfig() *config.Config
 	SetTitle(title string)
 	LoadContext() error
+	GetLastModifiedFiles() []string
+	SetLastModifiedFiles(files []string)
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)
