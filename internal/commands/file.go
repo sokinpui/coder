@@ -37,9 +37,6 @@ func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
 			fullPath += "/"
 		}
 
-		if fullPath == prefix {
-			continue
-		}
 		results = append(results, fullPath)
 	}
 	return results
