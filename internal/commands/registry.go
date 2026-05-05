@@ -10,43 +10,6 @@ import (
 var commands = make(map[string]commandFunc)
 var commandArgumentCompleters = make(map[string]argumentCompleter)
 
-func splitPipedCommands(input string) []string {
-	var parts []string
-	var currentPart strings.Builder
-	inSingleQuote := false
-	inDoubleQuote := false
-	isEscaped := false
-
-	for _, char := range input {
-		if isEscaped {
-			currentPart.WriteRune(char)
-			isEscaped = false
-			continue
-		}
-
-		if char == '\\' {
-			isEscaped = true
-			currentPart.WriteRune(char)
-			continue
-		}
-
-		if char == '\'' && !inDoubleQuote {
-			inSingleQuote = !inSingleQuote
-		} else if char == '"' && !inSingleQuote {
-			inDoubleQuote = !inDoubleQuote
-		}
-
-		if char == '|' && !inSingleQuote && !inDoubleQuote {
-			parts = append(parts, currentPart.String())
-			currentPart.Reset()
-		} else {
-			currentPart.WriteRune(char)
-		}
-	}
-	parts = append(parts, currentPart.String())
-	return parts
-}
-
 func registerCommand(name string, fn commandFunc, completer argumentCompleter) {
 	commands[name] = fn
 	if completer != nil {
@@ -69,61 +32,6 @@ func GetCommands() []string {
 	return commandNames
 }
 
-func processPipedCommands(trimmedInput string, s SessionController) (CommandOutput, bool) {
-	commandParts := splitPipedCommands(trimmedInput)
-	var lastOutput CommandOutput
-	var lastSuccess = true
-
-	for i, part := range commandParts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			return errorOutput("Invalid pipe syntax: empty command.")
-		}
-
-		var pipedArgs string
-		if i > 0 { // For commands after the first one in the pipe
-			if !lastSuccess {
-				return errorOutput("Error: previous command in pipe failed.")
-			}
-
-			if lastOutput.Type != types.MessagesUpdated {
-				return errorOutput("Error: command output is not pipeable.")
-			}
-
-			pipedArgs = lastOutput.Payload
-		}
-
-		parts := strings.Fields(part)
-		if len(parts) == 0 {
-			return errorOutput("Invalid command syntax.")
-		}
-		cmdName := parts[0]
-		argsFromPart := strings.Join(parts[1:], " ")
-
-		finalArgs := buildFinalArgs(argsFromPart, pipedArgs)
-
-		cmd, exists := commands[cmdName]
-		if !exists {
-			return errorOutput(fmt.Sprintf("Unknown command: %s", cmdName))
-		}
-
-		lastOutput, lastSuccess = cmd(finalArgs, s)
-	}
-	return lastOutput, lastSuccess
-}
-
-func buildFinalArgs(argsFromPart, pipedArgs string) string {
-	if pipedArgs == "" {
-		return argsFromPart
-	}
-
-	normalizedPipedArgs := strings.Join(strings.Fields(pipedArgs), " ")
-	if argsFromPart != "" {
-		return argsFromPart + " " + normalizedPipedArgs
-	}
-	return normalizedPipedArgs
-}
-
 func errorOutput(msg string) (CommandOutput, bool) {
 	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 }
@@ -133,12 +41,7 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 		return CommandOutput{}, false, false // Not a command
 	}
 	trimmedInput := strings.TrimPrefix(input, ":")
-	if strings.Contains(trimmedInput, "|") {
-		result, success = processPipedCommands(trimmedInput, s)
-		return result, true, success
-	}
 
-	// No pipe, original logic
 	parts := strings.Fields(trimmedInput)
 	if len(parts) == 0 {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false

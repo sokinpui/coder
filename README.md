@@ -99,7 +99,7 @@ export CODER_API_KEY="your-api-key-here"
 
 ### Commands
 
-Commands are prefixed with a colon `:`. You can pipe commands together using `|`.
+Commands are prefixed with a colon `:`.
 
 - `:file [paths...]`: Add specific files or directories to the AI's context.
 - `:exclude [paths...]`: Remove paths from the context.
