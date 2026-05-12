@@ -195,10 +195,16 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		switch m.State {
 		case stateCancelling:
 			// This was a cancellation.
-			lastMsg := messages[len(messages)-1]
-			lastMsg.Content = "Generation cancelled."
-			lastMsg.Type = types.CommandResultMessage // Re-use style for notification
-			m.Session.ReplaceLastMessage(lastMsg)
+			if len(messages) > 0 {
+				lastMsg := messages[len(messages)-1]
+				if lastMsg.Type == types.AIMessage && strings.TrimSpace(lastMsg.Content) != "" {
+					m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: "Generation cancelled."})
+				} else {
+					lastMsg.Content = "Generation cancelled."
+					lastMsg.Type = types.CommandResultMessage
+					m.Session.ReplaceLastMessage(lastMsg)
+				}
+			}
 			m.Chat.LastInteractionFailed = true
 		}
 
