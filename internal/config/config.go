@@ -29,10 +29,6 @@ type Server struct {
 type Generation struct {
 	ModelCode      string
 	TitleModelCode string
-	Temperature    float32
-	TopP           float32
-	TopK           float32
-	OutputLength   int32
 	StreamDelay    int
 }
 
@@ -124,10 +120,6 @@ func Load() (*Config, error) {
 	v.SetDefault("server.url", "http://localhost:9001/v1")
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
-	v.SetDefault("generation.temperature", 0.0)
-	v.SetDefault("generation.topp", 0.95)
-	v.SetDefault("generation.topk", 0)
-	v.SetDefault("generation.outputlength", 65536)
 	v.SetDefault("generation.streamdelay", 0)
 	v.SetDefault("context.dirs", []string{"."})
 	v.SetDefault("context.files", []string{})

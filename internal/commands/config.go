@@ -15,8 +15,8 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("server:\n  url: %s\n", cfg.Server.URL))
-	b.WriteString(fmt.Sprintf("generation:\n  modelcode: %s\n  temperature: %.1f\n  topp: %.2f\n  topk: %.1f\n  outputlength: %d\n  streamdelay: %d\n",
-		cfg.Generation.ModelCode, cfg.Generation.Temperature, cfg.Generation.TopP, cfg.Generation.TopK, cfg.Generation.OutputLength, cfg.Generation.StreamDelay))
+	b.WriteString(fmt.Sprintf("generation:\n  modelcode: %s\n  streamdelay: %d\n",
+		cfg.Generation.ModelCode, cfg.Generation.StreamDelay))
 
 	b.WriteString(fmt.Sprintf("clipboard:\n  copycmd: %s\n  pastecmd: %s\n", cfg.Clipboard.CopyCmd, cfg.Clipboard.PasteCmd))
 

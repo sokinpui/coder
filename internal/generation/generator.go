@@ -131,9 +131,6 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		"model":       genConfig.ModelCode,
 		"stream":      true,
 		"messages":    apiMessages,
-		"temperature": genConfig.Temperature,
-		"top_p":       genConfig.TopP,
-		"max_tokens":  genConfig.OutputLength,
 	}
 
 	jsonBody, _ := json.Marshal(body)
