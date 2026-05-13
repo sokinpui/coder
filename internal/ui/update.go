@@ -20,6 +20,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Chat.IsCyclingCompletions = false
 	}
 
+	isScrollOnly := false
+	if k, ok := msg.(tea.KeyMsg); ok {
+		keyStr := k.String()
+		km := m.Session.GetConfig().Keymap
+		if keyStr == km.ScrollUp ||
+			keyStr == km.ScrollDown ||
+			keyStr == "up" ||
+			keyStr == "down" ||
+			k.Type == tea.KeyPgUp ||
+			k.Type == tea.KeyPgDown {
+			isScrollOnly = true
+		}
+	}
+
 	// Handle state-specific messages and key presses.
 	var handled bool
 	var newModel tea.Model
@@ -42,11 +56,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m, cmd = m.updateComponents(msg)
 	cmds = append(cmds, cmd)
 
-	// Update command palette based on textarea content.
-	m = m.updatePalette()
-
-	// Recalculate layout of all components.
-	m = m.updateLayout()
+	if !isScrollOnly {
+		m = m.updatePalette()
+		m = m.updateLayout()
+	}
 
 	return m, tea.Batch(cmds...)
 }
