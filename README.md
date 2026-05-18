@@ -10,7 +10,7 @@ Coder is **not an autonomous agent**. It does not crawl your codebase, make exec
 
 Instead, it is a **human-in-the-loop code editor**. You are the driver:
 
-- **Manual Context**: You choose exactly which files or directories to provide to the AI using `:file` or `:tree`. ( load all by default )
+- **Manual Context**: You choose exactly which files or directories to provide to the AI using `:file` or `:tree`.
 - **Precise Guidance**: You guide the AI through prompts to perform specific tasks.
 - **One-Step Application**: Coder interprets the AI's response to apply changes directly to your filesystem.
 
@@ -89,10 +89,12 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+N`       | Start a new chat session                                                                      |
 | `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |
 | `Ctrl+T`       | Open file tree to select context                                                              |
-| `Ctrl+P`       | Fuzzy search current conversation                                                             |
-| `Ctrl+Q`       | Jump to a specific user message                                                               |
+| `Ctrl+P`       | Search current conversation                                                                   |
+| `Ctrl+Q`       | Jump to a specific message                                                                    |
 | `Ctrl+L`       | Quick view of current project context (files read by AI)                                      |
+| `Ctrl+B`       | Branch the conversation into a new session                                                    |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                            |
+| `Ctrl+Z`       | Suspend application                                                                           |
 | `Esc`          | Enter **Visual Mode**                                                                         |
 | `Ctrl+C`       | Clear input (or double press on empty line to quit)                                           |
 | `Tab`          | Autocomplete commands and arguments                                                           |
@@ -108,10 +110,16 @@ Commands are prefixed with a colon `:`.
 - `:list-all`: Show a detailed list of every file being read by the AI.
 - `:itf`: Manually trigger the code application tool on the last response.
 - `:model [name]`: Switch the generation model on the fly.
-- `:temp [0.0-2.0]`: Adjust the sampling temperature.
 - `:new`: Reset the session but keep current configuration.
 - `:history`: Browse and load previous conversations.
 - `:rename [title]`: Manually set the session title.
+- `:jump`: Jump to a specific message.
+- `:search [query]`: Search current conversation.
+- `:fzf`: Open command finder.
+- `:config`: Open configuration file.
+- `:editor [path]`: Open a file in external editor.
+- `:branch`: Branch the conversation.
+- `:quit`: Quit the application.
 
 ### Visual Mode
 
@@ -124,7 +132,11 @@ Press `Esc` to enter Visual Mode. This allows you to interact with previous mess
 - `g`: Regenerate the conversation starting from the selected message.
 - `e`: Edit a previous user message and re-run the thread.
 - `b`: Branch the conversation into a new session from the selected point.
+- `n`: Start a new chat session.
+- `o`: Swap cursor position in selection.
+- `i`: Exit visual mode.
 - `Ctrl+A`: Apply code changes from the nearest AI response above the cursor.
+
 
 ## Configuration
 
