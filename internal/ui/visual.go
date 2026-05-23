@@ -109,13 +109,13 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		// Execute itf
-		result, affected, success := commands.ExecuteItf(aiResponseToApply, "")
-		m.Session.SetLastModifiedFiles(affected)
+		res := commands.ExecuteItf(aiResponseToApply, "")
+		m.Session.SetLastModifiedFiles(res.AffectedFiles)
 
-		if success {
-			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: result})
+		if res.Success {
+			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: res.Summary})
 		} else {
-			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: result})
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: res.Summary})
 		}
 
 		// Exit visual mode and update UI

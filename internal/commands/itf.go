@@ -10,8 +10,15 @@ func init() {
 	registerCommand("itf", itfCmd, nil)
 }
 
+type ItfResult struct {
+	Summary       string
+	AffectedFiles []string
+	Raw           map[string][]string
+	Success       bool
+}
+
 // Use itf to apply file operations
-func ExecuteItf(content string, args string) (string, []string, bool) {
+func ExecuteItf(content string, args string) ItfResult {
 	fields := strings.Fields(args)
 	config := itf.Config{}
 
@@ -25,7 +32,7 @@ func ExecuteItf(content string, args string) (string, []string, bool) {
 
 	results, err := itf.Apply(content, config)
 	if err != nil {
-		return "Error applying changes: " + err.Error(), nil, false
+		return ItfResult{Summary: "Error applying changes: " + err.Error(), Success: false}
 	}
 
 	var affectedFiles []string
@@ -41,7 +48,7 @@ func ExecuteItf(content string, args string) (string, []string, bool) {
 
 	summary := itf.FormatResult(results)
 	if summary == "" {
-		return "No changes applied.", nil, true
+		return ItfResult{Summary: "No changes applied.", Raw: results, Success: true}
 	}
 
 	// Remove duplicates
@@ -51,7 +58,12 @@ func ExecuteItf(content string, args string) (string, []string, bool) {
 		if _, ok := seen[f]; !ok { seen[f] = struct{}{}; uniqueFiles = append(uniqueFiles, f) }
 	}
 
-	return summary, uniqueFiles, true
+	return ItfResult{
+		Summary:       summary,
+		AffectedFiles: uniqueFiles,
+		Raw:           results,
+		Success:       true,
+	}
 }
 
 func itfCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -70,7 +82,50 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No AI response found to pipe to itf."}, false
 	}
 
-	result, affected, success := ExecuteItf(lastAIResponse, args)
-	s.SetLastModifiedFiles(affected)
-	return CommandOutput{Type: types.MessagesUpdated, Payload: result}, success
+	res := ExecuteItf(lastAIResponse, args)
+	s.SetLastModifiedFiles(res.AffectedFiles)
+
+	if !res.Success {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: res.Summary}, false
+	}
+
+	// Update context paths based on itf results
+	cfg := s.GetConfig()
+	contextUpdated := false
+
+	// Handle Created files
+	if created := res.Raw["Created"]; len(created) > 0 {
+		cfg.Context.Files = AppendUnique(cfg.Context.Files, created)
+		contextUpdated = true
+	}
+
+	// Handle Deleted files
+	if deleted := res.Raw["Deleted"]; len(deleted) > 0 {
+		toRemove := make(map[string]struct{})
+		for _, p := range deleted { toRemove[p] = struct{}{} }
+		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
+		contextUpdated = true
+	}
+
+	// Handle Renamed files
+	if renamed := res.Raw["Renamed"]; len(renamed) > 0 {
+		toRemove := make(map[string]struct{})
+		var toAdd []string
+		for _, entry := range renamed {
+			parts := strings.Split(entry, " -> ")
+			if len(parts) == 2 {
+				toRemove[parts[0]] = struct{}{}
+				toAdd = append(toAdd, parts[1])
+			}
+		}
+		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
+		cfg.Context.Files = AppendUnique(cfg.Context.Files, toAdd)
+		contextUpdated = true
+	}
+
+	if contextUpdated {
+		_ = s.LoadContext()
+	}
+
+	return CommandOutput{Type: types.MessagesUpdated, Payload: res.Summary}, res.Success
 }
