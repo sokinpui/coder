@@ -192,7 +192,7 @@ func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]st
 	var paths []string
 	for line := range strings.SplitSeq(b.Content, "\n") {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
 		abs := resolver.Resolve(trimmed)
@@ -207,7 +207,11 @@ func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]st
 func parseRenameBlock(b CodeBlock, resolver *PathResolver, allowed map[string]struct{}) []FileRename {
 	var renames []FileRename
 	for line := range strings.SplitSeq(b.Content, "\n") {
-		parts := strings.Fields(strings.TrimSpace(line))
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		parts := strings.Fields(trimmed)
 		if len(parts) != 2 {
 			continue
 		}
