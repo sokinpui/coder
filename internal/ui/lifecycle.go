@@ -105,6 +105,16 @@ func (m Model) updatePalette() Model {
 }
 
 func (m Model) updateLayout() Model {
+	if m.State == stateHistorySelect {
+		headerHeight := lipgloss.Height(m.historyHeaderView())
+		statusHeight := lipgloss.Height(m.StatusView())
+		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight - 1
+		if m.Chat.Viewport.Height < 0 {
+			m.Chat.Viewport.Height = 0
+		}
+		return m
+	}
+
 	maxHeight := m.Height / 4
 	visibleLines := getVisibleLines(m.Chat.TextArea, m.Chat.TextArea.Width(), maxHeight+1)
 	inputHeight := min(visibleLines+1, maxHeight)

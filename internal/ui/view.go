@@ -15,8 +15,10 @@ func (m Model) View() string {
 		b.WriteString(m.historyHeaderView())
 	}
 	b.WriteString(m.Chat.Viewport.View())
-	b.WriteString("\n")
-	b.WriteString(m.inputView())
+	if m.State != stateHistorySelect {
+		b.WriteString("\n")
+		b.WriteString(m.inputView())
+	}
 	b.WriteString("\n")
 	b.WriteString(m.StatusView())
 
