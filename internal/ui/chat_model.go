@@ -36,9 +36,6 @@ type ChatModel struct {
 	FullGeneratedTitle       string
 	DisplayedTitle           string
 	EditingMessageIndex      int
-	SearchQuery              string
-	SearchFocusMsgIndex      int
-	SearchFocusLineNum       int
 	MessageLineOffsets       map[int]int
 	CommandHistory           []string
 	CommandHistoryCursor     int
@@ -69,8 +66,6 @@ func NewChat(initialInput string) ChatModel {
 		Spinner:             s,
 		IsFetchingModels:    true,
 		MessageLineOffsets:  make(map[int]int),
-		SearchFocusMsgIndex: -1,
-		SearchFocusLineNum:  -1,
 		EditingMessageIndex: -1,
 		RenderCache:         make(map[int]cachedRender),
 	}

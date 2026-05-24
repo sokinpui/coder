@@ -17,9 +17,7 @@ type Model struct {
 	VisualSelect VisualSelectModel
 	History      HistoryModel
 	Finder       FinderModel
-	Search       SearchModel
 	Tree         TreeModel
-	Jump         JumpModel
 	QuickView    *QuickViewModel
 
 	ActiveSessions    []*session.Session
@@ -57,10 +55,8 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		Chat:              NewChat(initialInput),
 		VisualSelect:      NewVisualSelect(),
 		History:           NewHistory(),
-		Search:            NewSearch(),
 		Finder:            NewFinder(),
 		Tree:              NewTree(),
-		Jump:              NewJump(),
 		QuickView:         NewQuickView(),
 		Session:           sess,
 		State:             stateInitializing,

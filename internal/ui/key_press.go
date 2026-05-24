@@ -72,10 +72,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 	case km.Suspend:
 		return m, tea.Suspend, true // Suspend the application
-	case km.Jump:
-		event := m.Session.HandleShortcut("/jump")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
 	}
 
 	// Handle scrolling for non-history states.
@@ -108,28 +104,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(cmd, textinput.Blink), true
 		}
 		return m, cmd, true
-	case stateSearch:
-		newSearch, cmd := m.Search.Update(msg)
-		m.Search = newSearch
-		if !m.Search.Visible {
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-			return m, tea.Batch(cmd, textinput.Blink), true
-		}
-		return m, cmd, true
 	case stateTree:
 		newTree, cmd := m.Tree.Update(msg, m.Session.GetConfig().Keymap)
 		m.Tree = newTree
 		if !m.Tree.Visible {
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-			return m, tea.Batch(cmd, textarea.Blink), true
-		}
-		return m, cmd, true
-	case stateJump:
-		newJump, cmd := m.Jump.Update(msg, m.Session.GetConfig().Keymap)
-		m.Jump = newJump
-		if !m.Jump.Visible {
 			m.State = stateIdle
 			m.Chat.TextArea.Focus()
 			return m, tea.Batch(cmd, textarea.Blink), true

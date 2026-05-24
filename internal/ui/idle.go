@@ -50,18 +50,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		return m.enterVisualMode(visualModeBranch)
-	case types.SearchModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.State = stateSearch
-		m.Chat.TextArea.Blur()
-		m.Search.AllItems = m.collectSearchableMessages()
-		m.Search.TextInput.SetValue(event.Data.(string))
-		m.Search.updateFoundItems()
-		m.Search.Visible = true
-		m.Search.TextInput.Focus()
-		m.IsCountingTokens = true
-		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
 	case types.FzfModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
@@ -103,15 +91,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Tree.loadInitialSelection(m.Session.GetConfig())
 		m.IsCountingTokens = true
 		return m, tea.Batch(m.Tree.initCmd(), countTokensCmd(m.Session.GetPrompt()))
-	case types.JumpModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.State = stateJump
-		m.Chat.TextArea.Blur()
-		m.Jump.Visible = true
-		m.Jump.UpdateItems(m.Session.GetMessages())
-		m.IsCountingTokens = true
-		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()))
 
 	case types.ExternalEditorStarted:
 		return m, openInEditorCmd(event.Data.(string))
@@ -163,11 +142,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	if strings.TrimSpace(input) == "" {
 		return m, nil
 	}
-
-	// Clear search focus and query when submitting a new interaction
-	m.Chat.SearchQuery = ""
-	m.Chat.SearchFocusMsgIndex = -1
-	m.Chat.SearchFocusLineNum = -1
 
 	if !strings.HasPrefix(input, "/") {
 		// This is a prompt, apply debounce.
@@ -396,11 +370,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case km.ApplyITF:
 		// Equivalent to typing "/itf" and pressing enter.
 		event := m.Session.HandleInput("/itf")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
-
-	case km.Search:
-		event := m.Session.HandleShortcut("/search")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 

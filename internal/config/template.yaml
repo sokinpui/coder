@@ -28,8 +28,6 @@ keymap:
   branch: ctrl+b
   finder: ctrl+f
   tree: ctrl+t
-  search: ctrl+p
-  jump: ctrl+q
   contextlist: ctrl+l
   applyitf: ctrl+a
   scrollup: ctrl+u
@@ -67,8 +65,4 @@ keymap:
     top: g
     bottom: G
     toggle: space
-    exit: q
-  jumpview:
-    up: k
-    down: j
     exit: q

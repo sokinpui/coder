@@ -17,9 +17,7 @@ const (
 	stateVisualSelect
 	stateHistorySelect
 	stateFinder
-	stateSearch
 	stateTree
-	stateJump
 )
 
 type modelsFetchedMsg struct {
@@ -64,17 +62,10 @@ type (
 	finderResultMsg struct {
 		result string
 	}
-	searchResultMsg struct {
-		item  SearchItem
-		query string
-	}
 	treeReadyMsg struct {
 		root *treeNode
 	}
 	treeSelectionResultMsg struct {
 		selectedPaths []string
-	}
-	jumpResultMsg struct {
-		msgIndex int
 	}
 )

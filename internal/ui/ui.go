@@ -25,10 +25,8 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 	manager.Overlays = []Overlay{
 		&PaletteOverlay{},
 		&FinderOverlay{},
-		&SearchOverlay{},
 		&QuickViewOverlay{},
 		&TreeOverlay{},
-		&JumpOverlay{},
 	}
 
 	p := tea.NewProgram(

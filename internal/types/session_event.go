@@ -10,13 +10,11 @@ const (
 	GenerateModeStarted
 	EditModeStarted
 	BranchModeStarted
-	SearchModeStarted
 	HistoryModeStarted
 	ActiveModeStarted
 	NewSessionStarted
 	TreeModeStarted
 	FzfModeStarted
-	JumpModeStarted
 	ExternalEditorStarted
 	Quit
 )

@@ -18,22 +18,6 @@ func truncateMessage(content string, maxLines int) string {
 	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
 }
 
-func (m Model) highlightMatches(text string) string {
-	if m.Chat.SearchQuery == "" {
-		return text
-	}
-
-	// Case-insensitive regex for the search query
-	re, err := regexp.Compile("(?i)" + regexp.QuoteMeta(m.Chat.SearchQuery))
-	if err != nil {
-		return text
-	}
-
-	return re.ReplaceAllStringFunc(text, func(match string) string {
-		return searchHighlightStyle.Render(match)
-	})
-}
-
 // renderConversationWithOffsets renders the conversation and returns the content string
 // and a map of message index to its starting line number.
 func (m Model) renderConversationWithOffsets() (string, map[int]int) {
@@ -93,27 +77,6 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		processedLines := make([]string, len(lines))
 		copy(processedLines, lines)
 
-		if i == m.Chat.SearchFocusMsgIndex {
-			borderOffset := 0
-			switch msg.Type {
-			case types.UserMessage, types.CommandMessage, types.ImageMessage:
-				borderOffset = 1
-			}
-
-			targetLine := m.Chat.SearchFocusLineNum + borderOffset
-			indicatorStr := "▸ "
-			indicator := searchIndicatorStyle.Render(indicatorStr)
-			spacer := strings.Repeat(" ", lipgloss.Width(indicatorStr))
-
-			for l := range processedLines {
-				if l == targetLine {
-					processedLines[l] = indicator + processedLines[l]
-				} else {
-					processedLines[l] = spacer + processedLines[l]
-				}
-			}
-		}
-
 		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {
 			isCursorOn := (blockIndex == m.VisualSelect.Cursor)
 
@@ -148,15 +111,6 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 					processedLines[l] = lipgloss.JoinHorizontal(lipgloss.Top, checkbox, line)
 				} else {
 					processedLines[l] = strings.Repeat(" ", lipgloss.Width(checkbox)) + line
-				}
-			}
-		}
-
-		if m.Chat.SearchQuery != "" {
-			for l, line := range processedLines {
-				absLine := currentLine + l
-				if absLine >= viewportTop-10 && absLine <= viewportBottom+10 {
-					processedLines[l] = m.highlightMatches(line)
 				}
 			}
 		}

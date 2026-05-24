@@ -45,7 +45,6 @@ var commandGroup = helpGroup{
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
 	{key: "undo", desc: "Undo the last file changes applied by itf."},
-	{key: "search", desc: "Search the current conversation."},
 	{key: "tree", desc: "Open a file tree to select files/directories for context."},
 	{key: "visual", desc: "Enter visual mode for message selection."},
 }
@@ -59,8 +58,6 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+B", desc: "Enter branch mode."},
 	{key: "Ctrl+F", desc: "Open command finder (fzf)."},
 	{key: "Ctrl+T", desc: "Open a file tree to select files/directories for context."},
-	{key: "Ctrl+P", desc: "Fuzzy Search current conversation."},
-	{key: "Ctrl+Q", desc: "Open jump mode to jump to a message."},
 	{key: "Ctrl+L", desc: "Quick view of project context (/list-all)."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},

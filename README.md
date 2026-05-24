@@ -89,8 +89,6 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+N`       | Start a new chat session                                                                      |
 | `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |
 | `Ctrl+T`       | Open file tree to select context                                                              |
-| `Ctrl+P`       | Search current conversation                                                                   |
-| `Ctrl+Q`       | Jump to a specific message                                                                    |
 | `Ctrl+L`       | Quick view of current project context (files read by AI)                                      |
 | `Ctrl+B`       | Branch the conversation into a new session                                                    |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                            |
@@ -113,8 +111,6 @@ Commands are prefixed with a slash `/`.
 - `/new`: Reset the session but keep current configuration.
 - `/history`: Browse and load previous conversations.
 - `/rename [title]`: Manually set the session title.
-- `/jump`: Jump to a specific message.
-- `/search [query]`: Search current conversation.
 - `/fzf`: Open command finder.
 - `/config`: Open configuration file.
 - `/editor [path]`: Open a file in external editor.

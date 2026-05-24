@@ -74,12 +74,6 @@ type TreeKeymap struct {
 	Exit     string
 }
 
-type JumpKeymap struct {
-	Up   string
-	Down string
-	Exit string
-}
-
 type Keymap struct {
 	Submit      string
 	Editor      string
@@ -89,8 +83,6 @@ type Keymap struct {
 	Branch      string
 	Finder      string
 	Tree        string
-	Search      string
-	Jump        string
 	ContextList string
 	ApplyITF    string
 	ScrollUp    string
@@ -101,7 +93,6 @@ type Keymap struct {
 	VisualMode  VisualKeymap  `mapstructure:"visualmode"`
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
 	TreeView    TreeKeymap    `mapstructure:"treeview"`
-	JumpView    JumpKeymap    `mapstructure:"jumpview"`
 }
 
 type Config struct {
@@ -135,8 +126,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.branch", "ctrl+b")
 	v.SetDefault("keymap.finder", "ctrl+f")
 	v.SetDefault("keymap.tree", "ctrl+t")
-	v.SetDefault("keymap.search", "ctrl+p")
-	v.SetDefault("keymap.jump", "ctrl+q")
 	v.SetDefault("keymap.contextlist", "ctrl+l")
 	v.SetDefault("keymap.applyitf", "ctrl+a")
 	v.SetDefault("keymap.scrollup", "ctrl+u")
@@ -175,10 +164,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.treeview.bottom", "G")
 	v.SetDefault("keymap.treeview.toggle", "space")
 	v.SetDefault("keymap.treeview.exit", "q")
-
-	v.SetDefault("keymap.jumpview.up", "k")
-	v.SetDefault("keymap.jumpview.down", "j")
-	v.SetDefault("keymap.jumpview.exit", "q")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
