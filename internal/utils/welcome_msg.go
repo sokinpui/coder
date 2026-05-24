@@ -10,5 +10,5 @@ const WelcomeMessage = `Welcome to Coder!
 - Use Ctrl+H to view conversation history.
 - Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
 - During generation, press Ctrl+C to cancel.
-- Type ':help' for a list of all commands and shortcuts.
+- Type '/help' for a list of all commands and shortcuts.
 `

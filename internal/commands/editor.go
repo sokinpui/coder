@@ -22,7 +22,7 @@ func editorCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	paths := strings.Fields(args)
 	if len(paths) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: :editor <file paths>"}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /editor <file paths>"}, false
 	}
 
 	expanded, _ := ExpandPaths(paths)

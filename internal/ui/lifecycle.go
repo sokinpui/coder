@@ -30,7 +30,7 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 		m.Chat.TextArea, cmd = m.Chat.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
 
-		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), ":")
+		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
 		key, isKey := msg.(tea.KeyMsg)
 		if isCommand && m.Chat.TextArea.Value() != originalValue && isKey && key.Type != tea.KeyUp && key.Type != tea.KeyDown {
 			m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
@@ -58,23 +58,23 @@ func (m Model) updatePalette() Model {
 	m.Chat.PaletteFilteredCommands = []string{}
 	m.Chat.PaletteFilteredArguments = []string{}
 
-	if m.State == stateIdle && strings.HasPrefix(val, ":") {
+	if m.State == stateIdle && strings.HasPrefix(val, "/") {
 		parts := strings.Fields(val)
 		hasTrailingSpace := strings.HasSuffix(val, " ")
 
-		if len(parts) == 0 { // Just ":"
-			parts = []string{":"}
+		if len(parts) == 0 { // Just "/"
+			parts = []string{"/"}
 		}
 
 		if len(parts) == 1 && !hasTrailingSpace {
-			prefix := strings.TrimPrefix(parts[0], ":")
+			prefix := strings.TrimPrefix(parts[0], "/")
 			for _, c := range m.AvailableCommands {
 				if strings.HasPrefix(c, prefix) {
-					m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, ":"+c)
+					m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, "/"+c)
 				}
 			}
 		} else if len(parts) >= 1 {
-			cmdName := strings.TrimPrefix(parts[0], ":")
+			cmdName := strings.TrimPrefix(parts[0], "/")
 			var argPrefix string
 			if len(parts) > 1 && !hasTrailingSpace {
 				argPrefix = parts[len(parts)-1]

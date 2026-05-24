@@ -37,14 +37,14 @@ func errorOutput(msg string) (CommandOutput, bool) {
 }
 
 func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
-	if !strings.HasPrefix(input, ":") {
+	if !strings.HasPrefix(input, "/") {
 		return CommandOutput{}, false, false // Not a command
 	}
-	trimmedInput := strings.TrimPrefix(input, ":")
+	trimmedInput := strings.TrimPrefix(input, "/")
 
 	parts := strings.Fields(trimmedInput)
 	if len(parts) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax. Use :<command> [args]"}, true, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax. Use /<command> [args]"}, true, false
 	}
 
 	cmdName := parts[0]

@@ -421,9 +421,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		var commandToRun string
 		parts := strings.SplitN(msg.result, ": ", 2)
 		if len(parts) == 2 {
-			commandToRun = fmt.Sprintf(":%s %s", parts[0], parts[1])
+			commandToRun = fmt.Sprintf("/%s %s", parts[0], parts[1])
 		} else {
-			commandToRun = ":" + msg.result
+			commandToRun = "/" + msg.result
 		}
 		m.Chat.TextArea.SetValue(commandToRun)
 		m.Chat.TextArea.CursorEnd()
@@ -547,7 +547,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, clearStatusBarCmd(), true
 		}
 
-		event := m.Session.HandleInput(":list")
+		event := m.Session.HandleInput("/list")
 		model, cmd := m.handleEvent(event)
 		if newModel, ok := model.(Model); ok {
 			return newModel, cmd, true

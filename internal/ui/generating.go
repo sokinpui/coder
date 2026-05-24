@@ -62,7 +62,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.State = stateCancelling
 		}
 	case tea.KeyCtrlN:
-		event := m.Session.HandleInput(":new")
+		event := m.Session.HandleInput("/new")
 		if event.Type != types.NewSessionStarted {
 			return m, nil, true
 		}
@@ -80,7 +80,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			m.Chat.IsStreaming = false
 			m.Chat.StreamSub = nil
 		}
-		event := m.Session.HandleInput(":new")
+		event := m.Session.HandleInput("/new")
 		switch event.Type {
 		case types.NewSessionStarted:
 			newModel, cmd := m.newSession(event.Mode)
@@ -89,7 +89,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		}
 		return m, nil, true
 	case km.Branch:
-		event := m.Session.HandleInput(":branch")
+		event := m.Session.HandleInput("/branch")
 		switch event.Type {
 		case types.BranchModeStarted:
 			model, cmd := m.enterVisualMode(visualModeBranch)

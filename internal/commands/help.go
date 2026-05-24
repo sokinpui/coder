@@ -23,7 +23,7 @@ type helpSection struct {
 }
 
 var behaviorGroup = helpGroup{
-	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `:file` let AI read them."},
+	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `/file` let AI read them."},
 }
 
 var commandGroup = helpGroup{
@@ -31,7 +31,7 @@ var commandGroup = helpGroup{
 	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
-	{key: "editor", desc: "Open file(s) in external editor (alias: :e)."},
+	{key: "editor", desc: "Open file(s) in external editor (alias: /e)."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source."},
 	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all."},
 	{key: "gen", desc: "Enter generate mode to re-generate a response."},
@@ -39,7 +39,7 @@ var commandGroup = helpGroup{
 	{key: "history", desc: "View conversation history."},
 	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes."},
 	{key: "list", desc: "List the current project source files/directories."},
-	{key: "model", desc: "Switch generation model (e.g., :model gemini-2.5-pro)."},
+	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro)."},
 	{key: "new", desc: "Start a new chat session."},
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
@@ -60,7 +60,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+T", desc: "Open a file tree to select files/directories for context."},
 	{key: "Ctrl+P", desc: "Fuzzy Search current conversation."},
 	{key: "Ctrl+Q", desc: "Open jump mode to jump to a message."},
-	{key: "Ctrl+L", desc: "Quick view of project context (:list-all)."},
+	{key: "Ctrl+L", desc: "Quick view of project context (/list-all)."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},
 	{key: "Ctrl+Z", desc: "Suspend the application."},
@@ -111,7 +111,7 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 	for _, section := range helpPageDesc {
 		fmt.Fprintf(&b, "\n%s:\n", section.name)
 		for _, item := range section.group {
-			fmt.Fprintf(&b, "  %-12s %s\n", item.key, item.desc)
+			fmt.Fprintf(&b, "  /%-11s %s\n", item.key, item.desc)
 		}
 	}
 

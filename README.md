@@ -10,7 +10,7 @@ Coder is **not an autonomous agent**. It does not crawl your codebase, make exec
 
 Instead, it is a **human-in-the-loop code editor**. You are the driver:
 
-- **Manual Context**: You choose exactly which files or directories to provide to the AI using `:file` or `:tree`.
+- **Manual Context**: You choose exactly which files or directories to provide to the AI using `/file` or `/tree`.
 - **Precise Guidance**: You guide the AI through prompts to perform specific tasks.
 - **One-Step Application**: Coder interprets the AI's response to apply changes directly to your filesystem.
 
@@ -101,25 +101,25 @@ export CODER_API_KEY="your-api-key-here"
 
 ### Commands
 
-Commands are prefixed with a colon `:`.
+Commands are prefixed with a slash `/`.
 
-- `:file [paths...]`: Add specific files or directories to the AI's context.
-- `:exclude [paths...]`: Remove paths from the context.
-- `:tree`: Interactive file tree for selecting context.
-- `:list`: Show a summary of files currently in context.
-- `:list-all`: Show a detailed list of every file being read by the AI.
-- `:itf`: Manually trigger the code application tool on the last response.
-- `:model [name]`: Switch the generation model on the fly.
-- `:new`: Reset the session but keep current configuration.
-- `:history`: Browse and load previous conversations.
-- `:rename [title]`: Manually set the session title.
-- `:jump`: Jump to a specific message.
-- `:search [query]`: Search current conversation.
-- `:fzf`: Open command finder.
-- `:config`: Open configuration file.
-- `:editor [path]`: Open a file in external editor.
-- `:branch`: Branch the conversation.
-- `:quit`: Quit the application.
+- `/file [paths...]`: Add specific files or directories to the AI's context.
+- `/exclude [paths...]`: Remove paths from the context.
+- `/tree`: Interactive file tree for selecting context.
+- `/list`: Show a summary of files currently in context.
+- `/list-all`: Show a detailed list of every file being read by the AI.
+- `/itf`: Manually trigger the code application tool on the last response.
+- `/model [name]`: Switch the generation model on the fly.
+- `/new`: Reset the session but keep current configuration.
+- `/history`: Browse and load previous conversations.
+- `/rename [title]`: Manually set the session title.
+- `/jump`: Jump to a specific message.
+- `/search [query]`: Search current conversation.
+- `/fzf`: Open command finder.
+- `/config`: Open configuration file.
+- `/editor [path]`: Open a file in external editor.
+- `/branch`: Branch the conversation.
+- `/quit`: Quit the application.
 
 ### Visual Mode
 

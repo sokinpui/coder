@@ -78,7 +78,7 @@ func jumpCmd(args string, s SessionController) (CommandOutput, bool) {
 
 func renameCmd(args string, s SessionController) (CommandOutput, bool) {
 	if args == "" {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: :rename <new title>"}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /rename <new title>"}, false
 	}
 	s.SetTitle(args)
 	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Session title renamed to: %s", args)}, true

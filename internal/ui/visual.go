@@ -126,7 +126,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.GotoBottom()
 		return m, textarea.Blink, true
 	case km.History:
-		event := m.Session.HandleShortcut(":history")
+		event := m.Session.HandleShortcut("/history")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 	}
@@ -293,7 +293,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.IsStreaming = false
 				m.Chat.StreamSub = nil
 			}
-			event := m.Session.HandleShortcut(":new")
+			event := m.Session.HandleShortcut("/new")
 			if event.Type == types.NewSessionStarted {
 				newModel, cmd := m.newSession(event.Mode)
 				newModel.State = stateIdle

@@ -46,12 +46,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	// Handle global keybindings first
 	switch keyStr {
 	case km.ContextList:
-		cmdOutput, _, cmdSuccess := commands.ProcessCommand(":list-all", m.Session)
+		cmdOutput, _, cmdSuccess := commands.ProcessCommand("/list-all", m.Session)
 
 		var messages []types.Message
 		messages = append(messages, types.Message{
 			Type:    types.CommandMessage,
-			Content: ":list-all",
+			Content: "/list-all",
 		})
 
 		if !cmdSuccess {
@@ -73,7 +73,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case km.Suspend:
 		return m, tea.Suspend, true // Suspend the application
 	case km.Jump:
-		event := m.Session.HandleShortcut(":jump")
+		event := m.Session.HandleShortcut("/jump")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 	}

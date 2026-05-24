@@ -169,7 +169,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	m.Chat.SearchFocusMsgIndex = -1
 	m.Chat.SearchFocusLineNum = -1
 
-	if !strings.HasPrefix(input, ":") {
+	if !strings.HasPrefix(input, "/") {
 		// This is a prompt, apply debounce.
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
 
@@ -202,7 +202,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	model, cmd := m.handleEvent(event)
 	if newModel, ok := model.(Model); ok {
-		isCommand := strings.HasPrefix(input, ":")
+		isCommand := strings.HasPrefix(input, "/")
 		if event.Type == types.MessagesUpdated ||
 			event.Type == types.NewSessionStarted ||
 			(isCommand && event.Type != types.NoOp) {
@@ -222,7 +222,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
-		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
+		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
 			return m.handleCommandHistory(msg)
 		}
 
@@ -248,7 +248,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, ctrlCTimeout(), true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), ":")
+		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
 		numCommands := len(m.Chat.PaletteFilteredCommands)
 		numArgs := len(m.Chat.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
@@ -345,7 +345,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		// Smart enter: submit if it's a command.
-		if strings.HasPrefix(m.Chat.TextArea.Value(), ":") {
+		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
@@ -360,7 +360,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.History:
-		event := m.Session.HandleShortcut(":history")
+		event := m.Session.HandleShortcut("/history")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
@@ -374,33 +374,33 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.New:
-		event := m.Session.HandleShortcut(":new")
+		event := m.Session.HandleShortcut("/new")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case km.Branch:
-		event := m.Session.HandleShortcut(":branch")
+		event := m.Session.HandleShortcut("/branch")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case km.Finder:
-		event := m.Session.HandleShortcut(":fzf")
+		event := m.Session.HandleShortcut("/fzf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case km.Tree:
-		event := m.Session.HandleShortcut(":tree")
+		event := m.Session.HandleShortcut("/tree")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case km.ApplyITF:
-		// Equivalent to typing ":itf" and pressing enter.
-		event := m.Session.HandleInput(":itf")
+		// Equivalent to typing "/itf" and pressing enter.
+		event := m.Session.HandleInput("/itf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
 	case km.Search:
-		event := m.Session.HandleShortcut(":search")
+		event := m.Session.HandleShortcut("/search")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 
