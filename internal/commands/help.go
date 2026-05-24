@@ -44,6 +44,7 @@ var commandGroup = helpGroup{
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
+	{key: "undo", desc: "Undo the last file changes applied by itf."},
 	{key: "search", desc: "Search the current conversation."},
 	{key: "tree", desc: "Open a file tree to select files/directories for context."},
 	{key: "visual", desc: "Enter visual mode for message selection."},

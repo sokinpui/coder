@@ -18,6 +18,8 @@ type SessionController interface {
 	LoadContext() error
 	GetLastModifiedFiles() []string
 	SetLastModifiedFiles(files []string)
+	HasAppliedChanges() bool
+	SetHasAppliedChanges(applied bool)
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

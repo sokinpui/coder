@@ -27,6 +27,7 @@ type Session struct {
 	customInstruction   string
 	initialContextFiles []string
 	lastModifiedFiles   []string
+	hasAppliedChanges   bool
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
@@ -100,4 +101,12 @@ func (s *Session) GetLastModifiedFiles() []string {
 
 func (s *Session) SetLastModifiedFiles(files []string) {
 	s.lastModifiedFiles = files
+}
+
+func (s *Session) HasAppliedChanges() bool {
+	return s.hasAppliedChanges
+}
+
+func (s *Session) SetHasAppliedChanges(applied bool) {
+	s.hasAppliedChanges = applied
 }

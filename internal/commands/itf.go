@@ -89,6 +89,14 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: res.Summary}, false
 	}
 
+	// Mark that this session has applied changes
+	if len(res.Raw["Created"]) > 0 ||
+		len(res.Raw["Modified"]) > 0 ||
+		len(res.Raw["Renamed"]) > 0 ||
+		len(res.Raw["Deleted"]) > 0 {
+		s.SetHasAppliedChanges(true)
+	}
+
 	// Update context paths based on itf results
 	cfg := s.GetConfig()
 	contextUpdated := false
