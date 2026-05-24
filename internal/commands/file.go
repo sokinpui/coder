@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	registerCommand("file", fileCmd, PathArgumentCompleter)
+	registerCommand("file", fileCmd, "add path to context", PathArgumentCompleter)
 }
 
 func PathArgumentCompleter(cfg *config.Config, prefix string) []string {

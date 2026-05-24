@@ -196,6 +196,23 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
+		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
+		numCommands := len(m.Chat.PaletteFilteredCommands)
+		numArgs := len(m.Chat.PaletteFilteredArguments)
+		totalItems := numCommands + numArgs
+		isPaletteActive := isCommand && m.Chat.ShowPalette && totalItems > 0
+
+		if isPaletteActive {
+			if msg.Type == tea.KeyUp {
+				m.Chat.PaletteCursor = (m.Chat.PaletteCursor - 1 + totalItems) % totalItems
+			} else {
+				m.Chat.PaletteCursor = (m.Chat.PaletteCursor + 1) % totalItems
+			}
+			m.Chat.IsCyclingCompletions = true
+			m = m.applyPaletteSelection()
+			return m, nil, true
+		}
+
 		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
 			return m.handleCommandHistory(msg)
 		}
@@ -242,42 +259,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 			}
 			m.Chat.IsCyclingCompletions = true
-
-			maxPaletteItems := max(5, m.Height/4)
-			if m.Chat.PaletteCursor < m.Chat.PaletteOffset {
-				m.Chat.PaletteOffset = m.Chat.PaletteCursor
-			} else if m.Chat.PaletteCursor >= m.Chat.PaletteOffset+maxPaletteItems {
-				m.Chat.PaletteOffset = m.Chat.PaletteCursor - maxPaletteItems + 1
-			}
-
-			var selectedItem string
-			isArgument := false
-			if m.Chat.PaletteCursor < numCommands {
-				selectedItem = m.Chat.PaletteFilteredCommands[m.Chat.PaletteCursor]
-			} else {
-				selectedItem = m.Chat.PaletteFilteredArguments[m.Chat.PaletteCursor-numCommands]
-				isArgument = true
-			}
-
-			val := m.Chat.TextArea.Value()
-			parts := strings.Fields(val)
-
-			if isArgument {
-				var prefixParts []string
-				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
-					prefixParts = parts[:len(parts)-1]
-				} else {
-					prefixParts = parts
-				}
-				itemToInsert := strings.TrimSuffix(selectedItem, "/")
-				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
-				m = m.updateLayout()
-			} else {
-				m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
-				m = m.updateLayout()
-			}
-
-			m.Chat.TextArea.CursorEnd()
+			m = m.applyPaletteSelection()
 			return m, nil, true
 
 		case msg.Type == tea.KeyTab:
@@ -405,4 +387,43 @@ func (m Model) handleCommandHistory(msg tea.KeyMsg) (Model, tea.Cmd, bool) {
 		}
 	}
 	return m, nil, true
+}
+
+func (m Model) applyPaletteSelection() Model {
+	numCommands := len(m.Chat.PaletteFilteredCommands)
+
+	maxPaletteItems := max(5, m.Height/4)
+	if m.Chat.PaletteCursor < m.Chat.PaletteOffset {
+		m.Chat.PaletteOffset = m.Chat.PaletteCursor
+	} else if m.Chat.PaletteCursor >= m.Chat.PaletteOffset+maxPaletteItems {
+		m.Chat.PaletteOffset = m.Chat.PaletteCursor - maxPaletteItems + 1
+	}
+
+	var selectedItem string
+	isArgument := false
+	if m.Chat.PaletteCursor < numCommands {
+		selectedItem = m.Chat.PaletteFilteredCommands[m.Chat.PaletteCursor]
+	} else {
+		selectedItem = m.Chat.PaletteFilteredArguments[m.Chat.PaletteCursor-numCommands]
+		isArgument = true
+	}
+
+	val := m.Chat.TextArea.Value()
+	parts := strings.Fields(val)
+
+	if isArgument {
+		var prefixParts []string
+		if len(parts) > 0 && !strings.HasSuffix(val, " ") {
+			prefixParts = parts[:len(parts)-1]
+		} else {
+			prefixParts = parts
+		}
+		itemToInsert := strings.TrimSuffix(selectedItem, "/")
+		m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
+	} else {
+		m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
+	}
+	m = m.updateLayout()
+	m.Chat.TextArea.CursorEnd()
+	return m
 }

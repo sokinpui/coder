@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCommand("itf", itfCmd, nil)
+	registerCommand("itf", itfCmd, "apply code changes", nil)
 }
 
 type ItfResult struct {

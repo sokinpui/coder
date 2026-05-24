@@ -3,7 +3,7 @@ package commands
 import "github.com/sokinpui/coder/internal/types"
 
 func init() {
-	registerCommand("tree", treeCmd, nil)
+	registerCommand("tree", treeCmd, "select context via tree", nil)
 }
 
 func treeCmd(args string, s SessionController) (CommandOutput, bool) {

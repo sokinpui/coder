@@ -23,17 +23,17 @@ var (
 	// Palette Styles
 	paletteContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240")).
-				Padding(0, 1)
+				BorderForeground(lipgloss.Color("240"))
 	paletteHeaderStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("208")). // Orange, same as help
-				Bold(true).
-				Underline(true)
+				Foreground(lipgloss.Color("240")).
+				Italic(true).
+				MarginBottom(1)
 	paletteItemStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244"))
 	paletteSelectedItemStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("208")). // Orange, to match header
-					Bold(true)
+					Foreground(lipgloss.Color("51"))
+	paletteDescriptionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244"))
 
 	// Input Styles
 	textAreaStyle = lipgloss.NewStyle().

@@ -3,8 +3,7 @@ package commands
 import "github.com/sokinpui/coder/internal/types"
 
 func init() {
-	registerCommand("q", quitCmd, nil)
-	registerCommand("quit", quitCmd, nil)
+	registerCommand("quit", quitCmd, "quit application", nil)
 }
 
 func quitCmd(args string, s SessionController) (CommandOutput, bool) {

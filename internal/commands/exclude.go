@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCommand("exclude", excludeCmd, PathArgumentCompleter)
+	registerCommand("exclude", excludeCmd, "exclude path from context", PathArgumentCompleter)
 }
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {

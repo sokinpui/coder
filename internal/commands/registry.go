@@ -8,13 +8,19 @@ import (
 )
 
 var commands = make(map[string]commandFunc)
+var commandDescriptions = make(map[string]string)
 var commandArgumentCompleters = make(map[string]argumentCompleter)
 
-func registerCommand(name string, fn commandFunc, completer argumentCompleter) {
+func registerCommand(name string, fn commandFunc, desc string, completer argumentCompleter) {
 	commands[name] = fn
+	commandDescriptions[name] = desc
 	if completer != nil {
 		commandArgumentCompleters[name] = completer
 	}
+}
+
+func GetCommandDescriptions() map[string]string {
+	return commandDescriptions
 }
 
 func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix string) []string {

@@ -6,8 +6,8 @@ import (
 )
 
 func init() {
-	registerCommand("editor", editorCmd, PathArgumentCompleter)
-	registerCommand("e", editorCmd, PathArgumentCompleter)
+	registerCommand("editor", editorCmd, "open files in $EDITOR", PathArgumentCompleter)
+	registerCommand("e", editorCmd, "alias for /editor", PathArgumentCompleter)
 }
 
 func editorCmd(args string, s SessionController) (CommandOutput, bool) {

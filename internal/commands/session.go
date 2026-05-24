@@ -6,13 +6,13 @@ import (
 )
 
 func init() {
-	registerCommand("gen", genCmd, nil)
-	registerCommand("edit", editModeCmd, nil)
-	registerCommand("visual", visualCmd, nil)
-	registerCommand("branch", branchCmd, nil)
-	registerCommand("history", historyCmd, nil)
-	registerCommand("rename", renameCmd, nil)
-	registerCommand("active", activeCmd, nil)
+	registerCommand("gen", genCmd, "re-generate response", nil)
+	registerCommand("edit", editModeCmd, "edit user prompt", nil)
+	registerCommand("visual", visualCmd, "enter visual mode", nil)
+	registerCommand("branch", branchCmd, "branch conversation", nil)
+	registerCommand("history", historyCmd, "view chat history", nil)
+	registerCommand("rename", renameCmd, "rename session title", nil)
+	registerCommand("active", activeCmd, "view active sessions", nil)
 }
 
 func hasSelectableMessages(messages []types.Message) bool {

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCommand("help", helpCmd, nil)
+	registerCommand("help", helpCmd, "show help message", nil)
 }
 
 type helpEntry struct {

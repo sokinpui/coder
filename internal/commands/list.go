@@ -9,8 +9,8 @@ import (
 )
 
 func init() {
-	registerCommand("list", listCmd, nil)
-	registerCommand("list-all", listFullCmd, nil)
+	registerCommand("list", listCmd, "list context summary", nil)
+	registerCommand("list-all", listFullCmd, "list all context files", nil)
 }
 
 func listFullCmd(args string, s SessionController) (CommandOutput, bool) {

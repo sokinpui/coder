@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCommand("undo", undoCmd, nil)
+	registerCommand("undo", undoCmd, "undo last file changes", nil)
 }
 
 func undoCmd(args string, s SessionController) (CommandOutput, bool) {

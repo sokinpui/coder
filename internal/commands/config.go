@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCommand("config", configCmd, nil)
+	registerCommand("config", configCmd, "show current config", nil)
 }
 
 func configCmd(args string, s SessionController) (CommandOutput, bool) {

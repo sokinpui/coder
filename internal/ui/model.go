@@ -20,14 +20,15 @@ type Model struct {
 	Tree         TreeModel
 	QuickView    *QuickViewModel
 
-	ActiveSessions    []*session.Session
-	Session           *session.Session
-	State             state
-	Quitting          bool
-	Height            int
-	Width             int
-	GlamourRenderer   *glamour.TermRenderer
-	AvailableCommands []string
+	ActiveSessions      []*session.Session
+	Session             *session.Session
+	State               state
+	Quitting            bool
+	Height              int
+	Width               int
+	GlamourRenderer     *glamour.TermRenderer
+	AvailableCommands   []string
+	CommandDescriptions map[string]string
 	StatusBarMessage  string
 	TokenCount        int
 	IsCountingTokens  bool
@@ -48,20 +49,22 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	dirMsg := utils.GetDirInfoContent()
 	sess.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 	availableCommands := commands.GetCommands()
+	commandDescriptions := commands.GetCommandDescriptions()
 	sort.Strings(availableCommands)
 
 	return Model{
-		ActiveSessions:    []*session.Session{sess},
-		Chat:              NewChat(initialInput),
-		VisualSelect:      NewVisualSelect(),
-		History:           NewHistory(),
-		Finder:            NewFinder(),
-		Tree:              NewTree(),
-		QuickView:         NewQuickView(),
-		Session:           sess,
-		State:             stateInitializing,
-		GlamourRenderer:   renderer,
-		AvailableCommands: availableCommands,
+		ActiveSessions:      []*session.Session{sess},
+		Chat:                NewChat(initialInput),
+		VisualSelect:        NewVisualSelect(),
+		History:             NewHistory(),
+		Finder:              NewFinder(),
+		Tree:                NewTree(),
+		QuickView:           NewQuickView(),
+		Session:             sess,
+		State:               stateInitializing,
+		GlamourRenderer:     renderer,
+		AvailableCommands:   availableCommands,
+		CommandDescriptions: commandDescriptions,
 	}, nil
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	registerCommand("model", modelCmd, modelArgumentCompleter)
+	registerCommand("model", modelCmd, "switch generation model", modelArgumentCompleter)
 }
 
 func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
