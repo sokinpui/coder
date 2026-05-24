@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -29,8 +28,6 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	selectedBlocks := make(map[int]struct{})
 
 	isVisualState := m.State == stateVisualSelect
-	viewportTop := m.Chat.Viewport.YOffset
-	viewportBottom := viewportTop + m.Chat.Viewport.Height
 
 	if m.State == stateVisualSelect {
 		for i, block := range m.VisualSelect.Blocks {
