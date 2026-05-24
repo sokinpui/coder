@@ -22,6 +22,7 @@ var (
 
 	// Palette Styles
 	paletteContainerStyle = lipgloss.NewStyle().
+				Padding(0, 2).
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("240"))
 	paletteHeaderStyle = lipgloss.NewStyle().
@@ -37,6 +38,7 @@ var (
 
 	// Input Styles
 	textAreaStyle = lipgloss.NewStyle().
+			Padding(1, 2, 0, 2).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240"))
 	userInputStyle = lipgloss.NewStyle().

@@ -111,8 +111,7 @@ func (m Model) updateLayout() Model {
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
 	var viewportHeight int
-	viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalPadding() - 2
-
+	viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalFrameSize()
 	if viewportHeight < 0 {
 		viewportHeight = 0
 	}

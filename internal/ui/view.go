@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"strings"
 	"github.com/charmbracelet/lipgloss"
+	"strings"
 )
 
 func (m Model) View() string {
@@ -44,12 +44,12 @@ func (m Model) inputView() string {
 		statusText = "Input disabled"
 	}
 
+	// Ensure placeholder area has same dimensions and style as active textarea
 	content := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("240")).
 		Italic(true).
 		Width(m.Chat.TextArea.Width()).
 		Height(m.Chat.TextArea.Height()).
-		Padding(0, 1).
 		Render(statusText)
 
 	return textAreaStyle.Render(content)
