@@ -111,11 +111,7 @@ func (m Model) updateLayout() Model {
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
 	var viewportHeight int
-	if m.State == stateHistorySelect {
-		viewportHeight = m.Height - lipgloss.Height(m.historyHeaderView()) - lipgloss.Height(m.StatusView()) - 1
-	} else {
-		viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalPadding() - 2
-	}
+	viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalPadding() - 2
 
 	if viewportHeight < 0 {
 		viewportHeight = 0

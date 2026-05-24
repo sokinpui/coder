@@ -8,15 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func truncateMessage(content string, maxLines int) string {
-	lines := strings.Split(content, "\n")
-	if len(lines) <= maxLines {
-		return content
-	}
-	truncatedLines := lines[:maxLines]
-	return strings.Join(truncatedLines, "\n") + "\n... (collapsed)"
-}
-
 // renderConversationWithOffsets renders the conversation and returns the content string
 // and a map of message index to its starting line number.
 func (m Model) renderConversationWithOffsets() (string, map[int]int) {
@@ -132,16 +123,8 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 }
 
 func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool) string {
-	currentMsg := msg
-	if isVisual {
-		switch currentMsg.Type {
-		case types.UserMessage, types.AIMessage, types.CommandResultMessage, types.CommandErrorResultMessage:
-			currentMsg.Content = truncateMessage(currentMsg.Content, 4)
-		}
-	}
-
-	content := currentMsg.Content
-	switch currentMsg.Type {
+	content := msg.Content
+	switch msg.Type {
 	case types.InitMessage:
 		return initMessageStyle.Width(viewportWidth - initMessageStyle.GetHorizontalFrameSize()).Render(content)
 	case types.DirectoryMessage:
@@ -170,7 +153,8 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 	}
 }
 
-func (m Model) renderConversation() string {
-	content, _ := m.renderConversationWithOffsets()
+func (m *Model) renderConversation() string {
+	content, offsets := m.renderConversationWithOffsets()
+	m.Chat.MessageLineOffsets = offsets
 	return content
 }

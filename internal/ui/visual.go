@@ -66,14 +66,19 @@ func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
 		m.Chat.TextArea.Reset()
 	}
 	m.Chat.TextArea.Blur()
+	m = m.updateLayout()
 
-	originalOffset := m.Chat.Viewport.YOffset
 	m.Chat.Viewport.SetContent(m.renderConversation())
 
-	if isSelectionMode {
-		m.Chat.Viewport.SetYOffset(originalOffset)
-	} else {
-		m.Chat.Viewport.GotoBottom()
+	block := m.getCurrentBlock()
+	if block.startIdx != -1 {
+		targetLine := 0
+		if m.VisualSelect.Cursor > 0 {
+			if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
+				targetLine = line
+			}
+		}
+		m.Chat.Viewport.SetYOffset(targetLine)
 	}
 
 	return m, nil
@@ -250,21 +255,31 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case km.VisualMode.Down:
 			if m.VisualSelect.Cursor < len(m.VisualSelect.Blocks)-1 {
 				m.VisualSelect.Cursor++
-				offset := m.Chat.Viewport.YOffset
 				m.Chat.Viewport.SetContent(m.renderConversation())
-				m.Chat.Viewport.SetYOffset(offset)
+				block := m.getCurrentBlock()
+				targetLine := 0
+				if m.VisualSelect.Cursor > 0 {
+					if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
+						targetLine = line
+					}
+				}
+				m.Chat.Viewport.SetYOffset(targetLine)
 			}
-			// Allow the viewport to handle the key press for scrolling
-			return m, nil, false
+			return m, nil, true
 		case km.VisualMode.Up:
 			if m.VisualSelect.Cursor > 0 {
 				m.VisualSelect.Cursor--
-				offset := m.Chat.Viewport.YOffset
 				m.Chat.Viewport.SetContent(m.renderConversation())
-				m.Chat.Viewport.SetYOffset(offset)
+				block := m.getCurrentBlock()
+				targetLine := 0
+				if m.VisualSelect.Cursor > 0 {
+					if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
+						targetLine = line
+					}
+				}
+				m.Chat.Viewport.SetYOffset(targetLine)
 			}
-			// Allow the viewport to handle the key press for scrolling
-			return m, nil, false
+			return m, nil, true
 		case km.VisualMode.Swap, strings.ToUpper(km.VisualMode.Swap):
 			if m.VisualSelect.IsSelecting {
 				m.VisualSelect.Cursor, m.VisualSelect.Start = m.VisualSelect.Start, m.VisualSelect.Cursor
@@ -494,6 +509,7 @@ func (m Model) exitVisualMode() (Model, tea.Cmd, bool) {
 	m.VisualSelect.Mode = visualModeNone
 	m.VisualSelect.IsSelecting = false
 	m.Chat.TextArea.Focus()
+	m = m.updateLayout()
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 	return m, cmd, true

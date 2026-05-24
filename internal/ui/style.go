@@ -7,13 +7,13 @@ var (
 	initMessageStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244")).
 				Italic(true).
-				Bold(true).
-				Padding(0, 1)
+				Padding(0, 1).
+				Bold(true)
 	directoryWelcomeStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("39")).
 				Italic(true).
-				Bold(true).
-				Padding(0, 1)
+				Padding(0, 1).
+				Bold(true)
 
 	// Status Bar Styles
 	statusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
