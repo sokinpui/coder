@@ -69,17 +69,7 @@ func (m Model) enterVisualMode(mode visualMode) (Model, tea.Cmd) {
 	m = m.updateLayout()
 
 	m.Chat.Viewport.SetContent(m.renderConversation())
-
-	block := m.getCurrentBlock()
-	if block.startIdx != -1 {
-		targetLine := 0
-		if m.VisualSelect.Cursor > 0 {
-			if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
-				targetLine = line
-			}
-		}
-		m.Chat.Viewport.SetYOffset(targetLine)
-	}
+	m = m.centerViewportOnCursor()
 
 	return m, nil
 }
@@ -258,34 +248,21 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if m.VisualSelect.Cursor < len(m.VisualSelect.Blocks)-1 {
 				m.VisualSelect.Cursor++
 				m.Chat.Viewport.SetContent(m.renderConversation())
-				block := m.getCurrentBlock()
-				targetLine := 0
-				if m.VisualSelect.Cursor > 0 {
-					if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
-						targetLine = line
-					}
-				}
-				m.Chat.Viewport.SetYOffset(targetLine)
+				m = m.centerViewportOnCursor()
 			}
 			return m, nil, true
 		case km.VisualMode.Up:
 			if m.VisualSelect.Cursor > 0 {
 				m.VisualSelect.Cursor--
 				m.Chat.Viewport.SetContent(m.renderConversation())
-				block := m.getCurrentBlock()
-				targetLine := 0
-				if m.VisualSelect.Cursor > 0 {
-					if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
-						targetLine = line
-					}
-				}
-				m.Chat.Viewport.SetYOffset(targetLine)
+				m = m.centerViewportOnCursor()
 			}
 			return m, nil, true
 		case km.VisualMode.Swap, strings.ToUpper(km.VisualMode.Swap):
 			if m.VisualSelect.IsSelecting {
 				m.VisualSelect.Cursor, m.VisualSelect.Start = m.VisualSelect.Start, m.VisualSelect.Cursor
 				m.Chat.Viewport.SetContent(m.renderConversation())
+				m = m.centerViewportOnCursor()
 			}
 			return m, nil, true
 		case km.VisualMode.Select, strings.ToUpper(km.VisualMode.Select):
@@ -492,6 +469,23 @@ func (m Model) getCurrentBlock() messageBlock {
 		return m.VisualSelect.Blocks[len(m.VisualSelect.Blocks)-1]
 	}
 	return m.VisualSelect.Blocks[m.VisualSelect.Cursor]
+}
+
+func (m Model) centerViewportOnCursor() Model {
+	block := m.getCurrentBlock()
+	if block.startIdx == -1 {
+		return m
+	}
+
+	if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
+		viewportHeight := m.Chat.Viewport.Height
+		targetY := line - (viewportHeight / 2)
+		if targetY < 0 {
+			targetY = 0
+		}
+		m.Chat.Viewport.SetYOffset(targetY)
+	}
+	return m
 }
 
 func (m Model) exitVisualMode() (Model, tea.Cmd, bool) {
