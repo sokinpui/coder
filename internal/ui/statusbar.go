@@ -14,7 +14,7 @@ func (m Model) StatusView() string {
 	}
 
 	if m.Chat.CtrlCPressed && m.State == stateIdle && m.Chat.TextArea.Value() == "" {
-		return statusStyle.Render("Press Ctrl+C again to quit.")
+		return statusStyle.Render("Press Ctrl+C again to quit.\n")
 	}
 
 	if m.State == stateHistorySelect {

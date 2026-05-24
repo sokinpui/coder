@@ -58,6 +58,7 @@ file content
 List the name of the files to rename in a markdown code block tagged with `rename`.
 
 ```rename
+# Rename:
 oldfile newfile
 oldfile2 newfile2
 ...
@@ -68,6 +69,7 @@ oldfile2 newfile2
 List the name of the files that are deleted in a markdown code block tagged with `delete`.
 
 ```delete
+# Delete:
 file1
 file2
 ...
@@ -119,7 +121,7 @@ When you need to modify, create, rename or delete files in parent directories, u
 
 Good Example:
 
-diff:
+Diff:
 `../parent_directory/filename.ext`
 
 ```diff
@@ -131,7 +133,7 @@ diff:
 +added line
 ```
 
-create:
+Create:
 `../parent_directory/filename.ext`
 
 ```
@@ -140,16 +142,18 @@ file content
 ...
 ```
 
-rename:
+Rename:
 
 ```rename
+# Rename:
 ../parent_directory/oldfile ../parent_directory/newfile
 ...
 ```
 
-delete:
+Delete:
 
 ```delete
+# Delete:
 ../parent_directory/file1
 ../parent_directory/file2
 ...

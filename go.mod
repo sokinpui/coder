@@ -11,9 +11,9 @@ require (
 	github.com/eliben/go-sentencepiece v0.7.0
 	github.com/rmhubbert/bubbletea-overlay v0.6.4
 	github.com/sahilm/fuzzy v0.1.1
-	github.com/sokinpui/itf v0.2.12
+	github.com/sokinpui/itf v0.2.13
 	github.com/sokinpui/pcat v0.2.0
-	github.com/sokinpui/sf v0.2.2
+	github.com/sokinpui/sf v0.2.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	google.golang.org/genai v1.44.0
