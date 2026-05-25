@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/types"
@@ -39,7 +38,7 @@ func NewHistory() HistoryModel {
 	hsi.Placeholder = "Fuzzy search..."
 	hsi.Prompt = "/"
 	hsi.Width = 50
-	hsi.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	hsi.PlaceholderStyle = searchPlaceholderStyle
 
 	return HistoryModel{
 		SearchInput: hsi,

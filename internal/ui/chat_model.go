@@ -11,6 +11,8 @@ type cachedRender struct {
 	content  string
 	width    int
 	isVisual bool
+	isCursorOn bool
+	isSelected bool
 }
 
 type ChatModel struct {

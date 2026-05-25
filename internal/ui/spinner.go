@@ -7,14 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	// ANSI color codes for different shades of grey.
-	// These are approximations based on the user's description.
-	lightGrey = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
-	grey      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	darkGrey  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
-)
-
 // typingSpinner is a custom spinner that mimics a "typing" animation.
 var typingSpinner = spinner.Spinner{
 	Frames: []string{
@@ -27,12 +19,13 @@ var typingSpinner = spinner.Spinner{
 func init() {
 	dot := "•"
 	frames := []string{
-		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGrey.Render(dot), lightGrey.Render(dot), lightGrey.Render(dot)),
-		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGrey.Render(dot), grey.Render(dot), lightGrey.Render(dot)),
-		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGrey.Render(dot), grey.Render(dot), darkGrey.Render(dot)),
-		lipgloss.JoinHorizontal(lipgloss.Bottom, darkGrey.Render(dot), lightGrey.Render(dot), grey.Render(dot)),
-		lipgloss.JoinHorizontal(lipgloss.Bottom, grey.Render(dot), darkGrey.Render(dot), lightGrey.Render(dot)),
-		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGrey.Render(dot), grey.Render(dot), darkGrey.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGreyDotStyle.Render(dot), lightGreyDotStyle.Render(dot), lightGreyDotStyle.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGreyDotStyle.Render(dot), greyDotStyle.Render(dot), lightGreyDotStyle.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGreyDotStyle.Render(dot), greyDotStyle.Render(dot), darkGreyDotStyle.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, darkGreyDotStyle.Render(dot), lightGreyDotStyle.Render(dot), greyDotStyle.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, greyDotStyle.Render(dot), darkGreyDotStyle.Render(dot), lightGreyDotStyle.Render(dot)),
+		lipgloss.JoinHorizontal(lipgloss.Bottom, lightGreyDotStyle.Render(dot), greyDotStyle.Render(dot), darkGreyDotStyle.Render(dot)),
 	}
 	typingSpinner.Frames = frames
 }
+

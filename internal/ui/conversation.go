@@ -39,80 +39,46 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		messageLineOffsets[i] = currentLine
 		var lines []string
 
+		isCursorOn := false
+		isSelected := false
+		if isVisualState {
+			if blockIndex, isStart := blockStarts[i]; isStart {
+				isCursorOn = (blockIndex == m.VisualSelect.Cursor)
+				switch m.VisualSelect.Mode {
+				case visualModeGenerate, visualModeEdit, visualModeBranch:
+					isSelected = isCursorOn
+				default:
+					_, isSelected = selectedBlocks[blockIndex]
+				}
+			}
+		}
+
 		cache, ok := m.Chat.RenderCache[i]
-		if ok && cache.content == msg.Content && cache.width == viewportWidth && cache.isVisual == isVisualState {
+		if ok && cache.content == msg.Content && cache.width == viewportWidth && cache.isVisual == isVisualState && cache.isCursorOn == isCursorOn && cache.isSelected == isSelected {
 			lines = cache.lines
 		} else {
-			renderedMsg := m.renderMessage(msg, viewportWidth, isVisualState)
+			renderedMsg := m.renderMessage(msg, viewportWidth, isVisualState, isCursorOn, isSelected)
 
 			if renderedMsg != "" || msg.Type == types.AIMessage {
 				lines = strings.Split(renderedMsg, "\n")
 				m.Chat.RenderCache[i] = cachedRender{
-					lines:    lines,
-					content:  msg.Content,
-					width:    viewportWidth,
-					isVisual: isVisualState,
+					lines:      lines,
+					content:    msg.Content,
+					width:      viewportWidth,
+					isVisual:   isVisualState,
+					isCursorOn: isCursorOn,
+					isSelected: isSelected,
 				}
 			}
 		}
 
-		if len(lines) == 0 && msg.Type == types.AIMessage {
-			continue
-		}
-
-		// Post-processing: Search Highlighting and Selection UI
-		// We only apply search highlighting to lines within or near the viewport.
-		processedLines := make([]string, len(lines))
-		copy(processedLines, lines)
-
-		if blockIndex, isStart := blockStarts[i]; m.State == stateVisualSelect && isStart {
-			isCursorOn := (blockIndex == m.VisualSelect.Cursor)
-
-			var isSelected bool
-			switch m.VisualSelect.Mode {
-			case visualModeGenerate, visualModeEdit, visualModeBranch:
-				isSelected = isCursorOn
-			default: // visualModeNone
-				_, isSelected = selectedBlocks[blockIndex]
-			}
-
-			var checkbox string
-			if isSelected {
-				checkbox = "[x] "
-			} else {
-				checkbox = "[ ] "
-			}
-
-			if isCursorOn {
-				checkbox = "▸ " + checkbox
-			} else {
-				checkbox = "  " + checkbox
-			}
-
-			if isCursorOn {
-				checkbox = paletteSelectedItemStyle.Render(checkbox)
-			} else {
-				checkbox = paletteItemStyle.Render(checkbox)
-			}
-			for l, line := range processedLines {
-				if l == 0 {
-					processedLines[l] = lipgloss.JoinHorizontal(lipgloss.Top, checkbox, line)
-				} else {
-					processedLines[l] = strings.Repeat(" ", lipgloss.Width(checkbox)) + line
-				}
-			}
-		}
-
-		allLines = append(allLines, processedLines...)
-		currentLine += len(processedLines)
+		allLines = append(allLines, lines...)
+		currentLine += len(lines)
 	}
 
 	if m.State == stateThinking || m.State == stateGenPending {
 		// The spinner has its own colors, so we can't render it with the same style as the text.
-		thinkingText := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("244")).
-			Italic(true).
-			Render("Thinking ")
+		thinkingText := thinkingTextStyle.Render("Thinking ")
 
 		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
 		// Apply padding to the container.
@@ -122,7 +88,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	return strings.Join(allLines, "\n"), messageLineOffsets
 }
 
-func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool) string {
+func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool, isCursorOn bool, isSelected bool) string {
 	content := msg.Content
 	switch msg.Type {
 	case types.InitMessage:
@@ -130,24 +96,51 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 	case types.DirectoryMessage:
 		return directoryWelcomeStyle.Width(viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()).Render(content)
 	case types.UserMessage:
-		return userInputStyle.Width(viewportWidth - userInputStyle.GetHorizontalFrameSize()).Render(content)
+		style := userInputStyle
+		if isVisual {
+			style = applyHighlight(style, isCursorOn, isSelected)
+		}
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
 	case types.CommandMessage:
-		return commandInputStyle.Width(viewportWidth - commandInputStyle.GetHorizontalFrameSize()).Render(content)
+		style := commandInputStyle
+		if isVisual {
+			style = applyHighlight(style, isCursorOn, isSelected)
+		}
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
 	case types.ImageMessage:
-		return imageMessageStyle.Width(viewportWidth - imageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
+		style := imageMessageStyle
+		if isVisual {
+			style = applyHighlight(style, isCursorOn, isSelected)
+		}
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render("Image: " + content)
 	case types.AIMessage:
 		if content == "" {
 			return ""
 		}
 		renderedAI, err := m.GlamourRenderer.Render(content)
 		if err != nil {
-			return content
+			renderedAI = content
+		}
+		if isVisual {
+			renderedAI = strings.TrimSpace(renderedAI)
+			style := aiVisualBaseStyle
+			style = applyHighlight(style, isCursorOn, isSelected)
+			return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(renderedAI)
 		}
 		return renderedAI
 	case types.CommandResultMessage:
-		return commandResultStyle.Width(viewportWidth - commandResultStyle.GetHorizontalFrameSize()).Render(content)
+		style := commandResultStyle
+		if isVisual {
+			style = commandResultVisualBaseStyle
+			style = applyHighlight(style, isCursorOn, isSelected)
+		}
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
 	case types.CommandErrorResultMessage:
-		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
+		style := commandErrorStyle
+		if isVisual {
+			style = applyHighlight(style, isCursorOn, isSelected)
+		}
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
 	default:
 		return ""
 	}

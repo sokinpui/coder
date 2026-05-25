@@ -83,4 +83,51 @@ var (
 			Foreground(lipgloss.Color("228")).
 			Bold(true).
 			Padding(0, 1)
+
+	// Visual Mode Highlights & Bases
+	visualCursorColor         = lipgloss.Color("51")  // Cyan
+	visualSelectedColor       = lipgloss.Color("78")  // Green
+	visualCursorSelectedColor = lipgloss.Color("228") // Yellow
+	visualCursorBg            = lipgloss.Color("235")
+	visualCursorSelectedBg    = lipgloss.Color("236")
+
+	aiVisualBaseStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1)
+
+	commandResultVisualBaseStyle = lipgloss.NewStyle().
+					Border(lipgloss.RoundedBorder()).
+					BorderForeground(lipgloss.Color("99")).
+					Padding(0, 1)
+
+	thinkingTextStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244")).
+				Italic(true)
+
+	// Spinner dot colors
+	lightGreyDotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
+	greyDotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	darkGreyDotStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+
+	// Placeholder / Disabled Styles
+	disabledPlaceholderStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("240")).
+					Italic(true)
+
+	searchPlaceholderStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("240"))
 )
+
+func applyHighlight(style lipgloss.Style, isCursorOn bool, isSelected bool) lipgloss.Style {
+	if isCursorOn && isSelected {
+		return style.Bold(true).BorderForeground(visualCursorSelectedColor)
+	}
+	if isCursorOn {
+		return style.Bold(true).BorderForeground(visualCursorColor)
+	}
+	if isSelected {
+		return style.BorderForeground(visualSelectedColor)
+	}
+	return style
+}
