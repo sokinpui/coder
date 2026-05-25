@@ -72,6 +72,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.TextArea.Blur()
 		m.IsCountingTokens = true
 		m.History.Tab = TabHistory
+		m = m.updateLayout()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
 	case types.ActiveModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
@@ -81,6 +82,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.IsCountingTokens = true
 		m.History.Tab = TabActive
 		m.updateActiveFilter()
+		m = m.updateLayout()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
 	case types.TreeModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())

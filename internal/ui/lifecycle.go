@@ -108,7 +108,7 @@ func (m Model) updateLayout() Model {
 	if m.State == stateHistorySelect {
 		headerHeight := lipgloss.Height(m.historyHeaderView())
 		statusHeight := lipgloss.Height(m.StatusView())
-		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight - 1
+		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight + 1
 		if m.Chat.Viewport.Height < 0 {
 			m.Chat.Viewport.Height = 0
 		}

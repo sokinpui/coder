@@ -104,6 +104,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case km.History:
 		m.State = stateHistorySelect
 		m.Chat.TextArea.Blur()
+		m = m.updateLayout()
 		return m, listHistoryCmd(m.Session.GetHistoryManager()), true
 	}
 	return m, nil, true

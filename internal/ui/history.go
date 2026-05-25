@@ -36,7 +36,7 @@ type HistoryModel struct {
 func NewHistory() HistoryModel {
 	hsi := textinput.New()
 	hsi.Placeholder = "Fuzzy search..."
-	hsi.Prompt = "/"
+	hsi.Prompt = ""
 	hsi.Width = 50
 	hsi.PlaceholderStyle = searchPlaceholderStyle
 
@@ -364,7 +364,7 @@ func (m Model) historyHeaderView() string {
 		b.WriteString(m.History.SearchInput.View())
 		b.WriteString("\n\n")
 	} else {
-		b.WriteString("Select a conversation to load (type / to search):\n")
+		b.WriteString("Select a conversation to load (type / to search):\n\n")
 	}
 
 	historyTabStr := "[ History ]"
@@ -378,7 +378,7 @@ func (m Model) historyHeaderView() string {
 		activeTabStr = activeTabStyle.Render(activeTabStr)
 	}
 
-	b.WriteString(fmt.Sprintf("%s  %s\n\n", historyTabStr, activeTabStr))
+	b.WriteString(fmt.Sprintf("  %s  %s\n\n", historyTabStr, activeTabStr))
 
 	return b.String()
 }
@@ -398,10 +398,29 @@ func (m Model) historyListView() string {
 		if m.History.Tab == TabHistory {
 			dateStr = fmt.Sprintf(" (%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
 		}
+
+		isCurrent := false
+		if m.History.Tab == TabActive && item.ID == m.Session.ID {
+			isCurrent = true
+		} else if m.History.Tab == TabHistory && item.Filename != "" && item.Filename == m.Session.GetHistoryFilename() {
+			isCurrent = true
+		}
+
+		cursor := " "
 		if i == m.History.CursorPos {
-			b.WriteString(paletteSelectedItemStyle.Render(fmt.Sprintf("▸  %s%s", title, dateStr)))
+			cursor = "▸"
+		}
+
+		marker := " "
+		if isCurrent {
+			marker = "*"
+		}
+
+		prefix := fmt.Sprintf("%s%s ", cursor, marker)
+		if i == m.History.CursorPos {
+			b.WriteString(paletteSelectedItemStyle.Render(fmt.Sprintf("%s%s%s", prefix, title, dateStr)))
 		} else {
-			b.WriteString(paletteItemStyle.Render(fmt.Sprintf("   %s%s", title, dateStr)))
+			b.WriteString(paletteItemStyle.Render(fmt.Sprintf("%s%s%s", prefix, title, dateStr)))
 		}
 		b.WriteString("\n")
 	}
