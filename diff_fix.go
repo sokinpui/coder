@@ -45,11 +45,30 @@ func matchBlock(source, block []string, startLine int) (int, int) {
 
 func isMatch(source, target []string) bool {
 	for i := range target {
-		if source[i] != target[i] {
+		if !linesMatch(source[i], target[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+func linesMatch(s1, s2 string) bool {
+	if s1 == s2 {
+		return true
+	}
+	return strings.TrimSpace(s1) == strings.TrimSpace(s2)
+}
+
+func isSubstantial(lines []string) bool {
+	count := 0
+	for _, l := range lines {
+		trimmed := strings.TrimSpace(l)
+		if len(trimmed) > 1 && trimmed != "}" && trimmed != "{" && trimmed != ")," && trimmed != ");" {
+			return true
+		}
+		count++
+	}
+	return count > 3
 }
 
 func correctDiffHunks(sourceLines []string, raw, path string) (string, error) {
@@ -86,7 +105,7 @@ func correctDiffHunks(sourceLines []string, raw, path string) (string, error) {
 
 		os, me := matchBlock(sourceLines, fullBlock, last+1)
 
-		if os == -1 && len(deletedOnly) > 0 {
+		if os == -1 && len(deletedOnly) > 0 && isSubstantial(deletedOnly) {
 			// Fallback: try to match only the deleted lines if the LLM hallucinated context
 			dos, dme := matchBlock(sourceLines, deletedOnly, last+1)
 			if dos != -1 {
@@ -116,14 +135,19 @@ func correctDiffHunks(sourceLines []string, raw, path string) (string, error) {
 		for _, l := range h {
 			if strings.HasPrefix(l, " ") {
 				lineIdx := os + srcLineOffset - 1
+				content := l[1:]
 				if lineIdx >= 0 && lineIdx < len(sourceLines) {
-					cp = append(cp, " "+sourceLines[lineIdx]+"\n")
-				} else {
-					cp = append(cp, l+"\n")
+					content = sourceLines[lineIdx]
 				}
+				cp = append(cp, " "+content+"\n")
 				srcLineOffset++
 			} else if strings.HasPrefix(l, "-") {
-				cp = append(cp, l+"\n")
+				lineIdx := os + srcLineOffset - 1
+				content := l[1:]
+				if lineIdx >= 0 && lineIdx < len(sourceLines) {
+					content = sourceLines[lineIdx]
+				}
+				cp = append(cp, "-"+content+"\n")
 				srcLineOffset++
 			} else {
 				cp = append(cp, l+"\n")
