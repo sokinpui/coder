@@ -109,7 +109,11 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 	for _, section := range helpPageDesc {
 		fmt.Fprintf(&b, "\n%s:\n", section.name)
 		for _, item := range section.group {
-			fmt.Fprintf(&b, "  /%-11s %s\n", item.key, item.desc)
+			if section.name == "Command" {
+				fmt.Fprintf(&b, "  /%-11s %s\n", item.key, item.desc)
+			} else {
+				fmt.Fprintf(&b, "  %-12s %s\n", item.key, item.desc)
+			}
 		}
 	}
 
