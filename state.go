@@ -242,7 +242,6 @@ func (m *StateManager) matchState(idx int) bool {
 }
 
 func (m *StateManager) Write(ops []Operation) {
-	m.Sync()
 	if m.state.CurrentIndex < len(m.state.History)-1 {
 		m.state.History = m.state.History[:m.state.CurrentIndex+1]
 	}

@@ -84,6 +84,7 @@ func (a *App) processContent() (Summary, error) {
 }
 
 func (a *App) processAndApply(content string) (Summary, error) {
+	a.stateManager.Sync()
 	plan, err := CreatePlan(content, a.pathResolver, a.cfg.Extensions, a.cfg.Files)
 	if err != nil {
 		return Summary{}, err
