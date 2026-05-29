@@ -77,8 +77,13 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	}
 
 	if m.State == stateThinking || m.State == stateGenPending {
+		text := "Thinking "
+		if m.State == stateGenPending {
+			text = "Asking "
+		}
+
 		// The spinner has its own colors, so we can't render it with the same style as the text.
-		thinkingText := thinkingTextStyle.Render("Thinking ")
+		thinkingText := thinkingTextStyle.Render(text)
 
 		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
 		// Apply padding to the container.

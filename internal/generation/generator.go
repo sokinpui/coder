@@ -148,6 +148,9 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
+		if ctx.Err() == context.Canceled {
+			return
+		}
 		streamChan <- fmt.Sprintf("Error: Failed to connect to server: %v", err)
 		return
 	}

@@ -85,8 +85,10 @@ func (m Model) StatusView() string {
 	}
 
 	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
-		statusText := "Thinking" // Default for genpending and thinking
-		if m.State == stateGenerating {
+		statusText := "Thinking"
+		if m.State == stateGenPending {
+			statusText = "Asking"
+		} else if m.State == stateGenerating {
 			statusText = "Generating"
 		}
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Chat.Spinner.View())
