@@ -148,6 +148,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	if !strings.HasPrefix(input, "/") {
 		// This is a prompt, apply debounce.
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
+		m.Chat.ShowPalette = false
 
 		var cmds []tea.Cmd
 		if !m.Session.IsTitleGenerated() {
@@ -171,6 +172,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 	m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
 	m.Chat.CommandHistoryModified = ""
+	m.Chat.ShowPalette = false
 	event := m.Session.HandleInput(input)
 
 	shouldPreserve := m.Chat.PreserveInputOnSubmit
@@ -298,6 +300,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
 			}
 			m.Chat.TextArea.CursorEnd()
+			m.Chat.ShowPalette = false
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
