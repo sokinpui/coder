@@ -63,17 +63,6 @@ type HistoryKeymap struct {
 	Exit         string
 }
 
-type TreeKeymap struct {
-	Up       string
-	Down     string
-	Expand   string
-	Collapse string
-	Top      string
-	Bottom   string
-	Toggle   string
-	Exit     string
-}
-
 type Keymap struct {
 	Submit      string
 	Editor      string
@@ -82,7 +71,6 @@ type Keymap struct {
 	New         string
 	Branch      string
 	Finder      string
-	Tree        string
 	ContextList string
 	ApplyITF    string
 	ScrollUp    string
@@ -92,7 +80,6 @@ type Keymap struct {
 
 	VisualMode  VisualKeymap  `mapstructure:"visualmode"`
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
-	TreeView    TreeKeymap    `mapstructure:"treeview"`
 }
 
 type Config struct {
@@ -125,7 +112,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.new", "ctrl+n")
 	v.SetDefault("keymap.branch", "ctrl+b")
 	v.SetDefault("keymap.finder", "ctrl+f")
-	v.SetDefault("keymap.tree", "ctrl+t")
 	v.SetDefault("keymap.contextlist", "ctrl+l")
 	v.SetDefault("keymap.applyitf", "ctrl+a")
 	v.SetDefault("keymap.scrollup", "ctrl+u")
@@ -155,15 +141,6 @@ func Load() (*Config, error) {
 	v.SetDefault("keymap.historyview.historytab", "h")
 	v.SetDefault("keymap.historyview.activetab", "l")
 	v.SetDefault("keymap.historyview.exit", "q")
-
-	v.SetDefault("keymap.treeview.up", "k")
-	v.SetDefault("keymap.treeview.down", "j")
-	v.SetDefault("keymap.treeview.expand", "l")
-	v.SetDefault("keymap.treeview.collapse", "h")
-	v.SetDefault("keymap.treeview.top", "g")
-	v.SetDefault("keymap.treeview.bottom", "G")
-	v.SetDefault("keymap.treeview.toggle", "space")
-	v.SetDefault("keymap.treeview.exit", "q")
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()

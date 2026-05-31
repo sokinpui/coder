@@ -26,7 +26,6 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 		&PaletteOverlay{},
 		&FinderOverlay{},
 		&QuickViewOverlay{},
-		&TreeOverlay{},
 	}
 
 	p := tea.NewProgram(

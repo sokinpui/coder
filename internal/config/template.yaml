@@ -27,7 +27,6 @@ keymap:
   new: ctrl+n
   branch: ctrl+b
   finder: ctrl+f
-  tree: ctrl+t
   contextlist: ctrl+l
   applyitf: ctrl+a
   scrollup: ctrl+u
@@ -56,13 +55,4 @@ keymap:
     search: /
     historytab: h
     activetab: l
-    exit: q
-  treeview:
-    up: k
-    down: j
-    expand: l
-    collapse: h
-    top: g
-    bottom: G
-    toggle: space
     exit: q

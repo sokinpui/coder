@@ -13,7 +13,6 @@ const (
 	HistoryModeStarted
 	ActiveModeStarted
 	NewSessionStarted
-	TreeModeStarted
 	FzfModeStarted
 	ExternalEditorStarted
 	Quit

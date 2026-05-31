@@ -84,16 +84,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.updateActiveFilter()
 		m = m.updateLayout()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
-	case types.TreeModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.State = stateTree
-		m.Chat.TextArea.Blur()
-		m.Tree.Visible = true
-		m.Tree.loadInitialSelection(m.Session.GetConfig())
-		m.IsCountingTokens = true
-		return m, tea.Batch(m.Tree.initCmd(), countTokensCmd(m.Session.GetPrompt()))
-
 	case types.ExternalEditorStarted:
 		return m, openInEditorCmd(event.Data.(string))
 
@@ -346,11 +336,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case km.Finder:
 		event := m.Session.HandleShortcut("/fzf")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
-
-	case km.Tree:
-		event := m.Session.HandleShortcut("/tree")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 

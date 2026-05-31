@@ -12,7 +12,7 @@ Instead, it is a **human-in-the-loop code editor**. You are the driver:
 
 - **Manual Context**: You choose exactly which files or directories to provide to the AI using `/file` or `/tree`.
 - **Precise Guidance**: You guide the AI through prompts to perform specific tasks.
-- **One-Step Application**: Coder interprets the AI's response to apply changes directly to your filesystem.
+- **One-Step Application**: Coder interprets the AI's response to apply changes directly to your filesystem using `itf`.
 
 ## How it Works
 
@@ -88,7 +88,6 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+H`       | View conversation history                                                                     |
 | `Ctrl+N`       | Start a new chat session                                                                      |
 | `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |
-| `Ctrl+T`       | Open file tree to select context                                                              |
 | `Ctrl+L`       | Quick view of current project context (files read by AI)                                      |
 | `Ctrl+B`       | Branch the conversation into a new session                                                    |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                            |
@@ -103,7 +102,6 @@ Commands are prefixed with a slash `/`.
 
 - `/file [paths...]`: Add specific files or directories to the AI's context.
 - `/exclude [paths...]`: Remove paths from the context.
-- `/tree`: Interactive file tree for selecting context.
 - `/list`: Show a summary of files currently in context.
 - `/list-all`: Show a detailed list of every file being read by the AI.
 - `/itf`: Manually trigger the code application tool on the last response.

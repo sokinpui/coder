@@ -104,15 +104,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(cmd, textinput.Blink), true
 		}
 		return m, cmd, true
-	case stateTree:
-		newTree, cmd := m.Tree.Update(msg, m.Session.GetConfig().Keymap)
-		m.Tree = newTree
-		if !m.Tree.Visible {
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-			return m, tea.Batch(cmd, textarea.Blink), true
-		}
-		return m, cmd, true
 	case stateInitializing:
 		fallthrough
 	case stateIdle:

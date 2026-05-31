@@ -3,8 +3,6 @@ package ui
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -433,56 +431,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if newModel, ok := model.(Model); ok {
 			newModel.Chat.TextArea.SetValue(originalContent)
 			newModel.Chat.TextArea.CursorEnd()
-			return newModel, cmd, true
-		}
-		return model, cmd, true
-
-	case treeReadyMsg:
-		m.Tree.root = msg.root
-		m.Tree.expandSelectedNodes()
-		m.Tree.buildVisibleNodes()
-		return m, nil, true
-
-	case treeSelectionResultMsg:
-		m.State = stateIdle
-		m.Chat.TextArea.Focus()
-
-		repoRoot := utils.GetProjectRoot()
-		cwd, err := os.Getwd()
-		if err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Error getting current directory: %v", err)
-			return m, clearStatusBarCmd(), true
-		}
-
-		cfg := m.Session.GetConfig()
-		cfg.Context.Files = []string{}
-		cfg.Context.Dirs = []string{}
-
-		for _, p := range msg.selectedPaths {
-			absPath := filepath.Join(repoRoot, p)
-			info, err := os.Stat(absPath)
-			if err != nil {
-				continue // ignore paths that don't exist
-			}
-			relToCwd, err := filepath.Rel(cwd, absPath)
-			if err != nil {
-				relToCwd = absPath // fallback to absolute path
-			}
-			if info.IsDir() {
-				cfg.Context.Dirs = append(cfg.Context.Dirs, relToCwd)
-			} else {
-				cfg.Context.Files = append(cfg.Context.Files, relToCwd)
-			}
-		}
-
-		if err := m.Session.LoadContext(); err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Error loading context: %v", err)
-			return m, clearStatusBarCmd(), true
-		}
-
-		event := m.Session.HandleInput("/list")
-		model, cmd := m.handleEvent(event)
-		if newModel, ok := model.(Model); ok {
 			return newModel, cmd, true
 		}
 		return model, cmd, true

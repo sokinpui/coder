@@ -39,8 +39,6 @@ func (m Model) inputView() string {
 		statusText = "Visual Mode - Use j/k to navigate"
 	case stateHistorySelect:
 		statusText = "History Mode - Select a conversation"
-	case stateTree:
-		statusText = "Tree Mode - Select files/dirs"
 	case stateFinder:
 		statusText = "Search Mode..."
 	default:

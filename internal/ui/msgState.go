@@ -17,7 +17,6 @@ const (
 	stateVisualSelect
 	stateHistorySelect
 	stateFinder
-	stateTree
 )
 
 type modelsFetchedMsg struct {
@@ -61,11 +60,5 @@ type (
 	}
 	finderResultMsg struct {
 		result string
-	}
-	treeReadyMsg struct {
-		root *treeNode
-	}
-	treeSelectionResultMsg struct {
-		selectedPaths []string
 	}
 )
