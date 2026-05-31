@@ -307,6 +307,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	switch keyStr {
 	case km.Visual:
+		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
+			m.Chat.TextArea.Reset()
+			m.Chat.CtrlCPressed = false
+			return m, nil, false
+		}
 		model, cmd := m.enterVisualMode(visualModeNone)
 		return model, cmd, true
 
