@@ -3,7 +3,9 @@ package ui
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"os"
 )
@@ -15,10 +17,18 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 		os.Exit(1)
 	}
 
+	shellRegErrors := commands.RegisterShellCommands(cfg)
+
 	mainModel, err := NewModel(cfg, mode, initialInput, contextFiles, instruction)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
 		os.Exit(1)
+	}
+	for _, regErr := range shellRegErrors {
+		mainModel.Session.AddMessages(types.Message{
+			Type:    types.CommandErrorResultMessage,
+			Content: regErr,
+		})
 	}
 
 	manager := NewManager(&mainModel)

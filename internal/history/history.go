@@ -105,6 +105,8 @@ var roleToMessageType = map[string]types.MessageType{
 	"Command Execute Error:":  types.CommandErrorResultMessage,
 	"Instruction:":            types.InstructionMessage,
 	"Source Code:":            types.SourceCodeMessage,
+	"Shell Command:":          types.ShellCmdMessage,
+	"Shell Command Result:":   types.ShellCmdResultMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
@@ -362,6 +364,12 @@ func BuildHistorySnippet(messages []types.Message) string {
 			sb.WriteString(msg.Content)
 		case types.CommandErrorResultMessage:
 			sb.WriteString("Command Execute Error:\n")
+			sb.WriteString(msg.Content)
+		case types.ShellCmdMessage:
+			sb.WriteString("Shell Command:\n")
+			sb.WriteString(msg.Content)
+		case types.ShellCmdResultMessage:
+			sb.WriteString("Shell Command Result:\n")
 			sb.WriteString(msg.Content)
 		}
 		sb.WriteString("\n\n")

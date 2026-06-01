@@ -9,6 +9,7 @@ type CommandOutput struct {
 	Type    types.EventType
 	Payload string
 	Mode    string
+	Metadata map[string]any
 }
 
 type SessionController interface {

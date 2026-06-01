@@ -50,6 +50,14 @@ func (m *CodingMode) BuildPrompt(messages []types.Message) []types.Message {
 		})
 	}
 
-	result = append(result, messages...)
+	for _, msg := range messages {
+		if msg.Type == types.ShellCmdMessage || msg.Type == types.ShellCmdResultMessage {
+			if canSee, ok := msg.Metadata["canAISee"].(bool); !ok || !canSee {
+				continue
+			}
+		}
+		result = append(result, msg)
+	}
+
 	return result
 }

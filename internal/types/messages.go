@@ -13,12 +13,16 @@ const (
 	ImageMessage
 	InstructionMessage
 	SourceCodeMessage
+	ShellCmdMessage
+	ShellCmdResultMessage
 )
 
 type Message struct {
 	Type    MessageType
 	Content string // For text content, or file path for images (for prompt)
 	Data    []byte // For raw image data
+
+	Metadata map[string]any
 }
 
 func (t MessageType) String() string {
@@ -43,6 +47,10 @@ func (t MessageType) String() string {
 		return "Instruction"
 	case SourceCodeMessage:
 		return "Source Code"
+	case ShellCmdMessage:
+		return "Shell Command"
+	case ShellCmdResultMessage:
+		return "Shell Command Result"
 	default:
 		return "Unknown"
 	}
@@ -54,6 +62,9 @@ func (t MessageType) IsPrompt() bool {
 	case InstructionMessage, SourceCodeMessage, UserMessage, AIMessage, ImageMessage:
 		return true
 	default:
+		if t == ShellCmdMessage || t == ShellCmdResultMessage {
+			return true // Handled dynamically via CanAISee check in BuildPrompt if needed, but we rely on filtered message list
+		}
 		return false
 	}
 }
@@ -82,7 +93,7 @@ func (t MessageType) IsSelectable() bool {
 func (t MessageType) IsHistory() bool {
 	switch t {
 	case UserMessage, AIMessage, CommandMessage, CommandResultMessage, CommandErrorResultMessage, ImageMessage,
-		InstructionMessage, SourceCodeMessage:
+		InstructionMessage, SourceCodeMessage, ShellCmdMessage, ShellCmdResultMessage:
 		return true
 	default:
 		return false
@@ -92,7 +103,7 @@ func (t MessageType) IsHistory() bool {
 // IsRegeneratable returns true if the message can serve as a starting point for regeneration.
 func (t MessageType) IsRegeneratable() bool {
 	switch t {
-	case UserMessage, ImageMessage:
+	case UserMessage, ImageMessage, ShellCmdMessage, ShellCmdResultMessage:
 		return true
 	default:
 		return false

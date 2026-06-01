@@ -23,6 +23,11 @@ func GetCommandDescriptions() map[string]string {
 	return commandDescriptions
 }
 
+func IsBuiltIn(name string) bool {
+	_, exists := commands[name]
+	return exists
+}
+
 func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix string) []string {
 	if completer, ok := commandArgumentCompleters[cmdName]; ok {
 		return completer(cfg, prefix)

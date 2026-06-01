@@ -106,12 +106,14 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 			style = applyHighlight(style, isCursorOn, isSelected)
 		}
 		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
-	case types.CommandMessage:
+	case types.CommandMessage, types.ShellCmdMessage:
 		style := commandInputStyle
 		if isVisual {
 			style = applyHighlight(style, isCursorOn, isSelected)
 		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
+		prefix := ""
+		if msg.Type == types.ShellCmdMessage { prefix = "Shell: " }
+		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
 		style := imageMessageStyle
 		if isVisual {
@@ -133,7 +135,7 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 			return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(renderedAI)
 		}
 		return renderedAI
-	case types.CommandResultMessage:
+	case types.CommandResultMessage, types.ShellCmdResultMessage:
 		style := commandResultStyle
 		if isVisual {
 			style = commandResultVisualBaseStyle

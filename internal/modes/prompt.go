@@ -93,6 +93,18 @@ func BuildChatString(messages []types.Message) string {
 			sb.WriteString("AI Assistant:\n")
 			sb.WriteString(msg.Content)
 			sb.WriteString("\n")
+		case types.ShellCmdMessage:
+			if canSee, ok := msg.Metadata["canAISee"].(bool); ok && canSee {
+				sb.WriteString("Shell Command Execute:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
+			}
+		case types.ShellCmdResultMessage:
+			if canSee, ok := msg.Metadata["canAISee"].(bool); ok && canSee {
+				sb.WriteString("Shell Command Result:\n")
+				sb.WriteString(msg.Content)
+				sb.WriteString("\n")
+			}
 		}
 	}
 	sb.WriteString("AI Assistant:\n")

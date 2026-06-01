@@ -82,6 +82,12 @@ type Keymap struct {
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
 }
 
+type ShellCommand struct {
+	Description string
+	Exec        string
+	CanAISee    bool `mapstructure:"canAIsee"`
+}
+
 type Config struct {
 	Server          Server
 	Generation      Generation
@@ -89,6 +95,7 @@ type Config struct {
 	Clipboard       Clipboard
 	UI              UI
 	Keymap          Keymap
+	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands"`
 	AvailableModels []string `yaml:"-"`
 }
 
