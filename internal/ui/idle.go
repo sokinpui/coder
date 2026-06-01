@@ -156,12 +156,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	// This is a command, handle as before.
-	if len(m.Chat.CommandHistory) == 0 || m.Chat.CommandHistory[len(m.Chat.CommandHistory)-1] != input {
-		m.Chat.CommandHistory = append(m.Chat.CommandHistory, input)
-	}
-	m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
-	m.Chat.CommandHistoryModified = ""
 	m.Chat.ShowPalette = false
 	event := m.Session.HandleInput(input)
 
@@ -205,10 +199,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.IsCyclingCompletions = true
 			m = m.applyPaletteSelection()
 			return m, nil, true
-		}
-
-		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
-			return m.handleCommandHistory(msg)
 		}
 
 		if msg.Type == tea.KeyDown {
@@ -354,34 +344,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, handlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false
-}
-
-func (m Model) handleCommandHistory(msg tea.KeyMsg) (Model, tea.Cmd, bool) {
-	if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
-		m.Chat.CommandHistoryModified = m.Chat.TextArea.Value()
-	}
-
-	if msg.Type == tea.KeyUp {
-		if m.Chat.CommandHistoryCursor > 0 {
-			m.Chat.CommandHistoryCursor--
-			m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
-			m = m.updateLayout()
-			m.Chat.TextArea.CursorEnd()
-		}
-	} else { // KeyDown
-		if m.Chat.CommandHistoryCursor < len(m.Chat.CommandHistory) {
-			m.Chat.CommandHistoryCursor++
-			if m.Chat.CommandHistoryCursor == len(m.Chat.CommandHistory) {
-				m.Chat.TextArea.SetValue(m.Chat.CommandHistoryModified)
-				m = m.updateLayout()
-			} else {
-				m.Chat.TextArea.SetValue(m.Chat.CommandHistory[m.Chat.CommandHistoryCursor])
-				m = m.updateLayout()
-			}
-			m.Chat.TextArea.CursorEnd()
-		}
-	}
-	return m, nil, true
 }
 
 func (m Model) applyPaletteSelection() Model {

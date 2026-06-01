@@ -26,16 +26,8 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	if m.Chat.TextArea.Focused() {
-		originalValue := m.Chat.TextArea.Value()
 		m.Chat.TextArea, cmd = m.Chat.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
-
-		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
-		key, isKey := msg.(tea.KeyMsg)
-		if isCommand && m.Chat.TextArea.Value() != originalValue && isKey && key.Type != tea.KeyUp && key.Type != tea.KeyDown {
-			m.Chat.CommandHistoryCursor = len(m.Chat.CommandHistory)
-			m.Chat.CommandHistoryModified = ""
-		}
 
 		if !isRuneKey && !isViewportNavKey {
 			m.Chat.Viewport, cmd = m.Chat.Viewport.Update(msg)

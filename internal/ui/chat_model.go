@@ -39,9 +39,6 @@ type ChatModel struct {
 	DisplayedTitle           string
 	EditingMessageIndex      int
 	MessageLineOffsets       map[int]int
-	CommandHistory           []string
-	CommandHistoryCursor     int
-	CommandHistoryModified   string
 	PreserveInputOnSubmit    bool
 	RenderCache              map[int]cachedRender
 }
