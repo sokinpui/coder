@@ -31,7 +31,7 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	// Update context paths based on what was undone
-	cfg := s.GetConfig()
+	currentFiles := s.GetContextFiles()
 	contextUpdated := false
 
 	// If we undone a creation, the file is deleted
@@ -40,13 +40,13 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 		for _, p := range summary.Deleted {
 			toRemove[p] = struct{}{}
 		}
-		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
+		currentFiles = filterPaths(currentFiles, toRemove)
 		contextUpdated = true
 	}
 
 	// If we undone a deletion, the file is created (restored)
 	if len(summary.Created) > 0 {
-		cfg.Context.Files = AppendUnique(cfg.Context.Files, summary.Created)
+		currentFiles = AppendUnique(currentFiles, summary.Created)
 		contextUpdated = true
 	}
 
@@ -63,12 +63,13 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 				toAdd = append(toAdd, parts[1])
 			}
 		}
-		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
-		cfg.Context.Files = AppendUnique(cfg.Context.Files, toAdd)
+		currentFiles = filterPaths(currentFiles, toRemove)
+		currentFiles = AppendUnique(currentFiles, toAdd)
 		contextUpdated = true
 	}
 
 	if contextUpdated {
+		s.SetContextFiles(currentFiles)
 		_ = s.LoadContext()
 	}
 

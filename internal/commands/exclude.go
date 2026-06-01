@@ -12,15 +12,9 @@ func init() {
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	paths := strings.Fields(args)
-	cfg := s.GetConfig()
 
 	if len(paths) == 0 {
-		cfg.Context.Exclusions = []string{}
-		if err := s.LoadContext(); err != nil {
-			msg := fmt.Sprintf("Project source exclusions cleared, but failed to reload context: %v", err)
-			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
-		}
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project source exclusions cleared."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Exclusions command requires arguments to specify what to remove from current context."}, false
 	}
 
 	pathsToRemove, _ := ExpandPaths(paths)
@@ -30,14 +24,8 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		pathsToModify[p] = struct{}{}
 	}
 
-	// Remove from Dirs
-	cfg.Context.Dirs = filterPaths(cfg.Context.Dirs, pathsToModify)
-
-	// Remove from Files
-	cfg.Context.Files = filterPaths(cfg.Context.Files, pathsToModify)
-
-	// Add to Exclusions
-	cfg.Context.Exclusions = AppendUnique(cfg.Context.Exclusions, paths)
+	currentFiles := s.GetContextFiles()
+	s.SetContextFiles(filterPaths(currentFiles, pathsToModify))
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
@@ -46,7 +34,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	var payload strings.Builder
 	payload.WriteString("Project source updated.")
 
-	summary := formatContextSummary(&cfg.Context)
+	summary := formatFileListSummary(s.GetContextFiles())
 	if summary != "" {
 		payload.WriteString("\n")
 		payload.WriteString(summary)

@@ -1,7 +1,6 @@
 package modes
 
 import (
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -11,7 +10,7 @@ func (m *ChatMode) GetRolePrompt() string {
 	return ""
 }
 
-func (m *ChatMode) LoadSourceCode(cfg *config.Config) error {
+func (m *ChatMode) LoadSourceCode(files []string) error {
 	// No source code loaded for pure chat mode.
 	return nil
 }

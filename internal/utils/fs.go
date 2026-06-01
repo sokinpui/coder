@@ -57,14 +57,16 @@ func GetDirInfoContent() string {
 }
 
 func SourceToFileList(dirs []string, initialFiles []string, exclusions []string) ([]string, error) {
-	if len(dirs) == 0 {
-		return initialFiles, nil
+	var allFiles []string
+
+	if len(dirs) > 0 {
+		filesFromDirs := sf.Run(dirs, "file", exclusions, true)
+		allFiles = append(allFiles, filesFromDirs...)
 	}
 
-	filesFromDirs := sf.Run(dirs, "file", exclusions, true)
-	if len(filesFromDirs) == 0 {
-		return initialFiles, nil
+	if len(initialFiles) > 0 {
+		allFiles = append(allFiles, initialFiles...)
 	}
 
-	return append(initialFiles, filesFromDirs...), nil
+	return allFiles, nil
 }

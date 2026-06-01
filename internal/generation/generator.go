@@ -45,16 +45,16 @@ type openAIResponse struct {
 }
 
 type Generator struct {
-	Config     config.Generation
-	BaseURL    string
-	APIKey     string
+	Config  config.Generation
+	BaseURL string
+	APIKey  string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
 	return &Generator{
-		Config:     cfg.Generation,
-		BaseURL:    cfg.Server.URL,
-		APIKey:     cfg.Server.APIKey,
+		Config:  cfg.Generation,
+		BaseURL: cfg.Server.URL,
+		APIKey:  cfg.Server.APIKey,
 	}, nil
 }
 
@@ -128,9 +128,9 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 	}
 
 	body := map[string]any{
-		"model":       genConfig.ModelCode,
-		"stream":      true,
-		"messages":    apiMessages,
+		"model":    genConfig.ModelCode,
+		"stream":   true,
+		"messages": apiMessages,
 	}
 
 	jsonBody, _ := json.Marshal(body)

@@ -28,4 +28,3 @@ func init() {
 	}
 	typingSpinner.Frames = frames
 }
-

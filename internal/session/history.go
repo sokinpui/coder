@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"log"
 	"os"
 	"strings"
@@ -36,12 +37,15 @@ func (s *Session) SaveConversation() error {
 		wd = ""
 	}
 
+	promptMsgs := s.modeStrategy.BuildPrompt(nil)
+	allMsgs := append([]types.Message{}, promptMsgs...)
+	allMsgs = append(allMsgs, s.messages...)
+
 	data := &history.ConversationData{
 		Filename:   s.historyFilename,
 		Title:      s.title,
 		CreatedAt:  s.createdAt,
-		Messages:   s.messages,
-		Context:    s.context,
+		Messages:   allMsgs,
 		Files:      s.config.Context.Files,
 		Dirs:       s.config.Context.Dirs,
 		Exclusions: s.config.Context.Exclusions,
@@ -78,21 +82,9 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 
-	if metadata.Files != nil {
-		s.config.Context.Files = metadata.Files
-	} else {
-		s.config.Context.Files = []string{}
-	}
-	if metadata.Dirs != nil {
-		s.config.Context.Dirs = metadata.Dirs
-	} else {
-		s.config.Context.Dirs = []string{}
-	}
-	if metadata.Exclusions != nil {
-		s.config.Context.Exclusions = metadata.Exclusions
-	} else {
-		s.config.Context.Exclusions = []string{}
-	}
+	// Resolve context files from history metadata
+	resolvedFiles, _ := utils.SourceToFileList(metadata.Dirs, metadata.Files, metadata.Exclusions)
+	s.contextFiles = resolvedFiles
 
 	return s.LoadContext()
 }
@@ -108,7 +100,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
-	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.customInstruction, s.initialContextFiles)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.instruction, s.contextFiles)
 	if err != nil {
 		return nil, err
 	}

@@ -81,11 +81,9 @@ func (m Model) updatePalette() Model {
 			}
 
 			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig(), argPrefix)
-			if suggestions != nil {
-				for _, s := range suggestions {
-					if strings.HasPrefix(s, argPrefix) {
-						m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
-					}
+			for _, s := range suggestions {
+				if strings.HasPrefix(s, argPrefix) {
+					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
 				}
 			}
 		}
@@ -109,9 +107,7 @@ func (m Model) updateLayout() Model {
 		headerHeight := lipgloss.Height(m.historyHeaderView())
 		statusHeight := lipgloss.Height(m.StatusView())
 		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight + 1
-		if m.Chat.Viewport.Height < 0 {
-			m.Chat.Viewport.Height = 0
-		}
+		m.Chat.Viewport.Height = max(0, m.Chat.Viewport.Height)
 		return m
 	}
 
@@ -120,11 +116,6 @@ func (m Model) updateLayout() Model {
 	inputHeight := min(visibleLines+1, maxHeight)
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
-	var viewportHeight int
-	viewportHeight = m.Height - m.Chat.TextArea.Height() - lipgloss.Height(m.StatusView()) - textAreaStyle.GetVerticalFrameSize()
-	if viewportHeight < 0 {
-		viewportHeight = 0
-	}
-	m.Chat.Viewport.Height = viewportHeight
+	m.Chat.Viewport.Height = max(0, m.Height-m.Chat.TextArea.Height()-lipgloss.Height(m.StatusView())-textAreaStyle.GetVerticalFrameSize())
 	return m
 }

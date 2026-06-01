@@ -103,7 +103,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 		mode = "coding"
 	}
 
-	newSess, err := session.New(m.Session.GetConfig(), mode, m.Session.GetCustomInstruction(), m.Session.GetInitialContextFiles())
+	newSess, err := session.New(m.Session.GetConfig(), mode, m.Session.GetInstruction(), m.Session.GetContextFiles())
 	if err != nil {
 		log.Printf("Error creating new session: %v", err)
 		return m, nil

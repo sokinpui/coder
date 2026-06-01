@@ -20,6 +20,8 @@ type SessionController interface {
 	SetLastModifiedFiles(files []string)
 	HasAppliedChanges() bool
 	SetHasAppliedChanges(applied bool)
+	GetContextFiles() []string
+	SetContextFiles(files []string)
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

@@ -2,7 +2,6 @@ package modes
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
@@ -17,8 +16,8 @@ func (m *CodingMode) GetRolePrompt() string {
 	return ""
 }
 
-func (m *CodingMode) LoadSourceCode(cfg *config.Config) error {
-	projSource, srcErr := source.LoadProjectSource(&cfg.Context)
+func (m *CodingMode) LoadSourceCode(files []string) error {
+	projSource, srcErr := source.LoadProjectSource(files)
 	if srcErr != nil {
 		return fmt.Errorf("failed to load project source: %w", srcErr)
 	}

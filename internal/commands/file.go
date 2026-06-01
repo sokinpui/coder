@@ -3,7 +3,9 @@ package commands
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,11 +46,9 @@ func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
 
 func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	paths := strings.Fields(args)
-	cfg := s.GetConfig()
 
 	if len(paths) == 0 {
-		cfg.Context.Dirs = []string{}
-		cfg.Context.Files = []string{}
+		s.SetContextFiles([]string{})
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
@@ -79,8 +79,11 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
-	cfg.Context.Dirs = AppendUnique(cfg.Context.Dirs, dirs)
-	cfg.Context.Files = AppendUnique(cfg.Context.Files, files)
+	currentFiles := s.GetContextFiles()
+	// Combine dirs and specific files, then filter with default exclusions
+	newResolvedFiles, _ := utils.SourceToFileList(dirs, files, source.Exclusions)
+
+	s.SetContextFiles(AppendUnique(currentFiles, newResolvedFiles))
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
@@ -89,13 +92,13 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	var payload strings.Builder
 	payload.WriteString("Project context updated.")
 
-	summary := formatContextSummary(&cfg.Context)
+	summary := formatFileListSummary(s.GetContextFiles())
 	if summary != "" {
 		payload.WriteString("\n")
 		payload.WriteString(summary)
 	}
 	if len(invalidPaths) > 0 {
-		payload.WriteString(fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", ")))
+		fmt.Fprintf(&payload, "\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
 	}
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true

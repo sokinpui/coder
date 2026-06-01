@@ -55,7 +55,10 @@ func ExecuteItf(content string, args string) ItfResult {
 	seen := make(map[string]struct{})
 	uniqueFiles := []string{}
 	for _, f := range affectedFiles {
-		if _, ok := seen[f]; !ok { seen[f] = struct{}{}; uniqueFiles = append(uniqueFiles, f) }
+		if _, ok := seen[f]; !ok {
+			seen[f] = struct{}{}
+			uniqueFiles = append(uniqueFiles, f)
+		}
 	}
 
 	return ItfResult{
@@ -98,20 +101,22 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	// Update context paths based on itf results
-	cfg := s.GetConfig()
+	currentFiles := s.GetContextFiles()
 	contextUpdated := false
 
 	// Handle Created files
 	if created := res.Raw["Created"]; len(created) > 0 {
-		cfg.Context.Files = AppendUnique(cfg.Context.Files, created)
+		currentFiles = AppendUnique(currentFiles, created)
 		contextUpdated = true
 	}
 
 	// Handle Deleted files
 	if deleted := res.Raw["Deleted"]; len(deleted) > 0 {
 		toRemove := make(map[string]struct{})
-		for _, p := range deleted { toRemove[p] = struct{}{} }
-		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
+		for _, p := range deleted {
+			toRemove[p] = struct{}{}
+		}
+		currentFiles = filterPaths(currentFiles, toRemove)
 		contextUpdated = true
 	}
 
@@ -126,12 +131,13 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 				toAdd = append(toAdd, parts[1])
 			}
 		}
-		cfg.Context.Files = filterPaths(cfg.Context.Files, toRemove)
-		cfg.Context.Files = AppendUnique(cfg.Context.Files, toAdd)
+		currentFiles = filterPaths(currentFiles, toRemove)
+		currentFiles = AppendUnique(currentFiles, toAdd)
 		contextUpdated = true
 	}
 
 	if contextUpdated {
+		s.SetContextFiles(currentFiles)
 		_ = s.LoadContext()
 	}
 

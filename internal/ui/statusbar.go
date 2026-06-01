@@ -84,7 +84,8 @@ func (m Model) StatusView() string {
 		rightStatusItems = append(rightStatusItems, versionPart, modelPart)
 	}
 
-	if m.State == stateGenPending || m.State == stateThinking || m.State == stateGenerating {
+	switch m.State {
+	case stateGenPending, stateThinking, stateGenerating:
 		statusText := "Thinking"
 		if m.State == stateGenPending {
 			statusText = "Asking"

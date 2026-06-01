@@ -88,8 +88,6 @@ var (
 	visualCursorColor         = lipgloss.Color("51")  // Cyan
 	visualSelectedColor       = lipgloss.Color("78")  // Green
 	visualCursorSelectedColor = lipgloss.Color("228") // Yellow
-	visualCursorBg            = lipgloss.Color("235")
-	visualCursorSelectedBg    = lipgloss.Color("236")
 
 	aiVisualBaseStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).

@@ -22,7 +22,7 @@ type Clipboard struct {
 }
 
 type Server struct {
-	URL string // e.g. "http://localhost:9001/v1/chat/completions"
+	URL    string // e.g. "http://localhost:9001/v1/chat/completions"
 	APIKey string `yaml:"-"`
 }
 

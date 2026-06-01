@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
@@ -162,25 +163,18 @@ func printContext(mode string, args []string) {
 		os.Exit(1)
 	}
 
+	allExclusions := append([]string{}, source.Exclusions...)
+	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
+
+	var resolvedFiles []string
 	if len(files) > 0 {
-		cfg.Context.Dirs = []string{}
-		cfg.Context.Files = []string{}
-		cfg.Context.Exclusions = []string{}
-		for _, p := range files {
-			info, err := os.Stat(p)
-			if err != nil {
-				continue
-			}
-			if info.IsDir() {
-				cfg.Context.Dirs = append(cfg.Context.Dirs, p)
-			} else {
-				cfg.Context.Files = append(cfg.Context.Files, p)
-			}
-		}
+		resolvedFiles, _ = utils.SourceToFileList(nil, files, allExclusions)
+	} else {
+		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
 	}
 
 	strategy := modes.GetStrategy(mode, customInstruction)
-	if err := strategy.LoadSourceCode(cfg); err != nil {
+	if err := strategy.LoadSourceCode(resolvedFiles); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

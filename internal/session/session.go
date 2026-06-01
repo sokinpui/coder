@@ -7,27 +7,28 @@ import (
 	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 	"time"
 )
 
 type Session struct {
-	ID                  string
-	config              *config.Config
-	generator           *generation.Generator
-	historyManager      *history.Manager
-	messages            []types.Message
-	cancelGeneration    context.CancelFunc
-	title               string
-	context             string // Role instruction + source code
-	titleGenerated      bool
-	historyFilename     string
-	createdAt           time.Time
-	modeStrategy        modes.ModeStrategy
-	customInstruction   string
-	initialContextFiles []string
-	lastModifiedFiles   []string
-	hasAppliedChanges   bool
+	ID                string
+	config            *config.Config
+	generator         *generation.Generator
+	historyManager    *history.Manager
+	messages          []types.Message
+	cancelGeneration  context.CancelFunc
+	title             string
+	titleGenerated    bool
+	historyFilename   string
+	createdAt         time.Time
+	modeStrategy      modes.ModeStrategy
+	instruction       string
+	lastModifiedFiles []string
+	hasAppliedChanges bool
+	contextFiles      []string
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
@@ -54,24 +55,32 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	cfgCopy.Context.Dirs = append([]string{}, cfg.Context.Dirs...)
 	cfgCopy.Context.Exclusions = append([]string{}, cfg.Context.Exclusions...)
 
-	s := &Session{
-		ID:                  fmt.Sprintf("%d", time.Now().UnixNano()),
-		config:              &cfgCopy,
-		generator:           gen,
-		historyManager:      hist,
-		messages:            messages,
-		title:               "New Chat",
-		titleGenerated:      false,
-		createdAt:           time.Now(),
-		historyFilename:     "",
-		modeStrategy:        strategy,
-		customInstruction:   instruction,
-		initialContextFiles: contextFiles,
+	allExclusions := append([]string{}, source.Exclusions...)
+	allExclusions = append(allExclusions, cfgCopy.Context.Exclusions...)
+
+	var resolvedContextFiles []string
+	if len(contextFiles) > 0 {
+		// if passed via CLI, we resolve dirs to files.
+		resolvedContextFiles, _ = utils.SourceToFileList(nil, contextFiles, allExclusions)
+	} else {
+		resolvedContextFiles, _ = utils.SourceToFileList(cfgCopy.Context.Dirs, cfgCopy.Context.Files, allExclusions)
 	}
 
-	if len(contextFiles) > 0 {
-		s.applyContextFiles(contextFiles)
+	s := &Session{
+		ID:              fmt.Sprintf("%d", time.Now().UnixNano()),
+		config:          &cfgCopy,
+		generator:       gen,
+		historyManager:  hist,
+		messages:        messages,
+		title:           "New Chat",
+		titleGenerated:  false,
+		createdAt:       time.Now(),
+		historyFilename: "",
+		modeStrategy:    strategy,
+		instruction:     instruction,
+		contextFiles:    resolvedContextFiles,
 	}
+
 	return s, nil
 }
 
@@ -87,12 +96,16 @@ func (s *Session) GetHistoryManager() *history.Manager {
 	return s.historyManager
 }
 
-func (s *Session) GetCustomInstruction() string {
-	return s.customInstruction
+func (s *Session) GetInstruction() string {
+	return s.instruction
 }
 
-func (s *Session) GetInitialContextFiles() []string {
-	return s.initialContextFiles
+func (s *Session) GetContextFiles() []string {
+	return s.contextFiles
+}
+
+func (s *Session) SetContextFiles(files []string) {
+	s.contextFiles = files
 }
 
 func (s *Session) GetLastModifiedFiles() []string {

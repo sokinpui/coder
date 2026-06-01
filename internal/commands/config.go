@@ -14,16 +14,18 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("server:\n  url: %s\n", cfg.Server.URL))
-	b.WriteString(fmt.Sprintf("generation:\n  modelcode: %s\n  streamdelay: %d\n",
-		cfg.Generation.ModelCode, cfg.Generation.StreamDelay))
+	fmt.Fprintf(&b, "server:\n  url: %s\n", cfg.Server.URL)
+	fmt.Fprintf(&b, "generation:\n  modelcode: %s\n  streamdelay: %d\n",
+		cfg.Generation.ModelCode, cfg.Generation.StreamDelay)
 
-	b.WriteString(fmt.Sprintf("clipboard:\n  copycmd: %s\n  pastecmd: %s\n", cfg.Clipboard.CopyCmd, cfg.Clipboard.PasteCmd))
+	fmt.Fprintf(&b, "clipboard:\n  copycmd: %s\n  pastecmd: %s\n", cfg.Clipboard.CopyCmd, cfg.Clipboard.PasteCmd)
 
-	b.WriteString("context:\n")
+	b.WriteString("config context:\n")
 	writeList(&b, "files", cfg.Context.Files)
 	writeList(&b, "dirs", cfg.Context.Dirs)
 	writeList(&b, "exclusions", cfg.Context.Exclusions)
+
+	writeList(&b, "active context files", s.GetContextFiles())
 
 	fmt.Fprintf(&b, "ui:\n  markdowntheme: %s\n", cfg.UI.MarkdownTheme)
 

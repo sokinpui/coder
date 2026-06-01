@@ -1,10 +1,7 @@
 package commands
 
 import (
-	"fmt"
-	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/pcat"
 )
 
@@ -14,23 +11,10 @@ func init() {
 }
 
 func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
-	cfg := s.GetConfig()
-	context := &cfg.Context
-
-	if len(context.Dirs) == 0 && len(context.Files) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or directories are set."}, true
-	}
-
-	finalExclusions := append(source.Exclusions, context.Exclusions...)
-	allFiles, err := utils.SourceToFileList(context.Dirs, context.Files, finalExclusions)
-	if err != nil {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error listing source files: %v", err)}, false
-	}
+	allFiles := s.GetContextFiles()
 
 	if len(allFiles) == 0 {
-		overview := formatContextSummary(context)
-		summary := "Current project context:\n" + overview + "\n\n" + "No files found in the current context."
-		return CommandOutput{Type: types.MessagesUpdated, Payload: summary}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files are in current context."}, true
 	}
 
 	fileList, err := pcat.Run(
@@ -42,25 +26,25 @@ func listFullCmd(args string, s SessionController) (CommandOutput, bool) {
 		true,     // hidden
 		true,     // listOnly
 	)
+	if err != nil {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Error listing files"}, false
+	}
 
-	overview := formatContextSummary(context)
+	overview := formatFileListSummary(allFiles)
 
 	summary := "Current project context:\n" + overview + "\n\n" + "Files read by AI:\n" + fileList
 
-	payload := summary
-
-	return CommandOutput{Type: types.MessagesUpdated, Payload: payload}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: summary}, true
 }
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
-	cfg := s.GetConfig()
-	context := &cfg.Context
+	allFiles := s.GetContextFiles()
 
-	if len(context.Dirs) == 0 && len(context.Files) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or directories are set."}, true
+	if len(allFiles) == 0 {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files are in current context."}, true
 	}
 
-	overview := formatContextSummary(context)
+	overview := formatFileListSummary(allFiles)
 
 	summary := "Current project context:\n" + overview
 

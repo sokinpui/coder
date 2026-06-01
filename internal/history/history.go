@@ -42,7 +42,6 @@ type ConversationData struct {
 	Title      string
 	CreatedAt  time.Time
 	Messages   []types.Message
-	Context    string // Role Instruction + source code
 	Files      []string
 	Dirs       []string
 	Exclusions []string
@@ -65,18 +64,9 @@ func NewManager() (*Manager, error) {
 
 func (m *Manager) SaveConversation(data *ConversationData) error {
 	historyContent := BuildHistorySnippet(data.Messages)
-	trimmedHeaders := strings.TrimSpace(data.Context)
-
 	var contentBuilder strings.Builder
-	if trimmedHeaders != "" {
-		contentBuilder.WriteString(trimmedHeaders)
-	}
-
-	if historyContent != "" {
-		contentBuilder.WriteString(modes.Separator)
-		contentBuilder.WriteString(modes.ConversationHistoryHeader)
-		contentBuilder.WriteString(historyContent)
-	}
+	contentBuilder.WriteString(modes.ConversationHistoryHeader)
+	contentBuilder.WriteString(historyContent)
 
 	content := contentBuilder.String()
 	var fileBuf bytes.Buffer
@@ -218,7 +208,9 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
 					processMessageContent(currentMessage, contentBuilder.String())
-					messages = append(messages, *currentMessage)
+					if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage {
+						messages = append(messages, *currentMessage)
+					}
 				}
 				contentBuilder.Reset()
 				currentMessage = &types.Message{Type: msgType}
@@ -235,7 +227,9 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 
 	if currentMessage != nil {
 		processMessageContent(currentMessage, contentBuilder.String())
-		messages = append(messages, *currentMessage)
+		if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage {
+			messages = append(messages, *currentMessage)
+		}
 	}
 
 	return metadata, messages, nil
@@ -348,7 +342,7 @@ func BuildHistorySnippet(messages []types.Message) string {
 			sb.WriteString(msg.Content)
 		case types.ImageMessage:
 			sb.WriteString("Image:\n")
-			sb.WriteString(fmt.Sprintf("![image](%s)", msg.Content))
+			fmt.Fprintf(&sb, "![image](%s)", msg.Content)
 		case types.AIMessage:
 			if msg.Content == "" {
 				continue

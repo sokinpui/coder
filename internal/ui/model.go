@@ -28,9 +28,9 @@ type Model struct {
 	GlamourRenderer     *glamour.TermRenderer
 	AvailableCommands   []string
 	CommandDescriptions map[string]string
-	StatusBarMessage  string
-	TokenCount        int
-	IsCountingTokens  bool
+	StatusBarMessage    string
+	TokenCount          int
+	IsCountingTokens    bool
 }
 
 func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string, instruction string) (Model, error) {
