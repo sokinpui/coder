@@ -10,6 +10,7 @@ import (
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
+	"os"
 	"time"
 )
 
@@ -60,8 +61,15 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 
 	var resolvedContextFiles []string
 	if len(contextFiles) > 0 {
-		// if passed via CLI, we resolve dirs to files.
-		resolvedContextFiles, _ = utils.SourceToFileList(nil, contextFiles, allExclusions)
+		var dirs, files []string
+		for _, p := range contextFiles {
+			if info, err := os.Stat(p); err == nil && info.IsDir() {
+				dirs = append(dirs, p)
+				continue
+			}
+			files = append(files, p)
+		}
+		resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
 	} else {
 		resolvedContextFiles, _ = utils.SourceToFileList(cfgCopy.Context.Dirs, cfgCopy.Context.Files, allExclusions)
 	}
