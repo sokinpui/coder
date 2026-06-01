@@ -24,8 +24,7 @@ type Metadata struct {
 	Title      string
 	CreatedAt  time.Time
 	ModifiedAt time.Time
-	Files      []string
-	Dirs       []string
+	ContextFiles []string
 	Exclusions []string
 	WorkingDir string
 }
@@ -42,8 +41,7 @@ type ConversationData struct {
 	Title      string
 	CreatedAt  time.Time
 	Messages   []types.Message
-	Files      []string
-	Dirs       []string
+	ContextFiles []string
 	Exclusions []string
 	WorkingDir string
 }
@@ -77,24 +75,8 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	if data.WorkingDir != "" {
 		fmt.Fprintf(&fileBuf, "workingDir: %s\n", data.WorkingDir)
 	}
-	if len(data.Files) > 0 {
-		paths, err := json.Marshal(data.Files)
-		if err == nil {
-			fmt.Fprintf(&fileBuf, "files: %s\n", string(paths))
-		}
-	}
-	if len(data.Dirs) > 0 {
-		dirs, err := json.Marshal(data.Dirs)
-		if err == nil {
-			fmt.Fprintf(&fileBuf, "dirs: %s\n", string(dirs))
-		}
-	}
-	if len(data.Exclusions) > 0 {
-		exclusions, err := json.Marshal(data.Exclusions)
-		if err == nil {
-			fmt.Fprintf(&fileBuf, "exclusions: %s\n", string(exclusions))
-		}
-	}
+	writeYamlList(&fileBuf, "contextFiles", data.ContextFiles)
+	writeYamlList(&fileBuf, "exclusions", data.Exclusions)
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintln(&fileBuf, "")
 
@@ -102,6 +84,16 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 
 	filePath := filepath.Join(m.historyPath, data.Filename)
 	return os.WriteFile(filePath, fileBuf.Bytes(), 0644)
+}
+
+func writeYamlList(b *bytes.Buffer, key string, items []string) {
+	if len(items) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "%s:\n", key)
+	for _, item := range items {
+		fmt.Fprintf(b, "  - %s\n", item)
+	}
 }
 
 var roleToMessageType = map[string]types.MessageType{
@@ -138,10 +130,20 @@ func parseStringSlice(value string) []string {
 
 func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 	metadata := &Metadata{}
+	var currentKey string
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "---" {
 			return metadata, true
+		}
+
+		if strings.HasPrefix(line, "  - ") {
+			val := strings.TrimSpace(strings.TrimPrefix(line, "  - "))
+			switch currentKey {
+			case "contextFiles", "files": metadata.ContextFiles = append(metadata.ContextFiles, val)
+			case "exclusions": metadata.Exclusions = append(metadata.Exclusions, val)
+			}
+			continue
 		}
 
 		kv := strings.SplitN(line, ":", 2)
@@ -150,17 +152,20 @@ func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 		}
 
 		key, value := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
+		currentKey = key
 		switch key {
 		case "title":
 			metadata.Title = value
 		case "workingDir":
 			metadata.WorkingDir = value
-		case "files":
-			metadata.Files = parseStringSlice(value)
-		case "dirs":
-			metadata.Dirs = parseStringSlice(value)
+		case "contextFiles", "files":
+			if value != "" {
+				metadata.ContextFiles = append(metadata.ContextFiles, parseStringSlice(value)...)
+			}
 		case "exclusions":
-			metadata.Exclusions = parseStringSlice(value)
+			if value != "" {
+				metadata.Exclusions = append(metadata.Exclusions, parseStringSlice(value)...)
+			}
 		case "createdAt", "modifiedAt":
 			t, err := time.Parse(time.RFC3339Nano, value)
 			if err != nil {

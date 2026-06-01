@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"log"
 	"os"
 	"strings"
@@ -42,14 +41,13 @@ func (s *Session) SaveConversation() error {
 	allMsgs = append(allMsgs, s.messages...)
 
 	data := &history.ConversationData{
-		Filename:   s.historyFilename,
-		Title:      s.title,
-		CreatedAt:  s.createdAt,
-		Messages:   allMsgs,
-		Files:      s.config.Context.Files,
-		Dirs:       s.config.Context.Dirs,
-		Exclusions: s.config.Context.Exclusions,
-		WorkingDir: wd,
+		Filename:     s.historyFilename,
+		Title:        s.title,
+		CreatedAt:    s.createdAt,
+		Messages:     allMsgs,
+		ContextFiles: s.contextFiles,
+		Exclusions:   s.config.Context.Exclusions,
+		WorkingDir:   wd,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -81,10 +79,7 @@ func (s *Session) LoadConversation(filename string) error {
 	s.titleGenerated = true // A loaded conversation always has a title.
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
-
-	// Resolve context files from history metadata
-	resolvedFiles, _ := utils.SourceToFileList(metadata.Dirs, metadata.Files, metadata.Exclusions)
-	s.contextFiles = resolvedFiles
+	s.contextFiles = metadata.ContextFiles
 
 	return s.LoadContext()
 }
