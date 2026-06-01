@@ -27,7 +27,7 @@ func groupMessages(messages []types.Message) []messageBlock {
 		//
 
 		// Skip system messages from being selectable blocks
-		if msg.Type != types.InitMessage && msg.Type != types.DirectoryMessage {
+		if msg.Type.IsSelectable() {
 			blocks = append(blocks, block)
 		}
 

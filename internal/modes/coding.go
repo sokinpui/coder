@@ -39,16 +39,17 @@ func (m *CodingMode) BuildPrompt(messages []types.Message) []types.Message {
 
 	var result []types.Message
 
-	// System message contains instructions and source code context
-	systemContent := instr
-	if m.projectSourceCode != "" {
-		systemContent += "\n\n" + ProjectSourceCodeHeader + m.projectSourceCode
-	}
-
 	result = append(result, types.Message{
-		Type:    types.InitMessage, // We'll treat Init as System role in generator
-		Content: systemContent,
+		Type:    types.InstructionMessage,
+		Content: instr,
 	})
+
+	if m.projectSourceCode != "" {
+		result = append(result, types.Message{
+			Type:    types.SourceCodeMessage,
+			Content: ProjectSourceCodeHeader + m.projectSourceCode,
+		})
+	}
 
 	result = append(result, messages...)
 	return result

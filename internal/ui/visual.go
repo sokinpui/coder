@@ -143,9 +143,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case visualModeGenerate:
 			msgIndex := -1
 			// Find the first user or image message at or before the start of the selected block
+			messages := m.Session.GetMessages()
 			for i := block.startIdx; i >= 0; i-- {
-				msgType := m.Session.GetMessages()[i].Type
-				if msgType == types.UserMessage || msgType == types.ImageMessage {
+				if messages[i].Type.IsRegeneratable() {
 					msgIndex = i
 					break
 				}
@@ -173,8 +173,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		case visualModeEdit:
 			userMsgIndex := -1
 			// Find the first user message at or before the start of the selected block
+			messages := m.Session.GetMessages()
 			for i := block.startIdx; i >= 0; i-- {
-				if m.Session.GetMessages()[i].Type == types.UserMessage {
+				if messages[i].Type.IsEditable() {
 					userMsgIndex = i
 					break
 				}
@@ -303,9 +304,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				block := m.getCurrentBlock()
 				msgIndex := -1
 				// Find the first user or image message at or before the start of the selected block
+				messages := m.Session.GetMessages()
 				for i := block.startIdx; i >= 0; i-- {
-					msgType := m.Session.GetMessages()[i].Type
-					if msgType == types.UserMessage || msgType == types.ImageMessage {
+					if messages[i].Type.IsRegeneratable() {
 						msgIndex = i
 						break
 					}
@@ -333,8 +334,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				block := m.getCurrentBlock()
 				userMsgIndex := -1
 				// Find the first user message at or before the start of the selected block
+				messages := m.Session.GetMessages()
 				for i := block.startIdx; i >= 0; i-- {
-					if m.Session.GetMessages()[i].Type == types.UserMessage {
+					if messages[i].Type.IsEditable() {
 						userMsgIndex = i
 						break
 					}

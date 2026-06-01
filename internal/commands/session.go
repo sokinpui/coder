@@ -17,10 +17,7 @@ func init() {
 
 func hasSelectableMessages(messages []types.Message) bool {
 	for _, msg := range messages {
-		switch msg.Type {
-		case types.InitMessage, types.DirectoryMessage:
-			continue
-		default:
+		if msg.Type.IsSelectable() {
 			return true
 		}
 	}

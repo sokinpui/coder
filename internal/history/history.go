@@ -121,6 +121,8 @@ var roleToMessageType = map[string]types.MessageType{
 	"Command Execute:":        types.CommandMessage,
 	"Command Execute Result:": types.CommandResultMessage,
 	"Command Execute Error:":  types.CommandErrorResultMessage,
+	"Instruction:":            types.InstructionMessage,
+	"Source Code:":            types.SourceCodeMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
@@ -330,7 +332,17 @@ func BuildHistorySnippet(messages []types.Message) string {
 	for i := range messages {
 		msg := messages[i]
 
+		if !msg.Type.IsHistory() {
+			continue
+		}
+
 		switch msg.Type {
+		case types.InstructionMessage:
+			sb.WriteString("Instruction:\n")
+			sb.WriteString(msg.Content)
+		case types.SourceCodeMessage:
+			sb.WriteString("Source Code:\n")
+			sb.WriteString(msg.Content)
 		case types.UserMessage:
 			sb.WriteString("User:\n")
 			sb.WriteString(msg.Content)
@@ -352,9 +364,6 @@ func BuildHistorySnippet(messages []types.Message) string {
 		case types.CommandErrorResultMessage:
 			sb.WriteString("Command Execute Error:\n")
 			sb.WriteString(msg.Content)
-		default:
-			// Skip system messages like InitMessage, DirectoryMessage
-			continue
 		}
 		sb.WriteString("\n\n")
 	}

@@ -76,7 +76,7 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		var content any
 
 		switch msg.Type {
-		case types.InitMessage:
+		case types.InstructionMessage, types.SourceCodeMessage:
 			role = "system"
 			content = msg.Content
 		case types.UserMessage:

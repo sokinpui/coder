@@ -11,10 +11,10 @@ import (
 
 func (s *Session) hasConservation() bool {
 	for _, msg := range s.messages {
-		if msg.Type == types.UserMessage || msg.Type == types.ImageMessage {
-			return true
-		}
-		if msg.Type == types.AIMessage && strings.TrimSpace(msg.Content) != "" {
+		if msg.Type.IsHistory() {
+			if msg.Type.IsAI() && strings.TrimSpace(msg.Content) == "" {
+				continue
+			}
 			return true
 		}
 	}
@@ -130,8 +130,7 @@ func (s *Session) RegenerateFrom(messageIndex int) types.Event {
 		})
 		return types.Event{Type: types.MessagesUpdated}
 	}
-	msgType := s.messages[messageIndex].Type
-	if msgType != types.UserMessage && msgType != types.ImageMessage {
+	if !s.messages[messageIndex].Type.IsRegeneratable() {
 		s.messages = append(s.messages, types.Message{
 			Type:    types.CommandErrorResultMessage,
 			Content: "Invalid index for regeneration.",
