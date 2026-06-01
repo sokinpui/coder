@@ -46,12 +46,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	// Handle global keybindings first
 	switch keyStr {
 	case km.ContextList:
-		cmdOutput, _, cmdSuccess := commands.ProcessCommand("/list-all", m.Session)
+		cmdOutput, _, cmdSuccess := commands.ProcessCommand("/list", m.Session)
 
 		var messages []types.Message
 		messages = append(messages, types.Message{
 			Type:    types.CommandMessage,
-			Content: "/list-all",
+			Content: "/list",
 		})
 
 		if !cmdSuccess {

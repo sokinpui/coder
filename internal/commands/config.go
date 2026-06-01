@@ -25,8 +25,6 @@ func configCmd(args string, s SessionController) (CommandOutput, bool) {
 	writeList(&b, "dirs", cfg.Context.Dirs)
 	writeList(&b, "exclusions", cfg.Context.Exclusions)
 
-	writeList(&b, "active context files", s.GetContextFiles())
-
 	fmt.Fprintf(&b, "ui:\n  markdowntheme: %s\n", cfg.UI.MarkdownTheme)
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true

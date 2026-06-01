@@ -103,7 +103,6 @@ Commands are prefixed with a slash `/`.
 - `/file [paths...]`: Add specific files or directories to the AI's context.
 - `/exclude [paths...]`: Remove paths from the context.
 - `/list`: Show a summary of files currently in context.
-- `/list-all`: Show a detailed list of every file being read by the AI.
 - `/itf`: Manually trigger the code application tool on the last response.
 - `/model [name]`: Switch the generation model on the fly.
 - `/new`: Reset the session but keep current configuration.
@@ -130,7 +129,6 @@ Press `Esc` to enter Visual Mode. This allows you to interact with previous mess
 - `o`: Swap cursor position in selection.
 - `i`: Exit visual mode.
 - `Ctrl+A`: Apply code changes from the nearest AI response above the cursor.
-
 
 ## Configuration
 
