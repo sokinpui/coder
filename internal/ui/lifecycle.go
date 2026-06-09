@@ -61,7 +61,7 @@ func (m Model) updatePalette() Model {
 		if len(parts) == 1 && !hasTrailingSpace {
 			prefix := strings.TrimPrefix(parts[0], "/")
 			for _, c := range m.AvailableCommands {
-				if strings.HasPrefix(c, prefix) {
+				if strings.HasPrefix(strings.ToLower(c), strings.ToLower(prefix)) {
 					m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, "/"+c)
 				}
 			}
@@ -74,7 +74,7 @@ func (m Model) updatePalette() Model {
 
 			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig(), argPrefix)
 			for _, s := range suggestions {
-				if strings.HasPrefix(s, argPrefix) {
+				if strings.HasPrefix(strings.ToLower(s), strings.ToLower(argPrefix)) {
 					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
 				}
 			}
