@@ -133,6 +133,14 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		"messages": apiMessages,
 	}
 
+	// insert thinking parameters for deepseek-v4-flash to enable better reasoning capabilities
+	if genConfig.ModelCode == "deepseek-v4-flash" {
+		body["chat_template_kwargs"] = map[string]any{
+			"thinking":         true,
+			"reasoning_effort": "high",
+		}
+	}
+
 	jsonBody, _ := json.Marshal(body)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getChatURL(), bytes.NewBuffer(jsonBody))
@@ -164,6 +172,10 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
+		if ctx.Err() != nil {
+			return
+		}
+
 		line := scanner.Text()
 		if line == "" || !strings.HasPrefix(line, "data: ") {
 			continue

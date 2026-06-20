@@ -60,6 +60,16 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		if m.State != stateCancelling {
 			m.Session.CancelGeneration()
 			m.State = stateCancelling
+		} else {
+			// Emergency cancel: force return to idle if already cancelling
+			m.State = stateIdle
+			m.Chat.IsStreaming = false
+			m.Chat.StreamBuffer = ""
+			m.Chat.StreamDone = false
+			m.Chat.IsStreamAnime = false
+			m.Chat.LastInteractionFailed = true
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
 		}
 	case tea.KeyCtrlN:
 		event := m.Session.HandleInput("/new")

@@ -120,6 +120,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, spinnerCmd, true
 
 	case streamResultMsg:
+		if !m.Chat.IsStreaming {
+			return m, nil, true
+		}
+
 		if m.State == stateThinking {
 			m.State = stateGenerating
 		}
@@ -180,6 +184,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case streamFinishedMsg:
 		if !m.Chat.IsStreaming || m.Chat.StreamBuffer != "" {
 			m.Chat.StreamDone = true
+			if !m.Chat.IsStreaming {
+				m.Chat.StreamBuffer = ""
+			}
 			return m, nil, true
 		}
 
