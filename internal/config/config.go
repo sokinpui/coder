@@ -30,6 +30,7 @@ type Generation struct {
 	ModelCode      string
 	TitleModelCode string
 	StreamDelay    int
+	ReasoningEffort string
 }
 
 type UI struct {
@@ -106,6 +107,7 @@ func Load() (*Config, error) {
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
 	v.SetDefault("generation.streamdelay", 0)
+	v.SetDefault("generation.reasoningeffort", "high")
 	v.SetDefault("context.dirs", []string{"."})
 	v.SetDefault("context.files", []string{})
 	v.SetDefault("context.exclusions", []string{})

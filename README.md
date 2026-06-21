@@ -65,6 +65,7 @@ server:
 generation:
   modelcode: gpt-4o # The model ID used for chat
   titlemodelcode: gpt-4o-mini # The model ID used for session titles
+  reasoning_effort: high # Reasoning effort for models that support it (minimal, low, medium, high)
 ```
 
 ### API Key

@@ -128,17 +128,10 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 	}
 
 	body := map[string]any{
-		"model":    genConfig.ModelCode,
-		"stream":   true,
-		"messages": apiMessages,
-	}
-
-	// insert thinking parameters for deepseek-v4-flash to enable better reasoning capabilities
-	if genConfig.ModelCode == "deepseek-v4-flash" {
-		body["chat_template_kwargs"] = map[string]any{
-			"thinking":         true,
-			"reasoning_effort": "high",
-		}
+		"model":            genConfig.ModelCode,
+		"stream":           true,
+		"messages":         apiMessages,
+		"reasoning_effort": genConfig.ReasoningEffort,
 	}
 
 	jsonBody, _ := json.Marshal(body)
