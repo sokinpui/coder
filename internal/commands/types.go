@@ -16,6 +16,7 @@ type SessionController interface {
 	GetMessages() []types.Message
 	GetConfig() *config.Config
 	SetTitle(title string)
+	ReloadConfig() error
 	LoadContext() error
 	GetLastModifiedFiles() []string
 	SetLastModifiedFiles(files []string)

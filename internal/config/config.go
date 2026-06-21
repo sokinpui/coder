@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/utils"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,7 +97,7 @@ type Config struct {
 	Clipboard       Clipboard
 	UI              UI
 	Keymap          Keymap
-	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands"`
+	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands" yaml:"shellcommands"`
 	AvailableModels []string `yaml:"-"`
 }
 
@@ -196,6 +197,45 @@ func Load() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func UpdateLocalConfig(key string, value any) error {
+	repoRoot, err := utils.FindRepoRoot()
+	if err != nil {
+		return fmt.Errorf("local config can only be updated within a git repository")
+	}
+	path := filepath.Join(repoRoot, ".coder", "config.yaml")
+
+	m := make(map[string]any)
+	if data, err := os.ReadFile(path); err == nil {
+		_ = yaml.Unmarshal(data, &m)
+	}
+
+	parts := strings.Split(key, ".")
+	curr := m
+	for i := 0; i < len(parts)-1; i++ {
+		next, ok := curr[parts[i]].(map[string]any)
+		if !ok {
+			next = make(map[string]any)
+			curr[parts[i]] = next
+		}
+		curr = next
+	}
+
+	last := parts[len(parts)-1]
+	if value == nil {
+		delete(curr, last)
+	} else {
+		curr[last] = value
+	}
+
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	_ = os.MkdirAll(filepath.Dir(path), 0755)
+	return os.WriteFile(path, data, 0644)
 }
 
 func InitConfig(isLocal bool) error {

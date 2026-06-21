@@ -96,6 +96,18 @@ func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
+func (s *Session) ReloadConfig() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	s.config = cfg
+	s.generator.Config = cfg.Generation
+	s.generator.BaseURL = cfg.Server.URL
+	s.generator.APIKey = cfg.Server.APIKey
+	return nil
+}
+
 func (s *Session) GetGenerator() *generation.Generator {
 	return s.generator
 }
