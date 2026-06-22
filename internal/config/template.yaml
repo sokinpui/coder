@@ -57,3 +57,9 @@ keymap:
     activetab: l
     exit: q
 
+# shellcommands:
+#   ls:
+#     description: "List files in current directory"
+#     exec: "ls -F $1"
+#     canAIsee: true
+

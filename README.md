@@ -68,6 +68,27 @@ generation:
   reasoning_effort: high # Reasoning effort for models that support it (minimal, low, medium, high)
 ```
 
+### Custom Shell Commands
+
+You can define custom commands in your `config.yaml` that execute shell scripts. These behave like built-in slash commands.
+
+```yaml
+shellcommands:
+  test:
+    description: "Run project tests"
+    exec: "go test ./..."
+    canAIsee: true
+  grep:
+    description: "Search in files"
+    exec: "grep -r $1 ."
+    canAIsee: true
+```
+
+- **exec**: The shell command to run. Use `$1`, `$2`, etc., for positional arguments.
+- **canAIsee**: If `true`, the output is added to the conversation history, allowing the AI to see test results, file contents, or directory structures to assist in debugging or coding.
+- **Usage**: Run them in the chat using `/[command_name] [args]`, e.g., `/grep Todo`.
+
+
 ### API Key
 
 We recommend setting your API key via an environment variable for security:

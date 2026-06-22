@@ -24,6 +24,7 @@ type helpSection struct {
 
 var behaviorGroup = helpGroup{
 	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `/file` let AI read them."},
+	{key: "Shell Commands", desc: "You can define custom slash commands in your config.yaml using the 'shellcommands' section."},
 }
 
 var commandGroup = helpGroup{
