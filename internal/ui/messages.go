@@ -5,6 +5,7 @@ import (
 	"log"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -126,6 +127,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if m.State == stateGenPending {
 			m.State = stateThinking
+			m.Chat.StateStartTime = time.Now()
 		}
 
 		if msg.ReasoningContent != "" && m.State != stateGenerating {
@@ -152,6 +154,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if m.State == stateThinking || m.State == stateGenPending {
 			m.State = stateGenerating
+			m.Chat.StateStartTime = time.Now()
 		}
 		m.updateFromBuffer(&m.Chat.StreamBuffer, types.AIMessage)
 

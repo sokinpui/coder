@@ -146,6 +146,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		}
 
 		m.State = stateGenPending
+		m.Chat.StateStartTime = time.Now()
 		m.Chat.TextArea.Blur()
 		m.Chat.TextArea.Reset()
 		m = m.updateLayout()

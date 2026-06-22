@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/sokinpui/coder/internal/types"
+	"time"
 )
 
 type cachedRender struct {
@@ -42,6 +43,7 @@ type ChatModel struct {
 	MessageLineOffsets       map[int]int
 	PreserveInputOnSubmit    bool
 	RenderCache              map[int]cachedRender
+	StateStartTime           time.Time
 }
 
 func NewChat(initialInput string) ChatModel {

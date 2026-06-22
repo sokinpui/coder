@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/utils"
@@ -60,8 +61,6 @@ func (m Model) StatusView() string {
 			}
 		}
 		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
-	case stateCancelling:
-		leftStatus = generatingStatusStyle.Render("Cancelling...")
 	}
 
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
@@ -85,17 +84,29 @@ func (m Model) StatusView() string {
 	}
 
 	switch m.State {
-	case stateGenPending, stateThinking, stateGenerating:
-		var statusText string
+	case stateGenPending, stateThinking, stateGenerating, stateCancelling:
+		var (
+			statusText  string
+			statusStyle lipgloss.Style
+		)
 		switch m.State {
 		case stateGenPending:
 			statusText = "Asking"
+			statusStyle = askingStatusStyle
 		case stateThinking:
 			statusText = "Thinking"
+			statusStyle = thinkingStatusStyle
 		case stateGenerating:
 			statusText = "Generating"
+			statusStyle = generatingStatusStyle
+		case stateCancelling:
+			statusText = "Cancelling"
+			statusStyle = generatingStatusStyle
 		}
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Chat.Spinner.View())
+
+		elapsed := time.Since(m.Chat.StateStartTime).Seconds()
+		timerText := fmt.Sprintf("%s (%.1fs) ", statusText, elapsed)
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(timerText), m.Chat.Spinner.View())
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
 	if m.Chat.IsFetchingModels {

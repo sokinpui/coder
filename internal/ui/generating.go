@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -35,6 +37,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 		return m, nil // Should not happen
 	}
 	m.State = stateGenPending
+	m.Chat.StateStartTime = time.Now()
 	m.Chat.IsStreaming = true
 	m.Chat.StreamBuffer = ""
 	m.Chat.StreamDone = false
@@ -64,6 +67,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		if m.State != stateCancelling {
 			m.Session.CancelGeneration()
 			m.State = stateCancelling
+			m.Chat.StateStartTime = time.Now()
 		} else {
 			// Emergency cancel: force return to idle if already cancelling
 			m.State = stateIdle

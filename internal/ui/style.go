@@ -68,6 +68,12 @@ var (
 				Padding(0, 1)
 
 	// UI State Styles
+	askingStatusStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("228")). // Yellow
+				Italic(true)
+	thinkingStatusStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("213")). // Pink/Magenta
+				Italic(true)
 	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
