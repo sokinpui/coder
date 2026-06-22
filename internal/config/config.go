@@ -235,34 +235,3 @@ func UpdateLocalConfig(key string, value any) error {
 	_ = os.MkdirAll(filepath.Dir(path), 0755)
 	return os.WriteFile(path, data, 0644)
 }
-
-func InitConfig(isLocal bool) error {
-	var configDir string
-	if isLocal {
-		repoRoot, err := utils.FindRepoRoot()
-		if err != nil {
-			return fmt.Errorf("failed to find repo root: %w", err)
-		}
-		configDir = filepath.Join(repoRoot, ".coder")
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
-		}
-		configDir = filepath.Join(home, ".config", "coder")
-	}
-	return ensureDirAndFile(configDir, "config.yaml", ConfigTemplate)
-}
-
-func ensureDirAndFile(dir, filename, content string) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	path := filepath.Join(dir, filename)
-	if _, err := os.Stat(path); err == nil {
-		return nil
-	}
-
-	return os.WriteFile(path, []byte(content), 0644)
-}

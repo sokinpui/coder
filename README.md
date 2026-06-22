@@ -154,6 +154,12 @@ Press `Esc` to enter Visual Mode. This allows you to interact with previous mess
 
 ## Configuration
 
-On first run, a default `config.yaml` is created at `~/.config/coder/config.yaml`.
+Configuration files are not created automatically. You must explicitly create them using the command line:
 
-You can also create a project-specific configuration at `.coder/config.yaml` in your repository's root. This will override the global settings.
+- **Global Configuration**: Run `coder -g -c` to create and edit the global config at `~/.config/coder/config.yaml`.
+- **Local Configuration**: Run `coder -c` within a Git repository to create and edit a project-specific config at `.coder/config.yaml`.
+
+Local settings override global settings.
+
+### OpenAI Compatible Service
+
