@@ -86,10 +86,13 @@ func (m Model) StatusView() string {
 
 	switch m.State {
 	case stateGenPending, stateThinking, stateGenerating:
-		statusText := "Thinking"
-		if m.State == stateGenPending {
+		var statusText string
+		switch m.State {
+		case stateGenPending:
 			statusText = "Asking"
-		} else if m.State == stateGenerating {
+		case stateThinking:
+			statusText = "Thinking"
+		case stateGenerating:
 			statusText = "Generating"
 		}
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(statusText+" "), m.Chat.Spinner.View())
@@ -104,10 +107,7 @@ func (m Model) StatusView() string {
 
 	var statusLine string
 	if leftStatus != "" {
-		spacing := m.Width - lipgloss.Width(leftStatus) - lipgloss.Width(rightStatus)
-		if spacing < 1 {
-			spacing = 1
-		}
+		spacing := max(m.Width-lipgloss.Width(leftStatus)-lipgloss.Width(rightStatus), 1)
 		statusLine = lipgloss.JoinHorizontal(lipgloss.Top, leftStatus, strings.Repeat(" ", spacing), rightStatus)
 	} else {
 		statusLine = rightStatus

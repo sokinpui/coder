@@ -10,6 +10,10 @@ import (
 func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
+		if m.Chat.IsStreaming {
+			m.Session.CancelGeneration()
+			m.Chat.IsStreaming = false
+		}
 		m.State = stateIdle
 		m.Chat.StreamBuffer = ""
 		m.Chat.IsStreamAnime = false
@@ -30,12 +34,12 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	if event.Type != types.GenerationStarted {
 		return m, nil // Should not happen
 	}
-	m.State = stateThinking
+	m.State = stateGenPending
 	m.Chat.IsStreaming = true
 	m.Chat.StreamBuffer = ""
 	m.Chat.StreamDone = false
 	m.Chat.IsStreamAnime = false
-	m.Chat.StreamSub = event.Data.(chan string)
+	m.Chat.StreamSub = event.Data.(chan types.StreamChunk)
 	m.Chat.TextArea.Blur()
 	m.Chat.TextArea.Reset()
 	m = m.updateLayout()

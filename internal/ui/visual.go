@@ -481,10 +481,7 @@ func (m Model) centerViewportOnCursor() Model {
 
 	if line, ok := m.Chat.MessageLineOffsets[block.startIdx]; ok {
 		viewportHeight := m.Chat.Viewport.Height
-		targetY := line - (viewportHeight / 2)
-		if targetY < 0 {
-			targetY = 0
-		}
+		targetY := max(line-(viewportHeight/2), 0)
 		m.Chat.Viewport.SetYOffset(targetY)
 	}
 	return m

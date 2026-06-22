@@ -33,8 +33,12 @@ func (m Model) inputView() string {
 	switch m.State {
 	case stateGenPending:
 		statusText = "Asking..."
-	case stateGenerating, stateThinking, stateCancelling:
-		statusText = "AI is thinking..."
+	case stateThinking:
+		statusText = "Thinking..."
+	case stateGenerating:
+		statusText = "Generating..."
+	case stateCancelling:
+		statusText = "Cancelling..."
 	case stateVisualSelect:
 		statusText = "Visual Mode - Use j/k to navigate"
 	case stateHistorySelect:

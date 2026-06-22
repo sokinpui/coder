@@ -4,7 +4,6 @@ server:
 generation:
   modelcode: gemini-3-flash-preview
   titlemodelcode: gemini-2.5-flash-lite
-  streamdelay: 0
   reasoningeffort: high
 
 clipboard:

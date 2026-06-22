@@ -25,16 +25,16 @@ import (
 
 const statusBarMessageDuration = 1 * time.Second
 
-func listenForStream(sub chan string) tea.Cmd {
+func listenForStream(sub chan types.StreamChunk) tea.Cmd {
 	return func() tea.Msg {
-		content, ok := <-sub
+		chunk, ok := <-sub
 		if !ok {
 			return streamFinishedMsg{}
 		}
-		if errMsg, result := strings.CutPrefix(content, "Error:"); result {
+		if errMsg, result := strings.CutPrefix(chunk.Content, "Error:"); result {
 			return errorMsg{errors.New(strings.TrimSpace(errMsg))}
 		}
-		return streamResultMsg(content)
+		return streamResultMsg(chunk)
 	}
 }
 
@@ -122,8 +122,8 @@ func saveConversationCmd(sess *session.Session) tea.Cmd {
 	}
 }
 
-func streamAnimeCmd(delay int) tea.Cmd {
-	return tea.Tick(time.Duration(delay)*time.Millisecond, func(t time.Time) tea.Msg {
+func streamAnimeCmd() tea.Cmd {
+	return tea.Tick(10*time.Millisecond, func(t time.Time) tea.Msg {
 		return streamAnimeMsg{}
 	})
 }
@@ -247,10 +247,7 @@ func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDow
 			newCursor = totalItems - 1
 		}
 	} else { // scroll up
-		newCursor = currentCursor - scrollAmount
-		if newCursor < 0 {
-			newCursor = 0
-		}
+		newCursor = max(currentCursor-scrollAmount, 0)
 	}
 	return newCursor
 }

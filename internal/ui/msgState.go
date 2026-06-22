@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 type state int
@@ -27,7 +28,7 @@ type modelsFetchedMsg struct {
 type (
 	tokenizerInitializedMsg struct{ err error }
 	startGenerationMsg      struct{}
-	streamResultMsg         string
+	streamResultMsg         types.StreamChunk
 	streamFinishedMsg       struct{}
 	streamAnimeMsg          struct{}
 	errorMsg                struct{ error }

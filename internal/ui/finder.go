@@ -112,10 +112,7 @@ func (m FinderModel) View() string {
 	if m.Cursor >= maxItems {
 		start = m.Cursor - maxItems + 1
 	}
-	end := start + maxItems
-	if end > len(m.FoundItems) {
-		end = len(m.FoundItems)
-	}
+	end := min(start+maxItems, len(m.FoundItems))
 
 	for i, item := range m.FoundItems[start:end] {
 		actualIndex := i + start

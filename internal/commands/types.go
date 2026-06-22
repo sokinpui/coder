@@ -6,9 +6,9 @@ import (
 )
 
 type CommandOutput struct {
-	Type    types.EventType
-	Payload string
-	Mode    string
+	Type     types.EventType
+	Payload  string
+	Mode     string
 	Metadata map[string]any
 }
 

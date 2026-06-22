@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 type cachedRender struct {
@@ -19,7 +20,7 @@ type ChatModel struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
 	Spinner                  spinner.Model
-	StreamSub                chan string
+	StreamSub                chan types.StreamChunk
 	IsStreaming              bool
 	StreamBuffer             string
 	StreamDone               bool

@@ -25,6 +25,11 @@ type Message struct {
 	Metadata map[string]any
 }
 
+type StreamChunk struct {
+	Content          string
+	ReasoningContent string
+}
+
 func (t MessageType) String() string {
 	switch t {
 	case UserMessage:

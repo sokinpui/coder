@@ -39,7 +39,7 @@ func StartGeneration(s SessionController, generationConfig *config.Generation) t
 		}
 	}
 
-	streamChan := make(chan string, 100)
+	streamChan := make(chan types.StreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
 	go s.GetGenerator().GenerateTask(ctx, messages, streamChan, generationConfig)

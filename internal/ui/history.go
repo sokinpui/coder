@@ -115,10 +115,9 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			} else {
 				m.State = stateGenerating
 			}
-			delay := m.Session.GetConfig().Generation.StreamDelay
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
-			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(delay), m.Chat.Spinner.Tick), true
+			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(), m.Chat.Spinner.Tick), true
 		} else {
 			// Return to idle
 			m.State = stateIdle
@@ -278,10 +277,7 @@ func (m *Model) centerHistoryViewport() {
 	halfHeight := m.Chat.Viewport.Height / 2
 	targetOffset := m.History.CursorPos - halfHeight
 
-	maxOffset := len(currentItems) - m.Chat.Viewport.Height
-	if maxOffset < 0 {
-		maxOffset = 0
-	}
+	maxOffset := max(len(currentItems)-m.Chat.Viewport.Height, 0)
 
 	if targetOffset < 0 {
 		targetOffset = 0

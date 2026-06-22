@@ -77,18 +77,8 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	}
 
 	if m.State == stateThinking || m.State == stateGenPending {
-		text := "Thinking "
-		if m.State == stateGenPending {
-			text = "Asking "
-		}
-
-		// The spinner has its own colors, so we can't render it with the same style as the text.
-		thinkingText := thinkingTextStyle.Render(text)
-
-		fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
-		// Apply padding to the container.
-		block := lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
-		allLines = append(allLines, strings.Split(block, "\n")...)
+		thinkingLine := m.renderThinkingLine()
+		allLines = append(allLines, strings.Split(thinkingLine, "\n")...)
 	}
 	return strings.Join(allLines, "\n"), messageLineOffsets
 }
@@ -112,7 +102,9 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 			style = applyHighlight(style, isCursorOn, isSelected)
 		}
 		prefix := ""
-		if msg.Type == types.ShellCmdMessage { prefix = "Shell: " }
+		if msg.Type == types.ShellCmdMessage {
+			prefix = "Shell: "
+		}
 		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
 		style := imageMessageStyle
@@ -151,6 +143,16 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 	default:
 		return ""
 	}
+}
+
+func (m Model) renderThinkingLine() string {
+	text := "Thinking "
+	if m.State == stateGenPending {
+		text = "Asking "
+	}
+	thinkingText := thinkingTextStyle.Render(text)
+	fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
+	return lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
 }
 
 func (m *Model) renderConversation() string {

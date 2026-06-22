@@ -21,12 +21,12 @@ const (
 )
 
 type Metadata struct {
-	Title      string
-	CreatedAt  time.Time
-	ModifiedAt time.Time
+	Title        string
+	CreatedAt    time.Time
+	ModifiedAt   time.Time
 	ContextFiles []string
-	Exclusions []string
-	WorkingDir string
+	Exclusions   []string
+	WorkingDir   string
 }
 
 type ConversationInfo struct {
@@ -37,13 +37,13 @@ type ConversationInfo struct {
 }
 
 type ConversationData struct {
-	Filename   string
-	Title      string
-	CreatedAt  time.Time
-	Messages   []types.Message
+	Filename     string
+	Title        string
+	CreatedAt    time.Time
+	Messages     []types.Message
 	ContextFiles []string
-	Exclusions []string
-	WorkingDir string
+	Exclusions   []string
+	WorkingDir   string
 }
 
 type Manager struct {
@@ -139,11 +139,13 @@ func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 			return metadata, true
 		}
 
-		if strings.HasPrefix(line, "  - ") {
-			val := strings.TrimSpace(strings.TrimPrefix(line, "  - "))
+		if after, ok := strings.CutPrefix(line, "  - "); ok {
+			val := strings.TrimSpace(after)
 			switch currentKey {
-			case "contextFiles", "files": metadata.ContextFiles = append(metadata.ContextFiles, val)
-			case "exclusions": metadata.Exclusions = append(metadata.Exclusions, val)
+			case "contextFiles", "files":
+				metadata.ContextFiles = append(metadata.ContextFiles, val)
+			case "exclusions":
+				metadata.Exclusions = append(metadata.Exclusions, val)
 			}
 			continue
 		}

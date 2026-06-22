@@ -28,9 +28,8 @@ type Server struct {
 }
 
 type Generation struct {
-	ModelCode      string
-	TitleModelCode string
-	StreamDelay    int
+	ModelCode       string
+	TitleModelCode  string
 	ReasoningEffort string
 }
 
@@ -98,7 +97,7 @@ type Config struct {
 	UI              UI
 	Keymap          Keymap
 	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands" yaml:"shellcommands"`
-	AvailableModels []string `yaml:"-"`
+	AvailableModels []string                `yaml:"-"`
 }
 
 func Load() (*Config, error) {
@@ -107,7 +106,6 @@ func Load() (*Config, error) {
 	v.SetDefault("server.url", "http://localhost:9001/v1")
 	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
 	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
-	v.SetDefault("generation.streamdelay", 0)
 	v.SetDefault("generation.reasoningeffort", "high")
 	v.SetDefault("context.dirs", []string{"."})
 	v.SetDefault("context.files", []string{})

@@ -124,14 +124,20 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		if m.State == stateThinking {
-			m.State = stateGenerating
+		if m.State == stateGenPending {
+			m.State = stateThinking
 		}
-		delay := m.Session.GetConfig().Generation.StreamDelay
-		m.Chat.StreamBuffer += string(msg)
+
+		if msg.ReasoningContent != "" && m.State != stateGenerating {
+			m.State = stateThinking
+		}
+		if msg.Content != "" {
+			m.Chat.StreamBuffer += msg.Content
+		}
+
 		if !m.Chat.IsStreamAnime {
 			m.Chat.IsStreamAnime = true
-			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(delay)), true
+			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd()), true
 		}
 		return m, listenForStream(m.Chat.StreamSub), true
 
@@ -144,30 +150,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		// Adaptive anime: take more characters if the buffer is getting large
-		take := 1
-		bufLen := len(m.Chat.StreamBuffer)
-		if bufLen > 300 {
-			take = bufLen / 10
-		} else if bufLen > 50 {
-			take = 4
-		} else if bufLen > 10 {
-			take = 2
+		if m.State == stateThinking || m.State == stateGenPending {
+			m.State = stateGenerating
 		}
-
-		if take > len(m.Chat.StreamBuffer) {
-			take = len(m.Chat.StreamBuffer)
-		}
-
-		chunk := m.Chat.StreamBuffer[:take]
-		m.Chat.StreamBuffer = m.Chat.StreamBuffer[take:]
+		m.updateFromBuffer(&m.Chat.StreamBuffer, types.AIMessage)
 
 		messages := m.Session.GetMessages()
 		if len(messages) > 0 {
 			lastMsg := messages[len(messages)-1]
-			lastMsg.Content += chunk
-			m.Session.ReplaceLastMessage(lastMsg)
-
 			if lastMsg.Content != m.Chat.LastRenderedAIPart {
 				wasAtBottom := m.Chat.Viewport.AtBottom()
 				m.Chat.Viewport.SetContent(m.renderConversation())
@@ -178,8 +168,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		delay := m.Session.GetConfig().Generation.StreamDelay
-		return m, streamAnimeCmd(delay), true
+		return m, streamAnimeCmd(), true
 
 	case streamFinishedMsg:
 		if !m.Chat.IsStreaming || m.Chat.StreamBuffer != "" {
@@ -507,4 +496,34 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 	return m, nil, false
+}
+
+func (m *Model) updateFromBuffer(buffer *string, targetType types.MessageType) {
+	if *buffer == "" {
+		return
+	}
+
+	bufLen := len(*buffer)
+	take := 1
+	switch {
+	case bufLen > 300:
+		take = bufLen / 10
+	case bufLen > 50:
+		take = 4
+	case bufLen > 10:
+		take = 2
+	}
+	if take > bufLen {
+		take = bufLen
+	}
+
+	chunk := (*buffer)[:take]
+	*buffer = (*buffer)[take:]
+
+	messages := m.Session.GetMessages()
+	if len(messages) > 0 && messages[len(messages)-1].Type == targetType {
+		messages[len(messages)-1].Content += chunk
+	} else {
+		m.Session.AddMessages(types.Message{Type: targetType, Content: chunk})
+	}
 }

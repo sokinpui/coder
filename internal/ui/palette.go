@@ -71,10 +71,7 @@ func (m Model) PaletteView() string {
 	total := numCommands + numArgs
 
 	start := m.Chat.PaletteOffset
-	end := start + maxItems
-	if end > total {
-		end = total
-	}
+	end := min(start+maxItems, total)
 
 	// Calculate max width for command names for alignment
 	maxNameWidth := 0
@@ -92,10 +89,7 @@ func (m Model) PaletteView() string {
 			b.WriteString("\n")
 		}
 
-		secEnd := numCommands
-		if end < numCommands {
-			secEnd = end
-		}
+		secEnd := min(end, numCommands)
 
 		for i := start; i < secEnd; i++ {
 			item := m.Chat.PaletteFilteredCommands[i]
@@ -117,10 +111,7 @@ func (m Model) PaletteView() string {
 			}
 		}
 
-		secStart := numCommands
-		if start > numCommands {
-			secStart = start
-		}
+		secStart := max(start, numCommands)
 
 		for i := secStart; i < end; i++ {
 			item := m.Chat.PaletteFilteredArguments[i-numCommands]

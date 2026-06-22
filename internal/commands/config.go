@@ -74,7 +74,7 @@ func collectConfigKeys(v reflect.Value, prefix string) []string {
 	var keys []string
 	t := v.Type()
 
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
 		}

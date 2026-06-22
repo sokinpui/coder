@@ -33,7 +33,8 @@ type openAIContentPart struct {
 type openAIStreamResponse struct {
 	Choices []struct {
 		Delta struct {
-			Content string `json:"content"`
+			Content          string `json:"content"`
+			ReasoningContent string `json:"reasoning_content"`
 		} `json:"delta"`
 	} `json:"choices"`
 }
@@ -62,7 +63,7 @@ func (g *Generator) getChatURL() string {
 	return strings.TrimSuffix(g.BaseURL, "/") + "/chat/completions"
 }
 
-func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- string, generationConfig *config.Generation) {
+func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
 	defer close(streamChan)
 
 	genConfig := g.Config
@@ -138,7 +139,7 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getChatURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
-		streamChan <- fmt.Sprintf("Error: Failed to create request: %v", err)
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
 		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -152,14 +153,14 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		if ctx.Err() == context.Canceled {
 			return
 		}
-		streamChan <- fmt.Sprintf("Error: Failed to connect to server: %v", err)
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errMsg, _ := io.ReadAll(resp.Body)
-		streamChan <- fmt.Sprintf("Error: Server returned %d: %s", resp.StatusCode, string(errMsg))
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned %d: %s", resp.StatusCode, string(errMsg))}
 		return
 	}
 
@@ -188,13 +189,17 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 			continue
 		}
 
-		if text := streamResp.Choices[0].Delta.Content; text != "" {
-			streamChan <- text
+		delta := streamResp.Choices[0].Delta
+		if delta.Content != "" || delta.ReasoningContent != "" {
+			streamChan <- types.StreamChunk{
+				Content:          delta.Content,
+				ReasoningContent: delta.ReasoningContent,
+			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil && ctx.Err() == nil {
-		streamChan <- fmt.Sprintf("Error: Stream interrupted: %v", err)
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
 	}
 }
 
