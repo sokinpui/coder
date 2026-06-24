@@ -23,7 +23,7 @@ You should follow instruction below when write code:
 4. You should only output single codeblock per files. either create, rename, delete or modify.
 5. The Indent and content of context line and removed line should exactly same as original file.
 6. Use relative path from the current directory for all files.
-7. Diff should always be generated based on the code placed at `# PROJECT SOURCE CODE`. Because User may not apply the code changes you make, or modify the source code after apply the changes you make.
+7. Diff should always be generated based on the code Shown in `# PROJECT SOURCE CODE`.
 8. No trailing whitespace in diff output, unless the original file has trailing whitespace.
 
 ## File Modify:
