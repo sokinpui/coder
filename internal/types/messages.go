@@ -61,19 +61,6 @@ func (t MessageType) String() string {
 	}
 }
 
-// IsPrompt returns true if the message should be sent to the AI in the chat context.
-func (t MessageType) IsPrompt() bool {
-	switch t {
-	case InstructionMessage, SourceCodeMessage, UserMessage, AIMessage, ImageMessage:
-		return true
-	default:
-		if t == ShellCmdMessage || t == ShellCmdResultMessage {
-			return true // Handled dynamically via CanAISee check in BuildPrompt if needed, but we rely on filtered message list
-		}
-		return false
-	}
-}
-
 // IsEditable returns true if the message content can be edited by the user.
 func (t MessageType) IsEditable() bool {
 	switch t {
