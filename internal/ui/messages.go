@@ -205,13 +205,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.LastInteractionFailed = true
 		}
 
+		m.State = stateIdle
 		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
 			m.Chat.Viewport.GotoBottom()
 		}
 
-		m.State = stateIdle
 		m.Chat.StreamSub = nil
 		m.Session.CancelGeneration()
 		m.Chat.TextArea.Reset()
@@ -460,17 +460,20 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		messages := m.Session.GetMessages()
-		lastMsg := messages[len(messages)-1]
-		lastMsg.Content = errorContent
-		m.Session.ReplaceLastMessage(lastMsg)
+		if len(messages) > 0 {
+			lastMsg := messages[len(messages)-1]
+			lastMsg.Content = errorContent
+			lastMsg.Type = types.CommandErrorResultMessage
+			m.Session.ReplaceLastMessage(lastMsg)
+		}
 		m.Chat.LastInteractionFailed = true
 
+		m.State = stateIdle
 		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
 			m.Chat.Viewport.GotoBottom()
 		}
-		m.State = stateIdle
 		m.Chat.StreamSub = nil
 		m.Session.CancelGeneration()
 		m.Chat.TextArea.Reset()
