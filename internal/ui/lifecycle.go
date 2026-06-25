@@ -98,7 +98,7 @@ func (m Model) updateLayout() Model {
 	if m.State == stateHistorySelect {
 		headerHeight := lipgloss.Height(m.historyHeaderView())
 		statusHeight := lipgloss.Height(m.StatusView())
-		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight + 1
+		m.Chat.Viewport.Height = m.Height - headerHeight - statusHeight - 1
 		m.Chat.Viewport.Height = max(0, m.Chat.Viewport.Height)
 		return m
 	}
@@ -108,6 +108,6 @@ func (m Model) updateLayout() Model {
 	inputHeight := min(visibleLines+1, maxHeight)
 	m.Chat.TextArea.SetHeight(max(1, inputHeight))
 
-	m.Chat.Viewport.Height = max(0, m.Height-m.Chat.TextArea.Height()-lipgloss.Height(m.StatusView())-textAreaStyle.GetVerticalFrameSize())
+	m.Chat.Viewport.Height = max(0, m.Height-m.Chat.TextArea.Height()-lipgloss.Height(m.StatusView())-textAreaStyle.GetVerticalFrameSize()-2)
 	return m
 }
