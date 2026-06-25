@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	_ "embed"
 	"fmt"
 	"github.com/sokinpui/coder/internal/utils"
 	"gopkg.in/yaml.v3"
@@ -10,6 +12,9 @@ import (
 
 	"github.com/spf13/viper"
 )
+
+//go:embed default.yaml
+var defaultYAML []byte
 
 type Context struct {
 	Files      []string
@@ -103,52 +108,12 @@ type Config struct {
 func Load() (*Config, error) {
 	v := viper.New()
 
-	v.SetDefault("server.url", "http://localhost:9001/v1")
-	v.SetDefault("generation.modelcode", "gemini-3-flash-preview")
-	v.SetDefault("generation.titlemodelcode", "gemini-2.5-flash-lite")
-	v.SetDefault("generation.reasoningeffort", "high")
-	v.SetDefault("context.dirs", []string{"."})
-	v.SetDefault("context.files", []string{})
-	v.SetDefault("context.exclusions", []string{})
-	v.SetDefault("clipboard.copycmd", "")
-	v.SetDefault("clipboard.pastecmd", "")
-	v.SetDefault("ui.markdowntheme", "dark")
-	v.SetDefault("keymap.submit", "ctrl+j")
-	v.SetDefault("keymap.editor", "ctrl+e")
-	v.SetDefault("keymap.paste", "ctrl+v")
-	v.SetDefault("keymap.history", "ctrl+h")
-	v.SetDefault("keymap.new", "ctrl+n")
-	v.SetDefault("keymap.branch", "ctrl+b")
-	v.SetDefault("keymap.finder", "ctrl+f")
-	v.SetDefault("keymap.contextlist", "ctrl+l")
-	v.SetDefault("keymap.applyitf", "ctrl+a")
-	v.SetDefault("keymap.scrollup", "ctrl+u")
-	v.SetDefault("keymap.scrolldown", "ctrl+d")
-	v.SetDefault("keymap.suspend", "ctrl+z")
-	v.SetDefault("keymap.visual", "esc")
+	v.SetConfigType("yaml")
+	if err := v.ReadConfig(bytes.NewReader(defaultYAML)); err != nil {
+		return nil, fmt.Errorf("failed to read embedded default config: %w", err)
+	}
 
-	v.SetDefault("keymap.visualmode.up", "k")
-	v.SetDefault("keymap.visualmode.down", "j")
-	v.SetDefault("keymap.visualmode.select", "v")
-	v.SetDefault("keymap.visualmode.swap", "o")
-	v.SetDefault("keymap.visualmode.copy", "y")
-	v.SetDefault("keymap.visualmode.delete", "d")
-	v.SetDefault("keymap.visualmode.regenerate", "g")
-	v.SetDefault("keymap.visualmode.edit", "e")
-	v.SetDefault("keymap.visualmode.branch", "b")
-	v.SetDefault("keymap.visualmode.new", "n")
-	v.SetDefault("keymap.visualmode.exit", "i")
-
-	v.SetDefault("keymap.historyview.up", "k")
-	v.SetDefault("keymap.historyview.down", "j")
-	v.SetDefault("keymap.historyview.halfpageup", "u")
-	v.SetDefault("keymap.historyview.halfpagedown", "d")
-	v.SetDefault("keymap.historyview.top", "g")
-	v.SetDefault("keymap.historyview.bottom", "G")
-	v.SetDefault("keymap.historyview.search", "/")
-	v.SetDefault("keymap.historyview.historytab", "h")
-	v.SetDefault("keymap.historyview.activetab", "l")
-	v.SetDefault("keymap.historyview.exit", "q")
+	// Reset config path/name for file loading
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()

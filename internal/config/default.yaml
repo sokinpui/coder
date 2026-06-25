@@ -1,0 +1,58 @@
+server:
+  url: http://localhost:9001/v1
+
+generation:
+  modelcode: "aisrp/gemini-3-flash-preview"
+  titlemodelcode: "aisrp/gemini-flash-lite-latest"
+  reasoningeffort: high
+
+context:
+  dirs:
+    - .
+  files: []
+  exclusions: []
+
+clipboard:
+  copycmd: ""
+  pastecmd: ""
+
+ui:
+  markdowntheme: dark
+
+keymap:
+  submit: ctrl+j
+  editor: ctrl+e
+  paste: ctrl+v
+  history: ctrl+h
+  new: ctrl+n
+  branch: ctrl+b
+  finder: ctrl+f
+  contextlist: ctrl+l
+  applyitf: ctrl+a
+  scrollup: ctrl+u
+  scrolldown: ctrl+d
+  suspend: ctrl+z
+  visual: esc
+  visualmode:
+    up: k
+    down: j
+    select: v
+    swap: o
+    copy: y
+    delete: d
+    regenerate: g
+    edit: e
+    branch: b
+    new: n
+    exit: i
+  historyview:
+    up: k
+    down: j
+    halfpageup: u
+    halfpagedown: d
+    top: g
+    bottom: G
+    search: /
+    historytab: h
+    activetab: l
+    exit: q
