@@ -17,90 +17,90 @@ import (
 var defaultYAML []byte
 
 type Context struct {
-	Files      []string
-	Dirs       []string
-	Exclusions []string
+	Files      []string `mapstructure:"files"`
+	Dirs       []string `mapstructure:"dirs"`
+	Exclusions []string `mapstructure:"exclusions"`
 }
 
 type Clipboard struct {
-	CopyCmd  string
-	PasteCmd string
+	CopyCmd  string `mapstructure:"copycmd"`
+	PasteCmd string `mapstructure:"pastecmd"`
 }
 
 type Server struct {
-	URL    string // e.g. "http://localhost:9001/v1/chat/completions"
-	APIKey string `yaml:"-"`
+	URL    string `mapstructure:"url"`
+	APIKey string `mapstructure:"-" yaml:"-"`
 }
 
 type Generation struct {
-	ModelCode       string
-	TitleModelCode  string
-	ReasoningEffort string
+	ModelCode       string `mapstructure:"modelcode"`
+	TitleModelCode  string `mapstructure:"titlemodelcode"`
+	ReasoningEffort string `mapstructure:"reasoningeffort"`
 }
 
 type UI struct {
-	MarkdownTheme string
+	MarkdownTheme string `mapstructure:"markdowntheme"`
 }
 
 type VisualKeymap struct {
-	Up         string
-	Down       string
-	Select     string
-	Swap       string
-	Copy       string
-	Delete     string
-	Regenerate string
-	Edit       string
-	Branch     string
-	New        string
-	Exit       string
+	Up         string `mapstructure:"up"`
+	Down       string `mapstructure:"down"`
+	Select     string `mapstructure:"select"`
+	Swap       string `mapstructure:"swap"`
+	Copy       string `mapstructure:"copy"`
+	Delete     string `mapstructure:"delete"`
+	Regenerate string `mapstructure:"regenerate"`
+	Edit       string `mapstructure:"edit"`
+	Branch     string `mapstructure:"branch"`
+	New        string `mapstructure:"new"`
+	Exit       string `mapstructure:"exit"`
 }
 
 type HistoryKeymap struct {
-	Up           string
-	Down         string
-	HalfPageUp   string
-	HalfPageDown string
-	Top          string
-	Bottom       string
-	Search       string
-	HistoryTab   string
-	ActiveTab    string
-	Exit         string
+	Up           string `mapstructure:"up"`
+	Down         string `mapstructure:"down"`
+	HalfPageUp   string `mapstructure:"halfpageup"`
+	HalfPageDown string `mapstructure:"halfpagedown"`
+	Top          string `mapstructure:"top"`
+	Bottom       string `mapstructure:"bottom"`
+	Search       string `mapstructure:"search"`
+	HistoryTab   string `mapstructure:"historytab"`
+	ActiveTab    string `mapstructure:"activetab"`
+	Exit         string `mapstructure:"exit"`
 }
 
 type Keymap struct {
-	Submit      string
-	Editor      string
-	Paste       string
-	History     string
-	New         string
-	Branch      string
-	Finder      string
-	ContextList string
-	ApplyITF    string
-	ScrollUp    string
-	ScrollDown  string
-	Suspend     string
-	Visual      string
+	Submit      string `mapstructure:"submit"`
+	Editor      string `mapstructure:"editor"`
+	Paste       string `mapstructure:"paste"`
+	History     string `mapstructure:"history"`
+	New         string `mapstructure:"new"`
+	Branch      string `mapstructure:"branch"`
+	Finder      string `mapstructure:"finder"`
+	ContextList string `mapstructure:"contextlist"`
+	ApplyITF    string `mapstructure:"applyitf"`
+	ScrollUp    string `mapstructure:"scrollup"`
+	ScrollDown  string `mapstructure:"scrolldown"`
+	Suspend     string `mapstructure:"suspend"`
+	Visual      string `mapstructure:"visual"`
 
 	VisualMode  VisualKeymap  `mapstructure:"visualmode"`
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
 }
 
 type ShellCommand struct {
-	Description string
-	Exec        string
-	CanAISee    bool `mapstructure:"canAIsee"`
+	Description string `mapstructure:"description"`
+	Exec        string `mapstructure:"exec"`
+	CanAISee    bool   `mapstructure:"canAIsee"`
 }
 
 type Config struct {
-	Server          Server
-	Generation      Generation
-	Context         Context
-	Clipboard       Clipboard
-	UI              UI
-	Keymap          Keymap
+	Server          Server                  `mapstructure:"server"`
+	Generation      Generation              `mapstructure:"generation"`
+	Context         Context                 `mapstructure:"context"`
+	Clipboard       Clipboard               `mapstructure:"clipboard"`
+	UI              UI                      `mapstructure:"ui"`
+	Keymap          Keymap                  `mapstructure:"keymap"`
 	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands" yaml:"shellcommands"`
 	AvailableModels []string                `yaml:"-"`
 }
@@ -117,13 +117,14 @@ func Load() (*Config, error) {
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+
 	if err == nil {
 		configDir := filepath.Join(home, ".config", "coder")
-
 		v.AddConfigPath(configDir)
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		if err := v.ReadInConfig(); err != nil {
+		// Use MergeInConfig to avoid overwriting embedded defaults
+		if err := v.MergeInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 				return nil, fmt.Errorf("failed to read global config file: %w", err)
 			}
