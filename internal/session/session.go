@@ -60,18 +60,21 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	allExclusions = append(allExclusions, cfgCopy.Context.Exclusions...)
 
 	var resolvedContextFiles []string
-	if len(contextFiles) > 0 {
-		var dirs, files []string
-		for _, p := range contextFiles {
-			if info, err := os.Stat(p); err == nil && info.IsDir() {
-				dirs = append(dirs, p)
-				continue
+	// Only resolve context if we are NOT in chat mode
+	if _, isChat := strategy.(*modes.ChatMode); !isChat {
+		if len(contextFiles) > 0 {
+			var dirs, files []string
+			for _, p := range contextFiles {
+				if info, err := os.Stat(p); err == nil && info.IsDir() {
+					dirs = append(dirs, p)
+					continue
+				}
+				files = append(files, p)
 			}
-			files = append(files, p)
+			resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
+		} else {
+			resolvedContextFiles, _ = utils.SourceToFileList(cfgCopy.Context.Dirs, cfgCopy.Context.Files, allExclusions)
 		}
-		resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
-	} else {
-		resolvedContextFiles, _ = utils.SourceToFileList(cfgCopy.Context.Dirs, cfgCopy.Context.Files, allExclusions)
 	}
 
 	s := &Session{
