@@ -20,68 +20,77 @@ import (
 )
 
 var (
-	globalConfig      bool
 	initialPrompt     string
 	customInstruction string
-	chatMode          bool
-	configMode        bool
-	contextMode       bool
-	completionShell   string
+	globalConfig      bool
 )
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:     "coder [files...]",
-		Version: uintVersion(),
-		Short:   "Coder is a TUI wrapper for LLM chat with code application shortcuts",
+		Use:   "coder [files...]",
+		Short: "Coder is a TUI-based AI code editor",
+		Long:  "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
+		Example: `  coder --prompt "refactor this" -- main.go
+  coder chat
+  coder context -- .
+  coder config -g`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if configMode {
-				editConfig()
-				return
-			}
-
-			if completionShell != "" {
-				generateCompletion(cmd, completionShell)
-				return
-			}
-
-			mode := "coding"
-			if chatMode {
-				mode = "chat"
-			}
-
-			if contextMode {
-				printContext(mode, args)
-				return
-			}
-
-			files := args
-			if mode == "coding" {
-				files = collectFiles(args)
-			}
-
-			startApp(mode, initialPrompt, files, customInstruction)
+			files := collectFiles(args)
+			startApp("coding", initialPrompt, files, customInstruction)
 		},
 	}
 
-	rootCmd.Flags().BoolVar(&chatMode, "chat", false, "Start Coder in chat mode (no project context)")
-	rootCmd.Flags().BoolVarP(&configMode, "config", "c", false, "Edit the configuration file")
-	rootCmd.Flags().BoolVarP(&contextMode, "context", "C", false, "Print the instructions and project context")
-	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script for (bash, zsh, fish, powershell)")
-	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration (used with --config)")
-	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
-	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
+	rootCmd.PersistentFlags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
+	rootCmd.PersistentFlags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 
+	chatCmd := &cobra.Command{
+		Use:   "chat",
+		Short: "Start Coder in chat mode (no project context)",
+		Run: func(cmd *cobra.Command, args []string) {
+			startApp("chat", initialPrompt, nil, customInstruction)
+		},
+	}
+
+	configCmd := &cobra.Command{
+		Use:   "config",
+		Short: "Edit the configuration file",
+		Run: func(cmd *cobra.Command, args []string) {
+			editConfig()
+		},
+	}
+	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
+
+	contextCmd := &cobra.Command{
+		Use:   "context [files...]",
+		Short: "Print the instructions and project context",
+		Run: func(cmd *cobra.Command, args []string) {
+			printContext("coding", args)
+		},
+	}
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(uintVersion())
+		},
+	}
+
+	completionCmd := &cobra.Command{
+		Use:   "completion [bash|zsh|fish|powershell]",
+		Short: "Generate autocompletion script",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			generateCompletion(cmd, args[0])
+		},
+	}
+
+	rootCmd.AddCommand(chatCmd, configCmd, contextCmd, versionCmd, completionCmd)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func uintVersion() string {
-	return utils.GetVersion()
 }
 
 func generateCompletion(cmd *cobra.Command, shell string) {
@@ -104,6 +113,10 @@ func generateCompletion(cmd *cobra.Command, shell string) {
 		fmt.Fprintf(os.Stderr, "Error generating completion: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func uintVersion() string {
+	return utils.GetVersion()
 }
 
 func editConfig() {
