@@ -2,7 +2,7 @@
 
 A simple one-step AI code editor.
 
-Coder is a TUI-based AI chat tool designed for terminal-centric workflows. It supports any OpenAI-compatible GenAI service (OpenAI, Groq, Ollama, vLLM, DeepSeek, Gemini via proxy, etc.) — just bring your API key and the server base URL.
+Coder is a TUI-based AI chat tool designed for terminal-centric workflows. It supports any OpenAI-compatible GenAI service.
 
 ## Core Philosophy
 
@@ -88,7 +88,6 @@ shellcommands:
 - **canAIsee**: If `true`, the output is added to the conversation history, allowing the AI to see test results, file contents, or directory structures to assist in debugging or coding.
 - **Usage**: Run them in the chat using `/[command_name] [args]`, e.g., `/grep Todo`.
 
-
 ### API Key
 
 We recommend setting your API key via an environment variable for security:
@@ -162,4 +161,3 @@ Configuration files are not created automatically. You must explicitly create th
 Local settings override global settings.
 
 ### OpenAI Compatible Service
-
