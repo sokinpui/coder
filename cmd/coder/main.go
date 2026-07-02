@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/modes"
@@ -60,6 +61,14 @@ func main() {
 	}
 	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
 
+	applyCmd := &cobra.Command{
+		Use:   "apply [content]",
+		Short: "Apply code changes using itf format",
+		Run: func(cmd *cobra.Command, args []string) {
+			applyChanges(args)
+		},
+	}
+
 	contextCmd := &cobra.Command{
 		Use:   "context [files...]",
 		Short: "Print the instructions and project context",
@@ -85,7 +94,7 @@ func main() {
 		},
 	}
 
-	rootCmd.AddCommand(chatCmd, configCmd, contextCmd, versionCmd, completionCmd)
+	rootCmd.AddCommand(chatCmd, configCmd, applyCmd, contextCmd, versionCmd, completionCmd)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
@@ -223,6 +232,24 @@ func runEditor(path string) {
 func startApp(mode string, prompt string, contextFiles []string, instruction string) {
 	logger.Init()
 	ui.Start(mode, prompt, contextFiles, instruction)
+}
+
+func applyChanges(args []string) {
+	content := strings.Join(args, " ")
+	if content == "" {
+		content = readPipedInput()
+	}
+
+	if content == "" {
+		fmt.Fprintln(os.Stderr, "Error: No content provided via arguments or stdin.")
+		os.Exit(1)
+	}
+
+	res := commands.ExecuteItf(content, "")
+	fmt.Println(res.Summary)
+	if !res.Success {
+		os.Exit(1)
+	}
 }
 
 func collectFiles(args []string) []string {
