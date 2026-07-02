@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/sf"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -57,16 +58,43 @@ func GetDirInfoContent() string {
 }
 
 func SourceToFileList(dirs []string, initialFiles []string, exclusions []string) ([]string, error) {
-	var allFiles []string
+	allFiles := make([]string, 0)
 
+	var rawFiles []string
 	if len(dirs) > 0 {
-		filesFromDirs := sf.Run(dirs, "file", exclusions, true)
-		allFiles = append(allFiles, filesFromDirs...)
+		rawFiles = append(rawFiles, sf.Run(dirs, "file", exclusions, true)...)
 	}
+	rawFiles = append(rawFiles, initialFiles...)
 
-	if len(initialFiles) > 0 {
-		allFiles = append(allFiles, initialFiles...)
+	for _, f := range rawFiles {
+		if !isExcluded(f, exclusions) {
+			allFiles = append(allFiles, f)
+		}
 	}
 
 	return allFiles, nil
+}
+
+func isExcluded(path string, exclusions []string) bool {
+	path = filepath.ToSlash(path)
+	segments := strings.Split(path, "/")
+
+	for _, pattern := range exclusions {
+		pattern = filepath.ToSlash(pattern)
+
+		if matched, _ := filepath.Match(pattern, path); matched {
+			return true
+		}
+
+		for _, seg := range segments {
+			if matched, _ := filepath.Match(pattern, seg); matched {
+				return true
+			}
+		}
+
+		if strings.HasPrefix(path, pattern+"/") {
+			return true
+		}
+	}
+	return false
 }

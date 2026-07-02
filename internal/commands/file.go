@@ -80,9 +80,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	currentFiles := s.GetContextFiles()
-	// Combine dirs and specific files, then filter with default exclusions
 	newResolvedFiles, _ := utils.SourceToFileList(dirs, files, source.Exclusions)
-
 	s.SetContextFiles(AppendUnique(currentFiles, newResolvedFiles))
 
 	if err := s.LoadContext(); err != nil {

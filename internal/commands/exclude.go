@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"path/filepath"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 )
@@ -21,7 +22,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	pathsToModify := make(map[string]struct{})
 	for _, p := range pathsToRemove {
-		pathsToModify[p] = struct{}{}
+		pathsToModify[filepath.ToSlash(p)] = struct{}{}
 	}
 
 	currentFiles := s.GetContextFiles()

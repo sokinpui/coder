@@ -11,6 +11,7 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -62,19 +63,23 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 	var resolvedContextFiles []string
 	// Only resolve context if we are NOT in chat mode
 	if _, isChat := strategy.(*modes.ChatMode); !isChat {
+		var dirs, files []string
+
 		if len(contextFiles) > 0 {
-			var dirs, files []string
 			for _, p := range contextFiles {
+				p = filepath.ToSlash(p)
 				if info, err := os.Stat(p); err == nil && info.IsDir() {
 					dirs = append(dirs, p)
-					continue
+				} else {
+					files = append(files, p)
 				}
-				files = append(files, p)
 			}
-			resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
 		} else {
-			resolvedContextFiles, _ = utils.SourceToFileList(cfgCopy.Context.Dirs, cfgCopy.Context.Files, allExclusions)
+			dirs = cfgCopy.Context.Dirs
+			files = cfgCopy.Context.Files
 		}
+
+		resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
 	}
 
 	s := &Session{
