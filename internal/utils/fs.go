@@ -58,43 +58,27 @@ func GetDirInfoContent() string {
 }
 
 func SourceToFileList(dirs []string, initialFiles []string, exclusions []string) ([]string, error) {
+	seen := make(map[string]struct{})
 	allFiles := make([]string, 0)
 
-	var rawFiles []string
-	if len(dirs) > 0 {
-		rawFiles = append(rawFiles, sf.Run(dirs, "file", exclusions, true)...)
+	// Explicitly requested files bypass exclusions
+	for _, f := range initialFiles {
+		p := filepath.ToSlash(f)
+		if _, ok := seen[p]; !ok {
+			allFiles = append(allFiles, p)
+			seen[p] = struct{}{}
+		}
 	}
-	rawFiles = append(rawFiles, initialFiles...)
 
-	for _, f := range rawFiles {
-		if !isExcluded(f, exclusions) {
-			allFiles = append(allFiles, f)
+	if len(dirs) > 0 {
+		for _, f := range sf.Run(dirs, "file", exclusions, true) {
+			p := filepath.ToSlash(f)
+			if _, ok := seen[p]; !ok {
+				allFiles = append(allFiles, p)
+				seen[p] = struct{}{}
+			}
 		}
 	}
 
 	return allFiles, nil
-}
-
-func isExcluded(path string, exclusions []string) bool {
-	path = filepath.ToSlash(path)
-	segments := strings.Split(path, "/")
-
-	for _, pattern := range exclusions {
-		pattern = filepath.ToSlash(pattern)
-
-		if matched, _ := filepath.Match(pattern, path); matched {
-			return true
-		}
-
-		for _, seg := range segments {
-			if matched, _ := filepath.Match(pattern, seg); matched {
-				return true
-			}
-		}
-
-		if strings.HasPrefix(path, pattern+"/") {
-			return true
-		}
-	}
-	return false
 }
