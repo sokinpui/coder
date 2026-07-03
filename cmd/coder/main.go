@@ -28,13 +28,18 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "coder [files...]",
+		Use:   "coder [flags] [files...]",
 		Short: "Coder is a TUI-based AI code editor",
 		Long:  "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
-		Example: `  coder --prompt "refactor this" -- main.go
+		Example: `  coder main.go
+  coder -p "refactor this" main.go
   coder chat
-  coder context -- .
+  coder context .
   coder config -g`,
+		Args: cobra.ArbitraryArgs,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			files := collectFiles(args)
 			startApp("coding", initialPrompt, files, customInstruction)
@@ -70,8 +75,12 @@ func main() {
 	}
 
 	contextCmd := &cobra.Command{
-		Use:   "context [files...]",
+		Use:   "context [flags] [files...]",
 		Short: "Print the instructions and project context",
+		Args:  cobra.ArbitraryArgs,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			printContext("coding", args)
 		},
