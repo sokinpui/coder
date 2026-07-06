@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/itf"
+	"github.com/sokinpui/coder/pkg/itf"
 	"strings"
 )
 

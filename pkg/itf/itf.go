@@ -54,6 +54,10 @@ func NewApp(cfg *Config) (*App, error) {
 	}, nil
 }
 
+func SetVersion(v string) {
+	rootCmd.Version = v
+}
+
 func (a *App) SetProgressCallback(cb ProgressUpdate) { a.progressCallback = cb }
 
 func (a *App) Execute() (summary Summary, err error) {

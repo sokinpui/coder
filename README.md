@@ -118,7 +118,7 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+J`       | Send message / Submit command                                                                 |
 | `Ctrl+E`       | Edit current prompt in external editor (`$EDITOR`)                                            |
 | `Ctrl+V`       | Paste from clipboard (supports images)                                                        |
-| `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/itf.git)) |
+| `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/coder.git)) |
 | `Ctrl+H`       | View conversation history                                                                     |
 | `Ctrl+N`       | Start a new chat session                                                                      |
 | `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |

@@ -5,7 +5,7 @@ A simple, fast find tool written in Go. It is a lightweight alternative to `fd`,
 ## Installation
 
 ```bash
-go install github.com/sokinpui/sf/cmd/sf@latest
+go install github.com/sokinpui/coder/cmd/sf@latest
 ```
 
 ## Command Line Usage
@@ -51,7 +51,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/sokinpui/sf"
+	"github.com/sokinpui/coder/pkg/sf"
 )
 
 func main() {

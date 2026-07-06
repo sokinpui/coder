@@ -7,7 +7,7 @@ The `pcat` package can be integrated into other Go applications to find and form
 To use the `pcat` package in your project, install it using `go get`:
 
 ```sh
-go get github.com/sokinpui/pcat
+go get github.com/sokinpui/coder
 ```
 
 ## Example
@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sokinpui/pcat"
+	"github.com/sokinpui/coder/pkg/pcat"
 )
 
 func main() {

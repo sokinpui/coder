@@ -1,8 +1,8 @@
-Golang rewrite of python [itf](https://github.com/sokinpui/itf)
+Golang rewrite of python [itf](https://github.com/sokinpui/itf.git)
 
 # ITF: Insert To File
 
-`itf` is a command-line tool that parses markdown content from stdin or your clipboard and applies the changes to your local files. It's designed to streamline workflows with Large Language Models (LLMs) by eliminating the need to manually copy and paste code snippets.
+`itf` is a command-line tool, now part of the [Coder Suite](https://github.com/sokinpui/coder), that parses markdown content from stdin or your clipboard and applies the changes to your local files. It's designed to streamline workflows with Large Language Models (LLMs) by eliminating the need to manually copy and paste code snippets.
 
 It can create, overwrite, delete, rename, or edit files based on the content of the markdown, also support redo and undo operations.
 
@@ -21,14 +21,14 @@ It can create, overwrite, delete, rename, or edit files based on the content of 
 ### Using `go install`
 
 ```bash
-go install github.com/sokinpui/itf/cmd/itf@latest
+go install github.com/sokinpui/coder/cmd/itf@latest
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/sokinpui/itf.git
-cd itf
+git clone https://github.com/sokinpui/coder.git
+cd coder
 go build ./cmd/itf
 mv itf /usr/local/bin/
 ```
@@ -127,7 +127,7 @@ src/old_name.go src/new_name.go
 `itf` can be used as a Go library:
 
 ```go
-import "github.com/sokinpui/itf"
+import "github.com/sokinpui/coder/pkg/itf"
 
 config := itf.Config{Extensions: []string{".go"}}
 results, err := itf.Apply(markdown, config)

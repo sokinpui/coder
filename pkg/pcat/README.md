@@ -7,7 +7,7 @@
 Ensure you have Go installed, then run:
 
 ```sh
-go install github.com/sokinpui/pcat/cmd/pcat@latest
+go install github.com/sokinpui/coder/cmd/pcat@latest
 ```
 
 ## Usage

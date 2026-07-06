@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/sokinpui/sf"
+	"github.com/sokinpui/coder/pkg/sf"
 )
 
 var path = flag.String("path", ".", "the directory path to search")

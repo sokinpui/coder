@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"github.com/sokinpui/sf"
+	"github.com/sokinpui/coder/pkg/sf"
 	"os"
 	"os/exec"
 	"path/filepath"
