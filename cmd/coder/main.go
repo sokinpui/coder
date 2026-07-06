@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/source"
@@ -74,6 +76,18 @@ func main() {
 		},
 	}
 
+	runCmd := &cobra.Command{
+		Use:   "run [flags] [files...]",
+		Short: "Execute a single AI request and output to shell",
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			runSingleShot(args)
+		},
+	}
+
+	runCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt for the AI (required)")
+	runCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction")
+
 	contextCmd := &cobra.Command{
 		Use:   "context [flags] [files...]",
 		Short: "Print the instructions and project context",
@@ -103,7 +117,7 @@ func main() {
 		},
 	}
 
-	rootCmd.AddCommand(chatCmd, configCmd, applyCmd, contextCmd, versionCmd, completionCmd)
+	rootCmd.AddCommand(chatCmd, configCmd, applyCmd, contextCmd, versionCmd, completionCmd, runCmd)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
@@ -218,6 +232,68 @@ func printContext(mode string, args []string) {
 	fullPrompt := strategy.BuildPrompt(messages)
 	for _, msg := range fullPrompt {
 		fmt.Printf("[%s]\n%s\n\n", msg.Type, msg.Content)
+	}
+}
+
+func runSingleShot(args []string) {
+	if initialPrompt == "" {
+		fmt.Fprintln(os.Stderr, "Error: --prompt is required for run command")
+		os.Exit(1)
+	}
+
+	files := collectFiles(args)
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	allExclusions := append([]string{}, source.Exclusions...)
+	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
+
+	var resolvedFiles []string
+	if len(files) > 0 {
+		resolvedFiles, _ = utils.SourceToFileList(nil, files, allExclusions)
+	} else {
+		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
+	}
+
+	strategy := modes.GetStrategy("coding", customInstruction)
+	if err := strategy.LoadSourceCode(resolvedFiles); err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading source: %v\n", err)
+		os.Exit(1)
+	}
+
+	messages := []types.Message{
+		{Type: types.UserMessage, Content: initialPrompt},
+	}
+
+	gen, err := generation.New(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error initializing generator: %v\n", err)
+		os.Exit(1)
+	}
+
+	promptMsgs := strategy.BuildPrompt(messages)
+	streamChan := make(chan types.StreamChunk, 100)
+	ctx := context.Background()
+
+	go gen.GenerateTask(ctx, promptMsgs, streamChan, nil)
+
+	hasError := false
+	for chunk := range streamChan {
+		if strings.HasPrefix(chunk.Content, "Error:") {
+			fmt.Fprintf(os.Stderr, "\n%s\n", chunk.Content)
+			hasError = true
+			continue
+		}
+
+		fmt.Print(chunk.Content)
+	}
+
+	fmt.Println()
+	if hasError {
+		os.Exit(1)
 	}
 }
 
