@@ -14,6 +14,19 @@ Instead, it is a **human-in-the-loop code editor**. You are the driver:
 - **Precise Guidance**: You guide the AI through prompts to perform specific tasks.
 - **One-Step Application**: Coder interprets the AI's response to apply changes directly to your filesystem using `itf`.
 
+## CLI Usage
+
+Coder can be used as an interactive TUI or as a one-shot CLI tool.
+
+```bash
+coder [files...]          # Start TUI in coding mode with specified context
+coder chat                # Start TUI in chat mode (no project context)
+coder run -p "prompt"     # Execute a single AI request and output to shell
+coder context [files...]  # Print the built prompt and context (for debugging)
+coder apply [content]     # Apply code changes from piped input or argument
+coder config -g           # Edit global configuration
+```
+
 ## How it Works
 
 Coder uses a specialized output format to bridge the gap between chat and code. When the AI suggests changes, it can:
@@ -60,11 +73,11 @@ To use `coder` with your preferred provider, update your `config.yaml`:
 
 ```yaml
 server:
-  url: https://api.openai.com/v1 # Base URL of the provider
+  url: http://localhost:9001/v1 # Base URL of the OpenAI-compatible provider
 
 generation:
-  modelcode: gpt-4o # The model ID used for chat
-  titlemodelcode: gpt-4o-mini # The model ID used for session titles
+  modelcode: gemini-3-flash-preview # The model ID used for chat
+  titlemodelcode: gemini-2.5-flash-lite # The model ID used for session titles
   reasoning_effort: high # Reasoning effort for models that support it (minimal, low, medium, high)
 ```
 
@@ -124,15 +137,19 @@ Commands are prefixed with a slash `/`.
 - `/file [paths...]`: Add specific files or directories to the AI's context.
 - `/exclude [paths...]`: Remove paths from the context.
 - `/list`: Show a summary of files currently in context.
+- `/undo`: Undo the last file changes applied by `itf`.
 - `/itf`: Manually trigger the code application tool on the last response.
 - `/model [name]`: Switch the generation model on the fly.
 - `/new`: Reset the session but keep current configuration.
 - `/history`: Browse and load previous conversations.
+- `/active`: List and switch between active chat sessions.
 - `/rename [title]`: Manually set the session title.
 - `/fzf`: Open command finder.
 - `/config`: Open configuration file.
-- `/editor [path]`: Open a file in external editor.
+- `/editor [path]`: Open a file in external editor (alias: `/e`).
 - `/branch`: Branch the conversation.
+- `/edit`: Enter edit mode to modify a previous user message.
+- `/help`: Show internal help documentation.
 - `/quit`: Quit the application.
 
 ### Visual Mode
