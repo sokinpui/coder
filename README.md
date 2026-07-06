@@ -53,7 +53,17 @@ cd coder
 
 Or via Go directly:
 
-```sh
+```bash
+# To install sf
+go install github.com/sokinpui/coder/cmd/sf@latest
+
+# To install pcat
+go install github.com/sokinpui/coder/cmd/pcat@latest
+
+# To install itf
+go install github.com/sokinpui/coder/cmd/itf@latest
+
+# To install the main coder TUI
 go install github.com/sokinpui/coder/cmd/coder@latest
 ```
 
