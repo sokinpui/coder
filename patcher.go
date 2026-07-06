@@ -123,7 +123,7 @@ func applyUnifiedDiff(source []string, patch string) []string {
 				result = append(result, hunkLine[1:])
 			} else if strings.HasPrefix(hunkLine, "-") {
 				srcIdx++
-			} else if strings.HasPrefix(hunkLine, " ") {
+			} else if strings.HasPrefix(hunkLine, " ") || hunkLine == "" {
 				if srcIdx < len(source) {
 					result = append(result, source[srcIdx])
 				}

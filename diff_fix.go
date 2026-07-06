@@ -85,8 +85,12 @@ func correctDiffHunks(sourceLines []string, raw, path string) (string, error) {
 			ch = nil
 			continue
 		}
-		if strings.HasPrefix(l, "+") || strings.HasPrefix(l, "-") || strings.HasPrefix(l, " ") {
-			ch = append(ch, l)
+		if strings.HasPrefix(l, "+") || strings.HasPrefix(l, "-") || strings.HasPrefix(l, " ") || (l == "" && len(ch) > 0) {
+			if l == "" {
+				ch = append(ch, " ")
+			} else {
+				ch = append(ch, l)
+			}
 		}
 	}
 	if len(ch) > 0 {
