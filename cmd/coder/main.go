@@ -26,6 +26,7 @@ var (
 	initialPrompt     string
 	customInstruction string
 	globalConfig      bool
+	runModel          string
 )
 
 func main() {
@@ -87,6 +88,7 @@ func main() {
 
 	runCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt for the AI (required)")
 	runCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction")
+	runCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model to use for generation")
 
 	contextCmd := &cobra.Command{
 		Use:   "context [flags] [files...]",
@@ -266,6 +268,10 @@ func runSingleShot(args []string) {
 
 	messages := []types.Message{
 		{Type: types.UserMessage, Content: initialPrompt},
+	}
+
+	if runModel != "" {
+		cfg.Generation.ModelCode = runModel
 	}
 
 	gen, err := generation.New(cfg)
