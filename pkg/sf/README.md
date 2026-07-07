@@ -1,11 +1,28 @@
- # sf
+# sf (Search Fast)
 
-A simple, fast find tool written in Go. It is a lightweight alternative to `fd`, designed to provide file context for development tools.
+`sf` is a simple, blazing-fast directory walking and find tool written in Go. It is designed to be a lightweight and highly efficient alternative to `fd`, primarily optimized to quickly gather project file listings to feed as context for developer AI tools.
+
+## Features
+
+- **Blazing Fast**: Uses highly parallelized directory walking (`runtime.NumCPU() * 2` workers).
+- **Gitignore Respecting**: Automatically reads and respects local and global `.gitignore` patterns.
+- **Filtering**: Easily filter search results by type (files or directories).
+- **Flexible Exclusions**: Supports custom glob exclusion patterns.
+- **Hidden File Control**: Toggle whether hidden files/folders should be searched.
 
 ## Installation
 
-```bash
+### Via Go directly
+
+```sh
 go install github.com/sokinpui/coder/cmd/sf@latest
+```
+
+### From Source (inside the Coder repository)
+
+```bash
+go build -o sf ./cmd/sf
+mv sf /usr/local/bin/ # Or any directory in your $PATH
 ```
 
 ## Command Line Usage
@@ -22,7 +39,7 @@ sf [path] [flags]
 
 ### Examples
 
-Search for all files and directories in the current directory:
+Search for all files and directories in the current directory (respects `.gitignore`):
 ```bash
 sf
 ```
@@ -44,7 +61,7 @@ sf . -H
 
 ## API Usage
 
-You can use `sf` as a library in your Go projects.
+You can import and use `sf` as a library in your own Go projects.
 
 ```go
 package main
@@ -55,6 +72,7 @@ import (
 )
 
 func main() {
+	// sf.Run(roots, fileType, excludes, showHidden)
 	results := sf.Run([]string{"."}, "file", []string{"vendor/*"}, false)
 	for _, path := range results {
 		fmt.Println(path)

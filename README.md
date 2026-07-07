@@ -4,11 +4,9 @@ A simple one-step AI code editor.
 
 Coder is a TUI-based AI chat tool designed for terminal-centric workflows. It supports any OpenAI-compatible GenAI service.
 
-## Core Philosophy
+Coder is **not an autonomous agent**.
 
-Coder is **not an autonomous agent**. It does not crawl your codebase, make executive decisions, or run loops in the background.
-
-Instead, it is a **human-in-the-loop code editor**. You are the driver:
+You ask, AI edit the code.
 
 - **Manual Context**: You choose exactly which files or directories to provide to the AI using `/file` or `/tree`.
 - **Precise Guidance**: You guide the AI through prompts to perform specific tasks.
@@ -33,6 +31,16 @@ Coder uses a specialized output format to bridge the gap between chat and code. 
 
 - **Edit**: Apply Unified Diff format to existing files.
 - **Create / Delete / Rename**: Handle file lifecycle operations through specific Markdown blocks.
+
+## Coder Suite (Sub-Tools)
+
+Coder relies on several highly optimized sub-tools that are designed to operate perfectly under the hood or as standalone CLI utilities for custom scripts:
+
+- **[sf (Search Fast)](./pkg/sf/README.md)**: A blazing-fast directory walker/find tool (an alternative to `fd`) that respects `.gitignore` rules.
+- **[pcat (Prompt Cat)](./pkg/pcat/README.md)**: A specialized concatenator to safely wrap files and code structures into formatted markdown blocks for LLM contexts.
+- **[itf (Insert To File)](./pkg/itf/README.md)**: An "Insert To File" parser and patching utility that interprets edits, diffs, creations, renames, and deletions with local state undo/redo capabilities.
+
+See the linked README files above for reference on how to use each tool independently.
 
 ## Installation
 
@@ -123,22 +131,22 @@ export CODER_API_KEY="your-api-key-here"
 
 ### Global Shortcuts
 
-| Shortcut       | Action                                                                                        |
-| :------------- | :-------------------------------------------------------------------------------------------- |
-| `Ctrl+J`       | Send message / Submit command                                                                 |
-| `Ctrl+E`       | Edit current prompt in external editor (`$EDITOR`)                                            |
-| `Ctrl+V`       | Paste from clipboard (supports images)                                                        |
+| Shortcut       | Action                                                                                          |
+| :------------- | :---------------------------------------------------------------------------------------------- |
+| `Ctrl+J`       | Send message / Submit command                                                                   |
+| `Ctrl+E`       | Edit current prompt in external editor (`$EDITOR`)                                              |
+| `Ctrl+V`       | Paste from clipboard (supports images)                                                          |
 | `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/coder.git)) |
-| `Ctrl+H`       | View conversation history                                                                     |
-| `Ctrl+N`       | Start a new chat session                                                                      |
-| `Ctrl+F`       | Open command finder (fuzzy search all commands)                                               |
-| `Ctrl+L`       | Quick view of current project context (files read by AI)                                      |
-| `Ctrl+B`       | Branch the conversation into a new session                                                    |
-| `Ctrl+U` / `D` | Scroll conversation view up / down                                                            |
-| `Ctrl+Z`       | Suspend application                                                                           |
-| `Esc`          | Enter **Visual Mode**                                                                         |
-| `Ctrl+C`       | Clear input (or double press on empty line to quit)                                           |
-| `Tab`          | Autocomplete commands and arguments                                                           |
+| `Ctrl+H`       | View conversation history                                                                       |
+| `Ctrl+N`       | Start a new chat session                                                                        |
+| `Ctrl+F`       | Open command finder (fuzzy search all commands)                                                 |
+| `Ctrl+L`       | Quick view of current project context (files read by AI)                                        |
+| `Ctrl+B`       | Branch the conversation into a new session                                                      |
+| `Ctrl+U` / `D` | Scroll conversation view up / down                                                              |
+| `Ctrl+Z`       | Suspend application                                                                             |
+| `Esc`          | Enter **Visual Mode**                                                                           |
+| `Ctrl+C`       | Clear input (or double press on empty line to quit)                                             |
+| `Tab`          | Autocomplete commands and arguments                                                             |
 
 ### Commands
 
