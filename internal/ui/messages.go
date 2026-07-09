@@ -451,6 +451,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
+		if m.Chat.AutoSubmitPending && m.Chat.TextArea.Value() != "" {
+			m.Chat.AutoSubmitPending = false
+			model, cmd := m.handleSubmit()
+			return model, cmd, true
+		}
+
 		// Now that context is loaded, count the tokens.
 		m.IsCountingTokens = true
 		return m, countTokensCmd(m.Session.GetPrompt()), true

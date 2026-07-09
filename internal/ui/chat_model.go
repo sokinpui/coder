@@ -44,6 +44,7 @@ type ChatModel struct {
 	PreserveInputOnSubmit    bool
 	RenderCache              map[int]cachedRender
 	StateStartTime           time.Time
+	AutoSubmitPending        bool
 }
 
 func NewChat(initialInput string) ChatModel {
@@ -70,5 +71,6 @@ func NewChat(initialInput string) ChatModel {
 		MessageLineOffsets:  make(map[int]int),
 		EditingMessageIndex: -1,
 		RenderCache:         make(map[int]cachedRender),
+		AutoSubmitPending:   initialInput != "",
 	}
 }
