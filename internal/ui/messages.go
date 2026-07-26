@@ -430,6 +430,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if newModel, ok := model.(Model); ok {
 			newModel.Chat.TextArea.SetValue(originalContent)
 			newModel.Chat.TextArea.CursorEnd()
+			newModel = newModel.updateLayout()
 			return newModel, cmd, true
 		}
 		return model, cmd, true
