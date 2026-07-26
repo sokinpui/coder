@@ -468,9 +468,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		messages := m.Session.GetMessages()
 		if len(messages) > 0 {
 			lastMsg := messages[len(messages)-1]
-			lastMsg.Content = errorContent
-			lastMsg.Type = types.CommandErrorResultMessage
-			m.Session.ReplaceLastMessage(lastMsg)
+			if lastMsg.Type == types.AIMessage && strings.TrimSpace(lastMsg.Content) != "" {
+				m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+			} else {
+				lastMsg.Content = errorContent
+				lastMsg.Type = types.CommandErrorResultMessage
+				m.Session.ReplaceLastMessage(lastMsg)
+			}
 		}
 		m.Chat.LastInteractionFailed = true
 
@@ -484,7 +488,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Session.CancelGeneration()
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.Focus()
-		return m, nil, true
+		return m, saveConversationCmd(m.Session), true
 
 	case tea.WindowSizeMsg:
 		m.Height = msg.Height
