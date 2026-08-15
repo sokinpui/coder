@@ -93,3 +93,15 @@ func (m Model) switchSessionByID(id string) tea.Cmd {
 	}
 	return nil
 }
+
+func (m Model) needsSpinner() bool {
+	if m.Chat.IsStreaming || m.Chat.IsFetchingModels {
+		return true
+	}
+	switch m.State {
+	case stateInitializing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
+		return true
+	default:
+		return false
+	}
+}

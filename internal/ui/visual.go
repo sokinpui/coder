@@ -360,7 +360,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				}
 
 				var content string
-				if len(selectedMessages) == 1 && selectedMessages[0].Type == types.UserMessage {
+				if len(selectedMessages) == 1 {
 					content = selectedMessages[0].Content
 				} else {
 					content = history.BuildHistorySnippet(selectedMessages)
@@ -410,6 +410,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.Session.CancelGeneration()
 					m.Chat.IsStreaming = false
 					m.Chat.StreamSub = nil
+					m.Chat.StreamBuffer = ""
+					m.Chat.IsStreamAnime = false
+					m.Chat.StreamDone = false
 				}
 				m.Session.DeleteMessages(selectedIndices)
 				m.ClearCache()

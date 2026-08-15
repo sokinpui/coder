@@ -97,18 +97,16 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case spinner.TickMsg:
-		// Tick the spinner during all generation phases.
-		switch m.State {
-		case stateInitializing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
-			// Continue to spinner update logic
-		default:
+		if !m.needsSpinner() {
 			return m, nil, true
 		}
 
 		var spinnerCmd tea.Cmd
 		m.Chat.Spinner, spinnerCmd = m.Chat.Spinner.Update(msg)
+		if spinnerCmd == nil {
+			spinnerCmd = m.Chat.Spinner.Tick
+		}
 
-		// If we are in the "thinking" state, the spinner is in the viewport.
 		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
 		case stateThinking, stateGenPending:
@@ -205,7 +203,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.LastInteractionFailed = true
 		}
 
-		m.State = stateIdle
+		if m.State != stateVisualSelect && m.State != stateHistorySelect && m.State != stateFinder {
+		if m.State != stateVisualSelect && m.State != stateHistorySelect && m.State != stateFinder {
+			m.State = stateIdle
+			m.Chat.TextArea.Focus()
+		}
+			m.Chat.TextArea.Focus()
+		}
 		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		if wasAtBottom {
@@ -216,7 +220,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Session.CancelGeneration()
 		m.Chat.TextArea.Reset()
 		m = m.updateLayout()
-		m.Chat.TextArea.Focus()
 
 		if m.Chat.LastInteractionFailed {
 			return m, nil, true // Don't count tokens on failure/cancellation
@@ -259,7 +262,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				cmd = m.Chat.Spinner.Tick
 			} else {
 				m.State = stateIdle
-				m.Chat.TextArea.Focus()
 				cmd = textarea.Blink
 			}
 

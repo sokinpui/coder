@@ -10,26 +10,7 @@ import (
 )
 
 func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-	switch msg.Type {
-	case tea.KeyCtrlC:
-		if m.Chat.IsStreaming {
-			m.Session.CancelGeneration()
-			m.Chat.IsStreaming = false
-		}
-		m.State = stateIdle
-		m.Chat.StreamBuffer = ""
-		m.Chat.IsStreamAnime = false
-		m.Chat.StreamDone = false
-		m.Chat.TextArea.Focus()
-		m.Session.AddMessages(types.Message{
-			Type:    types.CommandResultMessage, // Re-use style for notification
-			Content: "Generation cancelled.",
-		})
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m, textarea.Blink, true
-	}
-	return m, nil, true // Consume all key presses
+	return m.handleKeyPressGenerating(msg)
 }
 
 func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
@@ -89,6 +70,12 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		return newModel, cmd, true
 	case tea.KeyEscape:
 		m, _ = m.enterVisualMode(visualModeNone)
+		return m, nil, true
+	}
+
+	if keyStr == km.Visual {
+		m, _ = m.enterVisualMode(visualModeNone)
+		return m, nil, true
 	}
 
 	switch keyStr {
