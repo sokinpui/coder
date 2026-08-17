@@ -7,6 +7,19 @@ if ! command -v go &>/dev/null; then
   exit 1
 fi
 
+if ! command -v git &>/dev/null; then
+  echo "Error: Git is not installed."
+  exit 1
+fi
+
+if [ ! -d "cmd/coder" ]; then
+  TMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'coder-install')
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  echo "Cloning repository..."
+  git clone https://github.com/sokinpui/coder.git "$TMP_DIR"
+  cd "$TMP_DIR"
+fi
+
 VERSION=$(git describe --tags --always --dirty)
 LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=$VERSION"
 

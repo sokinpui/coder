@@ -1,3 +1,42 @@
+# Installation
+
+### Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/install.sh | bash
+```
+
+### Prerequisites
+
+- **Common**: Go, Git.
+- `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland)
+
+### Installation
+
+From source (recommended for correct versioning):
+
+```bash
+git clone https://github.com/sokinpui/coder.git
+cd coder
+./install.sh
+```
+
+Or via Go directly:
+
+```bash
+# To install sf
+go install github.com/sokinpui/coder/cmd/sf@latest
+
+# To install pcat
+go install github.com/sokinpui/coder/cmd/pcat@latest
+
+# To install itf
+go install github.com/sokinpui/coder/cmd/itf@latest
+
+# To install the main coder TUI
+go install github.com/sokinpui/coder/cmd/coder@latest
+```
+
 # Coder
 
 A simple one-step AI code editor.
@@ -41,39 +80,6 @@ Coder relies on several highly optimized sub-tools that are designed to operate 
 - **[itf (Insert To File)](./pkg/itf/README.md)**: An "Insert To File" parser and patching utility that interprets edits, diffs, creations, renames, and deletions with local state undo/redo capabilities.
 
 See the linked README files above for reference on how to use each tool independently.
-
-## Installation
-
-### Prerequisites
-
-- **Common**: Go, Git.
-- `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland) or [`sync-clip` (sync clipboard for ssh)](https://github.com/sokinpui/sync-clip) for image pasting.
-
-### Installation
-
-From source (recommended for correct versioning):
-
-```bash
-git clone https://github.com/sokinpui/coder.git
-cd coder
-./install.sh
-```
-
-Or via Go directly:
-
-```bash
-# To install sf
-go install github.com/sokinpui/coder/cmd/sf@latest
-
-# To install pcat
-go install github.com/sokinpui/coder/cmd/pcat@latest
-
-# To install itf
-go install github.com/sokinpui/coder/cmd/itf@latest
-
-# To install the main coder TUI
-go install github.com/sokinpui/coder/cmd/coder@latest
-```
 
 ### Usage
 
