@@ -70,6 +70,7 @@ var globalGroup = helpGroup{
 
 var atomicMsgGroup = helpGroup{
 	{key: "j / k", desc: "Move cursor between atomic messages."},
+	{key: "gg / G", desc: "Go to top / bottom."},
 	{key: "v", desc: "Toggle multi-message selection for copy/delete."},
 	{key: "o / O", desc: "Swap cursor and anchor in multi-selection."},
 	{key: "y", desc: "Yank (copy) selected message(s) to clipboard."},

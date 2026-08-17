@@ -17,6 +17,7 @@ type AtomicMsgModel struct {
 	Cursor      int
 	Anchor      int
 	IsSelecting bool
+	GGPressed   bool
 	Width       int
 	Height      int
 }
@@ -26,6 +27,7 @@ func NewAtomicMsg() AtomicMsgModel {
 		Cursor:      0,
 		Anchor:      0,
 		IsSelecting: false,
+		GGPressed:   false,
 	}
 }
 
@@ -159,6 +161,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 
 	m.ActiveOverlay = overlayAtomicMsg
 	m.AtomicMsg.IsSelecting = false
+	m.AtomicMsg.GGPressed = false
 	m.AtomicMsg.Cursor = selectable[len(selectable)-1]
 	m.AtomicMsg.Anchor = m.AtomicMsg.Cursor
 	m.Chat.TextArea.Blur()
@@ -172,16 +175,34 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 	if len(selectable) == 0 {
 		m.ActiveOverlay = overlayNone
 		m.AtomicMsg.IsSelecting = false
+		m.AtomicMsg.GGPressed = false
 		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
 		}
 		return m, textarea.Blink, true
 	}
 
+	prevGGPressed := m.AtomicMsg.GGPressed
+	m.AtomicMsg.GGPressed = false
+
 	currIdx := m.AtomicMsg.Cursor
 	keyStr := msg.String()
 
 	switch keyStr {
+	case "g":
+		if prevGGPressed {
+			m.AtomicMsg.Cursor = selectable[0]
+			m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
+			return m, nil, true
+		}
+		m.AtomicMsg.GGPressed = true
+		return m, nil, true
+
+	case "G":
+		m.AtomicMsg.Cursor = selectable[len(selectable)-1]
+		m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
+		return m, nil, true
+
 	case "j", "down", "ctrl+n", "ctrl+j":
 		m.AtomicMsg.Cursor = nextSelectableIndex(m.Session.GetMessages(), currIdx, 1)
 		m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
