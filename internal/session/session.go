@@ -124,6 +124,10 @@ func (s *Session) GetHistoryManager() *history.Manager {
 	return s.historyManager
 }
 
+func (s *Session) GetCreatedAt() time.Time {
+	return s.createdAt
+}
+
 func (s *Session) GetInstruction() string {
 	return s.instruction
 }

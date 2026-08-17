@@ -33,6 +33,7 @@ type ConversationInfo struct {
 	ID         string    `json:"id"`
 	Filename   string    `json:"filename"`
 	Title      string    `json:"title"`
+	CreatedAt  time.Time `json:"createdAt"`
 	ModifiedAt time.Time `json:"modifiedAt"`
 }
 
@@ -314,16 +315,22 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 			continue
 		}
 
+		if metadata.CreatedAt.IsZero() {
+			if fileInfo, err := file.Info(); err == nil {
+				metadata.CreatedAt = fileInfo.ModTime()
+			}
+		}
+
 		conversations = append(conversations, ConversationInfo{
 			Filename:   file.Name(),
 			Title:      metadata.Title,
+			CreatedAt:  metadata.CreatedAt,
 			ModifiedAt: metadata.ModifiedAt,
 		})
 	}
 
-	// Sort by modified date, newest first.
 	sort.Slice(conversations, func(i, j int) bool {
-		return conversations[i].ModifiedAt.After(conversations[j].ModifiedAt)
+		return conversations[i].CreatedAt.After(conversations[j].CreatedAt)
 	})
 
 	return conversations, nil

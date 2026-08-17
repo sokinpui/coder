@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -84,6 +85,9 @@ func (m *FinderModel) updateFoundItems() {
 		m.FoundItems = m.AllItems
 	} else {
 		matches := fuzzy.Find(query, m.AllItems)
+		sort.Slice(matches, func(i, j int) bool {
+			return matches[i].Index < matches[j].Index
+		})
 		m.FoundItems = make([]string, len(matches))
 		for i, match := range matches {
 			m.FoundItems[i] = match.Str

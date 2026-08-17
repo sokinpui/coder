@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
@@ -56,12 +55,17 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.State = stateFinder
 		m.Chat.TextArea.Blur()
 		var items []string
-		for _, model := range m.Session.GetConfig().AvailableModels {
-			items = append(items, fmt.Sprintf("model: %s", model))
-		}
+		items = append(items, m.Session.GetConfig().AvailableModels...)
 		m.Finder.AllItems = items
 		m.Finder.FoundItems = items
 		m.Finder.Visible = true
+		m.Finder.Cursor = 0
+		if payload, ok := event.Data.(string); ok && payload != "" {
+			m.Finder.TextInput.SetValue(payload)
+		} else {
+			m.Finder.TextInput.Reset()
+		}
+		m.Finder.updateFoundItems()
 		m.Finder.TextInput.Focus()
 		m.IsCountingTokens = true
 		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))

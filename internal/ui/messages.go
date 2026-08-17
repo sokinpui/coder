@@ -428,11 +428,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		originalContent := m.Chat.TextArea.Value()
 
 		var commandToRun string
-		parts := strings.SplitN(msg.result, ": ", 2)
-		if len(parts) == 2 {
-			commandToRun = fmt.Sprintf("/%s %s", parts[0], parts[1])
+		if strings.HasPrefix(msg.result, "/") {
+			commandToRun = msg.result
+		} else if strings.HasPrefix(msg.result, "model: ") {
+			commandToRun = "/model " + strings.TrimPrefix(msg.result, "model: ")
 		} else {
-			commandToRun = "/" + msg.result
+			commandToRun = "/model " + msg.result
 		}
 		m.Chat.TextArea.SetValue(commandToRun)
 		m.Chat.TextArea.CursorEnd()

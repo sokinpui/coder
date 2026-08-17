@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -314,6 +315,10 @@ func (m *Model) updateHistoryFilter() {
 		filtered = append(filtered, m.History.Items[match.Index])
 	}
 
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	})
+
 	m.History.FilteredItems = filtered
 	if m.History.Tab == TabHistory {
 		if m.History.CursorPos >= len(m.History.FilteredItems) {
@@ -331,7 +336,8 @@ func (m *Model) updateActiveFilter() {
 			ID:         sess.ID,
 			Title:      sess.GetTitle(),
 			Filename:   sess.GetHistoryFilename(),
-			ModifiedAt: time.Now(), // Active sessions are "now"
+			CreatedAt:  sess.GetCreatedAt(),
+			ModifiedAt: time.Now(),
 		})
 	}
 
@@ -351,6 +357,10 @@ func (m *Model) updateActiveFilter() {
 	for _, match := range matches {
 		filtered = append(filtered, activeItems[match.Index])
 	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	})
 
 	m.History.ActiveItems = filtered
 	if m.History.Tab == TabActive {
@@ -400,7 +410,7 @@ func (m Model) historyListView() string {
 		title := item.Title
 		dateStr := ""
 		if m.History.Tab == TabHistory {
-			dateStr = fmt.Sprintf(" (%s)", item.ModifiedAt.Format("2006-01-02 15:04"))
+			dateStr = fmt.Sprintf(" (%s)", item.CreatedAt.Format("2006-01-02 15:04"))
 		}
 
 		isCurrent := false
