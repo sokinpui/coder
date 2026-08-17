@@ -7,7 +7,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/logger"
-	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
@@ -220,8 +220,12 @@ func printContext(mode string, args []string) {
 		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
 	}
 
-	strategy := modes.GetStrategy(mode, customInstruction)
-	if err := strategy.LoadSourceCode(resolvedFiles); err != nil {
+	sess, err := session.New(cfg, mode, customInstruction, resolvedFiles)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	if err := sess.LoadContext(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -231,7 +235,7 @@ func printContext(mode string, args []string) {
 		messages = append(messages, types.Message{Type: types.UserMessage, Content: initialPrompt})
 	}
 
-	fullPrompt := strategy.BuildPrompt(messages)
+	fullPrompt := sess.BuildPrompt(messages)
 	for _, msg := range fullPrompt {
 		fmt.Printf("[%s]\n%s\n\n", msg.Type, msg.Content)
 	}
@@ -260,8 +264,12 @@ func runSingleShot(args []string) {
 		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
 	}
 
-	strategy := modes.GetStrategy("coding", customInstruction)
-	if err := strategy.LoadSourceCode(resolvedFiles); err != nil {
+	sess, err := session.New(cfg, session.ModeCoding, customInstruction, resolvedFiles)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
+		os.Exit(1)
+	}
+	if err := sess.LoadContext(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading source: %v\n", err)
 		os.Exit(1)
 	}
@@ -280,7 +288,7 @@ func runSingleShot(args []string) {
 		os.Exit(1)
 	}
 
-	promptMsgs := strategy.BuildPrompt(messages)
+	promptMsgs := sess.BuildPrompt(messages)
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx := context.Background()
 

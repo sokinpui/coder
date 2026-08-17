@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sokinpui/coder/internal/modes"
+	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"os"
@@ -66,7 +66,7 @@ func NewManager() (*Manager, error) {
 func (m *Manager) SaveConversation(data *ConversationData) error {
 	historyContent := BuildHistorySnippet(data.Messages)
 	var contentBuilder strings.Builder
-	contentBuilder.WriteString(modes.ConversationHistoryHeader)
+	contentBuilder.WriteString(prompt.ConversationHistoryHeader)
 	contentBuilder.WriteString(historyContent)
 
 	content := contentBuilder.String()

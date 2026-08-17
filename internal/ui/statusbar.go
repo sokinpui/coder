@@ -62,16 +62,11 @@ func (m Model) StatusView() string {
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
 	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", utils.GetVersion()))
 
-	var tokenInfo string
-	if m.TokenCount > 0 {
-		tokenInfo = fmt.Sprintf("Tokens: ≈%d", m.TokenCount)
-	}
-
 	modelPart := modelInfoStyle.Render(modelInfo)
-	tokenPart := tokenCountStyle.Render(tokenInfo)
 
 	if m.State != stateVisualSelect {
-		if tokenPart != "" {
+		if m.TokenCount > 0 {
+			tokenPart := tokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
 		rightStatusItems = append(rightStatusItems, versionPart, modelPart)
@@ -108,7 +103,13 @@ func (m Model) StatusView() string {
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
 
-	rightStatus := strings.Join(rightStatusItems, " | ")
+	var filteredStatusItems []string
+	for _, item := range rightStatusItems {
+		if strings.TrimSpace(item) != "" {
+			filteredStatusItems = append(filteredStatusItems, item)
+		}
+	}
+	rightStatus := strings.Join(filteredStatusItems, " | ")
 
 	var statusLine string
 	if leftStatus != "" {

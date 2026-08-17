@@ -10,6 +10,9 @@ import (
 func CountTokens(messages []types.Message) int {
 	var total float64
 	for _, msg := range messages {
+		if !msg.CanSendToAI() {
+			continue
+		}
 		if msg.Type == types.ImageMessage {
 			total += 1500
 			continue

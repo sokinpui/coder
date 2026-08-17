@@ -3,7 +3,6 @@ package session
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"os"
@@ -37,7 +36,7 @@ func (s *Session) SaveConversation() error {
 		wd = ""
 	}
 
-	promptMsgs := s.modeStrategy.BuildPrompt(nil)
+	promptMsgs := s.BuildPrompt(nil)
 	allMsgs := append([]types.Message{}, promptMsgs...)
 	allMsgs = append(allMsgs, s.messages...)
 
@@ -77,8 +76,10 @@ func (s *Session) LoadConversation(filename string) error {
 	}
 
 	mode := metadata.Mode
+	if mode == "" {
+		mode = ModeCoding
+	}
 	s.mode = mode
-	s.modeStrategy = modes.GetStrategy(mode, s.instruction)
 	s.messages = messages
 	s.title = metadata.Title
 	s.titleGenerated = true // A loaded conversation always has a title.
@@ -100,7 +101,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
-	newSess, err := NewWithMessages(s.config, messagesToKeep, s.mode, s.modeStrategy, s.instruction, s.contextFiles)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.mode, s.instruction, s.contextFiles)
 	if err != nil {
 		return nil, err
 	}

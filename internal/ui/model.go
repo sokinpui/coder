@@ -51,7 +51,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	commandDescriptions := commands.GetCommandDescriptions()
 	sort.Strings(availableCommands)
 
-	return Model{
+	m := Model{
 		ActiveSessions:      []*session.Session{sess},
 		Chat:                NewChat(initialInput),
 		VisualSelect:        NewVisualSelect(),
@@ -63,7 +63,9 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		GlamourRenderer:     renderer,
 		AvailableCommands:   availableCommands,
 		CommandDescriptions: commandDescriptions,
-	}, nil
+	}
+	m.UpdateTokenCount()
+	return m, nil
 }
 
 func (m *Model) ClearCache() {

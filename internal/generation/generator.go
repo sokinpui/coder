@@ -73,14 +73,18 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 	var apiMessages []openAIMessage
 	for _, msg := range messages {
+		if !msg.CanSendToAI() {
+			continue
+		}
+
 		role := ""
 		var content any
 
 		switch msg.Type {
-		case types.InstructionMessage, types.SourceCodeMessage:
+		case types.InstructionMessage, types.DirectoryMessage, types.SourceCodeMessage:
 			role = "system"
 			content = msg.Content
-		case types.UserMessage:
+		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage:
 			role = "user"
 			content = msg.Content
 		case types.AIMessage:
