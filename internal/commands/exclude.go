@@ -2,8 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"path/filepath"
 	"github.com/sokinpui/coder/internal/types"
+	"path/filepath"
 	"strings"
 )
 

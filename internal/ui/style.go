@@ -90,21 +90,6 @@ var (
 			Bold(true).
 			Padding(0, 1)
 
-	// Visual Mode Highlights & Bases
-	visualCursorColor         = lipgloss.Color("51")  // Cyan
-	visualSelectedColor       = lipgloss.Color("78")  // Green
-	visualCursorSelectedColor = lipgloss.Color("228") // Yellow
-
-	aiVisualBaseStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240")).
-				Padding(0, 1)
-
-	commandResultVisualBaseStyle = lipgloss.NewStyle().
-					Border(lipgloss.RoundedBorder()).
-					BorderForeground(lipgloss.Color("99")).
-					Padding(0, 1)
-
 	thinkingTextStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244")).
 				Italic(true)
@@ -122,16 +107,3 @@ var (
 	searchPlaceholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("240"))
 )
-
-func applyHighlight(style lipgloss.Style, isCursorOn bool, isSelected bool) lipgloss.Style {
-	if isCursorOn && isSelected {
-		return style.Bold(true).BorderForeground(visualCursorSelectedColor)
-	}
-	if isCursorOn {
-		return style.Bold(true).BorderForeground(visualCursorColor)
-	}
-	if isSelected {
-		return style.BorderForeground(visualSelectedColor)
-	}
-	return style
-}

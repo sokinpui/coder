@@ -9,20 +9,20 @@ import (
 )
 
 type CLIConfig struct {
-	Undo          bool
-	Redo          bool
-	NoAnimation   bool
-	Extensions    []string
-	Completion    string
-	Files         []string
+	Undo        bool
+	Redo        bool
+	NoAnimation bool
+	Extensions  []string
+	Completion  string
+	Files       []string
 }
 
 var cfg = &CLIConfig{}
 
 var rootCmd = &cobra.Command{
-	Use:   "itf",
+	Use:     "itf",
 	Version: version.Get(),
-	Short: "Parse content from stdin or clipboard to update files.",
+	Short:   "Parse content from stdin or clipboard to update files.",
 	Long: `Parse content from stdin (pipe) or clipboard to update files in Neovim.
 
 Example: pbpaste | itf -e py`,

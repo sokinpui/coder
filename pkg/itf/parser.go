@@ -27,7 +27,7 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 
 	var actions []PlannedAction
 	var failed []string
-	
+
 	// Track renames as we go to resolve diff sources correctly
 	renameDestSet := make(map[string]struct{})
 	renameDestToSource := make(map[string]string)
@@ -93,7 +93,7 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 
 	targetPaths := collectTargetPaths(actions)
 	fileActions, dirs := GetFileActionsAndDirs(targetPaths, renameDestSet)
-	
+
 	for _, a := range actions {
 		switch a.Type {
 		case "delete":

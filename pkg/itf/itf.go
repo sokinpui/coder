@@ -102,7 +102,7 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 	totalOps := len(plan.Actions)
 	currentOp := 0
 	oldHashes := make(map[string]string)
-	
+
 	var created, modified, deleted, renamedSuccess []string
 	var failedCreate, failedModify, failedDeletes, failedRenames []string
 	renamedMap := make(map[string]string)
@@ -121,7 +121,7 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 			if !isCreate {
 				a.backupFileState(action.Change.Path, oldHashes)
 			}
-			
+
 			upd, fail := a.fileManager.WriteChanges([]FileChange{*action.Change}, nil)
 			if len(fail) > 0 {
 				if isCreate {
@@ -234,7 +234,6 @@ func (a *App) createSummary(created, modified, deleted []string, renamed map[str
 	a.relativizeSummaryPaths(&s)
 	return s, nil
 }
-
 
 func (a *App) undoLastOperation() (Summary, error) {
 	ops := a.stateManager.GetOperationsToUndo()

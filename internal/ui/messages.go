@@ -148,7 +148,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.LastInteractionFailed = true
 		}
 
-		if m.State != stateVisualSelect && m.State != stateHistorySelect && m.State != stateFinder {
+		if m.State != stateAtomicMsg && m.State != stateHistorySelect && m.State != stateFinder {
 			m.State = stateIdle
 			m.Chat.TextArea.Focus()
 		}
@@ -358,8 +358,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		var commandToRun string
 		if strings.HasPrefix(msg.result, "/") {
 			commandToRun = msg.result
-		} else if strings.HasPrefix(msg.result, "model: ") {
-			commandToRun = "/model " + strings.TrimPrefix(msg.result, "model: ")
+		} else if after, ok := strings.CutPrefix(msg.result, "model: "); ok {
+			commandToRun = "/model " + after
 		} else {
 			commandToRun = "/model " + msg.result
 		}

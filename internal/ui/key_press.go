@@ -91,8 +91,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressGenerating(msg)
 	case stateHistorySelect:
 		return m.handleKeyPressHistory(msg)
-	case stateVisualSelect:
-		return m.handleKeyPressVisual(msg)
+	case stateAtomicMsg:
+		return m.handleKeyPressAtomicMsg(msg)
 	case stateFinder:
 		newFinder, cmd := m.Finder.Update(msg)
 		m.Finder = newFinder

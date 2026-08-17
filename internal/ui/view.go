@@ -39,8 +39,8 @@ func (m Model) inputView() string {
 		statusText = "Generating..."
 	case stateCancelling:
 		statusText = "Cancelling..."
-	case stateVisualSelect:
-		statusText = "Visual Mode - Use j/k to navigate"
+	case stateAtomicMsg:
+		statusText = "Atomic Messages - j/k: navigate | v: select | y/d: copy/del | a/e/r/b: actions | Esc/C-c: exit"
 	case stateHistorySelect:
 		statusText = "History Mode - Select a conversation"
 	case stateFinder:

@@ -9,12 +9,9 @@ import (
 )
 
 type cachedRender struct {
-	lines      []string
-	content    string
-	width      int
-	isVisual   bool
-	isCursorOn bool
-	isSelected bool
+	lines   []string
+	content string
+	width   int
 }
 
 type ChatModel struct {

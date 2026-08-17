@@ -30,23 +30,11 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.GenerationStarted:
 		return m.startGeneration(event)
 
-	case types.VisualModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.enterVisualMode(visualModeNone)
-
-	case types.GenerateModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.enterVisualMode(visualModeGenerate)
-	case types.EditModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.enterVisualMode(visualModeEdit)
-	case types.BranchModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.enterVisualMode(visualModeBranch)
+	case types.AtomicMsgModeStarted,
+		types.GenerateModeStarted,
+		types.EditModeStarted,
+		types.BranchModeStarted:
+		return m.openAtomicMsgMode()
 	case types.FzfModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
@@ -302,13 +290,13 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	switch keyStr {
-	case km.Visual:
+	case km.Msg, "esc":
 		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
 			m.Chat.TextArea.Reset()
 			m.Chat.CtrlCPressed = false
 			return m, nil, false
 		}
-		model, cmd := m.enterVisualMode(visualModeNone)
+		model, cmd := m.openAtomicMsgMode()
 		return model, cmd, true
 
 	case km.History:

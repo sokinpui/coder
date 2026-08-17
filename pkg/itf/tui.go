@@ -23,8 +23,10 @@ type spinner struct {
 	index  int
 }
 
-func newSpinner() spinner { return spinner{frames: []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}} }
-func (s *spinner) tick()   { s.index = (s.index + 1) % len(s.frames) }
+func newSpinner() spinner {
+	return spinner{frames: []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}}
+}
+func (s *spinner) tick()       { s.index = (s.index + 1) % len(s.frames) }
 func (s spinner) View() string { return s.frames[s.index] }
 
 type TUI struct {

@@ -14,7 +14,7 @@ const (
 	stateThinking
 	stateGenerating
 	stateCancelling
-	stateVisualSelect
+	stateAtomicMsg
 	stateHistorySelect
 	stateFinder
 )

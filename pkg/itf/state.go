@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	stateDirName    = ".itf"
-	stateFileName   = "states.itf"
-	TrashDir        = "trash"
-	BlobsDir        = "blobs"
-	entrySeparator  = "\n===\n"
-	opSeparator     = "\n---\n"
-	none            = "-"
+	stateDirName   = ".itf"
+	stateFileName  = "states.itf"
+	TrashDir       = "trash"
+	BlobsDir       = "blobs"
+	entrySeparator = "\n===\n"
+	opSeparator    = "\n---\n"
+	none           = "-"
 )
 
 type Operation struct {
@@ -225,7 +225,7 @@ func (m *StateManager) matchState(idx int) bool {
 		if op.Action == "rename" {
 			path = op.NewPath
 		}
-		
+
 		currentHash, err := GetFileSHA256(path)
 		if op.Action == "delete" {
 			if err == nil {
@@ -281,7 +281,7 @@ func (m *StateManager) CreateOperations(updated []string, actions map[string]str
 	for _, f := range updated {
 		action := actions[f]
 		checkPath, newPath := f, ""
-		
+
 		switch action {
 		case "rename":
 			newPath = rm[f]

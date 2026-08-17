@@ -38,6 +38,5 @@ func (m *Manager) View() string {
 			return o.View(m.Main)
 		}
 	}
-
 	return m.Main.View()
 }

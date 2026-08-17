@@ -15,59 +15,23 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	viewportWidth := m.Chat.Viewport.Width
 	currentLine := 0
 	var allLines []string
-	blockStarts := make(map[int]int)
-	selectedBlocks := make(map[int]struct{})
-
-	isVisualState := m.State == stateVisualSelect
-
-	if m.State == stateVisualSelect {
-		for i, block := range m.VisualSelect.Blocks {
-			blockStarts[block.startIdx] = i
-		}
-		if m.VisualSelect.Mode == visualModeNone && m.VisualSelect.IsSelecting {
-			start, end := m.VisualSelect.Start, m.VisualSelect.Cursor
-			if start > end {
-				start, end = end, start
-			}
-			for i := start; i <= end && i < len(m.VisualSelect.Blocks); i++ {
-				selectedBlocks[i] = struct{}{}
-			}
-		}
-	}
 
 	for i, msg := range m.Session.GetMessages() {
 		messageLineOffsets[i] = currentLine
 		var lines []string
 
-		isCursorOn := false
-		isSelected := false
-		if isVisualState {
-			if blockIndex, isStart := blockStarts[i]; isStart {
-				isCursorOn = (blockIndex == m.VisualSelect.Cursor)
-				switch m.VisualSelect.Mode {
-				case visualModeGenerate, visualModeEdit, visualModeBranch:
-					isSelected = isCursorOn
-				default:
-					_, isSelected = selectedBlocks[blockIndex]
-				}
-			}
-		}
-
 		cache, ok := m.Chat.RenderCache[i]
-		if ok && cache.content == msg.Content && cache.width == viewportWidth && cache.isVisual == isVisualState && cache.isCursorOn == isCursorOn && cache.isSelected == isSelected {
+		if ok && cache.content == msg.Content && cache.width == viewportWidth {
 			lines = cache.lines
 		} else {
-			renderedMsg := m.renderMessage(msg, viewportWidth, isVisualState, isCursorOn, isSelected)
+			renderedMsg := m.renderMessage(msg, viewportWidth)
 
 			if renderedMsg != "" || msg.Type == types.AIMessage {
 				lines = strings.Split(renderedMsg, "\n")
 				m.Chat.RenderCache[i] = cachedRender{
-					lines:      lines,
-					content:    msg.Content,
-					width:      viewportWidth,
-					isVisual:   isVisualState,
-					isCursorOn: isCursorOn,
-					isSelected: isSelected,
+					lines:   lines,
+					content: msg.Content,
+					width:   viewportWidth,
 				}
 			}
 		}
@@ -83,7 +47,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	return strings.Join(allLines, "\n"), messageLineOffsets
 }
 
-func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool, isCursorOn bool, isSelected bool) string {
+func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 	content := msg.Content
 	switch msg.Type {
 	case types.InitMessage:
@@ -91,55 +55,28 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 	case types.DirectoryMessage:
 		return directoryWelcomeStyle.Width(viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()).Render(content)
 	case types.UserMessage:
-		style := userInputStyle
-		if isVisual {
-			style = applyHighlight(style, isCursorOn, isSelected)
-		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
+		return userInputStyle.Width(viewportWidth - userInputStyle.GetHorizontalFrameSize()).Render(content)
 	case types.CommandMessage, types.ShellCmdMessage:
-		style := commandInputStyle
-		if isVisual {
-			style = applyHighlight(style, isCursorOn, isSelected)
-		}
 		prefix := ""
 		if msg.Type == types.ShellCmdMessage {
 			prefix = "Shell: "
 		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(prefix + content)
+		return commandInputStyle.Width(viewportWidth - commandInputStyle.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
-		style := imageMessageStyle
-		if isVisual {
-			style = applyHighlight(style, isCursorOn, isSelected)
-		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render("Image: " + content)
+		return imageMessageStyle.Width(viewportWidth - imageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
 	case types.AIMessage:
 		if content == "" {
 			return ""
 		}
 		renderedAI, err := m.GlamourRenderer.Render(content)
 		if err != nil {
-			renderedAI = content
-		}
-		if isVisual {
-			renderedAI = strings.TrimSpace(renderedAI)
-			style := aiVisualBaseStyle
-			style = applyHighlight(style, isCursorOn, isSelected)
-			return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(renderedAI)
+			return content
 		}
 		return renderedAI
 	case types.CommandResultMessage, types.ShellCmdResultMessage:
-		style := commandResultStyle
-		if isVisual {
-			style = commandResultVisualBaseStyle
-			style = applyHighlight(style, isCursorOn, isSelected)
-		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
+		return commandResultStyle.Width(viewportWidth - commandResultStyle.GetHorizontalFrameSize()).Render(content)
 	case types.CommandErrorResultMessage:
-		style := commandErrorStyle
-		if isVisual {
-			style = applyHighlight(style, isCursorOn, isSelected)
-		}
-		return style.Width(viewportWidth - style.GetHorizontalFrameSize()).Render(content)
+		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
 	default:
 		return ""
 	}

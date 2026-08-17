@@ -29,6 +29,7 @@ var behaviorGroup = helpGroup{
 
 var commandGroup = helpGroup{
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
+	{key: "cards", desc: "Open atomic messages overlay (alias: /msg)."},
 	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
@@ -43,12 +44,12 @@ var commandGroup = helpGroup{
 	{key: "list", desc: "List the current project source files/directories."},
 	{key: "mode", desc: "Switch conversation mode (coding/chat)."},
 	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro)."},
+	{key: "msg", desc: "Open atomic messages overlay."},
 	{key: "new", desc: "Start a new chat session."},
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
 	{key: "undo", desc: "Undo the last file changes applied by itf."},
-	{key: "visual", desc: "Enter visual mode for message selection."},
 }
 
 var globalGroup = helpGroup{
@@ -64,21 +65,21 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},
 	{key: "Ctrl+Z", desc: "Suspend the application."},
 	{key: "Tab", desc: "Autocomplete commands and arguments."},
-	{key: "Esc", desc: "Enter visual mode."},
+	{key: "Esc", desc: "Open atomic messages overlay."},
 	{key: "Ctrl+C", desc: "Clear input, or double press on empty line to quit."},
 }
 
-var visualModeGroup = helpGroup{
-	{key: "j / k", desc: "Move cursor down / up."},
-	{key: "v", desc: "Start/stop selection."},
-	{key: "o / O", desc: "Swap cursor with selection start."},
-	{key: "y", desc: "Yank (copy) selected messages."},
-	{key: "d", desc: "Delete selected messages."},
-	{key: "g", desc: "Regenerate from the selected user message."},
-	{key: "e", desc: "Edit the selected user message."},
-	{key: "b", desc: "Enter branch mode from the selected message."},
-	{key: "Ctrl+A", desc: "Apply code changes from nearest AI response above."},
-	{key: "i / Esc", desc: "Exit visual mode."},
+var atomicMsgGroup = helpGroup{
+	{key: "j / k", desc: "Move cursor between atomic messages."},
+	{key: "v", desc: "Toggle multi-message selection for copy/delete."},
+	{key: "o / O", desc: "Swap cursor and anchor in multi-selection."},
+	{key: "y", desc: "Yank (copy) selected message(s) to clipboard."},
+	{key: "d", desc: "Delete selected message(s)."},
+	{key: "a", desc: "Apply code changes from AI response with itf."},
+	{key: "e", desc: "Edit selected user message in external editor."},
+	{key: "r", desc: "Regenerate conversation starting from message."},
+	{key: "b", desc: "Branch conversation into a new session."},
+	{key: "Esc / Ctrl+C", desc: "Exit atomic messages overlay."},
 }
 
 var historyViewGropu = helpGroup{
@@ -95,7 +96,7 @@ var helpPageDesc = []helpSection{
 	{name: "Behavior", group: behaviorGroup},
 	{name: "Global", group: globalGroup},
 	{name: "Command", group: commandGroup},
-	{name: "Visual mode", group: visualModeGroup},
+	{name: "Atomic Messages", group: atomicMsgGroup},
 	{name: "Chat History", group: historyViewGropu},
 }
 

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -141,7 +142,7 @@ func isHidden(path, baseDir string) bool {
 	if err != nil {
 		return false
 	}
-	for _, part := range strings.Split(relPath, string(filepath.Separator)) {
+	for part := range strings.SplitSeq(relPath, string(filepath.Separator)) {
 		if strings.HasPrefix(part, ".") && part != "." && part != ".." {
 			return true
 		}
@@ -157,12 +158,7 @@ func hasValidExtension(path string, extensions []string) bool {
 		return true
 	}
 	fileExt := strings.TrimPrefix(filepath.Ext(path), ".")
-	for _, ext := range extensions {
-		if fileExt == ext {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(extensions, fileExt)
 }
 
 func deduplicate(paths []string) []string {

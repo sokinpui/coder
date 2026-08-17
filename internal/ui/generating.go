@@ -56,13 +56,13 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		newModel.State = stateIdle
 		return newModel, cmd, true
 	case tea.KeyEscape:
-		m, _ = m.enterVisualMode(visualModeNone)
-		return m, nil, true
+		newModel, cmd := m.openAtomicMsgMode()
+		return newModel, cmd, true
 	}
 
-	if keyStr == km.Visual {
-		m, _ = m.enterVisualMode(visualModeNone)
-		return m, nil, true
+	if keyStr == km.Msg || keyStr == "esc" {
+		newModel, cmd := m.openAtomicMsgMode()
+		return newModel, cmd, true
 	}
 
 	switch keyStr {
@@ -83,8 +83,8 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case km.Branch:
 		event := m.Session.HandleInput("/branch")
 		switch event.Type {
-		case types.BranchModeStarted:
-			model, cmd := m.enterVisualMode(visualModeBranch)
+		case types.BranchModeStarted, types.AtomicMsgModeStarted:
+			model, cmd := m.openAtomicMsgMode()
 			return model, cmd, true
 		case types.MessagesUpdated:
 			// This handles the case where branching is not possible (e.g., no messages)

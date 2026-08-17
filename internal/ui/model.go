@@ -5,8 +5,8 @@ import (
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/token"
+	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
@@ -14,11 +14,11 @@ import (
 )
 
 type Model struct {
-	Chat         ChatModel
-	VisualSelect VisualSelectModel
-	History      HistoryModel
-	Finder       FinderModel
-	QuickView    *QuickViewModel
+	Chat       ChatModel
+	AtomicMsg  AtomicMsgModel
+	History    HistoryModel
+	Finder     FinderModel
+	QuickView  *QuickViewModel
 
 	ActiveSessions      []*session.Session
 	Session             *session.Session
@@ -54,7 +54,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	m := Model{
 		ActiveSessions:      []*session.Session{sess},
 		Chat:                NewChat(initialInput),
-		VisualSelect:        NewVisualSelect(),
+		AtomicMsg:           NewAtomicMsg(),
 		History:             NewHistory(),
 		Finder:              NewFinder(),
 		QuickView:           NewQuickView(),

@@ -92,7 +92,7 @@ func parseDiffHunks(raw string) []diffHunk {
 	var currentLines []string
 	inHunk := !strings.Contains(raw, "@@")
 
-	for _, line := range strings.Split(raw, "\n") {
+	for line := range strings.SplitSeq(raw, "\n") {
 		if strings.HasPrefix(line, "@@") {
 			inHunk = true
 			if len(currentLines) > 0 {

@@ -32,19 +32,7 @@ keymap:
   scrollup: ctrl+u
   scrolldown: ctrl+d
   suspend: ctrl+z
-  visual: esc
-  visualmode:
-    up: k
-    down: j
-    select: v
-    swap: o
-    copy: y
-    delete: d
-    regenerate: g
-    edit: e
-    branch: b
-    new: n
-    exit: i
+  msg: esc
   historyview:
     up: k
     down: j

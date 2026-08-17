@@ -36,27 +36,9 @@ func (m Model) StatusView() string {
 	var leftStatus string
 
 	switch m.State {
-	case stateVisualSelect:
-		var modeStr, helpStr string
-		switch m.VisualSelect.Mode {
-		case visualModeGenerate:
-			modeStr = "GENERATE"
-			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		case visualModeEdit:
-			modeStr = "EDIT"
-			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		case visualModeBranch:
-			modeStr = "BRANCH"
-			helpStr = "j/k: move | enter: confirm | esc: cancel"
-		default: // visualModeNone
-			modeStr = "VISUAL"
-			if m.VisualSelect.IsSelecting {
-				helpStr = "j/k: move | o/O: swap cursor | y: copy | d: delete | esc: cancel selection"
-			} else {
-				helpStr = "j/k: move | v: start selection | esc: cancel"
-			}
-		}
-		leftStatus = statusStyle.Render(fmt.Sprintf("-- %s MODE -- | %s", modeStr, helpStr))
+	case stateAtomicMsg:
+		helpStr := "j/k: move | v: select | y: yank | d: del | a: apply | e: edit | r: regen | b: branch | esc/C-c: exit"
+		leftStatus = statusStyle.Render(fmt.Sprintf("-- ATOMIC MSG -- | %s", helpStr))
 	}
 
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
@@ -64,7 +46,7 @@ func (m Model) StatusView() string {
 
 	modelPart := modelInfoStyle.Render(modelInfo)
 
-	if m.State != stateVisualSelect {
+	if m.State != stateAtomicMsg {
 		if m.TokenCount > 0 {
 			tokenPart := tokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
 			rightStatusItems = append(rightStatusItems, tokenPart)

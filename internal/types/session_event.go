@@ -6,7 +6,7 @@ const (
 	NoOp EventType = iota
 	MessagesUpdated
 	GenerationStarted
-	VisualModeStarted
+	AtomicMsgModeStarted
 	GenerateModeStarted
 	EditModeStarted
 	BranchModeStarted

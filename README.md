@@ -144,7 +144,7 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+B`       | Branch the conversation into a new session                                                      |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                              |
 | `Ctrl+Z`       | Suspend application                                                                             |
-| `Esc`          | Enter **Visual Mode**                                                                           |
+| `Esc`          | Open **Atomic Messages** overlay                                                                |
 | `Ctrl+C`       | Clear input (or double press on empty line to quit)                                             |
 | `Tab`          | Autocomplete commands and arguments                                                             |
 
@@ -165,26 +165,26 @@ Commands are prefixed with a slash `/`.
 - `/fzf`: Open model switcher.
 - `/config`: Open configuration file.
 - `/editor [path]`: Open a file in external editor (alias: `/e`).
+- `/msg`: Open atomic messages overlay (alias: `/cards`).
 - `/branch`: Branch the conversation.
 - `/edit`: Enter edit mode to modify a previous user message.
 - `/help`: Show internal help documentation.
 - `/quit`: Quit the application.
 
-### Visual Mode
+### Atomic Messages (Esc)
 
-Press `Esc` to enter Visual Mode. This allows you to interact with previous messages:
+Press `Esc` to open the Atomic Messages overlay to perform atomic operations on any message:
 
-- `j` / `k`: Move cursor between messages.
-- `v`: Select multiple messages.
-- `y`: Yank (copy) selected messages to clipboard.
-- `d`: Delete selected messages from the session.
-- `g`: Regenerate the conversation starting from the selected message.
-- `e`: Edit a previous user message and re-run the thread.
+- `j` / `k`: Move cursor between atomic messages.
+- `v`: Toggle multi-message selection for copy / delete.
+- `o` / `O`: Swap cursor and anchor end in selection.
+- `y`: Yank (copy) selected message(s) content to clipboard.
+- `d`: Delete selected message(s).
+- `a`: Apply code changes from the nearest AI response above (via `itf`).
+- `e`: Edit the selected user prompt in external editor.
+- `r`: Regenerate conversation starting from the selected message.
 - `b`: Branch the conversation into a new session from the selected point.
-- `n`: Start a new chat session.
-- `o`: Swap cursor position in selection.
-- `i`: Exit visual mode.
-- `Ctrl+A`: Apply code changes from the nearest AI response above the cursor.
+- `Esc` / `Ctrl+C`: Exit atomic messages overlay.
 
 ## Configuration
 

@@ -42,20 +42,6 @@ type UI struct {
 	MarkdownTheme string `mapstructure:"markdowntheme"`
 }
 
-type VisualKeymap struct {
-	Up         string `mapstructure:"up"`
-	Down       string `mapstructure:"down"`
-	Select     string `mapstructure:"select"`
-	Swap       string `mapstructure:"swap"`
-	Copy       string `mapstructure:"copy"`
-	Delete     string `mapstructure:"delete"`
-	Regenerate string `mapstructure:"regenerate"`
-	Edit       string `mapstructure:"edit"`
-	Branch     string `mapstructure:"branch"`
-	New        string `mapstructure:"new"`
-	Exit       string `mapstructure:"exit"`
-}
-
 type HistoryKeymap struct {
 	Up           string `mapstructure:"up"`
 	Down         string `mapstructure:"down"`
@@ -82,9 +68,8 @@ type Keymap struct {
 	ScrollUp    string `mapstructure:"scrollup"`
 	ScrollDown  string `mapstructure:"scrolldown"`
 	Suspend     string `mapstructure:"suspend"`
-	Visual      string `mapstructure:"visual"`
+	Msg         string `mapstructure:"msg"`
 
-	VisualMode  VisualKeymap  `mapstructure:"visualmode"`
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
 }
 
