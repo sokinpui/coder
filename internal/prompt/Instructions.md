@@ -33,8 +33,19 @@ Output changes of files in unified diff format.
 `path/to/file`
 
 ```diff
---- a/path/to/file
-+++ b/path/to/file
+--- a/path/to/file1
++++ b/path/to/file1
+@@ -line,line +line,line @@
+ context line
+-removed line
++added line
+```
+
+`../../path/to/file2`
+
+```diff
+--- a/../../path/to/file2
++++ b/../../path/to/file2
 @@ -line,line +line,line @@
  context line
 -removed line
@@ -45,13 +56,24 @@ Output changes of files in unified diff format.
 
 Output the content of the file.
 
-`path/to/file`
+`path/to/file1`
 
 ```
 ...
 file content
 ...
 ```
+
+You must use four backticks "``" for markdown files or files that contains "`"
+
+Good Example:
+`file1.md`
+
+````markdown
+```python
+...
+```
+````
 
 ## File Rename:
 
@@ -84,78 +106,6 @@ Output the content of the file.
 ```
 ...
 file content
-...
-```
-
-You must use four backticks "````" for markdown files or plain text files for file creation or printing
-
-Good Example:
-`file1.md`
-
-````markdown
-```python
-...
-```
-````
-
-## multi Code Block Formatting
-
-**"Always place the triple backticks (```) for code blocks on their own separate lines."**
-Good Example:
-
-`Title or filename.ext`
-
-```tag
-...
-```
-
-`Title or filename.ext`
-
-```tag
-...
-```
-
-## Files in parent Directories:
-
-When you need to modify, create, rename or delete files in parent directories, use relative path.
-
-Good Example:
-
-Diff:
-`../parent_directory/filename.ext`
-
-```diff
---- a/../parent_directory/filename.ext
-+++ b/../parent_directory/filename.ext
-@@ -line,line +line,line @@
- context line
--removed line
-+added line
-```
-
-Create:
-`../parent_directory/filename.ext`
-
-```
-...
-file content
-...
-```
-
-Rename:
-
-```rename
-# Rename:
-../parent_directory/oldfile ../parent_directory/newfile
-...
-```
-
-Delete:
-
-```delete
-# Delete:
-../parent_directory/file1
-../parent_directory/file2
 ...
 ```
 
