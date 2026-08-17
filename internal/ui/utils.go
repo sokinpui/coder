@@ -8,7 +8,6 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/token"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"net/http"
@@ -70,20 +69,6 @@ func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 		}
 
 		return modelsFetchedMsg{models: modelIDs}
-	}
-}
-
-func initTokenizerCmd() tea.Cmd {
-	return func() tea.Msg {
-		err := token.Init()
-		return tokenizerInitializedMsg{err: err}
-	}
-}
-
-func countTokensCmd(messages []types.Message) tea.Cmd {
-	return func() tea.Msg {
-		count := token.CountTokens(messages)
-		return tokenCountResultMsg(count)
 	}
 }
 

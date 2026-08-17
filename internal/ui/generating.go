@@ -34,9 +34,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 
-	prompt := m.Session.GetPrompt()
-	m.IsCountingTokens = true
-	return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick, countTokensCmd(prompt))
+	return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick)
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {

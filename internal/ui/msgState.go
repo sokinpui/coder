@@ -9,8 +9,7 @@ import (
 type state int
 
 const (
-	stateInitializing state = iota
-	stateIdle
+	stateIdle state = iota
 	stateGenPending
 	stateThinking
 	stateGenerating
@@ -26,14 +25,12 @@ type modelsFetchedMsg struct {
 }
 
 type (
-	tokenizerInitializedMsg struct{ err error }
 	startGenerationMsg      struct{}
 	streamResultMsg         types.StreamChunk
 	streamFinishedMsg       struct{}
 	streamAnimeMsg          struct{}
 	errorMsg                struct{ error }
 	ctrlCTimeoutMsg         struct{}
-	tokenCountResultMsg     int
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg       struct {
 		content         string

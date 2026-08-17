@@ -36,10 +36,6 @@ func (m Model) StatusView() string {
 	var leftStatus string
 
 	switch m.State {
-	case stateInitializing:
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render("Initializing tokenizer "), m.Chat.Spinner.View())
-		statusLine := spinnerWithText
-		return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)
 	case stateVisualSelect:
 		var modeStr, helpStr string
 		switch m.VisualSelect.Mode {
@@ -67,10 +63,8 @@ func (m Model) StatusView() string {
 	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", utils.GetVersion()))
 
 	var tokenInfo string
-	if m.IsCountingTokens {
-		tokenInfo = "Tokens: counting..."
-	} else if m.TokenCount > 0 {
-		tokenInfo = fmt.Sprintf("Tokens: %d", m.TokenCount)
+	if m.TokenCount > 0 {
+		tokenInfo = fmt.Sprintf("Tokens: ≈%d", m.TokenCount)
 	}
 
 	modelPart := modelInfoStyle.Render(modelInfo)

@@ -19,16 +19,6 @@ import (
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
-	case tokenizerInitializedMsg:
-		if msg.err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Tokenizer init failed: %v", msg.err)
-			// We can continue without a tokenizer, it will just use estimates.
-		}
-		if m.State == stateInitializing {
-			m.State = stateIdle
-		}
-		return m, loadInitialContextCmd(m.Session), true
-
 	case modelsFetchedMsg:
 		m.Chat.IsFetchingModels = false
 		if msg.err != nil {
@@ -230,11 +220,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if m.Chat.LastInteractionFailed {
 			return m, nil, true // Don't count tokens on failure/cancellation
 		}
+		m.UpdateTokenCount()
 
-		prompt := m.Session.GetPrompt()
-		m.IsCountingTokens = true
-
-		return m, tea.Batch(countTokensCmd(prompt), saveConversationCmd(m.Session), m.Chat.Spinner.Tick), true
+		return m, tea.Batch(saveConversationCmd(m.Session), m.Chat.Spinner.Tick), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {
@@ -275,8 +263,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 
 			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
-			m.IsCountingTokens = true
-			return m, tea.Batch(cmd, countTokensCmd(m.Session.GetPrompt())), true
+			m.UpdateTokenCount()
+			return m, cmd, true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
@@ -291,11 +279,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.SetValue(msg.originalContent)
 		m.Chat.TextArea.Focus()
 		return m, textarea.Blink, true
-
-	case tokenCountResultMsg:
-		m.TokenCount = int(msg)
-		m.IsCountingTokens = false
-		return m, nil, true
 
 	case historyListResultMsg:
 		if msg.err != nil {
@@ -358,8 +341,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Focus()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.IsCountingTokens = true
-		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
+		m.UpdateTokenCount()
+		return m, textarea.Blink, true
 
 	case switchActiveSessionMsg:
 		if m.Session != nil {
@@ -384,8 +367,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.IsCountingTokens = true
-		return m, tea.Batch(countTokensCmd(m.Session.GetPrompt()), textarea.Blink), true
+		m.UpdateTokenCount()
+		return m, textarea.Blink, true
 
 	case titleGeneratedMsg:
 		m.Chat.AnimatingTitle = true
@@ -401,6 +384,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.isImage {
 			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
+			m.UpdateTokenCount()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 		} else {
@@ -473,9 +457,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return model, cmd, true
 		}
 
-		// Now that context is loaded, count the tokens.
-		m.IsCountingTokens = true
-		return m, countTokensCmd(m.Session.GetPrompt()), true
+		m.UpdateTokenCount()
+		return m, nil, true
 
 	case errorMsg:
 		m.Chat.IsStreaming = false

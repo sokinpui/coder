@@ -23,8 +23,8 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m = m.updateLayout()
-		m.IsCountingTokens = true
-		return m, countTokensCmd(m.Session.GetPrompt())
+		m.UpdateTokenCount()
+		return m, nil
 
 	case types.NewSessionStarted:
 		return m.newSession(event.Mode)
@@ -67,27 +67,27 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		}
 		m.Finder.updateFoundItems()
 		m.Finder.TextInput.Focus()
-		m.IsCountingTokens = true
-		return m, tea.Batch(textinput.Blink, countTokensCmd(m.Session.GetPrompt()))
+		m.UpdateTokenCount()
+		return m, textinput.Blink
 	case types.HistoryModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.State = stateHistorySelect
 		m.Chat.TextArea.Blur()
-		m.IsCountingTokens = true
+		m.UpdateTokenCount()
 		m.History.Tab = TabHistory
 		m = m.updateLayout()
-		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
+		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
 	case types.ActiveModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.State = stateHistorySelect
 		m.Chat.TextArea.Blur()
-		m.IsCountingTokens = true
+		m.UpdateTokenCount()
 		m.History.Tab = TabActive
 		m.updateActiveFilter()
 		m = m.updateLayout()
-		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), countTokensCmd(m.Session.GetPrompt()), m.Chat.Spinner.Tick)
+		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
 	case types.ExternalEditorStarted:
 		return m, openInEditorCmd(event.Data.(string))
 
@@ -126,8 +126,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
 
-	// Recalculate the token count for the base context.
-	m.IsCountingTokens = true
+	m.UpdateTokenCount()
 	return m, loadInitialContextCmd(m.Session)
 }
 
@@ -142,6 +141,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	if !strings.HasPrefix(input, "/") {
 		// This is a prompt, apply debounce.
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
+		m.UpdateTokenCount()
 		m.Chat.ShowPalette = false
 
 		var cmds []tea.Cmd

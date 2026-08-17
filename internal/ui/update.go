@@ -6,7 +6,7 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, initTokenizerCmd(), fetchModelsCmd(m.Session.GetConfig()), m.Chat.Spinner.Tick)
+	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.Session), fetchModelsCmd(m.Session.GetConfig()), m.Chat.Spinner.Tick)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

@@ -222,11 +222,9 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.TextArea.Focus()
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
+				m.UpdateTokenCount()
 
-				// Recalculate token count
-				m.IsCountingTokens = true
-				cmds = append(cmds, countTokensCmd(m.Session.GetPrompt()))
-
+				cmds = append(cmds, cmd)
 				return m, tea.Batch(textarea.Blink, cmd, tea.Batch(cmds...)), true
 			}
 			// On error, fall through to exit visual mode.
@@ -434,8 +432,8 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.TextArea.Focus()
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
-				m.IsCountingTokens = true
-				return m, tea.Batch(textarea.Blink, cmd, countTokensCmd(m.Session.GetPrompt())), true
+				m.UpdateTokenCount()
+				return m, tea.Batch(textarea.Blink, cmd), true
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/token"
 	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
@@ -30,7 +31,6 @@ type Model struct {
 	CommandDescriptions map[string]string
 	StatusBarMessage    string
 	TokenCount          int
-	IsCountingTokens    bool
 }
 
 func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string, instruction string) (Model, error) {
@@ -59,7 +59,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		Finder:              NewFinder(),
 		QuickView:           NewQuickView(),
 		Session:             sess,
-		State:               stateInitializing,
+		State:               stateIdle,
 		GlamourRenderer:     renderer,
 		AvailableCommands:   availableCommands,
 		CommandDescriptions: commandDescriptions,
@@ -68,6 +68,12 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 
 func (m *Model) ClearCache() {
 	m.Chat.RenderCache = make(map[int]cachedRender)
+}
+
+func (m *Model) UpdateTokenCount() {
+	if m.Session != nil {
+		m.TokenCount = token.CountTokens(m.Session.GetPrompt())
+	}
 }
 
 func (m *Model) addActiveSession(sess *session.Session) {
@@ -99,7 +105,7 @@ func (m Model) needsSpinner() bool {
 		return true
 	}
 	switch m.State {
-	case stateInitializing, stateGenPending, stateThinking, stateGenerating, stateCancelling:
+	case stateGenPending, stateThinking, stateGenerating, stateCancelling:
 		return true
 	default:
 		return false
