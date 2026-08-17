@@ -26,6 +26,7 @@ type Session struct {
 	titleGenerated    bool
 	historyFilename   string
 	createdAt         time.Time
+	mode              string
 	modeStrategy      modes.ModeStrategy
 	instruction       string
 	lastModifiedFiles []string
@@ -34,11 +35,14 @@ type Session struct {
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
+	if mode == "" {
+		mode = "coding"
+	}
 	strategy := modes.GetStrategy(mode, instruction)
-	return NewWithMessages(cfg, nil, strategy, instruction, contextFiles)
+	return NewWithMessages(cfg, nil, mode, strategy, instruction, contextFiles)
 }
 
-func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strategy modes.ModeStrategy, instruction string, contextFiles []string) (*Session, error) {
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode string, strategy modes.ModeStrategy, instruction string, contextFiles []string) (*Session, error) {
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -92,6 +96,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, strate
 		titleGenerated:  false,
 		createdAt:       time.Now(),
 		historyFilename: "",
+		mode:            mode,
 		modeStrategy:    strategy,
 		instruction:     instruction,
 		contextFiles:    resolvedContextFiles,
@@ -154,4 +159,17 @@ func (s *Session) HasAppliedChanges() bool {
 
 func (s *Session) SetHasAppliedChanges(applied bool) {
 	s.hasAppliedChanges = applied
+}
+
+func (s *Session) GetMode() string {
+	if s.mode == "" {
+		return "coding"
+	}
+	return s.mode
+}
+
+func (s *Session) SetMode(mode string) error {
+	s.mode = mode
+	s.modeStrategy = modes.GetStrategy(mode, s.instruction)
+	return s.LoadContext()
 }

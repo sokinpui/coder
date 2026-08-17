@@ -22,6 +22,7 @@ const (
 
 type Metadata struct {
 	Title        string
+	Mode         string
 	CreatedAt    time.Time
 	ModifiedAt   time.Time
 	ContextFiles []string
@@ -40,6 +41,7 @@ type ConversationInfo struct {
 type ConversationData struct {
 	Filename     string
 	Title        string
+	Mode         string
 	CreatedAt    time.Time
 	Messages     []types.Message
 	ContextFiles []string
@@ -71,6 +73,9 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	var fileBuf bytes.Buffer
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
+	if data.Mode != "" {
+		fmt.Fprintf(&fileBuf, "mode: %s\n", data.Mode)
+	}
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
 	if data.WorkingDir != "" {
@@ -161,6 +166,8 @@ func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 		switch key {
 		case "title":
 			metadata.Title = value
+		case "mode":
+			metadata.Mode = value
 		case "workingDir":
 			metadata.WorkingDir = value
 		case "contextFiles", "files":

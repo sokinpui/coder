@@ -24,6 +24,8 @@ type SessionController interface {
 	SetHasAppliedChanges(applied bool)
 	GetContextFiles() []string
 	SetContextFiles(files []string)
+	GetMode() string
+	SetMode(mode string) error
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

@@ -9,7 +9,16 @@ import (
 	"strings"
 )
 
+func IsGitRepo() bool {
+	cmd := exec.Command("git", "status")
+	return cmd.Run() == nil
+}
+
 func FindRepoRoot() (string, error) {
+	if !IsGitRepo() {
+		return "", fmt.Errorf("not a git repository")
+	}
+
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	output, err := cmd.Output()
 	if err != nil {

@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/modes"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"os"
@@ -43,6 +44,7 @@ func (s *Session) SaveConversation() error {
 	data := &history.ConversationData{
 		Filename:     s.historyFilename,
 		Title:        s.title,
+		Mode:         s.GetMode(),
 		CreatedAt:    s.createdAt,
 		Messages:     allMsgs,
 		ContextFiles: s.contextFiles,
@@ -74,6 +76,9 @@ func (s *Session) LoadConversation(filename string) error {
 		}
 	}
 
+	mode := metadata.Mode
+	s.mode = mode
+	s.modeStrategy = modes.GetStrategy(mode, s.instruction)
 	s.messages = messages
 	s.title = metadata.Title
 	s.titleGenerated = true // A loaded conversation always has a title.
@@ -95,7 +100,7 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 
 	messagesToKeep := s.messages[:endMessageIndex+1]
 
-	newSess, err := NewWithMessages(s.config, messagesToKeep, s.modeStrategy, s.instruction, s.contextFiles)
+	newSess, err := NewWithMessages(s.config, messagesToKeep, s.mode, s.modeStrategy, s.instruction, s.contextFiles)
 	if err != nil {
 		return nil, err
 	}

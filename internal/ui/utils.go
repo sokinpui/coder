@@ -103,7 +103,7 @@ func listHistoryCmd(histMgr *history.Manager) tea.Cmd {
 
 func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
 	return func() tea.Msg {
-		newSess, err := session.New(sess.GetConfig(), "coding", sess.GetInstruction(), sess.GetContextFiles())
+		newSess, err := session.New(sess.GetConfig(), "chat", sess.GetInstruction(), nil)
 		if err != nil {
 			return conversationLoadedMsg{err: err}
 		}
