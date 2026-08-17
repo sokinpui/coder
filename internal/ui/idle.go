@@ -75,7 +75,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.UpdateTokenCount()
 		m.updateActiveFilter()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
-	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ModelViewerStarted, types.ListViewerStarted:
+	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ModelViewerStarted, types.ListViewerStarted, types.FileViewerStarted:
 		cmdName := "/help"
 		switch event.Type {
 		case types.ConfigViewerStarted:
@@ -84,11 +84,16 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 			cmdName = "/model"
 		case types.ListViewerStarted:
 			cmdName = "/list"
+		case types.FileViewerStarted:
+			cmdName = "/file"
 		}
 		m.QuickView.SetMessages([]types.Message{
 			{Type: types.CommandMessage, Content: cmdName},
 			{Type: types.CommandResultMessage, Content: event.Data.(string)},
 		})
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.UpdateTokenCount()
 		m.ActiveOverlay = overlayQuickView
 		m.Chat.TextArea.Blur()
 		return m, nil

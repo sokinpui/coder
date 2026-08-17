@@ -19,6 +19,7 @@ const (
 	ConfigViewerStarted
 	ModelViewerStarted
 	ListViewerStarted
+	FileViewerStarted
 	Quit
 )
 

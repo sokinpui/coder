@@ -53,7 +53,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 		}
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
+		return CommandOutput{Type: types.FileViewerStarted, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
 	}
 
 	var files []string
@@ -103,5 +103,5 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		fmt.Fprintf(&payload, "\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true
+	return CommandOutput{Type: types.FileViewerStarted, Payload: payload.String()}, true
 }
