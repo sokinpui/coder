@@ -31,7 +31,7 @@ func (m Model) inputView() string {
 
 	var statusText string
 	switch m.State {
-	case stateGenPending:
+	case stateAsking:
 		statusText = "Asking..."
 	case stateThinking:
 		statusText = "Thinking..."

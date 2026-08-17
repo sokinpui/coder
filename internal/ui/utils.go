@@ -107,12 +107,6 @@ func saveConversationCmd(sess *session.Session) tea.Cmd {
 	}
 }
 
-func streamAnimeCmd() tea.Cmd {
-	return tea.Tick(10*time.Millisecond, func(t time.Time) tea.Msg {
-		return streamAnimeMsg{}
-	})
-}
-
 func animateTitleTick() tea.Cmd {
 	return tea.Tick(50*time.Millisecond, func(t time.Time) tea.Msg {
 		return animateTitleTickMsg{}

@@ -10,7 +10,7 @@ type state int
 
 const (
 	stateIdle state = iota
-	stateGenPending
+	stateAsking
 	stateThinking
 	stateGenerating
 	stateCancelling
@@ -25,10 +25,8 @@ type modelsFetchedMsg struct {
 }
 
 type (
-	startGenerationMsg      struct{}
 	streamResultMsg         types.StreamChunk
 	streamFinishedMsg       struct{}
-	streamAnimeMsg          struct{}
 	errorMsg                struct{ error }
 	ctrlCTimeoutMsg         struct{}
 	initialContextLoadedMsg struct{ err error }

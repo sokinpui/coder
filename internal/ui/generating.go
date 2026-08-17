@@ -9,26 +9,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m Model) handleKeyPressGenPending(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-	return m.handleKeyPressGenerating(msg)
-}
-
 func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	if event.Type != types.GenerationStarted {
 		return m, nil // Should not happen
 	}
-	m.State = stateGenPending
+	m.State = stateAsking
 	m.Chat.StateStartTime = time.Now()
 	m.Chat.IsStreaming = true
-	m.Chat.StreamBuffer = ""
-	m.Chat.StreamDone = false
-	m.Chat.IsStreamAnime = false
 	m.Chat.StreamSub = event.Data.(chan types.StreamChunk)
 	m.Chat.TextArea.Blur()
 	m.Chat.TextArea.Reset()
 	m = m.updateLayout()
 
-	m.Chat.LastRenderedAIPart = ""
 	m.Chat.LastInteractionFailed = false
 
 	m.Chat.Viewport.SetContent(m.renderConversation())
@@ -51,9 +43,6 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			// Emergency cancel: force return to idle if already cancelling
 			m.State = stateIdle
 			m.Chat.IsStreaming = false
-			m.Chat.StreamBuffer = ""
-			m.Chat.StreamDone = false
-			m.Chat.IsStreamAnime = false
 			m.Chat.LastInteractionFailed = true
 			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true

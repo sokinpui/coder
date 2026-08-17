@@ -107,7 +107,7 @@ func (m Model) needsSpinner() bool {
 		return true
 	}
 	switch m.State {
-	case stateGenPending, stateThinking, stateGenerating, stateCancelling:
+	case stateAsking, stateThinking, stateGenerating, stateCancelling:
 		return true
 	default:
 		return false

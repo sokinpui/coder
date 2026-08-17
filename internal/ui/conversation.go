@@ -76,7 +76,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		currentLine += len(lines)
 	}
 
-	if m.State == stateThinking || m.State == stateGenPending {
+	if m.State == stateAsking || m.State == stateThinking {
 		thinkingLine := m.renderThinkingLine()
 		allLines = append(allLines, strings.Split(thinkingLine, "\n")...)
 	}
@@ -147,7 +147,7 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int, isVisual bool
 
 func (m Model) renderThinkingLine() string {
 	text := "Thinking "
-	if m.State == stateGenPending {
+	if m.State == stateAsking {
 		text = "Asking "
 	}
 	thinkingText := thinkingTextStyle.Render(text)

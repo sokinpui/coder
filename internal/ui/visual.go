@@ -216,7 +216,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 				// Reset UI state for new session
 				m.Chat.LastInteractionFailed = false
-				m.Chat.LastRenderedAIPart = ""
 				m.Chat.TextArea.Reset()
 				m.Chat.TextArea.SetHeight(1)
 				m.Chat.TextArea.Focus()
@@ -374,7 +373,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if m.Chat.IsStreaming {
 					messages := m.Session.GetMessages()
 					if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-						m.State = stateThinking
+						m.State = stateAsking
 					} else {
 						m.State = stateGenerating
 					}
@@ -408,9 +407,6 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 					m.Session.CancelGeneration()
 					m.Chat.IsStreaming = false
 					m.Chat.StreamSub = nil
-					m.Chat.StreamBuffer = ""
-					m.Chat.IsStreamAnime = false
-					m.Chat.StreamDone = false
 				}
 				m.Session.DeleteMessages(selectedIndices)
 				m.ClearCache()
@@ -419,7 +415,7 @@ func (m Model) handleKeyPressVisual(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				if m.Chat.IsStreaming {
 					messages := m.Session.GetMessages()
 					if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-						m.State = stateThinking
+						m.State = stateAsking
 					} else {
 						m.State = stateGenerating
 					}
@@ -494,7 +490,7 @@ func (m Model) exitVisualMode() (Model, tea.Cmd, bool) {
 		messages := m.Session.GetMessages()
 		// Check if the last message is an empty AI message, which indicates 'thinking' state.
 		if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-			m.State = stateThinking
+			m.State = stateAsking
 		} else {
 			m.State = stateGenerating
 		}

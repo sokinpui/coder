@@ -23,10 +23,6 @@ type ChatModel struct {
 	Spinner                  spinner.Model
 	StreamSub                chan types.StreamChunk
 	IsStreaming              bool
-	StreamBuffer             string
-	StreamDone               bool
-	IsStreamAnime            bool
-	LastRenderedAIPart       string
 	CtrlCPressed             bool
 	LastInteractionFailed    bool
 	ShowPalette              bool

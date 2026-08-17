@@ -1,17 +1,15 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"strings"
-	"time"
 
-	"github.com/sokinpui/coder/internal/utils"
-
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
-
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
@@ -121,7 +119,6 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
 	m.Chat.LastInteractionFailed = false
-	m.Chat.LastRenderedAIPart = ""
 	m.Chat.TextArea.Focus()
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
@@ -139,7 +136,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	if !strings.HasPrefix(input, "/") {
-		// This is a prompt, apply debounce.
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
 		m.UpdateTokenCount()
 		m.Chat.ShowPalette = false
@@ -149,15 +145,20 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 			cmds = append(cmds, generateTitleCmd(m.Session, input))
 		}
 
-		m.State = stateGenPending
-		m.Chat.StateStartTime = time.Now()
-		m.Chat.TextArea.Blur()
-		m.Chat.TextArea.Reset()
-		m = m.updateLayout()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-
-		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg { return startGenerationMsg{} }), m.Chat.Spinner.Tick)
+		event := m.Session.StartGeneration()
+		switch event.Type {
+		case types.GenerationStarted:
+			newModel, genCmd := m.startGeneration(event)
+			cmds = append(cmds, genCmd)
+			return newModel, tea.Batch(cmds...)
+		case types.MessagesUpdated:
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
+			m.State = stateIdle
+			m.Chat.TextArea.Focus()
+			cmds = append(cmds, textarea.Blink)
+			return m, tea.Batch(cmds...)
+		}
 		return m, tea.Batch(cmds...)
 	}
 

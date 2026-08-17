@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -72,28 +71,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 		return m, nil, true
-	case startGenerationMsg:
-		if m.State != stateGenPending {
-			return m, nil, true // Debounce was cancelled
-		}
-
-		event := m.Session.StartGeneration()
-
-		switch event.Type {
-		case types.GenerationStarted:
-			model, cmd := m.startGeneration(event)
-			return model, cmd, true
-		}
-
-		switch event.Type {
-		case types.MessagesUpdated:
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
 
 	case spinner.TickMsg:
 		if !m.needsSpinner() {
@@ -108,7 +85,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
-		case stateThinking, stateGenPending:
+		case stateAsking, stateThinking:
 			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
@@ -122,67 +99,36 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		if m.State == stateGenPending {
-			m.State = stateThinking
-			m.Chat.StateStartTime = time.Now()
-		}
-
 		if msg.ReasoningContent != "" && m.State != stateGenerating {
 			m.State = stateThinking
 		}
 		if msg.Content != "" {
-			m.Chat.StreamBuffer += msg.Content
+			if m.State != stateGenerating {
+				m.State = stateGenerating
+				m.Chat.StateStartTime = time.Now()
+			}
+			messages := m.Session.GetMessages()
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage {
+				messages[len(messages)-1].Content += msg.Content
+			} else {
+				m.Session.AddMessages(types.Message{Type: types.AIMessage, Content: msg.Content})
+			}
+
+			wasAtBottom := m.Chat.Viewport.AtBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if wasAtBottom {
+				m.Chat.Viewport.GotoBottom()
+			}
 		}
 
-		if !m.Chat.IsStreamAnime {
-			m.Chat.IsStreamAnime = true
-			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd()), true
-		}
 		return m, listenForStream(m.Chat.StreamSub), true
 
-	case streamAnimeMsg:
-		if m.Chat.StreamBuffer == "" {
-			if m.Chat.StreamDone {
-				return m, func() tea.Msg { return streamFinishedMsg{} }, true
-			}
-			m.Chat.IsStreamAnime = false
-			return m, nil, true
-		}
-
-		if m.State == stateThinking || m.State == stateGenPending {
-			m.State = stateGenerating
-			m.Chat.StateStartTime = time.Now()
-		}
-		m.updateFromBuffer(&m.Chat.StreamBuffer, types.AIMessage)
-
-		messages := m.Session.GetMessages()
-		if len(messages) > 0 {
-			lastMsg := messages[len(messages)-1]
-			if lastMsg.Content != m.Chat.LastRenderedAIPart {
-				wasAtBottom := m.Chat.Viewport.AtBottom()
-				m.Chat.Viewport.SetContent(m.renderConversation())
-				if wasAtBottom {
-					m.Chat.Viewport.GotoBottom()
-				}
-				m.Chat.LastRenderedAIPart = lastMsg.Content
-			}
-		}
-
-		return m, streamAnimeCmd(), true
-
 	case streamFinishedMsg:
-		if !m.Chat.IsStreaming || m.Chat.StreamBuffer != "" {
-			m.Chat.StreamDone = true
-			if !m.Chat.IsStreaming {
-				m.Chat.StreamBuffer = ""
-			}
+		if !m.Chat.IsStreaming {
 			return m, nil, true
 		}
 
 		m.Chat.IsStreaming = false
-		m.Chat.IsStreamAnime = false
-		m.Chat.StreamBuffer = ""
-		m.Chat.StreamDone = false
 
 		messages := m.Session.GetMessages()
 
@@ -249,7 +195,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			if m.Chat.IsStreaming {
 				messages := m.Session.GetMessages()
 				if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-					m.State = stateThinking
+					m.State = stateAsking
 				} else {
 					m.State = stateGenerating
 				}
@@ -335,7 +281,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.State = stateIdle
 		m.Chat.LastInteractionFailed = false
-		m.Chat.LastRenderedAIPart = ""
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
 		m.Chat.TextArea.Focus()
@@ -355,7 +300,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ClearCache()
 		m.State = stateIdle
 		m.Chat.LastInteractionFailed = false
-		m.Chat.LastRenderedAIPart = ""
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
 		m.Chat.TextArea.Focus()
@@ -511,45 +455,4 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 	return m, nil, false
-}
-
-func (m *Model) updateFromBuffer(buffer *string, targetType types.MessageType) {
-	if *buffer == "" {
-		return
-	}
-
-	bufLen := len(*buffer)
-	take := bufLen
-
-	if !m.Chat.StreamDone {
-		take = 4
-		switch {
-		case bufLen > 300:
-			take = bufLen / 10
-		case bufLen > 100:
-			take = 16
-		case bufLen > 30:
-			take = 8
-		}
-		if take > bufLen {
-			take = bufLen
-		}
-	}
-
-	for take < len(*buffer) && !utf8.RuneStart((*buffer)[take]) {
-		take++
-	}
-	if take > len(*buffer) {
-		take = bufLen
-	}
-
-	chunk := (*buffer)[:take]
-	*buffer = (*buffer)[take:]
-
-	messages := m.Session.GetMessages()
-	if len(messages) > 0 && messages[len(messages)-1].Type == targetType {
-		messages[len(messages)-1].Content += chunk
-	} else {
-		m.Session.AddMessages(types.Message{Type: targetType, Content: chunk})
-	}
 }

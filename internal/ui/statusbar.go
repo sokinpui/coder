@@ -73,13 +73,13 @@ func (m Model) StatusView() string {
 	}
 
 	switch m.State {
-	case stateGenPending, stateThinking, stateGenerating, stateCancelling:
+	case stateAsking, stateThinking, stateGenerating, stateCancelling:
 		var (
 			statusText  string
 			statusStyle lipgloss.Style
 		)
 		switch m.State {
-		case stateGenPending:
+		case stateAsking:
 			statusText = "Asking"
 			statusStyle = askingStatusStyle
 		case stateThinking:

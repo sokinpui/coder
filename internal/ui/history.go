@@ -120,13 +120,13 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			// Return to the generation view
 			messages := m.Session.GetMessages()
 			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateThinking
+				m.State = stateAsking
 			} else {
 				m.State = stateGenerating
 			}
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			// Re-issue commands needed for generation state
-			return m, tea.Batch(listenForStream(m.Chat.StreamSub), streamAnimeCmd(), m.Chat.Spinner.Tick), true
+			return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick), true
 		} else {
 			// Return to idle
 			m.State = stateIdle
