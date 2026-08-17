@@ -52,6 +52,14 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	if m.History.IsSearching {
 		switch msg.Type {
+		case tea.KeyUp, tea.KeyCtrlK, tea.KeyCtrlP:
+			m.moveHistoryCursor(-1)
+			return m, nil, true
+
+		case tea.KeyDown, tea.KeyCtrlJ, tea.KeyCtrlN:
+			m.moveHistoryCursor(1)
+			return m, nil, true
+
 		case tea.KeyEnter:
 			m.History.IsSearching = false
 			m.History.SearchInput.Blur()

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -23,7 +24,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = fmt.Sprintf("Tokenizer init failed: %v", msg.err)
 			// We can continue without a tokenizer, it will just use estimates.
 		}
-		m.State = stateIdle
+		if m.State == stateInitializing {
+			m.State = stateIdle
+		}
 		return m, loadInitialContextCmd(m.Session), true
 
 	case modelsFetchedMsg:
@@ -33,8 +36,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to fetch models: %v", msg.err),
 			})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
+			if m.State != stateHistorySelect && m.State != stateFinder {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
 			return m, nil, true
 		}
 
@@ -46,8 +51,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: "Warning: Server returned no available models.",
 			})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
+			if m.State != stateHistorySelect && m.State != stateFinder {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
 			return m, nil, true
 		}
 
@@ -69,8 +76,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: strings.Join(errorStrings, "\n"),
 			})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
+			if m.State != stateHistorySelect && m.State != stateFinder {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
 		}
 		return m, nil, true
 	case startGenerationMsg:
@@ -204,10 +213,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if m.State != stateVisualSelect && m.State != stateHistorySelect && m.State != stateFinder {
-		if m.State != stateVisualSelect && m.State != stateHistorySelect && m.State != stateFinder {
 			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-		}
 			m.Chat.TextArea.Focus()
 		}
 		wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -294,8 +300,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case historyListResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
+			if m.State == stateHistorySelect {
+				m.State = stateIdle
+				m.Chat.TextArea.Focus()
+			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 		m.History.Items = msg.items
@@ -313,8 +321,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.History.CursorPos = initialCursorPos
 
-		m.Chat.Viewport.SetContent(m.historyListView())
-		m.centerHistoryViewport()
+		if m.State == stateHistorySelect {
+			m.Chat.Viewport.SetContent(m.historyListView())
+			m.centerHistoryViewport()
+		}
 		return m, nil, true
 
 	case conversationLoadedMsg:
@@ -449,8 +459,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
+			if m.State != stateHistorySelect && m.State != stateFinder {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
 			return m, nil, true
 		}
 
@@ -523,16 +535,27 @@ func (m *Model) updateFromBuffer(buffer *string, targetType types.MessageType) {
 	}
 
 	bufLen := len(*buffer)
-	take := 1
-	switch {
-	case bufLen > 300:
-		take = bufLen / 10
-	case bufLen > 50:
+	take := bufLen
+
+	if !m.Chat.StreamDone {
 		take = 4
-	case bufLen > 10:
-		take = 2
+		switch {
+		case bufLen > 300:
+			take = bufLen / 10
+		case bufLen > 100:
+			take = 16
+		case bufLen > 30:
+			take = 8
+		}
+		if take > bufLen {
+			take = bufLen
+		}
 	}
-	if take > bufLen {
+
+	for take < len(*buffer) && !utf8.RuneStart((*buffer)[take]) {
+		take++
+	}
+	if take > len(*buffer) {
 		take = bufLen
 	}
 
