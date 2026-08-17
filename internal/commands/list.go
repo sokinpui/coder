@@ -12,14 +12,11 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	allFiles := s.GetContextFiles()
 
 	if len(allFiles) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files are in current context."}, true
+		return CommandOutput{Type: types.ListViewerStarted, Payload: "No project source files are in current context."}, true
 	}
 
 	overview := formatFileListSummary(allFiles)
-
 	summary := "Current project context:\n" + overview
 
-	payload := summary
-
-	return CommandOutput{Type: types.MessagesUpdated, Payload: payload}, true
+	return CommandOutput{Type: types.ListViewerStarted, Payload: summary}, true
 }

@@ -131,7 +131,7 @@ func (m AtomicMsgModel) getSelectedIndices(selectable []int) []int {
 type AtomicMsgOverlay struct{}
 
 func (o *AtomicMsgOverlay) IsVisible(main *Model) bool {
-	return main.State == stateAtomicMsg
+	return main.ActiveOverlay == overlayAtomicMsg
 }
 
 func (o *AtomicMsgOverlay) View(main *Model) string {
@@ -157,7 +157,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.State = stateAtomicMsg
+	m.ActiveOverlay = overlayAtomicMsg
 	m.AtomicMsg.IsSelecting = false
 	m.AtomicMsg.Cursor = selectable[len(selectable)-1]
 	m.AtomicMsg.Anchor = m.AtomicMsg.Cursor
@@ -170,9 +170,11 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	selectable := getSelectableIndices(m.Session.GetMessages())
 	if len(selectable) == 0 {
-		m.State = stateIdle
+		m.ActiveOverlay = overlayNone
 		m.AtomicMsg.IsSelecting = false
-		m.Chat.TextArea.Focus()
+		if m.State == stateIdle {
+			m.Chat.TextArea.Focus()
+		}
 		return m, textarea.Blink, true
 	}
 
@@ -215,9 +217,11 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		return m, nil, true
 
 	case "esc", "ctrl+c":
-		m.State = stateIdle
+		m.ActiveOverlay = overlayNone
 		m.AtomicMsg.IsSelecting = false
-		m.Chat.TextArea.Focus()
+		if m.State == stateIdle {
+			m.Chat.TextArea.Focus()
+		}
 		return m, textarea.Blink, true
 
 	case "a":
@@ -239,7 +243,11 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 
 		if aiResponseToApply == "" {
 			m.StatusBarMessage = "No AI response found to apply."
-			return m, clearStatusBarCmd(), true
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
 		res := commands.ExecuteItf(aiResponseToApply, "")
@@ -252,8 +260,10 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: res.Summary})
 		}
 
-		m.State = stateIdle
-		m.Chat.TextArea.Focus()
+		m.ActiveOverlay = overlayNone
+		if m.State == stateIdle {
+			m.Chat.TextArea.Focus()
+		}
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		return m, textarea.Blink, true
@@ -279,9 +289,11 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		} else {
 			m.StatusBarMessage = "Message copied to clipboard."
 		}
+		m.ActiveOverlay = overlayNone
 		m.AtomicMsg.IsSelecting = false
-		m.State = stateIdle
-		m.Chat.TextArea.Focus()
+		if m.State == stateIdle {
+			m.Chat.TextArea.Focus()
+		}
 		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 
 	case "e":
@@ -290,11 +302,15 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		targetMsg := messages[currIdx]
 		if !targetMsg.Type.IsEditable() {
 			m.StatusBarMessage = "Only user messages can be edited."
-			return m, clearStatusBarCmd(), true
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
+		m.ActiveOverlay = overlayNone
 		m.Chat.EditingMessageIndex = currIdx
-		m.State = stateIdle
 		return m, editInEditorCmd(targetMsg.Content), true
 
 	case "r":
@@ -303,7 +319,11 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		targetMsg := messages[currIdx]
 		if !targetMsg.Type.IsRegeneratable() {
 			m.StatusBarMessage = "Selected message cannot be regenerated."
-			return m, clearStatusBarCmd(), true
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
 		if m.Chat.IsStreaming {
@@ -312,7 +332,7 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 			m.Chat.StreamSub = nil
 		}
 
-		m.State = stateIdle
+		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Focus()
 		event := m.Session.RegenerateFrom(currIdx)
 		model, cmd := m.startGeneration(event)
@@ -345,21 +365,13 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		} else {
 			m.StatusBarMessage = "Deleted message."
 		}
+		m.ActiveOverlay = overlayNone
 		m.AtomicMsg.IsSelecting = false
-		m.Chat.Viewport.SetContent(m.renderConversation())
-
-		messages := m.Session.GetMessages()
-		selectableRemaining := getSelectableIndices(messages)
-		if len(selectableRemaining) == 0 {
-			m.State = stateIdle
+		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
-
-		m.AtomicMsg.Cursor = nextSelectableIndex(messages, currIdx, -1)
-		m.AtomicMsg.Anchor = m.AtomicMsg.Cursor
-		m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
-		return m, clearStatusBarCmd(), true
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 
 	case "b":
 		m.AtomicMsg.IsSelecting = false
@@ -372,13 +384,17 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		newSess, err := m.Session.Branch(currIdx)
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error branching: %v", err)
-			return m, clearStatusBarCmd(), true
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
+		m.ActiveOverlay = overlayNone
 		m.Session = newSess
 		m.addActiveSession(newSess)
 		m.StatusBarMessage = "Branched to a new session."
-		m.State = stateIdle
 		m.Chat.LastInteractionFailed = false
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)

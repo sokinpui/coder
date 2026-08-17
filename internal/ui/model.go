@@ -23,6 +23,7 @@ type Model struct {
 	ActiveSessions      []*session.Session
 	Session             *session.Session
 	State               state
+	ActiveOverlay       overlayMode
 	Quitting            bool
 	Height              int
 	Width               int
@@ -59,6 +60,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		Finder:              NewFinder(),
 		QuickView:           NewQuickView(),
 		Session:             sess,
+		ActiveOverlay:       overlayNone,
 		State:               stateIdle,
 		GlamourRenderer:     renderer,
 		AvailableCommands:   availableCommands,

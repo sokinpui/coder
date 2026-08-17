@@ -14,9 +14,16 @@ const (
 	stateThinking
 	stateGenerating
 	stateCancelling
-	stateAtomicMsg
-	stateHistorySelect
-	stateFinder
+)
+
+type overlayMode int
+
+const (
+	overlayNone overlayMode = iota
+	overlayHistory
+	overlayFinder
+	overlayAtomicMsg
+	overlayQuickView
 )
 
 type modelsFetchedMsg struct {

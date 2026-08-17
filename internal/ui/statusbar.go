@@ -18,10 +18,6 @@ func (m Model) StatusView() string {
 		return statusStyle.Render("Press Ctrl+C again to quit.\n")
 	}
 
-	if m.State == stateHistorySelect {
-		return statusStyle.Render("j/k: move | gg/G: top/bottom | enter: load | esc: cancel")
-	}
-
 	// Line 1: Title
 	var title string
 	if m.Chat.AnimatingTitle {
@@ -35,8 +31,8 @@ func (m Model) StatusView() string {
 	var rightStatusItems []string
 	var leftStatus string
 
-	switch m.State {
-	case stateAtomicMsg:
+	switch m.ActiveOverlay {
+	case overlayAtomicMsg:
 		helpStr := "j/k: move | v: select | y: yank | d: del | a: apply | e: edit | r: regen | b: branch | esc/C-c: exit"
 		leftStatus = statusStyle.Render(fmt.Sprintf("-- ATOMIC MSG -- | %s", helpStr))
 	}
@@ -46,7 +42,7 @@ func (m Model) StatusView() string {
 
 	modelPart := modelInfoStyle.Render(modelInfo)
 
-	if m.State != stateAtomicMsg {
+	if m.ActiveOverlay != overlayAtomicMsg {
 		if m.TokenCount > 0 {
 			tokenPart := tokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
 			rightStatusItems = append(rightStatusItems, tokenPart)

@@ -17,7 +17,6 @@ type FinderModel struct {
 	Cursor     int
 	Width      int
 	Height     int
-	Visible    bool
 }
 
 func NewFinder() FinderModel {
@@ -29,54 +28,11 @@ func NewFinder() FinderModel {
 
 	return FinderModel{
 		TextInput: ti,
-		Visible:   false,
 	}
 }
 
 func (m FinderModel) Init() tea.Cmd {
 	return textinput.Blink
-}
-
-func (m FinderModel) Update(msg tea.Msg) (FinderModel, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc, tea.KeyCtrlC:
-			m.Visible = false
-			m.TextInput.Blur()
-			m.TextInput.Reset()
-			return m, nil
-
-		case tea.KeyUp, tea.KeyCtrlP, tea.KeyCtrlK:
-			if m.Cursor > 0 {
-				m.Cursor--
-			}
-			return m, nil
-
-		case tea.KeyDown, tea.KeyCtrlN, tea.KeyCtrlJ:
-			if m.Cursor < len(m.FoundItems)-1 {
-				m.Cursor++
-			}
-			return m, nil
-
-		case tea.KeyEnter:
-			if len(m.FoundItems) > 0 && m.Cursor < len(m.FoundItems) {
-				selected := m.FoundItems[m.Cursor]
-				m.Visible = false
-				m.TextInput.Blur()
-				m.TextInput.Reset()
-				return m, func() tea.Msg { return finderResultMsg{result: selected} }
-			}
-			return m, nil
-		}
-	}
-
-	m.TextInput, cmd = m.TextInput.Update(msg)
-	m.updateFoundItems()
-
-	return m, cmd
 }
 
 func (m *FinderModel) updateFoundItems() {
@@ -99,10 +55,6 @@ func (m *FinderModel) updateFoundItems() {
 }
 
 func (m FinderModel) View() string {
-	if !m.Visible {
-		return ""
-	}
-
 	var b strings.Builder
 	b.WriteString(m.TextInput.View())
 	b.WriteString("\n\n")
@@ -134,7 +86,7 @@ func (m FinderModel) View() string {
 type FinderOverlay struct{}
 
 func (f *FinderOverlay) IsVisible(main *Model) bool {
-	return main.State == stateFinder
+	return main.ActiveOverlay == overlayFinder
 }
 
 func (f *FinderOverlay) View(main *Model) string {

@@ -51,7 +51,7 @@ func displayFullConfig(s SessionController) (CommandOutput, bool) {
 	if err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error marshaling config: %v", err)}, false
 	}
-	return CommandOutput{Type: types.MessagesUpdated, Payload: string(data)}, true
+	return CommandOutput{Type: types.ConfigViewerStarted, Payload: string(data)}, true
 }
 
 func parseConfigValue(v string) any {

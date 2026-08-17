@@ -29,7 +29,6 @@ var behaviorGroup = helpGroup{
 
 var commandGroup = helpGroup{
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
-	{key: "cards", desc: "Open atomic messages overlay (alias: /msg)."},
 	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
@@ -82,7 +81,7 @@ var atomicMsgGroup = helpGroup{
 	{key: "Esc / Ctrl+C", desc: "Exit atomic messages overlay."},
 }
 
-var historyViewGropu = helpGroup{
+var historyViewGroup = helpGroup{
 	{key: "j / k", desc: "Move cursor down / up."},
 	{key: "u / d", desc: "Half-page up / down."},
 	{key: "Ctrl+U / D", desc: "Half-page up / down."},
@@ -97,7 +96,7 @@ var helpPageDesc = []helpSection{
 	{name: "Global", group: globalGroup},
 	{name: "Command", group: commandGroup},
 	{name: "Atomic Messages", group: atomicMsgGroup},
-	{name: "Chat History", group: historyViewGropu},
+	{name: "Chat History", group: historyViewGroup},
 }
 
 func helpCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -119,5 +118,5 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true
+	return CommandOutput{Type: types.HelpViewerStarted, Payload: strings.TrimSpace(b.String())}, true
 }

@@ -33,10 +33,11 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 
 	manager := NewManager(&mainModel)
 	manager.Overlays = []Overlay{
-		&PaletteOverlay{},
-		&FinderOverlay{},
 		&QuickViewOverlay{},
+		&HistoryOverlay{},
 		&AtomicMsgOverlay{},
+		&FinderOverlay{},
+		&PaletteOverlay{},
 	}
 
 	p := tea.NewProgram(

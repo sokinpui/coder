@@ -10,8 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sahilm/fuzzy"
+	"github.com/rmhubbert/bubbletea-overlay"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/types"
 )
 
 type HistoryTab int
@@ -32,6 +33,8 @@ type HistoryModel struct {
 	IsSearching   bool
 	GGPressed     bool
 	Tab           HistoryTab
+	Width         int
+	Height        int
 }
 
 func NewHistory() HistoryModel {
@@ -45,6 +48,106 @@ func NewHistory() HistoryModel {
 		SearchInput: hsi,
 		Tab:         TabHistory,
 	}
+}
+
+type HistoryOverlay struct{}
+
+func (h *HistoryOverlay) IsVisible(main *Model) bool {
+	return main.ActiveOverlay == overlayHistory
+}
+
+func (h *HistoryOverlay) View(main *Model) string {
+	historyWidth := min(90, max(50, main.Width-4))
+	historyHeight := min(30, max(12, main.Height-4))
+	main.History.Width = historyWidth
+	main.History.Height = historyHeight
+	main.History.SearchInput.Width = historyWidth - 20
+
+	content := main.History.View(main)
+	if content == "" {
+		return main.View()
+	}
+
+	return overlay.New(
+		simpleModel{content: content},
+		main,
+		overlay.Center,
+		overlay.Center,
+		0, 0,
+	).View()
+}
+
+func (m HistoryModel) View(main *Model) string {
+	historyTabStr := "[ History ]"
+	activeTabStr := "[ Active ]"
+
+	if m.Tab == TabHistory {
+		historyTabStr = activeTabStyle.Render(historyTabStr)
+		activeTabStr = tabStyle.Render(activeTabStr)
+	} else {
+		historyTabStr = tabStyle.Render(historyTabStr)
+		activeTabStr = activeTabStyle.Render(activeTabStr)
+	}
+
+	var header strings.Builder
+	header.WriteString(fmt.Sprintf("%s  %s", historyTabStr, activeTabStr))
+	if m.IsSearching {
+		header.WriteString("   Search: " + m.SearchInput.View())
+	}
+	header.WriteString("\n")
+
+	var listBuf strings.Builder
+	currentItems := main.getHistoryCurrentList()
+
+	if len(currentItems) == 0 {
+		listBuf.WriteString("  No matching history found.\n")
+	} else {
+		maxItems := max(5, m.Height-6)
+		start := 0
+		if m.CursorPos >= maxItems {
+			start = m.CursorPos - maxItems + 1
+		}
+		end := min(start+maxItems, len(currentItems))
+
+		for i := start; i < end; i++ {
+			item := currentItems[i]
+			title := item.Title
+			dateStr := ""
+			if m.Tab == TabHistory {
+				dateStr = fmt.Sprintf(" (%s)", item.CreatedAt.Format("2006-01-02 15:04"))
+			}
+
+			isCurrent := false
+			if m.Tab == TabActive && item.ID == main.Session.ID {
+				isCurrent = true
+			} else if m.Tab == TabHistory && item.Filename != "" && item.Filename == main.Session.GetHistoryFilename() {
+				isCurrent = true
+			}
+
+			cursor := "  "
+			if i == m.CursorPos {
+				cursor = "▸ "
+			}
+
+			marker := " "
+			if isCurrent {
+				marker = "*"
+			}
+
+			prefix := fmt.Sprintf("%s%s", cursor, marker)
+			line := fmt.Sprintf("%s %s%s", prefix, title, dateStr)
+			if i == m.CursorPos {
+				listBuf.WriteString(paletteSelectedItemStyle.Render(line))
+			} else {
+				listBuf.WriteString(paletteItemStyle.Render(line))
+			}
+			listBuf.WriteString("\n")
+		}
+	}
+
+	footer := paletteHeaderStyle.Render("── [Esc/q: close | /: search | Tab: switch tab | Enter: load] ──")
+	content := lipgloss.JoinVertical(lipgloss.Left, header.String(), listBuf.String(), footer)
+	return paletteContainerStyle.Width(m.Width).Render(content)
 }
 
 func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -64,7 +167,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		case tea.KeyEnter:
 			m.History.IsSearching = false
 			m.History.SearchInput.Blur()
-			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 
 		case tea.KeyEsc, tea.KeyCtrlC:
@@ -73,7 +175,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
 			m.updateActiveFilter()
-			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		}
 
@@ -81,12 +182,11 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		m.History.SearchInput, cmd = m.History.SearchInput.Update(msg)
 		m.updateHistoryFilter()
 		m.updateActiveFilter()
-		m.Chat.Viewport.SetContent(m.historyListView())
 		return m, cmd, true
 	}
 
 	prevGGPressed := m.History.GGPressed
-	m.History.GGPressed = false // Reset by default
+	m.History.GGPressed = false
 
 	switch keyStr {
 	case km.ScrollDown:
@@ -115,25 +215,15 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		return m, nil, true
 
 	case tea.KeyEsc, tea.KeyCtrlC:
+		m.ActiveOverlay = overlayNone
 		m.History.Items = nil
-		if m.Chat.IsStreaming {
-			// Return to the generation view
-			messages := m.Session.GetMessages()
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-				m.State = stateAsking
-			} else {
-				m.State = stateGenerating
-			}
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			// Re-issue commands needed for generation state
-			return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick), true
-		} else {
-			// Return to idle
-			m.State = stateIdle
+		m.History.IsSearching = false
+		m.History.SearchInput.Blur()
+		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
-			m.Chat.Viewport.SetContent(m.renderConversation())
 			return m, textarea.Blink, true
 		}
+		return m, nil, true
 
 	case tea.KeyEnter:
 		currentItems := m.getHistoryCurrentList()
@@ -144,18 +234,18 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 		if m.Chat.IsStreaming {
 			m.Session.CancelGeneration()
-			m.Chat.IsStreaming = false // Prevent streamFinishedMsg from running
+			m.Chat.IsStreaming = false
 			m.Chat.StreamSub = nil
 		}
 
+		m.ActiveOverlay = overlayNone
+		m.History.IsSearching = false
+		m.History.SearchInput.Blur()
+
 		if m.History.Tab == TabActive {
-			// Load the actual pointer from the active session list
-			currentItems := m.getHistoryCurrentList()
-			selectedItem := currentItems[m.History.CursorPos]
 			return m, m.switchSessionByID(selectedItem.ID), true
 		}
 
-		// Check if the history file is already open in an active session.
 		for _, sess := range m.ActiveSessions {
 			if sess.GetHistoryFilename() == selectedItem.Filename {
 				return m, m.switchSessionByID(sess.ID), true
@@ -174,7 +264,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			m.History.SearchInput.Reset()
 			m.updateHistoryFilter()
 			m.updateActiveFilter()
-			m.Chat.Viewport.SetContent(m.historyListView())
 			return m, nil, true
 		case km.HistoryView.HistoryTab:
 			target := TabHistory
@@ -193,8 +282,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		case km.HistoryView.Top:
 			if prevGGPressed || km.HistoryView.Top != "g" {
 				m.History.CursorPos = 0
-				m.Chat.Viewport.GotoTop()
-				m.Chat.Viewport.SetContent(m.historyListView())
 			} else {
 				m.History.GGPressed = true
 			}
@@ -203,8 +290,6 @@ func (m Model) handleKeyPressHistory(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 			currentItems := m.getHistoryCurrentList()
 			if len(currentItems) > 0 {
 				m.History.CursorPos = len(currentItems) - 1
-				m.Chat.Viewport.GotoBottom()
-				m.Chat.Viewport.SetContent(m.historyListView())
 			}
 			return m, nil, true
 		case km.HistoryView.HalfPageDown:
@@ -243,8 +328,6 @@ func (m *Model) switchTab(target HistoryTab) {
 
 	m.updateHistoryFilter()
 	m.updateActiveFilter()
-	m.centerHistoryViewport()
-	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m Model) getHistoryCurrentList() []history.ConversationInfo {
@@ -262,8 +345,6 @@ func (m *Model) moveHistoryCursor(delta int) {
 	}
 
 	m.History.CursorPos = newPos
-	m.centerHistoryViewport()
-	m.Chat.Viewport.SetContent(m.historyListView())
 }
 
 func (m *Model) scrollHistoryHalfPage(down bool) {
@@ -271,30 +352,8 @@ func (m *Model) scrollHistoryHalfPage(down bool) {
 	if len(currentItems) == 0 {
 		return
 	}
-	scrollAmount := m.Chat.Viewport.Height / 2
+	scrollAmount := max(1, m.History.Height/2)
 	m.History.CursorPos = cursorPosAfterScroll(m.History.CursorPos, scrollAmount, len(currentItems), down)
-	m.centerHistoryViewport()
-	m.Chat.Viewport.SetContent(m.historyListView())
-}
-
-func (m *Model) centerHistoryViewport() {
-	currentItems := m.getHistoryCurrentList()
-	if len(currentItems) == 0 {
-		return
-	}
-
-	halfHeight := m.Chat.Viewport.Height / 2
-	targetOffset := m.History.CursorPos - halfHeight
-
-	maxOffset := max(len(currentItems)-m.Chat.Viewport.Height, 0)
-
-	if targetOffset < 0 {
-		targetOffset = 0
-	} else if targetOffset > maxOffset {
-		targetOffset = maxOffset
-	}
-
-	m.Chat.Viewport.SetYOffset(targetOffset)
 }
 
 func (m *Model) updateHistoryFilter() {
@@ -369,75 +428,4 @@ func (m *Model) updateActiveFilter() {
 		}
 		m.History.ActiveCursor = m.History.CursorPos
 	}
-}
-
-func (m Model) historyHeaderView() string {
-	var b strings.Builder
-	if m.History.IsSearching {
-		b.WriteString("Search History: ")
-		b.WriteString(m.History.SearchInput.View())
-		b.WriteString("\n\n")
-	} else {
-		b.WriteString("Select a conversation to load (type / to search):\n\n")
-	}
-
-	historyTabStr := "[ History ]"
-	activeTabStr := "[ Active ]"
-
-	if m.History.Tab == TabHistory {
-		historyTabStr = activeTabStyle.Render(historyTabStr)
-		activeTabStr = tabStyle.Render(activeTabStr)
-	} else {
-		historyTabStr = tabStyle.Render(historyTabStr)
-		activeTabStr = activeTabStyle.Render(activeTabStr)
-	}
-
-	b.WriteString(fmt.Sprintf("  %s  %s\n\n", historyTabStr, activeTabStr))
-
-	return b.String()
-}
-
-func (m Model) historyListView() string {
-	var b strings.Builder
-	currentItems := m.getHistoryCurrentList()
-
-	if len(currentItems) == 0 {
-		b.WriteString("  No matching history found.")
-		return b.String()
-	}
-
-	for i, item := range currentItems {
-		title := item.Title
-		dateStr := ""
-		if m.History.Tab == TabHistory {
-			dateStr = fmt.Sprintf(" (%s)", item.CreatedAt.Format("2006-01-02 15:04"))
-		}
-
-		isCurrent := false
-		if m.History.Tab == TabActive && item.ID == m.Session.ID {
-			isCurrent = true
-		} else if m.History.Tab == TabHistory && item.Filename != "" && item.Filename == m.Session.GetHistoryFilename() {
-			isCurrent = true
-		}
-
-		cursor := " "
-		if i == m.History.CursorPos {
-			cursor = "▸"
-		}
-
-		marker := " "
-		if isCurrent {
-			marker = "*"
-		}
-
-		prefix := fmt.Sprintf("%s%s ", cursor, marker)
-		if i == m.History.CursorPos {
-			b.WriteString(paletteSelectedItemStyle.Render(fmt.Sprintf("%s%s%s", prefix, title, dateStr)))
-		} else {
-			b.WriteString(paletteItemStyle.Render(fmt.Sprintf("%s%s%s", prefix, title, dateStr)))
-		}
-		b.WriteString("\n")
-	}
-
-	return b.String()
 }

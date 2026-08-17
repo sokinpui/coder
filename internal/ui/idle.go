@@ -38,13 +38,12 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.FzfModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.State = stateFinder
+		m.ActiveOverlay = overlayFinder
 		m.Chat.TextArea.Blur()
 		var items []string
 		items = append(items, m.Session.GetConfig().AvailableModels...)
 		m.Finder.AllItems = items
 		m.Finder.FoundItems = items
-		m.Finder.Visible = true
 		m.Finder.Cursor = 0
 		if payload, ok := event.Data.(string); ok && payload != "" {
 			m.Finder.TextInput.SetValue(payload)
@@ -58,22 +57,41 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.HistoryModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.State = stateHistorySelect
+		m.ActiveOverlay = overlayHistory
+		m.History.Tab = TabHistory
+		m.History.SearchInput.Reset()
+		m.History.IsSearching = false
 		m.Chat.TextArea.Blur()
 		m.UpdateTokenCount()
-		m.History.Tab = TabHistory
-		m = m.updateLayout()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
 	case types.ActiveModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.State = stateHistorySelect
+		m.ActiveOverlay = overlayHistory
+		m.History.Tab = TabActive
+		m.History.SearchInput.Reset()
+		m.History.IsSearching = false
 		m.Chat.TextArea.Blur()
 		m.UpdateTokenCount()
-		m.History.Tab = TabActive
 		m.updateActiveFilter()
-		m = m.updateLayout()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
+	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ModelViewerStarted, types.ListViewerStarted:
+		cmdName := "/help"
+		switch event.Type {
+		case types.ConfigViewerStarted:
+			cmdName = "/config"
+		case types.ModelViewerStarted:
+			cmdName = "/model"
+		case types.ListViewerStarted:
+			cmdName = "/list"
+		}
+		m.QuickView.SetMessages([]types.Message{
+			{Type: types.CommandMessage, Content: cmdName},
+			{Type: types.CommandResultMessage, Content: event.Data.(string)},
+		})
+		m.ActiveOverlay = overlayQuickView
+		m.Chat.TextArea.Blur()
+		return m, nil
 	case types.ExternalEditorStarted:
 		return m, openInEditorCmd(event.Data.(string))
 

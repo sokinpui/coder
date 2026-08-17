@@ -51,7 +51,6 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			continue
 		}
 		result = append(result, msg)
-		result = append(result, msg)
 	}
 
 	return result

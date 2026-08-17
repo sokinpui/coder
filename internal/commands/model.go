@@ -26,7 +26,7 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 			fmt.Fprintf(&b, "- %s\n", m)
 		}
 		fmt.Fprint(&b, "Usage: /model <model_name>")
-		return CommandOutput{Type: types.MessagesUpdated, Payload: b.String()}, true
+		return CommandOutput{Type: types.ModelViewerStarted, Payload: b.String()}, true
 	}
 
 	if slices.Contains(cfg.AvailableModels, args) {

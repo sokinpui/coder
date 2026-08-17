@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/sokinpui/coder/internal/utils"
 	"path/filepath"
 	"strings"
 )
@@ -37,8 +36,4 @@ func AppendUnique(original []string, newItems []string) []string {
 		}
 	}
 	return result
-}
-
-func ExpandPathsFromDirs(dirs []string, exclusions []string) ([]string, error) {
-	return utils.SourceToFileList(dirs, nil, exclusions)
 }

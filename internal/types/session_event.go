@@ -15,6 +15,10 @@ const (
 	NewSessionStarted
 	FzfModeStarted
 	ExternalEditorStarted
+	HelpViewerStarted
+	ConfigViewerStarted
+	ModelViewerStarted
+	ListViewerStarted
 	Quit
 )
 

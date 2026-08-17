@@ -25,7 +25,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: fmt.Sprintf("Failed to fetch models: %v", msg.err),
 			})
-			if m.State != stateHistorySelect && m.State != stateFinder {
+			if m.ActiveOverlay == overlayNone {
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}
@@ -40,7 +40,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: "Warning: Server returned no available models.",
 			})
-			if m.State != stateHistorySelect && m.State != stateFinder {
+			if m.ActiveOverlay == overlayNone {
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}
@@ -65,7 +65,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Type:    types.CommandErrorResultMessage,
 				Content: strings.Join(errorStrings, "\n"),
 			})
-			if m.State != stateHistorySelect && m.State != stateFinder {
+			if m.ActiveOverlay == overlayNone {
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}
@@ -148,8 +148,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.LastInteractionFailed = true
 		}
 
-		if m.State != stateAtomicMsg && m.State != stateHistorySelect && m.State != stateFinder {
-			m.State = stateIdle
+		m.State = stateIdle
+		if m.ActiveOverlay == overlayNone {
 			m.Chat.TextArea.Focus()
 		}
 		wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -229,8 +229,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case historyListResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
-			if m.State == stateHistorySelect {
-				m.State = stateIdle
+			if m.ActiveOverlay == overlayHistory {
+				m.ActiveOverlay = overlayNone
+			}
+			if m.State == stateIdle && m.ActiveOverlay == overlayNone {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -249,18 +251,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 		m.History.CursorPos = initialCursorPos
-
-		if m.State == stateHistorySelect {
-			m.Chat.Viewport.SetContent(m.historyListView())
-			m.centerHistoryViewport()
-		}
 		return m, nil, true
 
 	case conversationLoadedMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
@@ -270,7 +269,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		// When loading from history, this loaded session becomes the active one
+		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
 		m.addActiveSession(msg.sess)
@@ -296,6 +295,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
+		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
 		m.State = stateIdle
@@ -351,7 +351,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case finderResultMsg:
-		m.State = stateIdle
+		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Focus()
 		originalContent := m.Chat.TextArea.Value()
 
@@ -388,7 +388,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.err != nil {
 			errorContent := fmt.Sprintf("\n**Error loading initial context:**\n```\n%v\n```\n", msg.err)
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			if m.State != stateHistorySelect && m.State != stateFinder {
+			if m.ActiveOverlay == overlayNone {
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}

@@ -43,10 +43,6 @@ func GetCommands() []string {
 	return commandNames
 }
 
-func errorOutput(msg string) (CommandOutput, bool) {
-	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
-}
-
 func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
 	if !strings.HasPrefix(input, "/") {
 		return CommandOutput{}, false, false // Not a command

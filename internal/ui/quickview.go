@@ -12,7 +12,6 @@ import (
 
 type QuickViewModel struct {
 	Viewport        viewport.Model
-	Visible         bool
 	GlamourRenderer *glamour.TermRenderer
 	messages        []types.Message
 	needsRender     bool
@@ -22,7 +21,6 @@ func NewQuickView() *QuickViewModel {
 	vp := viewport.New(80, 20) // Initial size, will be updated
 	return &QuickViewModel{
 		Viewport:    vp,
-		Visible:     false,
 		needsRender: false,
 	}
 }
@@ -42,7 +40,7 @@ func (m *QuickViewModel) Update(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
-func (m *QuickViewModel) renderMessages() string {
+func (m *QuickViewModel) renderContent() string {
 	var parts []string
 	for _, msg := range m.messages {
 		var renderedMsg string
@@ -80,16 +78,13 @@ func (m *QuickViewModel) renderMessages() string {
 }
 
 func (m *QuickViewModel) View() string {
-	if !m.Visible {
-		return ""
-	}
 	return paletteContainerStyle.Render(m.Viewport.View())
 }
 
 type QuickViewOverlay struct{}
 
 func (f *QuickViewOverlay) IsVisible(main *Model) bool {
-	return main.QuickView.Visible
+	return main.ActiveOverlay == overlayQuickView
 }
 
 func (f *QuickViewOverlay) View(main *Model) string {
@@ -101,8 +96,8 @@ func (f *QuickViewOverlay) View(main *Model) string {
 	main.QuickView.GlamourRenderer = main.GlamourRenderer
 
 	if main.QuickView.needsRender {
-		main.QuickView.Viewport.SetContent(main.QuickView.renderMessages())
-		main.QuickView.Viewport.GotoBottom()
+		main.QuickView.Viewport.SetContent(main.QuickView.renderContent())
+		main.QuickView.Viewport.GotoTop()
 		main.QuickView.needsRender = false
 	}
 
