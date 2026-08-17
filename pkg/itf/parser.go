@@ -49,35 +49,35 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 		case "diff":
 			raw := strings.Trim(b.Content, "\n")
 			path := ExtractPathFromDiff(raw)
-			if path == "" || !isAllowed(resolver.Resolve(path), allowedFiles) {
+			if path == "" {
 				continue
 			}
-			
-			d := DiffBlock{FilePath: path, RawContent: raw}
-			abs := resolver.Resolve(d.FilePath)
+
+			abs := resolver.Resolve(path)
+			if !isAllowed(abs, allowedFiles) {
+				continue
+			}
+			if len(extensions) > 0 && !HasAllowedExtension(path, extensions) {
+				continue
+			}
+
 			sourcePath := abs
 			if s, ok := renameDestToSource[abs]; ok {
 				sourcePath = s
 			}
 
-			if len(extensions) > 0 && !HasAllowedExtension(d.FilePath, extensions) {
-				continue
-			}
-
-			patched, err := CorrectDiff(d, resolver, extensions, sourcePath)
+			applied, err := ApplyDiffToPath(sourcePath, raw)
 			if err != nil {
-				failed = append(failed, abs)
+				failed = append(failed, fmt.Sprintf("%s: %v", abs, err))
 				continue
 			}
-
-			applied := applyPatch(sourcePath, patched)
 			actions = append(actions, PlannedAction{
 				Type: "write",
 				Change: &FileChange{
 					Path:     abs,
 					Content:  applied,
 					Source:   "diff",
-					RawBlock: fmt.Sprintf("```diff\n%s\n```", d.RawContent),
+					RawBlock: fmt.Sprintf("```diff\n%s\n```", raw),
 				},
 			})
 		default:
@@ -136,36 +136,6 @@ func parseFileBlock(b CodeBlock, resolver *PathResolver, extensions []string, al
 		Source:   "codeblock",
 		RawBlock: fmt.Sprintf("```%s\n%s\n```", b.Lang, trimmed),
 	}
-}
-
-func ExtractDiffBlocks(content string, resolver *PathResolver, files []string) []DiffBlock {
-	blocks, _ := ExtractCodeBlocks([]byte(content))
-	allowed := make(map[string]struct{})
-	for _, f := range files {
-		allowed[resolver.Resolve(f)] = struct{}{}
-	}
-	return extractDiffBlocksFromParsed(blocks, resolver, allowed)
-}
-
-func extractDiffBlocksFromParsed(blocks []CodeBlock, resolver *PathResolver, allowed map[string]struct{}) []DiffBlock {
-	var diffs []DiffBlock
-	for _, b := range blocks {
-		if b.Lang != "diff" {
-			continue
-		}
-		raw := strings.Trim(b.Content, "\n")
-		path := ExtractPathFromDiff(raw)
-		if path == "" {
-			continue
-		}
-		if len(allowed) > 0 {
-			if _, ok := allowed[resolver.Resolve(path)]; !ok {
-				continue
-			}
-		}
-		diffs = append(diffs, DiffBlock{FilePath: path, RawContent: raw})
-	}
-	return diffs
 }
 
 func ExtractPathFromHint(hint string) string {

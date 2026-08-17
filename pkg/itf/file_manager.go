@@ -21,7 +21,7 @@ func (m *FileManager) WriteChanges(changes []FileChange, progressCb func(int)) (
 		}
 
 		if err := os.WriteFile(change.Path, []byte(content), 0644); err != nil {
-			failed = append(failed, change.Path)
+			failed = append(failed, fmt.Sprintf("%s: %v", change.Path, err))
 			continue
 		}
 
@@ -36,8 +36,8 @@ func (m *FileManager) WriteChanges(changes []FileChange, progressCb func(int)) (
 func (m *FileManager) Undo(ops []Operation, stateDir string, projectRoot string) Summary {
 	var s Summary
 	for _, op := range ops {
-		if !m.undoFile(op, stateDir, projectRoot) {
-			s.Failed = append(s.Failed, op.Path)
+		if err := m.undoFile(op, stateDir, projectRoot); err != nil {
+			s.Failed = append(s.Failed, fmt.Sprintf("%s: %v", op.Path, err))
 			continue
 		}
 
@@ -55,7 +55,7 @@ func (m *FileManager) Undo(ops []Operation, stateDir string, projectRoot string)
 	return s
 }
 
-func (m *FileManager) undoFile(op Operation, stateDir string, projectRoot string) bool {
+func (m *FileManager) undoFile(op Operation, stateDir string, projectRoot string) error {
 	currentPath := op.Path
 	if op.Action == "rename" {
 		currentPath = op.NewPath
@@ -69,34 +69,34 @@ func (m *FileManager) undoFile(op Operation, stateDir string, projectRoot string
 
 	actualHash, _ := GetFileSHA256(checkPath)
 	if actualHash != op.ContentHash {
-		return false
+		return fmt.Errorf("content modified since last operation")
 	}
 
 	if op.Action == "rename" {
-		return os.Rename(op.NewPath, op.Path) == nil
+		return os.Rename(op.NewPath, op.Path)
 	}
 
 	if op.Action == "create" {
-		return os.Remove(op.Path) == nil
+		return os.Remove(op.Path)
 	}
 
 	if op.Action == "delete" {
-		return RestoreFileFromTrash(op.Path, filepath.Join(stateDir, TrashDir), projectRoot) == nil
+		return RestoreFileFromTrash(op.Path, filepath.Join(stateDir, TrashDir), projectRoot)
 	}
 
 	content, err := ReadBlob(stateDir, op.OldContentHash)
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to read backup blob: %w", err)
 	}
 
-	return os.WriteFile(op.Path, content, 0644) == nil
+	return os.WriteFile(op.Path, content, 0644)
 }
 
 func (m *FileManager) Redo(ops []Operation, stateDir string, projectRoot string) Summary {
 	var s Summary
 	for _, op := range ops {
-		if !m.redoFile(op, stateDir, projectRoot) {
-			s.Failed = append(s.Failed, op.Path)
+		if err := m.redoFile(op, stateDir, projectRoot); err != nil {
+			s.Failed = append(s.Failed, fmt.Sprintf("%s: %v", op.Path, err))
 			continue
 		}
 
@@ -114,25 +114,27 @@ func (m *FileManager) Redo(ops []Operation, stateDir string, projectRoot string)
 	return s
 }
 
-func (m *FileManager) redoFile(op Operation, stateDir string, projectRoot string) bool {
+func (m *FileManager) redoFile(op Operation, stateDir string, projectRoot string) error {
 	actualHash, _ := GetFileSHA256(op.Path)
 	if actualHash != op.OldContentHash {
-		return false
+		return fmt.Errorf("content modified since last operation")
 	}
 
 	if op.Action == "rename" {
-		return os.Rename(op.Path, op.NewPath) == nil
+		return os.Rename(op.Path, op.NewPath)
 	}
 
 	if op.Action == "delete" {
-		return TrashFile(op.Path, filepath.Join(stateDir, TrashDir), projectRoot) == nil
+		return TrashFile(op.Path, filepath.Join(stateDir, TrashDir), projectRoot)
 	}
 
 	content, err := ReadBlob(stateDir, op.ContentHash)
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to read backup blob: %w", err)
 	}
 
-	_ = os.MkdirAll(filepath.Dir(op.Path), 0755)
-	return os.WriteFile(op.Path, content, 0644) == nil
+	if err := os.MkdirAll(filepath.Dir(op.Path), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(op.Path, content, 0644)
 }

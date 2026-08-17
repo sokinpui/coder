@@ -9,7 +9,6 @@ import (
 )
 
 type CLIConfig struct {
-	OutputDiffFix bool
 	Undo          bool
 	Redo          bool
 	NoAnimation   bool
@@ -39,21 +38,15 @@ Example: pbpaste | itf -e py`,
 		normalizeExtensions()
 
 		itfCfg := &Config{
-			OutputDiffFix: cfg.OutputDiffFix,
-			Undo:          cfg.Undo,
-			Redo:          cfg.Redo,
-			Extensions:    cfg.Extensions,
-			Files:         cfg.Files,
+			Undo:       cfg.Undo,
+			Redo:       cfg.Redo,
+			Extensions: cfg.Extensions,
+			Files:      cfg.Files,
 		}
 
 		app, err := NewApp(itfCfg)
 		if err != nil {
 			return fmt.Errorf("failed to initialize application: %w", err)
-		}
-
-		if cfg.OutputDiffFix {
-			_, err := app.Execute()
-			return err
 		}
 
 		ui := NewTUI(app, cfg.NoAnimation)
@@ -86,7 +79,6 @@ func normalizeExtensions() {
 
 func init() {
 	rootCmd.Flags().StringVar(&cfg.Completion, "completion", "", "Generate completion script")
-	rootCmd.Flags().BoolVarP(&cfg.OutputDiffFix, "output-diff-fix", "o", false, "Print corrected diff")
 	rootCmd.Flags().BoolVar(&cfg.NoAnimation, "no-animation", false, "Disable spinner")
 	rootCmd.Flags().StringSliceVarP(&cfg.Extensions, "extension", "e", []string{}, "Filter by extension")
 	rootCmd.Flags().StringSliceVarP(&cfg.Files, "file", "f", []string{}, "Filter by files")

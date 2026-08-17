@@ -9,11 +9,10 @@ import (
 )
 
 type Config struct {
-	OutputDiffFix bool
-	Undo          bool
-	Redo          bool
-	Extensions    []string
-	Files         []string
+	Undo       bool
+	Redo       bool
+	Extensions []string
+	Files      []string
 }
 
 type ProgressUpdate func(current, total int)
@@ -72,8 +71,6 @@ func (a *App) Execute() (summary Summary, err error) {
 		return a.undoLastOperation()
 	case a.cfg.Redo:
 		return a.redoLastOperation()
-	case a.cfg.OutputDiffFix:
-		return a.fixAndPrintDiffs()
 	default:
 		return a.processContent()
 	}
@@ -143,20 +140,20 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 		case "rename":
 			r := action.Rename
 			a.backupFileState(r.OldPath, oldHashes)
-			if os.Rename(r.OldPath, r.NewPath) == nil {
+			if err := os.Rename(r.OldPath, r.NewPath); err == nil {
 				renamedMap[r.OldPath] = r.NewPath
 				renamedSuccess = append(renamedSuccess, r.OldPath)
 			} else {
-				failedRenames = append(failedRenames, r.OldPath)
+				failedRenames = append(failedRenames, fmt.Sprintf("%s -> %s: %v", r.OldPath, r.NewPath, err))
 			}
 
 		case "delete":
 			p := action.Path
 			a.backupFileState(p, oldHashes)
-			if TrashFile(p, trash, a.stateManager.ProjectRoot) == nil {
+			if err := TrashFile(p, trash, a.stateManager.ProjectRoot); err == nil {
 				deleted = append(deleted, p)
 			} else {
-				failedDeletes = append(failedDeletes, p)
+				failedDeletes = append(failedDeletes, fmt.Sprintf("%s: %v", p, err))
 			}
 		}
 		progress()
@@ -238,16 +235,6 @@ func (a *App) createSummary(created, modified, deleted []string, renamed map[str
 	return s, nil
 }
 
-func (a *App) fixAndPrintDiffs() (Summary, error) {
-	c, _ := a.sourceProvider.GetContent()
-	diffs := ExtractDiffBlocks(c, a.pathResolver, a.cfg.Files)
-	for _, d := range diffs {
-		if res, err := CorrectDiff(d, a.pathResolver, a.cfg.Extensions, a.pathResolver.ResolveExisting(d.FilePath)); err == nil {
-			fmt.Print(res)
-		}
-	}
-	return Summary{}, nil
-}
 
 func (a *App) undoLastOperation() (Summary, error) {
 	ops := a.stateManager.GetOperationsToUndo()
@@ -283,7 +270,17 @@ func (a *App) relativizeSummaryPaths(s *Summary) {
 	relList := func(paths []string) []string {
 		var res []string
 		for _, p := range paths {
-			if strings.Contains(p, " -> ") {
+			if strings.Contains(p, ": ") {
+				parts := strings.SplitN(p, ": ", 2)
+				filePath := parts[0]
+				errMsg := parts[1]
+				if strings.Contains(filePath, " -> ") {
+					arrowParts := strings.SplitN(filePath, " -> ", 2)
+					res = append(res, fmt.Sprintf("%s -> %s: %s", relPath(arrowParts[0]), relPath(arrowParts[1]), errMsg))
+				} else {
+					res = append(res, fmt.Sprintf("%s: %s", relPath(filePath), errMsg))
+				}
+			} else if strings.Contains(p, " -> ") {
 				parts := strings.SplitN(p, " -> ", 2)
 				res = append(res, fmt.Sprintf("%s -> %s", relPath(parts[0]), relPath(parts[1])))
 			} else {

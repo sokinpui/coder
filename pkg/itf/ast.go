@@ -85,7 +85,11 @@ func parseOpeningFence(line string) (byte, int, bool) {
 }
 
 func isClosingFence(line string, char byte, count int) bool {
-	if len(line) < count {
+	if count < 3 || len(line) < count || char == 0 {
+		return false
+	}
+
+	if line[0] != char {
 		return false
 	}
 
