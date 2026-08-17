@@ -18,9 +18,15 @@ if [ ! -d "cmd/coder" ]; then
   echo "Cloning repository..."
   git clone https://github.com/sokinpui/coder.git "$TMP_DIR"
   cd "$TMP_DIR"
+  LATEST_TAG=$(git tag -l --sort=-v:refname | head -n 1)
+  if [ -n "$LATEST_TAG" ]; then
+    echo "Checking out latest stable release ($LATEST_TAG)..."
+    git checkout "$LATEST_TAG" --quiet
+  fi
 fi
 
-VERSION=$(git describe --tags --always --dirty)
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git tag -l --sort=-v:refname | head -n 1)
+VERSION=${LATEST_TAG:-$(git describe --tags --always --dirty)}
 LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=$VERSION"
 
 echo "Installing Coder Suite ($VERSION)..."
