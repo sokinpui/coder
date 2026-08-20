@@ -1,10 +1,9 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/rmhubbert/bubbletea-overlay"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 type PaletteOverlay struct{}
@@ -19,28 +18,9 @@ func (p *PaletteOverlay) View(main *Model) string {
 		return main.View()
 	}
 
-	paletteModel := simpleModel{content: paletteContent}
-
 	yOffset := (main.Chat.TextArea.Height() + lipgloss.Height(main.StatusView()) + 1) * -1
-
-	overlayModel := overlay.New(
-		paletteModel,
-		main,
-		overlay.Left,
-		overlay.Bottom,
-		0,
-		yOffset,
-	)
-	return overlayModel.View()
+	return Composite(paletteContent, main.View(), PositionLeft, PositionBottom, 0, yOffset)
 }
-
-type simpleModel struct {
-	content string
-}
-
-func (m simpleModel) Init() tea.Cmd                           { return nil }
-func (m simpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
-func (m simpleModel) View() string                            { return m.content }
 
 func (m Model) renderPaletteItem(item string, isSelected bool, description string, nameWidth int) string {
 	nameStyle := paletteItemStyle

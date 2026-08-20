@@ -9,9 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sahilm/fuzzy"
-	"github.com/rmhubbert/bubbletea-overlay"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/history"
 )
 
@@ -68,13 +67,7 @@ func (h *HistoryOverlay) View(main *Model) string {
 		return main.View()
 	}
 
-	return overlay.New(
-		simpleModel{content: content},
-		main,
-		overlay.Center,
-		overlay.Center,
-		0, 0,
-	).View()
+	return OverlayCenter(content, main.View())
 }
 
 func (m HistoryModel) View(main *Model) string {

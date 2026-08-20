@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
-	"github.com/rmhubbert/bubbletea-overlay"
 )
 
 type QuickViewModel struct {
@@ -106,15 +105,5 @@ func (f *QuickViewOverlay) View(main *Model) string {
 		return main.View()
 	}
 
-	quickViewModel := simpleModel{content: quickViewContent}
-
-	overlayModel := overlay.New(
-		quickViewModel,
-		main,
-		overlay.Center,
-		overlay.Center,
-		0,
-		0,
-	)
-	return overlayModel.View()
+	return OverlayCenter(quickViewContent, main.View())
 }

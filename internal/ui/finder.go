@@ -6,7 +6,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rmhubbert/bubbletea-overlay"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -107,15 +106,5 @@ func (f *FinderOverlay) View(main *Model) string {
 		return main.View()
 	}
 
-	finderModel := simpleModel{content: finderContent}
-
-	overlayModel := overlay.New(
-		finderModel,
-		main,
-		overlay.Center,
-		overlay.Center,
-		0,
-		0,
-	)
-	return overlayModel.View()
+	return OverlayCenter(finderContent, main.View())
 }

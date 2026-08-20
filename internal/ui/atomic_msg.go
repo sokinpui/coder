@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rmhubbert/bubbletea-overlay"
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -143,13 +142,7 @@ func (o *AtomicMsgOverlay) View(main *Model) string {
 	main.AtomicMsg.Width = modalWidth
 	content := main.AtomicMsg.View(main.Session.GetMessages(), main.Height-6)
 
-	return overlay.New(
-		simpleModel{content: content},
-		main,
-		overlay.Center,
-		overlay.Center,
-		0, 0,
-	).View()
+	return OverlayCenter(content, main.View())
 }
 
 func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
