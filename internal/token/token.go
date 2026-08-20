@@ -1,14 +1,32 @@
 package token
 
 import (
-	"math"
-	"unicode"
+	"sync"
 
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/tiktoken-go/tokenizer"
 )
 
+var (
+	enc     tokenizer.Codec
+	encOnce sync.Once
+)
+
+func getEncoder() tokenizer.Codec {
+	encOnce.Do(func() {
+		var err error
+		enc, err = tokenizer.Get(tokenizer.Cl100kBase)
+		if err != nil {
+			enc, _ = tokenizer.Get(tokenizer.O200kBase)
+		}
+	})
+	return enc
+}
+
 func CountTokens(messages []types.Message) int {
-	var total float64
+	encoder := getEncoder()
+	total := 0
+
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
 			continue
@@ -17,15 +35,23 @@ func CountTokens(messages []types.Message) int {
 			total += 1500
 			continue
 		}
-		for _, r := range msg.Content {
-			if unicode.Is(unicode.Han, r) {
-				total += 0.66
+
+		if encoder != nil {
+			ids, _, err := encoder.Encode(msg.Content)
+			if err == nil {
+				total += len(ids)
 				continue
 			}
-			total += 0.36
 		}
-		total += 0.36
+
+		// Fallback heuristic if encoder fails
+		total += estimateTokensFallback(msg.Content)
 	}
 
-	return int(math.Round(total))
+	return total
+}
+
+func estimateTokensFallback(text string) int {
+	// Simple fallback: ~4 characters per token average
+	return len(text) / 4
 }

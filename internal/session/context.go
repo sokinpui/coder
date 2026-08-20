@@ -19,7 +19,11 @@ func (s *Session) LoadContext() error {
 		return fmt.Errorf("failed to load project source: %w", err)
 	}
 
-	s.projectSourceCode = projSource
+	if projSource == "" {
+		s.projectSourceCode = ""
+		return nil
+	}
+	s.projectSourceCode = prompt.ProjectSourceCodeHeader + projSource
 	return nil
 }
 
@@ -37,11 +41,11 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			result = append(result, types.Message{Type: types.DirectoryMessage, Content: dirInfo})
 		}
 		if s.projectSourceCode != "" {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader + s.projectSourceCode})
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
 	case ModeChat:
 		if s.projectSourceCode != "" {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader + s.projectSourceCode})
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
 	default:
 	}
