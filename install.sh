@@ -25,8 +25,7 @@ if [ ! -d "cmd/coder" ]; then
   fi
 fi
 
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git tag -l --sort=-v:refname | head -n 1)
-VERSION=${LATEST_TAG:-$(git describe --tags --always --dirty)}
+VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "devel")
 LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=$VERSION"
 
 echo "Installing Coder Suite ($VERSION)..."
