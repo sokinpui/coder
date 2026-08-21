@@ -90,12 +90,12 @@ func (a *App) processAndApply(content string) (Summary, error) {
 	if err != nil {
 		return Summary{}, err
 	}
-	if len(plan.Failed) > 0 {
-		s := Summary{Failed: plan.Failed}
-		a.relativizeSummaryPaths(&s)
-		return s, fmt.Errorf("failed to plan changes:\n%s", strings.Join(s.Failed, "\n"))
-	}
-	if len(plan.Actions) == 0 && len(plan.Failed) == 0 {
+	if len(plan.Actions) == 0 {
+		if len(plan.Failed) > 0 {
+			s := Summary{Failed: plan.Failed}
+			a.relativizeSummaryPaths(&s)
+			return s, nil
+		}
 		return Summary{Message: "Nothing to do"}, nil
 	}
 
@@ -164,31 +164,7 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 		progress()
 	}
 
-	if len(failedCreate) > 0 || len(failedModify) > 0 || len(failedDeletes) > 0 || len(failedRenames) > 0 {
-		for oldP, newP := range renamedMap {
-			_ = os.Rename(newP, oldP)
-		}
-		for _, p := range deleted {
-			_ = RestoreFileFromTrash(p, trash, a.stateManager.ProjectRoot)
-		}
-		for _, p := range created {
-			_ = os.Remove(p)
-		}
-		for _, p := range modified {
-			if oldHash, ok := oldHashes[p]; ok && oldHash != "" {
-				if content, err := ReadBlob(a.stateManager.StateDir, oldHash); err == nil {
-					_ = os.WriteFile(p, content, 0644)
-				}
-			}
-		}
-		allFailed := append(failedCreate, append(failedModify, append(failedDeletes, failedRenames...)...)...)
-		s := Summary{Failed: allFailed}
-		a.relativizeSummaryPaths(&s)
-		return s, fmt.Errorf("apply failed, rolled back changes:\n%s", strings.Join(s.Failed, "\n"))
-	}
-
-	// To preserve history correctly, we gather the final list of operations
-	a.recordHistory(created, modified, deleted, renamedSuccess, plan, oldHashes)
+	a.recordHistory(created, modified, deleted, renamedSuccess, renamedMap, plan, oldHashes)
 
 	return a.createSummary(
 		created,
@@ -202,18 +178,15 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 	)
 }
 
-func (a *App) recordHistory(created, modified, deleted, renamed []string, plan *ExecutionPlan, oldHashes map[string]string) {
+func (a *App) recordHistory(created, modified, deleted, renamed []string, renamedMap map[string]string, plan *ExecutionPlan, oldHashes map[string]string) {
 	successCount := len(created) + len(modified) + len(deleted) + len(renamed)
 	if successCount == 0 {
 		return
 	}
 
-	// Get renames in map form for the history builder
 	var renamesList []FileRename
-	for _, action := range plan.Actions {
-		if action.Type == "rename" {
-			renamesList = append(renamesList, *action.Rename)
-		}
+	for oldPath, newPath := range renamedMap {
+		renamesList = append(renamesList, FileRename{OldPath: oldPath, NewPath: newPath})
 	}
 
 	historyPaths := make([]string, 0, successCount)
