@@ -181,7 +181,12 @@ func ensureConfigFile(path string) error {
 		return fmt.Errorf("failed to stat config file: %w", err)
 	}
 
-	return os.WriteFile(path, []byte(config.ConfigTemplate), 0644)
+	content, err := config.DefaultTemplate()
+	if err != nil {
+		return fmt.Errorf("failed to generate template: %w", err)
+	}
+
+	return os.WriteFile(path, content, 0644)
 }
 
 func printContext(mode string, args []string) {

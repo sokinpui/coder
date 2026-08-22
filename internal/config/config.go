@@ -1,8 +1,6 @@
 package config
 
 import (
-	"bytes"
-	_ "embed"
 	"fmt"
 	"github.com/sokinpui/coder/internal/utils"
 	"gopkg.in/yaml.v3"
@@ -12,9 +10,6 @@ import (
 
 	"github.com/spf13/viper"
 )
-
-//go:embed default.yaml
-var defaultYAML []byte
 
 type Context struct {
 	Files      []string `mapstructure:"files"`
@@ -83,15 +78,75 @@ type Config struct {
 	AvailableModels []string                `yaml:"-"`
 }
 
-func Load() (*Config, error) {
-	v := viper.New()
+func DefaultConfig() Config {
+	return Config{
+		Server: Server{
+			URL: "http://localhost:9001/v1",
+		},
+		Generation: Generation{
+			ModelCode:       "aisrp/gemini-3-flash-preview",
+			TitleModelCode:  "aisrp/gemini-flash-lite-latest",
+			ReasoningEffort: "high",
+		},
+		Context: Context{
+			Dirs:       []string{"."},
+			Files:      []string{},
+			Exclusions: []string{},
+		},
+		Clipboard: Clipboard{
+			CopyCmd:  "",
+			PasteCmd: "",
+		},
+		UI: UI{
+			MarkdownTheme: "dark",
+		},
+		Keymap: Keymap{
+			Submit:      "ctrl+j",
+			Editor:      "ctrl+e",
+			Paste:       "ctrl+v",
+			History:     "ctrl+h",
+			New:         "ctrl+n",
+			Branch:      "ctrl+b",
+			Finder:      "ctrl+f",
+			ContextList: "ctrl+l",
+			ApplyITF:    "ctrl+a",
+			ScrollUp:    "ctrl+u",
+			ScrollDown:  "ctrl+d",
+			Suspend:     "ctrl+z",
+			Msg:         "esc",
+			HistoryView: HistoryKeymap{
+				Up:           "k",
+				Down:         "j",
+				HalfPageUp:   "u",
+				HalfPageDown: "d",
+				Top:          "g",
+				Bottom:       "G",
+				Search:       "/",
+				HistoryTab:   "h",
+				ActiveTab:    "l",
+				Exit:         "q",
+			},
+		},
+	}
+}
 
-	v.SetConfigType("yaml")
-	if err := v.ReadConfig(bytes.NewReader(defaultYAML)); err != nil {
-		return nil, fmt.Errorf("failed to read embedded default config: %w", err)
+func DefaultTemplate() ([]byte, error) {
+	data, err := yaml.Marshal(DefaultConfig())
+	if err != nil {
+		return nil, err
 	}
 
-	// Reset config path/name for file loading
+	var sb strings.Builder
+	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+		sb.WriteString("# ")
+		sb.WriteString(line)
+		sb.WriteByte('\n')
+	}
+	return []byte(sb.String()), nil
+}
+
+func Load() (*Config, error) {
+	v := viper.New()
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
@@ -128,7 +183,7 @@ func Load() (*Config, error) {
 	v.SetEnvPrefix("CODER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	var cfg Config
+	cfg := DefaultConfig()
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
