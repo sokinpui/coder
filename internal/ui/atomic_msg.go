@@ -291,6 +291,22 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 			targetIndices = []int{currIdx}
 		}
 
+		if len(targetIndices) == 1 && messages[targetIndices[0]].Type == types.ImageMessage {
+			msg := messages[targetIndices[0]]
+			err := utils.CopyImage(msg.Content, msg.Data)
+			if err != nil {
+				m.StatusBarMessage = fmt.Sprintf("Failed to copy image: %v", err)
+			} else {
+				m.StatusBarMessage = "Image copied to clipboard."
+			}
+			m.ActiveOverlay = overlayNone
+			m.AtomicMsg.IsSelecting = false
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		}
+
 		var contents []string
 		for _, idx := range targetIndices {
 			contents = append(contents, messages[idx].Content)

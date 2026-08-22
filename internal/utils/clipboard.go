@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -24,6 +25,113 @@ func Copy(content, customCmd string) error {
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stdin = strings.NewReader(content)
 	return cmd.Run()
+}
+
+func CopyImage(imagePath string, data []byte) error {
+	absPath := imagePath
+	if absPath != "" && !filepath.IsAbs(absPath) {
+		absPath = filepath.Join(GetProjectRoot(), absPath)
+	}
+
+	if absPath != "" {
+		if _, err := os.Stat(absPath); err == nil {
+			return copyImageFile(absPath)
+		}
+	}
+
+	if len(data) == 0 {
+		return fmt.Errorf("no image path or data provided")
+	}
+
+	tmpFile, err := os.CreateTemp("", "coder-copy-*.png")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+
+	return copyImageFile(tmpFile.Name())
+}
+
+func copyImageFile(absPath string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return copyDarwinImage(absPath)
+	case "linux":
+		return copyLinuxImage(absPath)
+	default:
+		return fmt.Errorf("image copy not supported on %s", runtime.GOOS)
+	}
+}
+
+func copyDarwinImage(absPath string) error {
+	if _, err := exec.LookPath("osascript"); err != nil {
+		return fmt.Errorf("osascript not found")
+	}
+
+	classType := "«class PNGf»"
+	ext := strings.ToLower(filepath.Ext(absPath))
+	if ext == ".jpg" || ext == ".jpeg" {
+		classType = "JPEG picture"
+	}
+
+	script := fmt.Sprintf("set the clipboard to (read (POSIX file (item 1 of argv)) as %s)", classType)
+	cmd := exec.Command("osascript", "-e", "on run argv", "-e", script, "-e", "end run", absPath)
+	return cmd.Run()
+}
+
+func copyLinuxImage(absPath string) error {
+	isWayland := os.Getenv("WAYLAND_DISPLAY") != "" || os.Getenv("XDG_SESSION_TYPE") == "wayland"
+	if isWayland {
+		return copyWaylandImage(absPath)
+	}
+	return copyX11Image(absPath)
+}
+
+func copyWaylandImage(absPath string) error {
+	if _, err := exec.LookPath("wl-copy"); err != nil {
+		return fmt.Errorf("wl-copy not found")
+	}
+
+	mimeType := getMimeType(absPath)
+	file, err := os.Open(absPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	cmd := exec.Command("wl-copy", "--type", mimeType)
+	cmd.Stdin = file
+	return cmd.Run()
+}
+
+func copyX11Image(absPath string) error {
+	if _, err := exec.LookPath("xclip"); err != nil {
+		return fmt.Errorf("xclip not found")
+	}
+
+	mimeType := getMimeType(absPath)
+	cmd := exec.Command("xclip", "-selection", "clipboard", "-t", mimeType, "-i", absPath)
+	return cmd.Run()
+}
+
+func getMimeType(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "image/png"
+	}
 }
 
 func PasteText() (string, error) {
