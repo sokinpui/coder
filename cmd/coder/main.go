@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/generation"
@@ -12,12 +19,6 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/internal/utils"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"slices"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -25,106 +26,92 @@ import (
 var (
 	initialPrompt     string
 	customInstruction string
-	globalConfig      bool
 	runModel          string
+	chatMode          bool
+	printContextFlag  bool
+	configFlag        bool
+	globalConfig      bool
+	execMode          bool
+	applyFlag         bool
+	completionShell   string
 )
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "coder [flags] [files...]",
-		Short: "Coder is a TUI-based AI code editor",
-		Long:  "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
+		Use:     "coder [flags] [files...]",
+		Short:   "Coder is a TUI-based AI code editor",
+		Long:    "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
+		Version: utils.GetVersion(),
 		Example: `  coder main.go
   coder -p "refactor this" main.go
-  coder chat
-  coder context .
-  coder config -g`,
+  coder -e -p "explain this file" main.go
+  coder --chat
+  coder --context .
+  coder --config -g`,
 		Args: cobra.ArbitraryArgs,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			files := collectFiles(args)
-			startApp("coding", initialPrompt, files, customInstruction)
+			runCLI(cmd, args)
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt to start the session with")
-	rootCmd.PersistentFlags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
+	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt to start session with or execute in non-interactive mode")
+	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
+	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model to use for generation")
+	rootCmd.Flags().BoolVarP(&chatMode, "chat", "c", false, "Start Coder in chat mode (no project context)")
+	rootCmd.Flags().BoolVarP(&execMode, "exec", "e", false, "Execute a single AI request non-interactively and output to stdout")
+	rootCmd.Flags().BoolVarP(&printContextFlag, "context", "C", false, "Print instructions and project context, then exit")
+	rootCmd.Flags().BoolVar(&configFlag, "config", false, "Edit configuration file")
+	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Use with --config to edit global configuration")
+	rootCmd.Flags().BoolVarP(&applyFlag, "apply", "a", false, "Apply code changes using itf format from args or stdin")
+	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
 
-	chatCmd := &cobra.Command{
-		Use:   "chat",
-		Short: "Start Coder in chat mode (no project context)",
-		Run: func(cmd *cobra.Command, args []string) {
-			startApp("chat", initialPrompt, nil, customInstruction)
-		},
-	}
-
-	configCmd := &cobra.Command{
-		Use:   "config",
-		Short: "Edit the configuration file",
-		Run: func(cmd *cobra.Command, args []string) {
-			editConfig()
-		},
-	}
-	configCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Edit the global configuration")
-
-	applyCmd := &cobra.Command{
-		Use:   "apply [content]",
-		Short: "Apply code changes using itf format",
-		Run: func(cmd *cobra.Command, args []string) {
-			applyChanges(args)
-		},
-	}
-
-	runCmd := &cobra.Command{
-		Use:   "run [flags] [files...]",
-		Short: "Execute a single AI request and output to shell",
-		Args:  cobra.ArbitraryArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			runSingleShot(args)
-		},
-	}
-
-	runCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt for the AI (required)")
-	runCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction")
-	runCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model to use for generation")
-
-	contextCmd := &cobra.Command{
-		Use:   "context [flags] [files...]",
-		Short: "Print the instructions and project context",
-		Args:  cobra.ArbitraryArgs,
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return nil, cobra.ShellCompDirectiveDefault
-		},
-		Run: func(cmd *cobra.Command, args []string) {
-			printContext("coding", args)
-		},
-	}
-
-	versionCmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print the version number",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(uintVersion())
-		},
-	}
-
-	completionCmd := &cobra.Command{
-		Use:   "completion [bash|zsh|fish|powershell]",
-		Short: "Generate autocompletion script",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			generateCompletion(cmd, args[0])
-		},
-	}
-
-	rootCmd.AddCommand(chatCmd, configCmd, applyCmd, contextCmd, versionCmd, completionCmd, runCmd)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func runCLI(cmd *cobra.Command, args []string) {
+	if completionShell != "" {
+		generateCompletion(cmd, completionShell)
+		return
+	}
+
+	if configFlag {
+		editConfig()
+		return
+	}
+
+	if applyFlag {
+		applyChanges(args)
+		return
+	}
+
+	if printContextFlag {
+		mode := session.ModeCoding
+		if chatMode {
+			mode = session.ModeChat
+		}
+		printContext(mode, args)
+		return
+	}
+
+	if execMode {
+		runSingleShot(args)
+		return
+	}
+
+	if chatMode {
+		startApp(session.ModeChat, initialPrompt, nil, customInstruction)
+		return
+	}
+
+	files := collectFiles(args)
+	startApp(session.ModeCoding, initialPrompt, files, customInstruction)
 }
 
 func generateCompletion(cmd *cobra.Command, shell string) {
@@ -147,10 +134,6 @@ func generateCompletion(cmd *cobra.Command, shell string) {
 		fmt.Fprintf(os.Stderr, "Error generating completion: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func uintVersion() string {
-	return utils.GetVersion()
 }
 
 func editConfig() {
@@ -243,7 +226,7 @@ func printContext(mode string, args []string) {
 
 func runSingleShot(args []string) {
 	if initialPrompt == "" {
-		fmt.Fprintln(os.Stderr, "Error: --prompt is required for run command")
+		fmt.Fprintln(os.Stderr, "Error: -p/--prompt is required for exec mode")
 		os.Exit(1)
 	}
 

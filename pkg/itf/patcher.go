@@ -56,12 +56,11 @@ func ApplyDiff(sourceLines []string, rawDiff string) ([]string, error) {
 	searchStart := 0
 
 	for i, h := range hunks {
-		if isAlreadyApplied(sourceLines, h) {
-			return nil, fmt.Errorf("hunk #%d already applied (added lines are already present in file)", i+1)
-		}
-
 		startIdx, endIdx := matchHunk(sourceLines, h, searchStart)
 		if startIdx == -1 {
+			if isAlreadyApplied(sourceLines, h, searchStart) {
+				return nil, fmt.Errorf("hunk #%d already applied (added lines are already present in file)", i+1)
+			}
 			return nil, fmt.Errorf("failed to match hunk #%d near %s", i+1, hunkPreview(h.target))
 		}
 		patches = append(patches, hunkPatch{
@@ -172,24 +171,19 @@ func buildDiffHunk(lines []string) (diffHunk, bool) {
 	return h, true
 }
 
-func isAlreadyApplied(source []string, h diffHunk) bool {
+func isAlreadyApplied(source []string, h diffHunk, searchStart int) bool {
 	if len(h.addedOnly) == 0 && len(h.deletedOnly) == 0 {
 		return false
 	}
 	if len(h.replacement) > 0 {
-		if start, _ := matchBlock(source, h.replacement, 0); start != -1 {
+		if start, _ := matchBlock(source, h.replacement, searchStart); start != -1 {
 			if len(h.deletedOnly) > 0 {
-				if tStart, _ := matchBlock(source, h.target, 0); tStart == -1 {
+				if tStart, _ := matchBlock(source, h.target, searchStart); tStart == -1 {
 					return true
 				}
 			} else {
 				return true
 			}
-		}
-	}
-	if isSubstantial(h.addedOnly) {
-		if start, _ := matchBlock(source, h.addedOnly, 0); start != -1 {
-			return true
 		}
 	}
 	return false
