@@ -39,6 +39,8 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.ActiveOverlay = overlayFinder
+		m.Finder.Mode = finderModeModel
+		m.Finder.Selected = make(map[string]struct{})
 		m.Chat.TextArea.Blur()
 		var items []string
 		items = append(items, m.Session.GetConfig().AvailableModels...)
@@ -341,6 +343,26 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		event := m.Session.HandleShortcut("/branch")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
+
+	case km.Finder:
+		files := m.Session.GetContextFiles()
+		if len(files) == 0 {
+			m.StatusBarMessage = "No project source files in context."
+			return m, clearStatusBarCmd(), true
+		}
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.ActiveOverlay = overlayFinder
+		m.Finder.Mode = finderModeFile
+		m.Finder.AllItems = files
+		m.Finder.FoundItems = files
+		m.Finder.Selected = make(map[string]struct{})
+		m.Finder.Cursor = 0
+		m.Finder.TextInput.Reset()
+		m.Finder.updateFoundItems()
+		m.Finder.TextInput.Focus()
+		m.Chat.TextArea.Blur()
+		return m, textinput.Blink, true
 
 	case km.ApplyITF:
 		// Equivalent to typing "/itf" and pressing enter.

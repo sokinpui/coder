@@ -26,6 +26,13 @@ const (
 	overlayQuickView
 )
 
+type finderMode int
+
+const (
+	finderModeModel finderMode = iota
+	finderModeFile
+)
+
 type modelsFetchedMsg struct {
 	models []string
 	err    error
@@ -40,6 +47,9 @@ type (
 	editorFinishedMsg       struct {
 		content         string
 		originalContent string
+		err             error
+	}
+	fileEditorFinishedMsg struct {
 		err             error
 	}
 	clearStatusBarMsg    struct{}
@@ -63,5 +73,7 @@ type (
 	}
 	finderResultMsg struct {
 		result string
+		results []string
+		mode   finderMode
 	}
 )

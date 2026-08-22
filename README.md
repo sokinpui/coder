@@ -145,6 +145,7 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/coder.git)) |
 | `Ctrl+H`       | View conversation history                                                                       |
 | `Ctrl+N`       | Start a new chat session                                                                        |
+| `Ctrl+F`       | Search context files and open in editor                                                         |
 | `Ctrl+L`       | Quick view of current project context (files read by AI)                                        |
 | `Ctrl+B`       | Branch the conversation into a new session                                                      |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                              |

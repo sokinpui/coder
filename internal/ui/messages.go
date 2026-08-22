@@ -226,6 +226,20 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Focus()
 		return m, textarea.Blink, true
 
+	case fileEditorFinishedMsg:
+		if msg.err != nil {
+			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
+			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
+			return m, nil, true
+		}
+		if m.State == stateIdle {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
+		return m, nil, true
+
 	case historyListResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
@@ -352,6 +366,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case finderResultMsg:
 		m.ActiveOverlay = overlayNone
+		if msg.mode == finderModeFile {
+			return m, openFilesInEditorCmd(msg.results), true
+		}
+
 		m.Chat.TextArea.Focus()
 		originalContent := m.Chat.TextArea.Value()
 

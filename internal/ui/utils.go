@@ -176,6 +176,17 @@ func editInEditorCmd(content string) tea.Cmd {
 	})
 }
 
+func openFilesInEditorCmd(filePaths []string) tea.Cmd {
+	if len(filePaths) == 0 {
+		return nil
+	}
+	editor := getEditor()
+	cmd := exec.Command(editor, filePaths...)
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return fileEditorFinishedMsg{err: err}
+	})
+}
+
 func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	if width <= 0 {
 		// Avoid division by zero and handle cases where width is not yet set.

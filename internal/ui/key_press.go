@@ -79,9 +79,38 @@ func (m Model) handleKeyPressFinder(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.ActiveOverlay = overlayNone
 		m.Finder.TextInput.Blur()
 		m.Finder.TextInput.Reset()
+		m.Finder.Selected = make(map[string]struct{})
 		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true
+		}
+		return m, nil, true
+	case tea.KeyTab:
+		if len(m.Finder.FoundItems) == 0 || m.Finder.Cursor >= len(m.Finder.FoundItems) {
+			return m, nil, true
+		}
+		item := m.Finder.FoundItems[m.Finder.Cursor]
+		if _, exists := m.Finder.Selected[item]; exists {
+			delete(m.Finder.Selected, item)
+		} else {
+			m.Finder.Selected[item] = struct{}{}
+		}
+		if m.Finder.Cursor < len(m.Finder.FoundItems)-1 {
+			m.Finder.Cursor++
+		}
+		return m, nil, true
+	case tea.KeyShiftTab:
+		if len(m.Finder.FoundItems) == 0 || m.Finder.Cursor >= len(m.Finder.FoundItems) {
+			return m, nil, true
+		}
+		item := m.Finder.FoundItems[m.Finder.Cursor]
+		if _, exists := m.Finder.Selected[item]; exists {
+			delete(m.Finder.Selected, item)
+		} else {
+			m.Finder.Selected[item] = struct{}{}
+		}
+		if m.Finder.Cursor > 0 {
+			m.Finder.Cursor--
 		}
 		return m, nil, true
 	case tea.KeyUp, tea.KeyCtrlP, tea.KeyCtrlK:
@@ -95,12 +124,30 @@ func (m Model) handleKeyPressFinder(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 	case tea.KeyEnter:
+		var selectedList []string
+		for _, item := range m.Finder.AllItems {
+			if _, ok := m.Finder.Selected[item]; ok {
+				selectedList = append(selectedList, item)
+			}
+		}
+
+		if len(selectedList) == 0 && len(m.Finder.FoundItems) > 0 && m.Finder.Cursor < len(m.Finder.FoundItems) {
+			selectedList = append(selectedList, m.Finder.FoundItems[m.Finder.Cursor])
+		}
+
 		if len(m.Finder.FoundItems) > 0 && m.Finder.Cursor < len(m.Finder.FoundItems) {
 			selected := m.Finder.FoundItems[m.Finder.Cursor]
 			m.ActiveOverlay = overlayNone
 			m.Finder.TextInput.Blur()
 			m.Finder.TextInput.Reset()
-			return m, func() tea.Msg { return finderResultMsg{result: selected} }, true
+			m.Finder.Selected = make(map[string]struct{})
+			return m, func() tea.Msg {
+				return finderResultMsg{
+					result:  selected,
+					results: selectedList,
+					mode:    m.Finder.Mode,
+				}
+			}, true
 		}
 		return m, nil, true
 	}

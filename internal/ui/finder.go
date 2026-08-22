@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -13,9 +14,11 @@ type FinderModel struct {
 	TextInput  textinput.Model
 	AllItems   []string
 	FoundItems []string
+	Selected   map[string]struct{}
 	Cursor     int
 	Width      int
 	Height     int
+	Mode       finderMode
 }
 
 func NewFinder() FinderModel {
@@ -27,6 +30,7 @@ func NewFinder() FinderModel {
 
 	return FinderModel{
 		TextInput: ti,
+		Selected:  make(map[string]struct{}),
 	}
 }
 
@@ -71,10 +75,19 @@ func (m FinderModel) View() string {
 
 	for i, item := range m.FoundItems[start:end] {
 		actualIndex := i + start
+		cursorPrefix := "  "
 		if actualIndex == m.Cursor {
-			b.WriteString(paletteSelectedItemStyle.Render("▸ " + item))
+			cursorPrefix = "▸ "
+		}
+		checkPrefix := ""
+		if _, isSelected := m.Selected[item]; isSelected {
+			checkPrefix = "[✓] "
+		}
+		line := fmt.Sprintf("%s%s%s", cursorPrefix, checkPrefix, item)
+		if actualIndex == m.Cursor || checkPrefix != "" {
+			b.WriteString(paletteSelectedItemStyle.Render(line))
 		} else {
-			b.WriteString(paletteItemStyle.Render("  " + item))
+			b.WriteString(paletteItemStyle.Render(line))
 		}
 		b.WriteString("\n")
 	}
