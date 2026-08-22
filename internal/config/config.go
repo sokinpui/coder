@@ -73,20 +73,13 @@ type Keymap struct {
 	HistoryView HistoryKeymap `mapstructure:"historyview"`
 }
 
-type ShellCommand struct {
-	Description string `mapstructure:"description"`
-	Exec        string `mapstructure:"exec"`
-	CanAISee    bool   `mapstructure:"canAIsee"`
-}
-
 type Config struct {
-	Server          Server                  `mapstructure:"server"`
-	Generation      Generation              `mapstructure:"generation"`
-	Context         Context                 `mapstructure:"context"`
-	Clipboard       Clipboard               `mapstructure:"clipboard"`
-	UI              UI                      `mapstructure:"ui"`
-	Keymap          Keymap                  `mapstructure:"keymap"`
-	ShellCommands   map[string]ShellCommand `mapstructure:"shellcommands" yaml:"shellcommands"`
+	Server          Server     `mapstructure:"server"`
+	Generation      Generation `mapstructure:"generation"`
+	Context         Context    `mapstructure:"context"`
+	Clipboard       Clipboard  `mapstructure:"clipboard"`
+	UI              UI         `mapstructure:"ui"`
+	Keymap          Keymap     `mapstructure:"keymap"`
 	AvailableModels []string                `yaml:"-"`
 }
 

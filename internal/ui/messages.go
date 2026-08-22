@@ -433,9 +433,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				content = "Command completed with no output."
 			}
 			m.Session.AddMessages(types.Message{
-				Type:     resType,
-				Content:  content,
-				Metadata: map[string]any{"canAISee": true, "isShell": true},
+				Type:    resType,
+				Content: content,
 			})
 		}
 		m.State = stateIdle

@@ -21,8 +21,6 @@ type Message struct {
 	Type    MessageType
 	Content string // For text content, or file path for images (for prompt)
 	Data    []byte // For raw image data
-
-	Metadata map[string]any
 }
 
 type StreamChunk struct {
@@ -105,11 +103,9 @@ func (t MessageType) IsRegeneratable() bool {
 func (m Message) CanSendToAI() bool {
 	switch m.Type {
 	case InstructionMessage, DirectoryMessage, SourceCodeMessage,
-		UserMessage, AIMessage, ImageMessage:
+		UserMessage, AIMessage, ImageMessage,
+		ShellCmdMessage, ShellCmdResultMessage:
 		return true
-	case ShellCmdMessage, ShellCmdResultMessage:
-		canSee, ok := m.Metadata["canAISee"].(bool)
-		return ok && canSee
 	default:
 		return false
 	}

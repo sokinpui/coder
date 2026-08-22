@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -39,10 +38,7 @@ func shCmd(args string, s SessionController) (CommandOutput, bool) {
 	return CommandOutput{
 		Type:    types.MessagesUpdated,
 		Payload: output,
-		Metadata: map[string]any{
-			"canAISee": true,
-			"isShell":  true,
-		},
+		IsShell: true,
 	}, success
 }
 
@@ -51,66 +47,8 @@ func termCmd(args string, s SessionController) (CommandOutput, bool) {
 	return CommandOutput{
 		Type:    types.TermExecutionStarted,
 		Payload: trimmed,
-		Metadata: map[string]any{
-			"canAISee": true,
-			"isShell":  true,
-		},
+		IsShell: true,
 	}, true
-}
-
-func RegisterShellCommands(cfg *config.Config) []string {
-	var errors []string
-	if cfg.ShellCommands == nil {
-		return nil
-	}
-
-	for name, cmdDef := range cfg.ShellCommands {
-		if IsBuiltIn(name) {
-			errors = append(errors, fmt.Sprintf("Shell command '%s' conflicts with a built-in command.", name))
-			continue
-		}
-
-		definition := cmdDef // capture for closure
-		commandName := name
-
-		registerCommand(commandName, func(args string, s SessionController) (CommandOutput, bool) {
-			execStr := definition.Exec
-			argList := strings.Fields(args)
-
-			for i, arg := range argList {
-				placeholder := fmt.Sprintf("$%d", i+1)
-				execStr = strings.ReplaceAll(execStr, placeholder, arg)
-			}
-
-			for i := len(argList); i < 10; i++ {
-				placeholder := fmt.Sprintf("$%d", i+1)
-				if strings.Contains(execStr, placeholder) {
-					execStr = strings.ReplaceAll(execStr, placeholder, "")
-				}
-			}
-
-			out, err := RunSafeShellCommand(execStr, defaultShellTimeout)
-			payload := out
-			success := err == nil
-			if err != nil {
-				if payload == "" {
-					payload = err.Error()
-				}
-				success = false
-			}
-
-			return CommandOutput{
-				Type:    types.MessagesUpdated,
-				Payload: payload,
-				Metadata: map[string]any{
-					"canAISee": definition.CanAISee,
-					"isShell":  true,
-				},
-			}, success
-		}, definition.Description, nil)
-	}
-
-	return errors
 }
 
 func RunSafeShellCommand(commandStr string, timeout time.Duration) (string, error) {

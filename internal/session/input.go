@@ -41,10 +41,10 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 			// Mode transition events: log the command call then return transition event.
 			if !silent {
 				msgType := types.CommandMessage
-				if isShell, _ := cmdOutput.Metadata["isShell"].(bool); isShell {
+				if cmdOutput.IsShell {
 					msgType = types.ShellCmdMessage
 				}
-				s.messages = append(s.messages, types.Message{Type: msgType, Content: input, Metadata: cmdOutput.Metadata})
+				s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
 			}
 			return types.Event{Type: cmdOutput.Type, Data: cmdOutput.Payload}
 		}
@@ -53,18 +53,18 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	s.generator.Config = s.config.Generation
 	if !silent {
 		msgType := types.CommandMessage
-		if isShell, _ := cmdOutput.Metadata["isShell"].(bool); isShell {
+		if cmdOutput.IsShell {
 			msgType = types.ShellCmdMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: msgType, Content: input, Metadata: cmdOutput.Metadata})
+		s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
 	}
 
 	if cmdSuccess {
 		msgType := types.CommandResultMessage
-		if isShell, _ := cmdOutput.Metadata["isShell"].(bool); isShell {
+		if cmdOutput.IsShell {
 			msgType = types.ShellCmdResultMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload, Metadata: cmdOutput.Metadata})
+		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
 	} else {
 		s.messages = append(s.messages, types.Message{Type: types.CommandErrorResultMessage, Content: cmdOutput.Payload})
 	}

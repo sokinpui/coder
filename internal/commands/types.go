@@ -6,10 +6,10 @@ import (
 )
 
 type CommandOutput struct {
-	Type     types.EventType
-	Payload  string
-	Mode     string
-	Metadata map[string]any
+	Type    types.EventType
+	Payload string
+	Mode    string
+	IsShell bool
 }
 
 type SessionController interface {
