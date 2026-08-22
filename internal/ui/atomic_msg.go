@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -377,13 +378,10 @@ func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 		}
 
 		if m.Chat.IsStreaming {
-			for _, idx := range targetIndices {
-				if idx == len(m.Session.GetMessages())-1 {
-					m.Session.CancelGeneration()
-					m.Chat.IsStreaming = false
-					m.Chat.StreamSub = nil
-					break
-				}
+			if slices.Contains(targetIndices, len(m.Session.GetMessages())-1) {
+				m.Session.CancelGeneration()
+				m.Chat.IsStreaming = false
+				m.Chat.StreamSub = nil
 			}
 		}
 

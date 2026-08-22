@@ -2,10 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"slices"
+
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
-	"slices"
-	"strings"
 )
 
 func init() {
@@ -19,14 +19,7 @@ func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
-		var b strings.Builder
-		fmt.Fprintf(&b, "Current model: %s\n", cfg.Generation.ModelCode)
-		fmt.Fprintln(&b, "Available models:")
-		for _, m := range cfg.AvailableModels {
-			fmt.Fprintf(&b, "- %s\n", m)
-		}
-		fmt.Fprint(&b, "Usage: /model <model_name>")
-		return CommandOutput{Type: types.ModelViewerStarted, Payload: b.String()}, true
+		return CommandOutput{Type: types.FzfModeStarted, Payload: ""}, true
 	}
 
 	if slices.Contains(cfg.AvailableModels, args) {
@@ -34,5 +27,5 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error: model '%s' not found. Use '/model' to see available models.", args)}, false
+	return CommandOutput{Type: types.FzfModeStarted, Payload: args}, true
 }

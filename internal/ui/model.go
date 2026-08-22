@@ -14,11 +14,11 @@ import (
 )
 
 type Model struct {
-	Chat       ChatModel
-	AtomicMsg  AtomicMsgModel
-	History    HistoryModel
-	Finder     FinderModel
-	QuickView  *QuickViewModel
+	Chat      ChatModel
+	AtomicMsg AtomicMsgModel
+	History   HistoryModel
+	Finder    FinderModel
+	QuickView *QuickViewModel
 
 	ActiveSessions      []*session.Session
 	Session             *session.Session

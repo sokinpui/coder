@@ -62,7 +62,6 @@ type Keymap struct {
 	History     string `mapstructure:"history"`
 	New         string `mapstructure:"new"`
 	Branch      string `mapstructure:"branch"`
-	Finder      string `mapstructure:"finder"`
 	ContextList string `mapstructure:"contextlist"`
 	ApplyITF    string `mapstructure:"applyitf"`
 	ScrollUp    string `mapstructure:"scrollup"`

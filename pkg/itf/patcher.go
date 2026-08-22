@@ -18,12 +18,12 @@ func ExtractPathFromDiff(content string) string {
 }
 
 type diffHunk struct {
-	target       []string
-	replacement  []string
-	deletedOnly  []string
-	addedOnly    []string
-	delOffset    int
-	delSegments  [][]string
+	target      []string
+	replacement []string
+	deletedOnly []string
+	addedOnly   []string
+	delOffset   int
+	delSegments [][]string
 }
 
 type hunkPatch struct {

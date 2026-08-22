@@ -14,10 +14,8 @@ const (
 	ActiveModeStarted
 	NewSessionStarted
 	FzfModeStarted
-	ExternalEditorStarted
 	HelpViewerStarted
 	ConfigViewerStarted
-	ModelViewerStarted
 	ListViewerStarted
 	FileViewerStarted
 	Quit

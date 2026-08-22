@@ -75,13 +75,11 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.UpdateTokenCount()
 		m.updateActiveFilter()
 		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
-	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ModelViewerStarted, types.ListViewerStarted, types.FileViewerStarted:
+	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ListViewerStarted, types.FileViewerStarted:
 		cmdName := "/help"
 		switch event.Type {
 		case types.ConfigViewerStarted:
 			cmdName = "/config"
-		case types.ModelViewerStarted:
-			cmdName = "/model"
 		case types.ListViewerStarted:
 			cmdName = "/list"
 		case types.FileViewerStarted:
@@ -97,8 +95,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.ActiveOverlay = overlayQuickView
 		m.Chat.TextArea.Blur()
 		return m, nil
-	case types.ExternalEditorStarted:
-		return m, openInEditorCmd(event.Data.(string))
 
 	case types.Quit:
 		m.Quitting = true
@@ -343,11 +339,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case km.Branch:
 		event := m.Session.HandleShortcut("/branch")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
-
-	case km.Finder:
-		event := m.Session.HandleShortcut("/fzf")
 		model, cmd := m.handleEvent(event)
 		return model, cmd, true
 

@@ -9,8 +9,6 @@ func init() {
 	registerCommand("gen", genCmd, "re-generate response", nil)
 	registerCommand("edit", editModeCmd, "edit user prompt", nil)
 	registerCommand("msg", msgCmd, "open atomic messages overlay", nil)
-	registerCommand("cards", msgCmd, "open atomic messages overlay (alias for /msg)", nil)
-	registerCommand("visual", msgCmd, "open atomic messages overlay (alias for /msg)", nil)
 	registerCommand("branch", branchCmd, "branch conversation", nil)
 	registerCommand("history", historyCmd, "view chat history", nil)
 	registerCommand("rename", renameCmd, "rename session title", nil)

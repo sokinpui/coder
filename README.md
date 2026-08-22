@@ -145,7 +145,6 @@ export CODER_API_KEY="your-api-key-here"
 | `Ctrl+A`       | Apply code changes from the last AI response (via [itf](https://github.com/sokinpui/coder.git)) |
 | `Ctrl+H`       | View conversation history                                                                       |
 | `Ctrl+N`       | Start a new chat session                                                                        |
-| `Ctrl+F`       | Open model switcher                                                                             |
 | `Ctrl+L`       | Quick view of current project context (files read by AI)                                        |
 | `Ctrl+B`       | Branch the conversation into a new session                                                      |
 | `Ctrl+U` / `D` | Scroll conversation view up / down                                                              |
@@ -163,12 +162,11 @@ Commands are prefixed with a slash `/`.
 - `/list`: Show a summary of files currently in context.
 - `/undo`: Undo the last file changes applied by `itf`.
 - `/itf`: Manually trigger the code application tool on the last response.
-- `/model [name]`: Switch the generation model on the fly.
+- `/model [name]`: Switch the generation model on the fly (or open model switcher).
 - `/new`: Reset the session but keep current configuration.
 - `/history`: Browse and load previous conversations.
 - `/active`: List and switch between active chat sessions.
 - `/rename [title]`: Manually set the session title.
-- `/fzf`: Open model switcher.
 - `/config`: Open configuration file.
 - `/editor [path]`: Open a file in external editor (alias: `/e`).
 - `/msg`: Open atomic messages overlay (alias: `/cards`).
