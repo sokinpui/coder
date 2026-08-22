@@ -46,6 +46,8 @@ var commandGroup = helpGroup{
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
+	{key: "sh", desc: "Run non-interactive shell command (e.g. /sh go test ./...)."},
+	{key: "term", desc: "Run interactive terminal command or open subshell."},
 	{key: "undo", desc: "Undo the last file changes applied by itf."},
 }
 

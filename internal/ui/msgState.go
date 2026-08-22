@@ -50,7 +50,7 @@ type (
 		err             error
 	}
 	fileEditorFinishedMsg struct {
-		err             error
+		err error
 	}
 	clearStatusBarMsg    struct{}
 	titleGeneratedMsg    struct{ title string }
@@ -72,8 +72,13 @@ type (
 		err     error
 	}
 	finderResultMsg struct {
-		result string
+		result  string
 		results []string
-		mode   finderMode
+		mode    finderMode
+	}
+	termFinishedMsg struct {
+		cmdStr string
+		output string
+		err    error
 	}
 )

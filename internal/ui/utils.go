@@ -187,6 +187,39 @@ func openFilesInEditorCmd(filePaths []string) tea.Cmd {
 	})
 }
 
+func execTerminalCmd(cmdStr string) tea.Cmd {
+	trimmed := strings.TrimSpace(cmdStr)
+	if trimmed == "" {
+		shell := os.Getenv("SHELL")
+		if shell == "" {
+			shell = "/bin/sh"
+		}
+		c := exec.Command(shell)
+		return tea.ExecProcess(c, func(err error) tea.Msg {
+			return termFinishedMsg{cmdStr: "", err: err}
+		})
+	}
+
+	tmpFile, err := os.CreateTemp("", "coder-term-*.log")
+	if err != nil {
+		c := exec.Command("sh", "-c", trimmed)
+		return tea.ExecProcess(c, func(err error) tea.Msg {
+			return termFinishedMsg{cmdStr: trimmed, err: err}
+		})
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+
+	wrapped := fmt.Sprintf("(%s) 2>&1 | tee %s", trimmed, tmpPath)
+	c := exec.Command("sh", "-c", wrapped)
+	return tea.ExecProcess(c, func(runErr error) tea.Msg {
+		defer os.Remove(tmpPath)
+		data, _ := os.ReadFile(tmpPath)
+		output := strings.TrimSpace(string(data))
+		return termFinishedMsg{cmdStr: trimmed, output: output, err: runErr}
+	})
+}
+
 func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	if width <= 0 {
 		// Avoid division by zero and handle cases where width is not yet set.

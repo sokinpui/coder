@@ -168,6 +168,8 @@ Commands are prefixed with a slash `/`.
 - `/history`: Browse and load previous conversations.
 - `/active`: List and switch between active chat sessions.
 - `/rename [title]`: Manually set the session title.
+- `/sh [command]`: Run non-interactive shell command and feed output to AI.
+- `/term [command]`: Run interactive command or open terminal shell.
 - `/config`: Open configuration file.
 - `/editor [path]`: Open a file in external editor (alias: `/e`).
 - `/msg`: Open atomic messages overlay (alias: `/cards`).

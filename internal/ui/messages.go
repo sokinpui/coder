@@ -422,6 +422,30 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.UpdateTokenCount()
 		return m, nil, true
 
+	case termFinishedMsg:
+		if msg.cmdStr != "" {
+			resType := types.ShellCmdResultMessage
+			content := msg.output
+			if msg.err != nil && content == "" {
+				resType = types.CommandErrorResultMessage
+				content = fmt.Sprintf("Command failed: %v", msg.err)
+			} else if content == "" {
+				content = "Command completed with no output."
+			}
+			m.Session.AddMessages(types.Message{
+				Type:     resType,
+				Content:  content,
+				Metadata: map[string]any{"canAISee": true, "isShell": true},
+			})
+		}
+		m.State = stateIdle
+		m.Chat.TextArea.Focus()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.Chat.TextArea.Reset()
+		m.UpdateTokenCount()
+		return m, textarea.Blink, true
+
 	case errorMsg:
 		m.Chat.IsStreaming = false
 

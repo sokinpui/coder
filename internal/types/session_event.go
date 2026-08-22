@@ -18,6 +18,7 @@ const (
 	ConfigViewerStarted
 	ListViewerStarted
 	FileViewerStarted
+	TermExecutionStarted
 	Quit
 )
 

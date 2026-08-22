@@ -97,6 +97,11 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.ActiveOverlay = overlayQuickView
 		m.Chat.TextArea.Blur()
 		return m, nil
+	case types.TermExecutionStarted:
+		cmdStr, _ := event.Data.(string)
+		m.ActiveOverlay = overlayNone
+		m.Chat.TextArea.Blur()
+		return m, execTerminalCmd(cmdStr)
 
 	case types.Quit:
 		m.Quitting = true
