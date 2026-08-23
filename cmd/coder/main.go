@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/generation"
+	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/logger"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/source"
@@ -34,6 +36,9 @@ var (
 	execMode          bool
 	applyFlag         bool
 	completionShell   string
+	headlessMode      bool
+	serverPort        int
+	serverSocket      string
 )
 
 func main() {
@@ -47,7 +52,8 @@ func main() {
   coder -e -p "explain this file" main.go
   coder --chat
   coder --context .
-  coder --config -g`,
+  coder --config -g
+  coder --headless`,
 		Args: cobra.ArbitraryArgs,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault
@@ -67,6 +73,9 @@ func main() {
 	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Use with --config to edit global configuration")
 	rootCmd.Flags().BoolVarP(&applyFlag, "apply", "a", false, "Apply code changes using itf format from args or stdin")
 	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
+	rootCmd.Flags().BoolVar(&headlessMode, "headless", false, "Run as headless JSON-RPC server over stdio")
+	rootCmd.Flags().IntVar(&serverPort, "port", 0, "Run headless server listening on TCP port")
+	rootCmd.Flags().StringVar(&serverSocket, "socket", "", "Run headless server listening on Unix socket path")
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
@@ -75,7 +84,41 @@ func main() {
 	}
 }
 
+func runServer() {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		os.Exit(1)
+	}
+
+	srv := server.New(cfg)
+	if serverPort > 0 {
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", serverPort, err)
+			os.Exit(1)
+		}
+		_ = srv.ServeListener(listener)
+		return
+	}
+	if serverSocket != "" {
+		listener, err := net.Listen("unix", serverSocket)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to listen on socket %s: %v\n", serverSocket, err)
+			os.Exit(1)
+		}
+		_ = srv.ServeListener(listener)
+		return
+	}
+	_ = srv.ServeStdio()
+}
+
 func runCLI(cmd *cobra.Command, args []string) {
+	if headlessMode || serverPort > 0 || serverSocket != "" {
+		runServer()
+		return
+	}
+
 	if completionShell != "" {
 		generateCompletion(cmd, completionShell)
 		return
