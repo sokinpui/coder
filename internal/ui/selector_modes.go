@@ -139,11 +139,16 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 	m.Selector.ActiveTab = initialTab
 	m.Selector.ShowSearch = true
 	m.Selector.IsSearching = false
-	m.Selector.FooterHelp = "── [Esc/q: close | /: search | Tab: switch tab | Enter: load] ──"
+	m.Selector.FooterHelp = "── [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load] ──"
 
 	m.Selector.OnTabChange = func(mod Model, newTab int) (tea.Model, tea.Cmd) {
 		mod.Selector.ActiveTab = newTab
 		mod.Selector.Selected = make(map[string]struct{})
+		mod.Selector.Cursor = 0
+		mod.Selector.SearchInput.Reset()
+		if newTab == 0 {
+			return mod, listHistoryCmd(mod.Session.GetHistoryManager())
+		}
 		mod = mod.refreshHistorySelectorItems()
 		return mod, nil
 	}
@@ -187,29 +192,31 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 		return mod, nil
 	}
 
-	m = m.refreshHistorySelectorItems()
+	if initialTab == 1 {
+		m = m.refreshHistorySelectorItems()
+		return m, nil
+	}
+
 	return m, listHistoryCmd(m.Session.GetHistoryManager())
 }
 
 func (m Model) refreshHistorySelectorItems() Model {
+	if m.Selector.ActiveTab != 1 {
+		return m
+	}
 	var items []SelectorItem
-	if m.Selector.ActiveTab == 0 { // History
-		// Will be populated by historyListResultMsg or existing
-		items = m.Selector.Items
-	} else { // Active
-		for i := len(m.ActiveSessions) - 1; i >= 0; i-- {
-			sess := m.ActiveSessions[i]
-			marker := ""
-			if sess.ID == m.Session.ID {
-				marker = "*"
-			}
-			items = append(items, SelectorItem{
-				ID:          sess.ID,
-				Title:       sess.GetTitle(),
-				Description: marker,
-				Data:        sess,
-			})
+	for i := len(m.ActiveSessions) - 1; i >= 0; i-- {
+		sess := m.ActiveSessions[i]
+		marker := ""
+		if sess.ID == m.Session.ID {
+			marker = "*"
 		}
+		items = append(items, SelectorItem{
+			ID:          sess.ID,
+			Title:       sess.GetTitle(),
+			Description: marker,
+			Data:        sess,
+		})
 	}
 	m.Selector.SetItems(items)
 	return m

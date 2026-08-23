@@ -118,7 +118,11 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 	switch msg.Type {
 	case tea.KeyTab, tea.KeyShiftTab:
 		if len(m.Selector.Tabs) > 0 {
-			nextTab := (m.Selector.ActiveTab + 1) % len(m.Selector.Tabs)
+			dir := 1
+			if msg.Type == tea.KeyShiftTab {
+				dir = len(m.Selector.Tabs) - 1
+			}
+			nextTab := (m.Selector.ActiveTab + dir) % len(m.Selector.Tabs)
 			if m.Selector.OnTabChange != nil {
 				newMod, cmd := m.Selector.OnTabChange(m, nextTab)
 				return newMod, cmd, true
@@ -150,6 +154,24 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 		switch string(msg.Runes) {
 		case "q":
 			return m.cancelSelector()
+		case "h":
+			if len(m.Selector.Tabs) > 0 && m.Selector.ActiveTab != 0 {
+				if m.Selector.OnTabChange != nil {
+					newMod, cmd := m.Selector.OnTabChange(m, 0)
+					return newMod, cmd, true
+				}
+				m.Selector.ActiveTab = 0
+				return m, nil, true
+			}
+		case "l":
+			if len(m.Selector.Tabs) > 0 && m.Selector.ActiveTab != 1 {
+				if m.Selector.OnTabChange != nil {
+					newMod, cmd := m.Selector.OnTabChange(m, 1)
+					return newMod, cmd, true
+				}
+				m.Selector.ActiveTab = 1
+				return m, nil, true
+			}
 		case "/":
 			if m.Selector.ShowSearch {
 				m.Selector.IsSearching = true
