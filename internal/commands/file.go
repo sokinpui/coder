@@ -53,7 +53,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 		}
-		return CommandOutput{Type: types.FileViewerStarted, Payload: "Project context cleared. The next prompt will not include any project source code."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared."}, true
 	}
 
 	var files []string
@@ -85,23 +85,22 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
 
 	newResolvedFiles, _ := utils.SourceToFileList(dirs, files, allExclusions)
-	s.SetContextFiles(AppendUnique(currentFiles, newResolvedFiles))
+	updatedFiles := AppendUnique(currentFiles, newResolvedFiles)
+	addedCount := len(updatedFiles) - len(currentFiles)
+	s.SetContextFiles(updatedFiles)
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
 	}
 
-	var payload strings.Builder
-	payload.WriteString("Project context updated.")
-
-	summary := formatFileListSummary(s.GetContextFiles())
-	if summary != "" {
-		payload.WriteString("\n")
-		payload.WriteString(summary)
+	fileWord := "files"
+	if addedCount == 1 {
+		fileWord = "file"
 	}
+	msg := fmt.Sprintf("Successfully add: %s, %d %s added.", args, addedCount, fileWord)
 	if len(invalidPaths) > 0 {
-		fmt.Fprintf(&payload, "\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
+		msg += fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
 	}
 
-	return CommandOutput{Type: types.FileViewerStarted, Payload: payload.String()}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, true
 }

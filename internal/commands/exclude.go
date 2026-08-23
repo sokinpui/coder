@@ -26,22 +26,19 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	currentFiles := s.GetContextFiles()
-	s.SetContextFiles(filterPaths(currentFiles, pathsToModify))
+	newFiles := filterPaths(currentFiles, pathsToModify)
+	removedCount := len(currentFiles) - len(newFiles)
+	s.SetContextFiles(newFiles)
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
 	}
 
-	var payload strings.Builder
-	payload.WriteString("Project source updated.")
-
-	summary := formatFileListSummary(s.GetContextFiles())
-	if summary != "" {
-		payload.WriteString("\n")
-		payload.WriteString(summary)
+	fileWord := "files"
+	if removedCount == 1 {
+		fileWord = "file"
 	}
-
-	return CommandOutput{Type: types.MessagesUpdated, Payload: payload.String()}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Successfully excluded %s, %d %s removed.", args, removedCount, fileWord)}, true
 }
 
 func filterPaths(original []string, toRemove map[string]struct{}) []string {

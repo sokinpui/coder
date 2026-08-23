@@ -17,7 +17,6 @@ const (
 	HelpViewerStarted
 	ConfigViewerStarted
 	ListViewerStarted
-	FileViewerStarted
 	TermExecutionStarted
 	ExcludePickerStarted
 	Quit

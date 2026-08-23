@@ -60,15 +60,13 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		return m.openHistorySelector(1)
-	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ListViewerStarted, types.FileViewerStarted:
+	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ListViewerStarted:
 		cmdName := "/help"
 		switch event.Type {
 		case types.ConfigViewerStarted:
 			cmdName = "/config"
 		case types.ListViewerStarted:
 			cmdName = "/list"
-		case types.FileViewerStarted:
-			cmdName = "/file"
 		}
 		m.QuickView.SetMessages([]types.Message{
 			{Type: types.CommandMessage, Content: cmdName},
