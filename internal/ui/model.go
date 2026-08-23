@@ -15,9 +15,7 @@ import (
 
 type Model struct {
 	Chat      ChatModel
-	AtomicMsg AtomicMsgModel
-	History   HistoryModel
-	Picker    PickerModel
+	Selector  SelectorModel
 	QuickView *QuickViewModel
 
 	ActiveSessions      []*session.Session
@@ -55,9 +53,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	m := Model{
 		ActiveSessions:      []*session.Session{sess},
 		Chat:                NewChat(initialInput),
-		AtomicMsg:           NewAtomicMsg(),
-		History:             NewHistory(),
-		Picker:              NewPicker(),
+		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
 		Session:             sess,
 		ActiveOverlay:       overlayNone,

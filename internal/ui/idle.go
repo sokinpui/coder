@@ -1,14 +1,12 @@
 package ui
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/source"
@@ -16,28 +14,6 @@ import (
 	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/coder/pkg/sf"
 )
-
-func (m Model) openPicker(items []string, initialQuery string, onSelect PickerAction) (Model, tea.Cmd) {
-	m.Chat.Viewport.SetContent(m.renderConversation())
-	m.ActiveOverlay = overlayPicker
-	m.Chat.TextArea.Blur()
-
-	m.Picker.AllItems = items
-	m.Picker.FoundItems = items
-	m.Picker.Selected = make(map[string]struct{})
-	m.Picker.Cursor = 0
-	m.Picker.OnSelect = onSelect
-
-	if initialQuery != "" {
-		m.Picker.TextInput.SetValue(initialQuery)
-	} else {
-		m.Picker.TextInput.Reset()
-	}
-	m.Picker.updateFoundItems()
-	m.Picker.TextInput.Focus()
-	m.UpdateTokenCount()
-	return m, textinput.Blink
-}
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	switch event.Type {
@@ -64,67 +40,26 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m.openAtomicMsgMode()
 	case types.PickerModeStarted:
 		query, _ := event.Data.(string)
-		return m.openPicker(m.Session.GetConfig().AvailableModels, query, func(m Model, _ []string, primary string) (tea.Model, tea.Cmd) {
-			if primary == "" {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink
-			}
-
-			modelName := strings.TrimPrefix(primary, "model: ")
-			cfg := m.Session.GetConfig()
-			cfg.Generation.ModelCode = modelName
-			m.Session.AddMessages(
-				types.Message{Type: types.CommandMessage, Content: "/model " + modelName},
-				types.Message{Type: types.CommandResultMessage, Content: fmt.Sprintf("Switched model to: %s", modelName)},
-			)
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			if m.State == stateIdle {
-				m.Chat.TextArea.Focus()
-			}
-			m.UpdateTokenCount()
-			return m, textarea.Blink
-		})
+		return m.openModelSelector(query)
 	case types.ExcludePickerStarted:
 		files := m.Session.GetContextFiles()
 		if len(files) == 0 {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd()
 		}
-		return m.openPicker(files, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
-			if len(selected) == 0 {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink
-			}
+		return m.openFileListSelector("── Exclude Files ──", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			cmdStr := "/exclude " + strings.Join(selected, " ")
-			event := m.Session.HandleInput(cmdStr)
-			return m.handleEvent(event)
+			ev := mod.Session.HandleInput(cmdStr)
+			return mod.handleEvent(ev)
 		})
 	case types.HistoryModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayHistory
-		m.History.Tab = TabHistory
-		m.History.SearchInput.Reset()
-		m.History.IsSearching = false
-		m.Chat.TextArea.Blur()
-		m.UpdateTokenCount()
-		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
+		return m.openHistorySelector(0)
 	case types.ActiveModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayHistory
-		m.History.Tab = TabActive
-		m.History.SearchInput.Reset()
-		m.History.IsSearching = false
-		m.Chat.TextArea.Blur()
-		m.UpdateTokenCount()
-		m.updateActiveFilter()
-		return m, tea.Batch(listHistoryCmd(m.Session.GetHistoryManager()), m.Chat.Spinner.Tick)
+		return m.openHistorySelector(1)
 	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ListViewerStarted, types.FileViewerStarted:
 		cmdName := "/help"
 		switch event.Type {
@@ -403,14 +338,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd(), true
 		}
-		newModel, cmd := m.openPicker(files, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
-			if len(selected) == 0 {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink
-			}
-			return m, openFilesInEditorCmd(selected)
+		newModel, cmd := m.openFileListSelector("── Search Context Files ──", "Search context files...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+			return mod, openFilesInEditorCmd(selected)
 		})
 		return newModel, cmd, true
 
@@ -430,16 +359,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			items[i] = p
 		}
-		newModel, cmd := m.openPicker(items, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
-			if len(selected) == 0 {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink
-			}
+		newModel, cmd := m.openFileListSelector("── Add Files to Context ──", "Search files/directories to add...", items, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			cmdStr := "/file " + strings.Join(selected, " ")
-			event := m.Session.HandleInput(cmdStr)
-			return m.handleEvent(event)
+			ev := mod.Session.HandleInput(cmdStr)
+			return mod.handleEvent(ev)
 		})
 		return newModel, cmd, true
 

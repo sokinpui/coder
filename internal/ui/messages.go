@@ -243,7 +243,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	case historyListResultMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading history: %v", msg.err)
-			if m.ActiveOverlay == overlayHistory {
+			if m.ActiveOverlay == overlaySelector {
 				m.ActiveOverlay = overlayNone
 			}
 			if m.State == stateIdle && m.ActiveOverlay == overlayNone {
@@ -251,20 +251,33 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
-		m.History.Items = msg.items
-		m.History.FilteredItems = msg.items
 
-		currentFilename := m.Session.GetHistoryFilename()
-		initialCursorPos := 0
-		if currentFilename != "" {
-			for i, item := range msg.items {
-				if item.Filename == currentFilename {
-					initialCursorPos = i
-					break
+		var selectorItems []SelectorItem
+		for _, item := range msg.items {
+			dateStr := ""
+			if !item.CreatedAt.IsZero() {
+				dateStr = fmt.Sprintf(" (%s)", item.CreatedAt.Format("2006-01-02 15:04"))
+			}
+			selectorItems = append(selectorItems, SelectorItem{
+				ID:          item.Filename,
+				Title:       item.Title,
+				Description: dateStr,
+				Data:        item,
+			})
+		}
+
+		if m.ActiveOverlay == overlaySelector && m.Selector.ActiveTab == 0 {
+			m.Selector.SetItems(selectorItems)
+			currentFilename := m.Session.GetHistoryFilename()
+			if currentFilename != "" {
+				for i, item := range selectorItems {
+					if item.ID == currentFilename {
+						m.Selector.Cursor = i
+						break
+					}
 				}
 			}
 		}
-		m.History.CursorPos = initialCursorPos
 		return m, nil, true
 
 	case conversationLoadedMsg:

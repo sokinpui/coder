@@ -31,10 +31,8 @@ func (m Model) StatusView() string {
 	var rightStatusItems []string
 	var leftStatus string
 
-	switch m.ActiveOverlay {
-	case overlayAtomicMsg:
-		helpStr := "j/k: move | v: select | y: yank | d: del | a: apply | e: edit | r: regen | b: branch | esc/C-c: exit"
-		leftStatus = statusStyle.Render(fmt.Sprintf("-- ATOMIC MSG -- | %s", helpStr))
+	if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
+		leftStatus = statusStyle.Render("-- ATOMIC MSG --")
 	}
 
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
@@ -42,7 +40,7 @@ func (m Model) StatusView() string {
 
 	modelPart := modelInfoStyle.Render(modelInfo)
 
-	if m.ActiveOverlay != overlayAtomicMsg {
+	if m.ActiveOverlay != overlaySelector || m.Selector.ShowSearch {
 		if m.TokenCount > 0 {
 			tokenPart := tokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
 			rightStatusItems = append(rightStatusItems, tokenPart)

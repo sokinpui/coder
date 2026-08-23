@@ -20,9 +20,7 @@ type overlayMode int
 
 const (
 	overlayNone overlayMode = iota
-	overlayHistory
-	overlayPicker
-	overlayAtomicMsg
+	overlaySelector
 	overlayQuickView
 )
 

@@ -24,9 +24,7 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 	manager := NewManager(&mainModel)
 	manager.Overlays = []Overlay{
 		&QuickViewOverlay{},
-		&HistoryOverlay{},
-		&AtomicMsgOverlay{},
-		&PickerOverlay{},
+		&SelectorOverlay{},
 		&PaletteOverlay{},
 	}
 
