@@ -181,14 +181,11 @@ func openFilesInEditorCmd(filePaths []string) tea.Cmd {
 		return nil
 	}
 	if openCmd := os.Getenv("CODER_OPEN_CMD"); openCmd != "" {
-		parts := strings.Fields(openCmd)
-		if len(parts) > 0 {
-			return func() tea.Msg {
-				args := append(parts[1:], filePaths...)
-				cmd := exec.Command(parts[0], args...)
-				err := cmd.Run()
-				return fileEditorFinishedMsg{err: err}
-			}
+		return func() tea.Msg {
+			args := append([]string{"-c", openCmd, "_"}, filePaths...)
+			cmd := exec.Command("sh", args...)
+			err := cmd.Run()
+			return fileEditorFinishedMsg{err: err}
 		}
 	}
 	editor := getEditor()
