@@ -27,6 +27,7 @@ var behaviorGroup = helpGroup{
 }
 
 var commandGroup = helpGroup{
+	{key: "active", desc: "View active chat sessions."},
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
 	{key: "chat", desc: "Start a new chat session with no context/instructions."},
 	{key: "config", desc: "Print the current configuration."},

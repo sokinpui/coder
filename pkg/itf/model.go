@@ -7,11 +7,6 @@ type FileChange struct {
 	RawBlock string
 }
 
-type DiffBlock struct {
-	FilePath   string
-	RawContent string
-}
-
 type FileRename struct {
 	OldPath string
 	NewPath string

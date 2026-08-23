@@ -253,22 +253,6 @@ func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	return visibleLineCount
 }
 
-func cursorPosAfterScroll(currentCursor, scrollAmount, totalItems int, scrollDown bool) int {
-	if totalItems == 0 {
-		return 0
-	}
-
-	var newCursor int
-	if scrollDown {
-		newCursor = currentCursor + scrollAmount
-		if newCursor >= totalItems {
-			newCursor = totalItems - 1
-		}
-	} else { // scroll up
-		newCursor = max(currentCursor-scrollAmount, 0)
-	}
-	return newCursor
-}
 
 func handlePasteCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {

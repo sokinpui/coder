@@ -99,10 +99,6 @@ var (
 	greyDotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	darkGreyDotStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 
-	// Placeholder / Disabled Styles
-	disabledPlaceholderStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("240")).
-					Italic(true)
 
 	searchPlaceholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("240"))

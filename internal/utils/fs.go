@@ -36,14 +36,6 @@ func GetProjectRoot() string {
 	return root
 }
 
-func UserHomeDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return home
-}
-
 func ShortenPath(path string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
