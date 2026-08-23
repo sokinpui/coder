@@ -75,7 +75,7 @@ type Config struct {
 	Clipboard       Clipboard  `mapstructure:"clipboard"`
 	UI              UI         `mapstructure:"ui"`
 	Keymap          Keymap     `mapstructure:"keymap"`
-	AvailableModels []string                `yaml:"-"`
+	AvailableModels []string   `yaml:"-"`
 }
 
 func DefaultConfig() Config {
@@ -137,7 +137,7 @@ func DefaultTemplate() ([]byte, error) {
 	}
 
 	var sb strings.Builder
-	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(data), "\n"), "\n") {
 		sb.WriteString("# ")
 		sb.WriteString(line)
 		sb.WriteByte('\n')
