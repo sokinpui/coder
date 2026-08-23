@@ -1,8 +1,9 @@
 package ui
 
 import (
-	"os"
+	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,10 +12,32 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/source"
-	"github.com/sokinpui/coder/pkg/sf"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/pkg/sf"
 )
+
+func (m Model) openPicker(items []string, initialQuery string, onSelect PickerAction) (Model, tea.Cmd) {
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.ActiveOverlay = overlayPicker
+	m.Chat.TextArea.Blur()
+
+	m.Picker.AllItems = items
+	m.Picker.FoundItems = items
+	m.Picker.Selected = make(map[string]struct{})
+	m.Picker.Cursor = 0
+	m.Picker.OnSelect = onSelect
+
+	if initialQuery != "" {
+		m.Picker.TextInput.SetValue(initialQuery)
+	} else {
+		m.Picker.TextInput.Reset()
+	}
+	m.Picker.updateFoundItems()
+	m.Picker.TextInput.Focus()
+	m.UpdateTokenCount()
+	return m, textinput.Blink
+}
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	switch event.Type {
@@ -39,47 +62,48 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		types.EditModeStarted,
 		types.BranchModeStarted:
 		return m.openAtomicMsgMode()
-	case types.FzfModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayFinder
-		m.Finder.Mode = finderModeModel
-		m.Finder.Selected = make(map[string]struct{})
-		m.Chat.TextArea.Blur()
-		var items []string
-		items = append(items, m.Session.GetConfig().AvailableModels...)
-		m.Finder.AllItems = items
-		m.Finder.FoundItems = items
-		m.Finder.Cursor = 0
-		if payload, ok := event.Data.(string); ok && payload != "" {
-			m.Finder.TextInput.SetValue(payload)
-		} else {
-			m.Finder.TextInput.Reset()
-		}
-		m.Finder.updateFoundItems()
-		m.Finder.TextInput.Focus()
-		m.UpdateTokenCount()
-		return m, textinput.Blink
-	case types.ExcludeFinderStarted:
+	case types.PickerModeStarted:
+		query, _ := event.Data.(string)
+		return m.openPicker(m.Session.GetConfig().AvailableModels, query, func(m Model, _ []string, primary string) (tea.Model, tea.Cmd) {
+			if primary == "" {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink
+			}
+
+			modelName := strings.TrimPrefix(primary, "model: ")
+			cfg := m.Session.GetConfig()
+			cfg.Generation.ModelCode = modelName
+			m.Session.AddMessages(
+				types.Message{Type: types.CommandMessage, Content: "/model " + modelName},
+				types.Message{Type: types.CommandResultMessage, Content: fmt.Sprintf("Switched model to: %s", modelName)},
+			)
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			m.UpdateTokenCount()
+			return m, textarea.Blink
+		})
+	case types.ExcludePickerStarted:
 		files := m.Session.GetContextFiles()
 		if len(files) == 0 {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd()
 		}
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayFinder
-		m.Finder.Mode = finderModeExclude
-		m.Finder.AllItems = files
-		m.Finder.FoundItems = files
-		m.Finder.Selected = make(map[string]struct{})
-		m.Finder.Cursor = 0
-		m.Finder.TextInput.Reset()
-		m.Finder.updateFoundItems()
-		m.Finder.TextInput.Focus()
-		m.Chat.TextArea.Blur()
-		m.UpdateTokenCount()
-		return m, textinput.Blink
+		return m.openPicker(files, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
+			if len(selected) == 0 {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink
+			}
+			cmdStr := "/exclude " + strings.Join(selected, " ")
+			event := m.Session.HandleInput(cmdStr)
+			return m.handleEvent(event)
+		})
 	case types.HistoryModeStarted:
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
@@ -379,19 +403,16 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd(), true
 		}
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayFinder
-		m.Finder.Mode = finderModeFile
-		m.Finder.AllItems = files
-		m.Finder.FoundItems = files
-		m.Finder.Selected = make(map[string]struct{})
-		m.Finder.Cursor = 0
-		m.Finder.TextInput.Reset()
-		m.Finder.updateFoundItems()
-		m.Finder.TextInput.Focus()
-		m.Chat.TextArea.Blur()
-		return m, textinput.Blink, true
+		newModel, cmd := m.openPicker(files, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
+			if len(selected) == 0 {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink
+			}
+			return m, openFilesInEditorCmd(selected)
+		})
+		return newModel, cmd, true
 
 	case km.AddFile:
 		cfg := m.Session.GetConfig()
@@ -409,19 +430,18 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			items[i] = p
 		}
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayFinder
-		m.Finder.Mode = finderModeAddFile
-		m.Finder.AllItems = items
-		m.Finder.FoundItems = items
-		m.Finder.Selected = make(map[string]struct{})
-		m.Finder.Cursor = 0
-		m.Finder.TextInput.Reset()
-		m.Finder.updateFoundItems()
-		m.Finder.TextInput.Focus()
-		m.Chat.TextArea.Blur()
-		return m, textinput.Blink, true
+		newModel, cmd := m.openPicker(items, "", func(m Model, selected []string, _ string) (tea.Model, tea.Cmd) {
+			if len(selected) == 0 {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink
+			}
+			cmdStr := "/file " + strings.Join(selected, " ")
+			event := m.Session.HandleInput(cmdStr)
+			return m.handleEvent(event)
+		})
+		return newModel, cmd, true
 
 	case km.ApplyITF:
 		// Equivalent to typing "/itf" and pressing enter.

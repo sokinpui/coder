@@ -17,7 +17,7 @@ type Model struct {
 	Chat      ChatModel
 	AtomicMsg AtomicMsgModel
 	History   HistoryModel
-	Finder    FinderModel
+	Picker    PickerModel
 	QuickView *QuickViewModel
 
 	ActiveSessions      []*session.Session
@@ -57,7 +57,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		Chat:                NewChat(initialInput),
 		AtomicMsg:           NewAtomicMsg(),
 		History:             NewHistory(),
-		Finder:              NewFinder(),
+		Picker:              NewPicker(),
 		QuickView:           NewQuickView(),
 		Session:             sess,
 		ActiveOverlay:       overlayNone,

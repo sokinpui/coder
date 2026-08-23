@@ -21,18 +21,9 @@ type overlayMode int
 const (
 	overlayNone overlayMode = iota
 	overlayHistory
-	overlayFinder
+	overlayPicker
 	overlayAtomicMsg
 	overlayQuickView
-)
-
-type finderMode int
-
-const (
-	finderModeModel finderMode = iota
-	finderModeFile
-	finderModeExclude
-	finderModeAddFile
 )
 
 type modelsFetchedMsg struct {
@@ -72,11 +63,6 @@ type (
 		isImage bool
 		content string
 		err     error
-	}
-	finderResultMsg struct {
-		result  string
-		results []string
-		mode    finderMode
 	}
 	termFinishedMsg struct {
 		cmdStr string

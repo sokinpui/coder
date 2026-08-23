@@ -364,68 +364,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.AnimatingTitle = false
 		return m, nil, true
 
-	case finderResultMsg:
-		m.ActiveOverlay = overlayNone
-		if msg.mode == finderModeFile {
-			return m, openFilesInEditorCmd(msg.results), true
-		}
-		if msg.mode == finderModeExclude {
-			if len(msg.results) == 0 {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink, true
-			}
-			cmdStr := "/exclude " + strings.Join(msg.results, " ")
-			event := m.Session.HandleInput(cmdStr)
-			model, cmd := m.handleEvent(event)
-			if nm, ok := model.(Model); ok && nm.State == stateIdle && nm.ActiveOverlay == overlayNone {
-				nm.Chat.TextArea.Focus()
-				return nm, tea.Batch(cmd, textarea.Blink), true
-			}
-			return model, cmd, true
-		}
-		if msg.mode == finderModeAddFile {
-			if len(msg.results) == 0 {
-				if m.State == stateIdle {
-					m.Chat.TextArea.Focus()
-				}
-				return m, textarea.Blink, true
-			}
-			cmdStr := "/file " + strings.Join(msg.results, " ")
-			event := m.Session.HandleInput(cmdStr)
-			model, cmd := m.handleEvent(event)
-			if nm, ok := model.(Model); ok && nm.State == stateIdle && nm.ActiveOverlay == overlayNone {
-				nm.Chat.TextArea.Focus()
-				return nm, tea.Batch(cmd, textarea.Blink), true
-			}
-			return model, cmd, true
-		}
-
-		m.Chat.TextArea.Focus()
-		originalContent := m.Chat.TextArea.Value()
-
-		var commandToRun string
-		if strings.HasPrefix(msg.result, "/") {
-			commandToRun = msg.result
-		} else if after, ok := strings.CutPrefix(msg.result, "model: "); ok {
-			commandToRun = "/model " + after
-		} else {
-			commandToRun = "/model " + msg.result
-		}
-		m.Chat.TextArea.SetValue(commandToRun)
-		m.Chat.TextArea.CursorEnd()
-		m.Chat.PreserveInputOnSubmit = true
-		model, cmd := m.handleSubmit()
-
-		if newModel, ok := model.(Model); ok {
-			newModel.Chat.TextArea.SetValue(originalContent)
-			newModel.Chat.TextArea.CursorEnd()
-			newModel = newModel.updateLayout()
-			return newModel, cmd, true
-		}
-		return model, cmd, true
-
 	case clearStatusBarMsg:
 		m.StatusBarMessage = ""
 		return m, nil, true

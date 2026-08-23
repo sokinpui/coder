@@ -26,7 +26,7 @@ func Start(mode string, initialInput string, contextFiles []string, instruction 
 		&QuickViewOverlay{},
 		&HistoryOverlay{},
 		&AtomicMsgOverlay{},
-		&FinderOverlay{},
+		&PickerOverlay{},
 		&PaletteOverlay{},
 	}
 

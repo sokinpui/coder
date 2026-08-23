@@ -17,8 +17,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressHistory(msg)
 	case overlayAtomicMsg:
 		return m.handleKeyPressAtomicMsg(msg)
-	case overlayFinder:
-		return m.handleKeyPressFinder(msg)
+	case overlayPicker:
+		return m.handleKeyPressPicker(msg)
 	}
 
 	keyStr := msg.String()
@@ -73,87 +73,77 @@ func (m Model) handleKeyPressQuickView(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 	return m, cmd, true
 }
 
-func (m Model) handleKeyPressFinder(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+func (m Model) handleKeyPressPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
 	case tea.KeyEsc, tea.KeyCtrlC:
 		m.ActiveOverlay = overlayNone
-		m.Finder.TextInput.Blur()
-		m.Finder.TextInput.Reset()
-		m.Finder.Selected = make(map[string]struct{})
+		m.Picker.TextInput.Blur()
+		m.Picker.TextInput.Reset()
+		m.Picker.Selected = make(map[string]struct{})
+		m.Picker.OnSelect = nil
 		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true
 		}
 		return m, nil, true
 	case tea.KeyTab:
-		if len(m.Finder.FoundItems) == 0 || m.Finder.Cursor >= len(m.Finder.FoundItems) {
+		if len(m.Picker.FoundItems) == 0 || m.Picker.Cursor >= len(m.Picker.FoundItems) {
 			return m, nil, true
 		}
-		item := m.Finder.FoundItems[m.Finder.Cursor]
-		if _, exists := m.Finder.Selected[item]; exists {
-			delete(m.Finder.Selected, item)
+		item := m.Picker.FoundItems[m.Picker.Cursor]
+		if _, exists := m.Picker.Selected[item]; exists {
+			delete(m.Picker.Selected, item)
 		} else {
-			m.Finder.Selected[item] = struct{}{}
+			m.Picker.Selected[item] = struct{}{}
 		}
-		if m.Finder.Cursor < len(m.Finder.FoundItems)-1 {
-			m.Finder.Cursor++
+		if m.Picker.Cursor < len(m.Picker.FoundItems)-1 {
+			m.Picker.Cursor++
 		}
 		return m, nil, true
 	case tea.KeyShiftTab:
-		if len(m.Finder.FoundItems) == 0 || m.Finder.Cursor >= len(m.Finder.FoundItems) {
+		if len(m.Picker.FoundItems) == 0 || m.Picker.Cursor >= len(m.Picker.FoundItems) {
 			return m, nil, true
 		}
-		item := m.Finder.FoundItems[m.Finder.Cursor]
-		if _, exists := m.Finder.Selected[item]; exists {
-			delete(m.Finder.Selected, item)
+		item := m.Picker.FoundItems[m.Picker.Cursor]
+		if _, exists := m.Picker.Selected[item]; exists {
+			delete(m.Picker.Selected, item)
 		} else {
-			m.Finder.Selected[item] = struct{}{}
+			m.Picker.Selected[item] = struct{}{}
 		}
-		if m.Finder.Cursor > 0 {
-			m.Finder.Cursor--
+		if m.Picker.Cursor > 0 {
+			m.Picker.Cursor--
 		}
 		return m, nil, true
 	case tea.KeyUp, tea.KeyCtrlP, tea.KeyCtrlK:
-		if m.Finder.Cursor > 0 {
-			m.Finder.Cursor--
+		if m.Picker.Cursor > 0 {
+			m.Picker.Cursor--
 		}
 		return m, nil, true
 	case tea.KeyDown, tea.KeyCtrlN, tea.KeyCtrlJ:
-		if m.Finder.Cursor < len(m.Finder.FoundItems)-1 {
-			m.Finder.Cursor++
+		if m.Picker.Cursor < len(m.Picker.FoundItems)-1 {
+			m.Picker.Cursor++
 		}
 		return m, nil, true
 	case tea.KeyEnter:
-		var selectedList []string
-		for _, item := range m.Finder.AllItems {
-			if _, ok := m.Finder.Selected[item]; ok {
-				selectedList = append(selectedList, item)
-			}
-		}
+		selectedList := m.Picker.getSelectedItems()
+		primary := m.Picker.getPrimaryItem()
+		action := m.Picker.OnSelect
 
-		if len(selectedList) == 0 && len(m.Finder.FoundItems) > 0 && m.Finder.Cursor < len(m.Finder.FoundItems) {
-			selectedList = append(selectedList, m.Finder.FoundItems[m.Finder.Cursor])
-		}
+		m.ActiveOverlay = overlayNone
+		m.Picker.TextInput.Blur()
+		m.Picker.TextInput.Reset()
+		m.Picker.Selected = make(map[string]struct{})
+		m.Picker.OnSelect = nil
 
-		if len(m.Finder.FoundItems) > 0 && m.Finder.Cursor < len(m.Finder.FoundItems) {
-			selected := m.Finder.FoundItems[m.Finder.Cursor]
-			m.ActiveOverlay = overlayNone
-			m.Finder.TextInput.Blur()
-			m.Finder.TextInput.Reset()
-			m.Finder.Selected = make(map[string]struct{})
-			return m, func() tea.Msg {
-				return finderResultMsg{
-					result:  selected,
-					results: selectedList,
-					mode:    m.Finder.Mode,
-				}
-			}, true
+		if action != nil {
+			newModel, cmd := action(m, selectedList, primary)
+			return newModel, cmd, true
 		}
 		return m, nil, true
 	}
 
 	var cmd tea.Cmd
-	m.Finder.TextInput, cmd = m.Finder.TextInput.Update(msg)
-	m.Finder.updateFoundItems()
+	m.Picker.TextInput, cmd = m.Picker.TextInput.Update(msg)
+	m.Picker.updateFoundItems()
 	return m, cmd, true
 }

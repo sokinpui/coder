@@ -10,7 +10,9 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-type FinderModel struct {
+type PickerAction func(m Model, selected []string, primary string) (tea.Model, tea.Cmd)
+
+type PickerModel struct {
 	TextInput  textinput.Model
 	AllItems   []string
 	FoundItems []string
@@ -18,27 +20,27 @@ type FinderModel struct {
 	Cursor     int
 	Width      int
 	Height     int
-	Mode       finderMode
+	OnSelect   PickerAction
 }
 
-func NewFinder() FinderModel {
+func NewPicker() PickerModel {
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 50
 
-	return FinderModel{
+	return PickerModel{
 		TextInput: ti,
 		Selected:  make(map[string]struct{}),
 	}
 }
 
-func (m FinderModel) Init() tea.Cmd {
+func (m PickerModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m *FinderModel) updateFoundItems() {
+func (m *PickerModel) updateFoundItems() {
 	query := m.TextInput.Value()
 	if query == "" {
 		m.FoundItems = m.AllItems
@@ -57,7 +59,27 @@ func (m *FinderModel) updateFoundItems() {
 	}
 }
 
-func (m FinderModel) View() string {
+func (m PickerModel) getSelectedItems() []string {
+	var selectedList []string
+	for _, item := range m.AllItems {
+		if _, ok := m.Selected[item]; ok {
+			selectedList = append(selectedList, item)
+		}
+	}
+	if len(selectedList) == 0 && len(m.FoundItems) > 0 && m.Cursor < len(m.FoundItems) {
+		selectedList = append(selectedList, m.FoundItems[m.Cursor])
+	}
+	return selectedList
+}
+
+func (m PickerModel) getPrimaryItem() string {
+	if len(m.FoundItems) > 0 && m.Cursor < len(m.FoundItems) {
+		return m.FoundItems[m.Cursor]
+	}
+	return ""
+}
+
+func (m PickerModel) View() string {
 	var b strings.Builder
 	b.WriteString(m.TextInput.View())
 	b.WriteString("\n\n")
@@ -95,29 +117,29 @@ func (m FinderModel) View() string {
 	return paletteContainerStyle.Width(m.Width).Render(b.String())
 }
 
-type FinderOverlay struct{}
+type PickerOverlay struct{}
 
-func (f *FinderOverlay) IsVisible(main *Model) bool {
-	return main.ActiveOverlay == overlayFinder
+func (p *PickerOverlay) IsVisible(main *Model) bool {
+	return main.ActiveOverlay == overlayPicker
 }
 
-func (f *FinderOverlay) View(main *Model) string {
-	finderWidth := main.Width / 2
-	finderHeight := main.Height / 2
-	if finderWidth < 60 {
-		finderWidth = 60
+func (p *PickerOverlay) View(main *Model) string {
+	pickerWidth := main.Width / 2
+	pickerHeight := main.Height / 2
+	if pickerWidth < 60 {
+		pickerWidth = 60
 	}
-	if finderHeight < 10 {
-		finderHeight = 10
+	if pickerHeight < 10 {
+		pickerHeight = 10
 	}
-	main.Finder.Width = finderWidth
-	main.Finder.Height = finderHeight
-	main.Finder.TextInput.Width = finderWidth - 4
+	main.Picker.Width = pickerWidth
+	main.Picker.Height = pickerHeight
+	main.Picker.TextInput.Width = pickerWidth - 4
 
-	finderContent := main.Finder.View()
-	if finderContent == "" {
+	pickerContent := main.Picker.View()
+	if pickerContent == "" {
 		return main.View()
 	}
 
-	return OverlayCenter(finderContent, main.View())
+	return OverlayCenter(pickerContent, main.View())
 }

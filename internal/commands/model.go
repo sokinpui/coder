@@ -19,7 +19,7 @@ func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
-		return CommandOutput{Type: types.FzfModeStarted, Payload: ""}, true
+		return CommandOutput{Type: types.PickerModeStarted, Payload: ""}, true
 	}
 
 	if slices.Contains(cfg.AvailableModels, args) {
@@ -27,5 +27,5 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 	}
 
-	return CommandOutput{Type: types.FzfModeStarted, Payload: args}, true
+	return CommandOutput{Type: types.PickerModeStarted, Payload: args}, true
 }

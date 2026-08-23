@@ -13,13 +13,13 @@ const (
 	HistoryModeStarted
 	ActiveModeStarted
 	NewSessionStarted
-	FzfModeStarted
+	PickerModeStarted
 	HelpViewerStarted
 	ConfigViewerStarted
 	ListViewerStarted
 	FileViewerStarted
 	TermExecutionStarted
-	ExcludeFinderStarted
+	ExcludePickerStarted
 	Quit
 )
 
