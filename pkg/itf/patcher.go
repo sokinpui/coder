@@ -56,11 +56,12 @@ func ApplyDiff(sourceLines []string, rawDiff string) ([]string, error) {
 	searchStart := 0
 
 	for i, h := range hunks {
+		if isAlreadyApplied(sourceLines, h, searchStart) {
+			return nil, fmt.Errorf("hunk #%d already applied (added lines are already present in file)", i+1)
+		}
+
 		startIdx, endIdx := matchHunk(sourceLines, h, searchStart)
 		if startIdx == -1 {
-			if isAlreadyApplied(sourceLines, h, searchStart) {
-				return nil, fmt.Errorf("hunk #%d already applied (added lines are already present in file)", i+1)
-			}
 			return nil, fmt.Errorf("failed to match hunk #%d near %s", i+1, hunkPreview(h.target))
 		}
 		patches = append(patches, hunkPatch{
@@ -242,7 +243,7 @@ func matchAnchor(source, target []string, searchStart int) (int, int) {
 
 			end := j + len(botAnchor)
 			window := source[i:end]
-			if similarityScore(window, target) >= 0.70 {
+			if similarityScore(window, target) >= 0.80 {
 				return i, end
 			}
 		}
