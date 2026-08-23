@@ -180,6 +180,17 @@ func openFilesInEditorCmd(filePaths []string) tea.Cmd {
 	if len(filePaths) == 0 {
 		return nil
 	}
+	if openCmd := os.Getenv("CODER_OPEN_CMD"); openCmd != "" {
+		parts := strings.Fields(openCmd)
+		if len(parts) > 0 {
+			return func() tea.Msg {
+				args := append(parts[1:], filePaths...)
+				cmd := exec.Command(parts[0], args...)
+				err := cmd.Run()
+				return fileEditorFinishedMsg{err: err}
+			}
+		}
+	}
 	editor := getEditor()
 	cmd := exec.Command(editor, filePaths...)
 	return tea.ExecProcess(cmd, func(err error) tea.Msg {
