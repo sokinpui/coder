@@ -58,6 +58,7 @@ type Keymap struct {
 	New         string `mapstructure:"new"`
 	Branch      string `mapstructure:"branch"`
 	Finder      string `mapstructure:"finder"`
+	AddFile     string `mapstructure:"addfile"`
 	ContextList string `mapstructure:"contextlist"`
 	ApplyITF    string `mapstructure:"applyitf"`
 	ScrollUp    string `mapstructure:"scrollup"`
@@ -108,6 +109,7 @@ func DefaultConfig() Config {
 			New:         "ctrl+n",
 			Branch:      "ctrl+b",
 			Finder:      "ctrl+f",
+			AddFile:     "ctrl+t",
 			ContextList: "ctrl+l",
 			ApplyITF:    "ctrl+a",
 			ScrollUp:    "ctrl+u",

@@ -68,7 +68,9 @@ func (m AtomicMsgModel) renderMsgItem(msg types.Message, index int, isCursor boo
 func (m AtomicMsgModel) View(messages []types.Message, maxHeight int) string {
 	selectable := getSelectableIndices(messages)
 	if len(selectable) == 0 {
-		return paletteContainerStyle.Width(m.Width).Render("No selectable atomic messages")
+		header := paletteHeaderStyle.Render("── Atomic Messages [Esc/C-c: exit] ──")
+		body := paletteItemStyle.Render("  No atomic messages")
+		return paletteContainerStyle.Width(m.Width).Render(lipgloss.JoinVertical(lipgloss.Left, header, body))
 	}
 
 	var msgLines []string
@@ -149,31 +151,37 @@ func (o *AtomicMsgOverlay) View(main *Model) string {
 func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	messages := m.Session.GetMessages()
 	selectable := getSelectableIndices(messages)
-	if len(selectable) == 0 {
-		return m, nil
-	}
 
 	m.ActiveOverlay = overlayAtomicMsg
 	m.AtomicMsg.IsSelecting = false
 	m.AtomicMsg.GGPressed = false
-	m.AtomicMsg.Cursor = selectable[len(selectable)-1]
-	m.AtomicMsg.Anchor = m.AtomicMsg.Cursor
+	if len(selectable) > 0 {
+		m.AtomicMsg.Cursor = selectable[len(selectable)-1]
+		m.AtomicMsg.Anchor = m.AtomicMsg.Cursor
+		m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
+	} else {
+		m.AtomicMsg.Cursor = 0
+		m.AtomicMsg.Anchor = 0
+	}
 	m.Chat.TextArea.Blur()
 	m = m.updateLayout()
-	m = m.syncViewportToMessage(m.AtomicMsg.Cursor)
 	return m, nil
 }
 
 func (m Model) handleKeyPressAtomicMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	selectable := getSelectableIndices(m.Session.GetMessages())
 	if len(selectable) == 0 {
-		m.ActiveOverlay = overlayNone
-		m.AtomicMsg.IsSelecting = false
-		m.AtomicMsg.GGPressed = false
-		if m.State == stateIdle {
-			m.Chat.TextArea.Focus()
+		switch msg.String() {
+		case "esc", "ctrl+c", "q":
+			m.ActiveOverlay = overlayNone
+			m.AtomicMsg.IsSelecting = false
+			m.AtomicMsg.GGPressed = false
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, textarea.Blink, true
 		}
-		return m, textarea.Blink, true
+		return m, nil, true
 	}
 
 	prevGGPressed := m.AtomicMsg.GGPressed

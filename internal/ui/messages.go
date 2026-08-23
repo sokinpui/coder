@@ -369,6 +369,38 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.mode == finderModeFile {
 			return m, openFilesInEditorCmd(msg.results), true
 		}
+		if msg.mode == finderModeExclude {
+			if len(msg.results) == 0 {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink, true
+			}
+			cmdStr := "/exclude " + strings.Join(msg.results, " ")
+			event := m.Session.HandleInput(cmdStr)
+			model, cmd := m.handleEvent(event)
+			if nm, ok := model.(Model); ok && nm.State == stateIdle && nm.ActiveOverlay == overlayNone {
+				nm.Chat.TextArea.Focus()
+				return nm, tea.Batch(cmd, textarea.Blink), true
+			}
+			return model, cmd, true
+		}
+		if msg.mode == finderModeAddFile {
+			if len(msg.results) == 0 {
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+				}
+				return m, textarea.Blink, true
+			}
+			cmdStr := "/file " + strings.Join(msg.results, " ")
+			event := m.Session.HandleInput(cmdStr)
+			model, cmd := m.handleEvent(event)
+			if nm, ok := model.(Model); ok && nm.State == stateIdle && nm.ActiveOverlay == overlayNone {
+				nm.Chat.TextArea.Focus()
+				return nm, tea.Batch(cmd, textarea.Blink), true
+			}
+			return model, cmd, true
+		}
 
 		m.Chat.TextArea.Focus()
 		originalContent := m.Chat.TextArea.Value()

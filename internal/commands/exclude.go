@@ -15,7 +15,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	paths := strings.Fields(args)
 
 	if len(paths) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Exclusions command requires arguments to specify what to remove from current context."}, false
+		return CommandOutput{Type: types.ExcludeFinderStarted}, true
 	}
 
 	pathsToRemove, _ := ExpandPaths(paths)

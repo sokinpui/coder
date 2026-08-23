@@ -31,6 +31,8 @@ type finderMode int
 const (
 	finderModeModel finderMode = iota
 	finderModeFile
+	finderModeExclude
+	finderModeAddFile
 )
 
 type modelsFetchedMsg struct {

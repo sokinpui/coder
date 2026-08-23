@@ -19,6 +19,7 @@ const (
 	ListViewerStarted
 	FileViewerStarted
 	TermExecutionStarted
+	ExcludeFinderStarted
 	Quit
 )
 

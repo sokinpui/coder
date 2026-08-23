@@ -41,10 +41,6 @@ func editModeCmd(args string, s SessionController) (CommandOutput, bool) {
 }
 
 func msgCmd(args string, s SessionController) (CommandOutput, bool) {
-	messages := s.GetMessages()
-	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.NoOp}, true
-	}
 	return CommandOutput{Type: types.AtomicMsgModeStarted}, true
 }
 

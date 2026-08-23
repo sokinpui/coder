@@ -1,13 +1,17 @@
 package ui
 
 import (
+	"os"
 	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/pkg/sf"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 )
@@ -54,6 +58,26 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		}
 		m.Finder.updateFoundItems()
 		m.Finder.TextInput.Focus()
+		m.UpdateTokenCount()
+		return m, textinput.Blink
+	case types.ExcludeFinderStarted:
+		files := m.Session.GetContextFiles()
+		if len(files) == 0 {
+			m.StatusBarMessage = "No project source files in context."
+			return m, clearStatusBarCmd()
+		}
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.ActiveOverlay = overlayFinder
+		m.Finder.Mode = finderModeExclude
+		m.Finder.AllItems = files
+		m.Finder.FoundItems = files
+		m.Finder.Selected = make(map[string]struct{})
+		m.Finder.Cursor = 0
+		m.Finder.TextInput.Reset()
+		m.Finder.updateFoundItems()
+		m.Finder.TextInput.Focus()
+		m.Chat.TextArea.Blur()
 		m.UpdateTokenCount()
 		return m, textinput.Blink
 	case types.HistoryModeStarted:
@@ -361,6 +385,36 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Finder.Mode = finderModeFile
 		m.Finder.AllItems = files
 		m.Finder.FoundItems = files
+		m.Finder.Selected = make(map[string]struct{})
+		m.Finder.Cursor = 0
+		m.Finder.TextInput.Reset()
+		m.Finder.updateFoundItems()
+		m.Finder.TextInput.Focus()
+		m.Chat.TextArea.Blur()
+		return m, textinput.Blink, true
+
+	case km.AddFile:
+		cfg := m.Session.GetConfig()
+		allExclusions := append([]string{}, source.Exclusions...)
+		allExclusions = append(allExclusions, cfg.Context.Exclusions...)
+		items := sf.Run([]string{"."}, "", allExclusions, false)
+		if len(items) == 0 {
+			m.StatusBarMessage = "No files or directories found."
+			return m, clearStatusBarCmd(), true
+		}
+		for i, it := range items {
+			p := filepath.ToSlash(it)
+			if info, err := os.Stat(it); err == nil && info.IsDir() {
+				p += "/"
+			}
+			items[i] = p
+		}
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m.ActiveOverlay = overlayFinder
+		m.Finder.Mode = finderModeAddFile
+		m.Finder.AllItems = items
+		m.Finder.FoundItems = items
 		m.Finder.Selected = make(map[string]struct{})
 		m.Finder.Cursor = 0
 		m.Finder.TextInput.Reset()

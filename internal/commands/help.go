@@ -57,6 +57,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+H", desc: "View conversation history."},
 	{key: "Ctrl+N", desc: "Start a new chat session."},
 	{key: "Ctrl+B", desc: "Enter branch mode."},
+	{key: "Ctrl+T", desc: "Search files/dirs and add to context (/file)."},
 	{key: "Ctrl+F", desc: "Search context files and open in editor."},
 	{key: "Ctrl+L", desc: "Quick view of project context (/list)."},
 	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
