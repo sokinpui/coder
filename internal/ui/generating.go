@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -35,18 +36,29 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		if m.State != stateCancelling {
-			m.Session.CancelGeneration()
-			m.State = stateCancelling
-			m.Chat.StateStartTime = time.Now()
-		} else {
-			// Emergency cancel: force return to idle if already cancelling
-			m.State = stateIdle
-			m.Chat.IsStreaming = false
-			m.Chat.LastInteractionFailed = true
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
+		m.Session.CancelGeneration()
+		m.Chat.IsStreaming = false
+		m.Chat.StreamSub = nil
+		m.Chat.LastInteractionFailed = true
+		m.State = stateIdle
+
+		messages := m.Session.GetMessages()
+		if len(messages) > 0 {
+			lastMsg := messages[len(messages)-1]
+			if lastMsg.Type == types.AIMessage && strings.TrimSpace(lastMsg.Content) != "" {
+				m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: "Generation cancelled."})
+			} else {
+				lastMsg.Content = "Generation cancelled."
+				lastMsg.Type = types.CommandResultMessage
+				m.Session.ReplaceLastMessage(lastMsg)
+			}
 		}
+
+		m.Chat.TextArea.Focus()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m = m.updateLayout()
+		return m, textarea.Blink, true
 	case tea.KeyCtrlN:
 		event := m.Session.HandleInput("/new")
 		if event.Type != types.NewSessionStarted {

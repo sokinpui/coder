@@ -195,9 +195,13 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 		delta := streamResp.Choices[0].Delta
 		if delta.Content != "" || delta.ReasoningContent != "" {
-			streamChan <- types.StreamChunk{
+			select {
+			case <-ctx.Done():
+				return
+			case streamChan <- types.StreamChunk{
 				Content:          delta.Content,
 				ReasoningContent: delta.ReasoningContent,
+			}:
 			}
 		}
 	}

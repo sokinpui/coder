@@ -13,7 +13,6 @@ const (
 	stateAsking
 	stateThinking
 	stateGenerating
-	stateCancelling
 )
 
 type overlayMode int
