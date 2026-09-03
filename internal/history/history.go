@@ -322,9 +322,15 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 			continue
 		}
 
-		if metadata.CreatedAt.IsZero() {
-			if fileInfo, err := file.Info(); err == nil {
-				metadata.CreatedAt = fileInfo.ModTime()
+		fileInfo, infoErr := file.Info()
+		if metadata.CreatedAt.IsZero() && infoErr == nil {
+			metadata.CreatedAt = fileInfo.ModTime()
+		}
+		if metadata.ModifiedAt.IsZero() {
+			if !metadata.CreatedAt.IsZero() {
+				metadata.ModifiedAt = metadata.CreatedAt
+			} else if infoErr == nil {
+				metadata.ModifiedAt = fileInfo.ModTime()
 			}
 		}
 
@@ -337,7 +343,7 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	}
 
 	sort.Slice(conversations, func(i, j int) bool {
-		return conversations[i].CreatedAt.After(conversations[j].CreatedAt)
+		return conversations[i].ModifiedAt.After(conversations[j].ModifiedAt)
 	})
 
 	return conversations, nil

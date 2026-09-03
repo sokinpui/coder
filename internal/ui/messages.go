@@ -245,8 +245,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		var selectorItems []SelectorItem
 		for _, item := range msg.items {
 			dateStr := ""
-			if !item.CreatedAt.IsZero() {
-				dateStr = fmt.Sprintf(" (%s)", item.CreatedAt.Format("2006-01-02 15:04"))
+			displayTime := item.ModifiedAt
+			if displayTime.IsZero() {
+				displayTime = item.CreatedAt
+			}
+			if !displayTime.IsZero() {
+				dateStr = fmt.Sprintf(" (%s)", displayTime.Format("2006-01-02 15:04"))
 			}
 			selectorItems = append(selectorItems, SelectorItem{
 				ID:          item.Filename,
