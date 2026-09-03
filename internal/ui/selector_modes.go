@@ -247,9 +247,6 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	if len(items) > 0 {
 		m.Selector.Cursor = len(items) - 1
 		m.Selector.Anchor = m.Selector.Cursor
-		if primary := m.Selector.GetPrimaryItem(); primary != nil {
-			m = m.syncViewportToMessage(primary.Data.(int))
-		}
 	}
 
 	m.Selector.OnCursorChange = func(mod Model, current *SelectorItem) Model {
