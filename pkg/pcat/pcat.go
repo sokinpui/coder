@@ -216,10 +216,77 @@ func hasValidExtension(path string, extensions []string) bool {
 	return slices.Contains(extensions, fileExt)
 }
 
-func deduplicate(paths []string) []string {
-	var uniquePaths []string
-	seen := make(map[string]struct{})
+type resolvedEntry struct {
+	index int
+	path  string
+}
 
+func deduplicate(paths []string) []string {
+	if len(paths) <= 1 {
+		return paths
+	}
+
+	workerCount := min(len(paths), runtime.NumCPU())
+	if workerCount < 1 {
+		workerCount = 1
+	}
+
+	jobs := make(chan int, len(paths))
+	for i := range paths {
+		jobs <- i
+	}
+	close(jobs)
+
+	results := make(chan resolvedEntry, len(paths))
+	var wg sync.WaitGroup
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for idx := range jobs {
+				resolved := resolveForDedup(paths[idx])
+				results <- resolvedEntry{index: idx, path: resolved}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	resolvedPaths := make([]string, len(paths))
+	for res := range results {
+		resolvedPaths[res.index] = res.path
+	}
+
+	var uniquePaths []string
+	seen := make(map[string]struct{}, len(paths))
+	for i, resolved := range resolvedPaths {
+		if _, ok := seen[resolved]; ok {
+			continue
+		}
+		seen[resolved] = struct{}{}
+		uniquePaths = append(uniquePaths, paths[i])
+	}
+	return uniquePaths
+}
+
+func resolveForDedup(p string) string {
+	resolvedPath, err := filepath.EvalSymlinks(p)
+	if os.IsNotExist(err) {
+		absPath, _ := filepath.Abs(p)
+		return absPath
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not resolve path %s: %v\n", p, err)
+		return p
+	}
+	return resolvedPath
+}
+
+func filterExcluded(paths []string, excludePatterns []string) ([]string, error) {
 	for _, p := range paths {
 		resolvedPath, err := filepath.EvalSymlinks(p)
 		if os.IsNotExist(err) {
