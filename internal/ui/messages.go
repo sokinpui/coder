@@ -95,41 +95,51 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, spinnerCmd, true
 
 	case streamResultMsg:
-		if !m.Chat.IsStreaming {
+		targetSess := m.getSessionByID(msg.sessID)
+		if targetSess == nil || !targetSess.IsStreaming() {
 			return m, nil, true
 		}
 
-		if msg.ReasoningContent != "" && m.State != stateGenerating {
+		isActive := m.Session != nil && targetSess.ID == m.Session.ID
+		if msg.chunk.ReasoningContent != "" && isActive && m.State != stateGenerating {
 			m.State = stateThinking
 		}
-		if msg.Content != "" {
-			if m.State != stateGenerating {
+		if msg.chunk.Content != "" {
+			if isActive && m.State != stateGenerating {
 				m.State = stateGenerating
 				m.Chat.StateStartTime = time.Now()
 			}
-			messages := m.Session.GetMessages()
+			messages := targetSess.GetMessages()
 			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage {
-				messages[len(messages)-1].Content += msg.Content
+				messages[len(messages)-1].Content += msg.chunk.Content
 			} else {
-				m.Session.AddMessages(types.Message{Type: types.AIMessage, Content: msg.Content})
+				targetSess.AddMessages(types.Message{Type: types.AIMessage, Content: msg.chunk.Content})
 			}
 
-			wasAtBottom := m.Chat.Viewport.AtBottom()
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			if wasAtBottom {
-				m.Chat.Viewport.GotoBottom()
+			if isActive {
+				wasAtBottom := m.Chat.Viewport.AtBottom()
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				if wasAtBottom {
+					m.Chat.Viewport.GotoBottom()
+				}
 			}
 		}
 
-		return m, listenForStream(m.Chat.StreamSub), true
+		return m, listenForStream(msg.sessID, msg.sub), true
 
 	case streamFinishedMsg:
-		if !m.Chat.IsStreaming {
+		targetSess := m.getSessionByID(msg.sessID)
+		if targetSess == nil || !targetSess.IsStreaming() {
 			return m, nil, true
+		}
+		targetSess.SetStreaming(false)
+
+		isActive := m.Session != nil && targetSess.ID == m.Session.ID
+		if !isActive {
+			return m, saveConversationCmd(targetSess), true
 		}
 
 		m.Chat.IsStreaming = false
-
 		m.State = stateIdle
 		if m.ActiveOverlay == overlayNone {
 			m.Chat.TextArea.Focus()
@@ -141,16 +151,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.Chat.StreamSub = nil
-		m.Session.CancelGeneration()
 		m.Chat.TextArea.Reset()
 		m = m.updateLayout()
 
-		if m.Chat.LastInteractionFailed {
-			return m, nil, true // Don't count tokens on failure/cancellation
+		if !m.Chat.LastInteractionFailed {
+			m.UpdateTokenCount()
 		}
-		m.UpdateTokenCount()
 
-		return m, tea.Batch(saveConversationCmd(m.Session), m.Chat.Spinner.Tick), true
+		return m, tea.Batch(saveConversationCmd(targetSess), m.Chat.Spinner.Tick), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {
@@ -287,11 +295,24 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
 		m.Session.PrependMessages(welcome, dirInfo)
 
-		m.State = stateIdle
+		if m.Session.IsStreaming() {
+			messages := m.Session.GetMessages()
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
+				m.State = stateGenerating
+			} else {
+				m.State = stateAsking
+			}
+			m.Chat.IsStreaming = true
+			m.Chat.TextArea.Blur()
+		} else {
+			m.State = stateIdle
+			m.Chat.IsStreaming = false
+			m.Chat.TextArea.Focus()
+		}
+
 		m.Chat.LastInteractionFailed = false
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
-		m.Chat.TextArea.Focus()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.UpdateTokenCount()
@@ -307,11 +328,23 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
-		m.State = stateIdle
+		if m.Session.IsStreaming() {
+			messages := m.Session.GetMessages()
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
+				m.State = stateGenerating
+			} else {
+				m.State = stateAsking
+			}
+			m.Chat.IsStreaming = true
+			m.Chat.TextArea.Blur()
+		} else {
+			m.State = stateIdle
+			m.Chat.IsStreaming = false
+			m.Chat.TextArea.Focus()
+		}
 		m.Chat.LastInteractionFailed = false
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
-		m.Chat.TextArea.Focus()
 
 		// Reload context to be safe
 		if err := m.Session.LoadContext(); err != nil {
@@ -411,33 +444,39 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, textarea.Blink, true
 
 	case errorMsg:
-		m.Chat.IsStreaming = false
+		targetSess := m.getSessionByID(msg.sessID)
+		if targetSess == nil || !targetSess.IsStreaming() {
+			return m, nil, true
+		}
+		targetSess.SetStreaming(false)
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
-		messages := m.Session.GetMessages()
+		messages := targetSess.GetMessages()
 		if len(messages) > 0 {
 			lastMsg := messages[len(messages)-1]
 			if lastMsg.Type == types.AIMessage && strings.TrimSpace(lastMsg.Content) != "" {
-				m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
+				targetSess.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			} else {
 				lastMsg.Content = errorContent
 				lastMsg.Type = types.CommandErrorResultMessage
-				m.Session.ReplaceLastMessage(lastMsg)
+				targetSess.ReplaceLastMessage(lastMsg)
 			}
 		}
-		m.Chat.LastInteractionFailed = true
 
-		m.State = stateIdle
-		wasAtBottom := m.Chat.Viewport.AtBottom()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if wasAtBottom {
-			m.Chat.Viewport.GotoBottom()
+		if targetSess.ID == m.Session.ID {
+			m.Chat.IsStreaming = false
+			m.Chat.LastInteractionFailed = true
+			m.State = stateIdle
+			wasAtBottom := m.Chat.Viewport.AtBottom()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if wasAtBottom {
+				m.Chat.Viewport.GotoBottom()
+			}
+			m.Chat.StreamSub = nil
+			m.Chat.TextArea.Reset()
+			m.Chat.TextArea.Focus()
 		}
-		m.Chat.StreamSub = nil
-		m.Session.CancelGeneration()
-		m.Chat.TextArea.Reset()
-		m.Chat.TextArea.Focus()
-		return m, saveConversationCmd(m.Session), true
+		return m, saveConversationCmd(targetSess), true
 
 	case tea.WindowSizeMsg:
 		m.Height = msg.Height

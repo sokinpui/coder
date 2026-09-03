@@ -36,6 +36,7 @@ type Session struct {
 	lastModifiedFiles []string
 	hasAppliedChanges bool
 	contextFiles      []string
+	isStreaming       bool
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
@@ -178,4 +179,12 @@ func (s *Session) GetMode() string {
 func (s *Session) SetMode(mode string) error {
 	s.mode = mode
 	return s.LoadContext()
+}
+
+func (s *Session) IsStreaming() bool {
+	return s.isStreaming
+}
+
+func (s *Session) SetStreaming(v bool) {
+	s.isStreaming = v
 }

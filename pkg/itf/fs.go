@@ -25,7 +25,6 @@ func GetFileSHA256(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-
 type PathResolver struct {
 	wd string
 }

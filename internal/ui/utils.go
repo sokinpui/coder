@@ -24,16 +24,20 @@ import (
 
 const statusBarMessageDuration = 1 * time.Second
 
-func listenForStream(sub chan types.StreamChunk) tea.Cmd {
+func listenForStream(sessID string, sub chan types.StreamChunk) tea.Cmd {
 	return func() tea.Msg {
 		chunk, ok := <-sub
 		if !ok {
-			return streamFinishedMsg{}
+			return streamFinishedMsg{sessID: sessID}
 		}
 		if errMsg, result := strings.CutPrefix(chunk.Content, "Error:"); result {
-			return errorMsg{errors.New(strings.TrimSpace(errMsg))}
+			return errorMsg{sessID: sessID, error: errors.New(strings.TrimSpace(errMsg))}
 		}
-		return streamResultMsg(chunk)
+		return streamResultMsg{
+			sessID: sessID,
+			chunk:  chunk,
+			sub:    sub,
+		}
 	}
 }
 
@@ -101,7 +105,7 @@ func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
 func saveConversationCmd(sess *session.Session) tea.Cmd {
 	return func() tea.Msg {
 		if err := sess.SaveConversation(); err != nil {
-			return errorMsg{err}
+			return errorMsg{sessID: sess.ID, error: err}
 		}
 		return nil
 	}
@@ -145,18 +149,18 @@ func editInEditorCmd(content string) tea.Cmd {
 	editor := getEditor()
 	tmpfile, err := os.CreateTemp("", "coder-*.md")
 	if err != nil {
-		return func() tea.Msg { return errorMsg{err} }
+		return func() tea.Msg { return errorMsg{error: err} }
 	}
 
 	if _, err := tmpfile.WriteString(content); err != nil {
 		tmpfile.Close()
 		os.Remove(tmpfile.Name())
-		return func() tea.Msg { return errorMsg{err} }
+		return func() tea.Msg { return errorMsg{error: err} }
 	}
 
 	if err := tmpfile.Close(); err != nil {
 		os.Remove(tmpfile.Name())
-		return func() tea.Msg { return errorMsg{err} }
+		return func() tea.Msg { return errorMsg{error: err} }
 	}
 
 	cmd := exec.Command(editor, tmpfile.Name())
@@ -249,7 +253,6 @@ func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	}
 	return visibleLineCount
 }
-
 
 func handlePasteCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {

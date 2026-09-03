@@ -99,7 +99,6 @@ var (
 	greyDotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	darkGreyDotStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 
-
 	searchPlaceholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("240"))
 )

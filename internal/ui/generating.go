@@ -27,7 +27,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 
-	return m, tea.Batch(listenForStream(m.Chat.StreamSub), m.Chat.Spinner.Tick)
+	return m, tea.Batch(listenForStream(m.Session.ID, m.Chat.StreamSub), m.Chat.Spinner.Tick)
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -79,11 +79,6 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 
 	switch keyStr {
 	case km.New:
-		if m.Chat.IsStreaming {
-			m.Session.CancelGeneration()
-			m.Chat.IsStreaming = false
-			m.Chat.StreamSub = nil
-		}
 		event := m.Session.HandleInput("/new")
 		switch event.Type {
 		case types.NewSessionStarted:

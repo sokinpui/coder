@@ -113,6 +113,8 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	dirMsg := utils.GetDirInfoContent()
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
+	m.State = stateIdle
+	m.Chat.IsStreaming = false
 	m.Chat.LastInteractionFailed = false
 	m.Chat.TextArea.Focus()
 	m.Chat.Viewport.GotoTop()

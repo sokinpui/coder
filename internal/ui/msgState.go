@@ -29,9 +29,18 @@ type modelsFetchedMsg struct {
 }
 
 type (
-	streamResultMsg         types.StreamChunk
-	streamFinishedMsg       struct{}
-	errorMsg                struct{ error }
+	streamResultMsg struct {
+		sessID string
+		chunk  types.StreamChunk
+		sub    chan types.StreamChunk
+	}
+	streamFinishedMsg struct {
+		sessID string
+	}
+	errorMsg struct {
+		sessID string
+		error  error
+	}
 	ctrlCTimeoutMsg         struct{}
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg       struct {

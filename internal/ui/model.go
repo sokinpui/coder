@@ -100,9 +100,29 @@ func (m Model) switchSessionByID(id string) tea.Cmd {
 	return nil
 }
 
+func (m Model) getSessionByID(id string) *session.Session {
+	if id == "" {
+		return m.Session
+	}
+	if m.Session != nil && m.Session.ID == id {
+		return m.Session
+	}
+	for _, s := range m.ActiveSessions {
+		if s.ID == id {
+			return s
+		}
+	}
+	return nil
+}
+
 func (m Model) needsSpinner() bool {
-	if m.Chat.IsStreaming || m.Chat.IsFetchingModels {
+	if m.Chat.IsFetchingModels {
 		return true
+	}
+	for _, s := range m.ActiveSessions {
+		if s.IsStreaming() {
+			return true
+		}
 	}
 	switch m.State {
 	case stateAsking, stateThinking, stateGenerating:

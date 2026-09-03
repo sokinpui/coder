@@ -158,12 +158,6 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 			return mod, nil
 		}
 
-		if mod.Chat.IsStreaming {
-			mod.Session.CancelGeneration()
-			mod.Chat.IsStreaming = false
-			mod.Chat.StreamSub = nil
-		}
-
 		mod.ActiveOverlay = overlayNone
 		mod.Selector.IsSearching = false
 		mod.Selector.SearchInput.Blur()

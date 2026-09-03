@@ -18,6 +18,7 @@ func (s *Session) CancelGeneration() {
 	if s.cancelGeneration != nil {
 		s.cancelGeneration()
 	}
+	s.isStreaming = false
 }
 
 func (s *Session) GetPrompt() []types.Message {
@@ -52,6 +53,7 @@ func (s *Session) StartGeneration() types.Event {
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
+	s.isStreaming = true
 	go s.generator.GenerateTask(ctx, messages, streamChan, nil)
 
 	s.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
