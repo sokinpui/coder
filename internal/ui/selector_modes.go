@@ -74,8 +74,7 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 			}
 
 			modelName := primary.ID
-			c := mod.Session.GetConfig()
-			c.Generation.ModelCode = modelName
+			mod.Session.SetModel(modelName)
 			mod.Session.AddMessages(
 				types.Message{Type: types.CommandMessage, Content: "/model " + modelName},
 				types.Message{Type: types.CommandResultMessage, Content: fmt.Sprintf("Switched model to: %s", modelName)},

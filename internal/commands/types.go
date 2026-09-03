@@ -26,6 +26,7 @@ type SessionController interface {
 	SetContextFiles(files []string)
 	GetMode() string
 	SetMode(mode string) error
+	SetModel(model string)
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

@@ -50,11 +50,6 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	if mode == "" {
 		mode = ModeCoding
 	}
-	gen, err := generation.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	hist, err := history.NewManager()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize history manager: %w", err)
@@ -67,6 +62,11 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	cfgCopy.Context.Files = append([]string{}, cfg.Context.Files...)
 	cfgCopy.Context.Dirs = append([]string{}, cfg.Context.Dirs...)
 	cfgCopy.Context.Exclusions = append([]string{}, cfg.Context.Exclusions...)
+
+	gen, err := generation.New(&cfgCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	allExclusions := append([]string{}, source.Exclusions...)
 	allExclusions = append(allExclusions, cfgCopy.Context.Exclusions...)
@@ -174,6 +174,11 @@ func (s *Session) GetMode() string {
 		return ModeCoding
 	}
 	return s.mode
+}
+
+func (s *Session) SetModel(model string) {
+	s.config.Generation.ModelCode = model
+	s.generator.Config.ModelCode = model
 }
 
 func (s *Session) SetMode(mode string) error {

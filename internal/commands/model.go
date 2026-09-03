@@ -22,8 +22,8 @@ func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.PickerModeStarted, Payload: ""}, true
 	}
 
-	if slices.Contains(cfg.AvailableModels, args) {
-		cfg.Generation.ModelCode = args
+	if len(cfg.AvailableModels) == 0 || slices.Contains(cfg.AvailableModels, args) {
+		s.SetModel(args)
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 	}
 
