@@ -11,13 +11,16 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 const (
 	historyDirName = ".coder/history"
+	indexFileName  = "index.json"
 )
 
 type Metadata struct {
@@ -49,8 +52,16 @@ type ConversationData struct {
 	WorkingDir   string
 }
 
+type IndexEntry struct {
+	Filename   string    `json:"filename"`
+	Title      string    `json:"title"`
+	CreatedAt  time.Time `json:"createdAt"`
+	ModifiedAt time.Time `json:"modifiedAt"`
+}
+
 type Manager struct {
 	historyPath string
+	mu          sync.Mutex
 }
 
 func NewManager() (*Manager, error) {
@@ -64,12 +75,16 @@ func NewManager() (*Manager, error) {
 }
 
 func (m *Manager) SaveConversation(data *ConversationData) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	historyContent := BuildHistorySnippet(data.Messages)
 	var contentBuilder strings.Builder
 	contentBuilder.WriteString(prompt.ConversationHistoryHeader)
 	contentBuilder.WriteString(historyContent)
 
 	content := contentBuilder.String()
+	now := time.Now()
 	var fileBuf bytes.Buffer
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintf(&fileBuf, "title: %s\n", data.Title)
@@ -77,7 +92,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 		fmt.Fprintf(&fileBuf, "mode: %s\n", data.Mode)
 	}
 	fmt.Fprintf(&fileBuf, "createdAt: %s\n", data.CreatedAt.Format(time.RFC3339Nano))
-	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", time.Now().Format(time.RFC3339Nano))
+	fmt.Fprintf(&fileBuf, "modifiedAt: %s\n", now.Format(time.RFC3339Nano))
 	if data.WorkingDir != "" {
 		fmt.Fprintf(&fileBuf, "workingDir: %s\n", data.WorkingDir)
 	}
@@ -89,7 +104,18 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	fileBuf.WriteString(content)
 
 	filePath := filepath.Join(m.historyPath, data.Filename)
-	return os.WriteFile(filePath, fileBuf.Bytes(), 0644)
+	if err := os.WriteFile(filePath, fileBuf.Bytes(), 0644); err != nil {
+		return err
+	}
+
+	index := m.loadIndex()
+	index[data.Filename] = IndexEntry{
+		Filename:   data.Filename,
+		Title:      data.Title,
+		CreatedAt:  data.CreatedAt,
+		ModifiedAt: now,
+	}
+	return m.saveIndex(index)
 }
 
 func writeYamlList(b *bytes.Buffer, key string, items []string) {
@@ -304,41 +330,69 @@ func (m *Manager) LoadConversation(filename string) (*Metadata, []types.Message,
 }
 
 func (m *Manager) ListConversations() ([]ConversationInfo, error) {
-	files, err := os.ReadDir(m.historyPath)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	dirEntries, err := os.ReadDir(m.historyPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read history directory: %w", err)
 	}
 
-	var conversations []ConversationInfo
-	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".md") {
+	index := m.loadIndex()
+	diskFiles := make(map[string]os.DirEntry)
+
+	for _, entry := range dirEntries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+		diskFiles[entry.Name()] = entry
+	}
+
+	indexDirty := false
+	for filename := range index {
+		if _, exists := diskFiles[filename]; !exists {
+			delete(index, filename)
+			indexDirty = true
+		}
+	}
+
+	var toScan []os.DirEntry
+	for name, entry := range diskFiles {
+		cached, found := index[name]
+		if !found {
+			toScan = append(toScan, entry)
 			continue
 		}
 
-		filePath := filepath.Join(m.historyPath, file.Name())
-		metadata, err := ParseFileMetadata(filePath)
+		info, err := entry.Info()
 		if err != nil {
-			// Silently skip files that can't be parsed
 			continue
 		}
 
-		fileInfo, infoErr := file.Info()
-		if metadata.CreatedAt.IsZero() && infoErr == nil {
-			metadata.CreatedAt = fileInfo.ModTime()
+		if info.ModTime().After(cached.ModifiedAt) {
+			toScan = append(toScan, entry)
 		}
-		if metadata.ModifiedAt.IsZero() {
-			if !metadata.CreatedAt.IsZero() {
-				metadata.ModifiedAt = metadata.CreatedAt
-			} else if infoErr == nil {
-				metadata.ModifiedAt = fileInfo.ModTime()
-			}
-		}
+	}
 
+	if len(toScan) > 0 {
+		scanned := m.scanEntriesParallel(toScan)
+		for filename, entry := range scanned {
+			index[filename] = entry
+			indexDirty = true
+		}
+	}
+
+	if indexDirty {
+		_ = m.saveIndex(index)
+	}
+
+	conversations := make([]ConversationInfo, 0, len(index))
+	for _, entry := range index {
 		conversations = append(conversations, ConversationInfo{
-			Filename:   file.Name(),
-			Title:      metadata.Title,
-			CreatedAt:  metadata.CreatedAt,
-			ModifiedAt: metadata.ModifiedAt,
+			Filename:   entry.Filename,
+			Title:      entry.Title,
+			CreatedAt:  entry.CreatedAt,
+			ModifiedAt: entry.ModifiedAt,
 		})
 	}
 
@@ -347,6 +401,102 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	})
 
 	return conversations, nil
+}
+
+type scanResult struct {
+	filename string
+	entry    IndexEntry
+}
+
+func (m *Manager) scanEntriesParallel(entries []os.DirEntry) map[string]IndexEntry {
+	workerCount := min(len(entries), runtime.NumCPU()*2)
+	if workerCount < 1 {
+		workerCount = 1
+	}
+
+	jobs := make(chan os.DirEntry, len(entries))
+	for _, entry := range entries {
+		jobs <- entry
+	}
+	close(jobs)
+
+	resultsChan := make(chan scanResult, len(entries))
+	var wg sync.WaitGroup
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for entry := range jobs {
+				item, ok := m.parseEntry(entry)
+				if !ok {
+					continue
+				}
+				resultsChan <- scanResult{filename: entry.Name(), entry: item}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	results := make(map[string]IndexEntry, len(entries))
+	for res := range resultsChan {
+		results[res.filename] = res.entry
+	}
+	return results
+}
+
+func (m *Manager) parseEntry(entry os.DirEntry) (IndexEntry, bool) {
+	filePath := filepath.Join(m.historyPath, entry.Name())
+	metadata, err := ParseFileMetadata(filePath)
+	if err != nil {
+		return IndexEntry{}, false
+	}
+
+	fileInfo, infoErr := entry.Info()
+	if metadata.CreatedAt.IsZero() && infoErr == nil {
+		metadata.CreatedAt = fileInfo.ModTime()
+	}
+	if metadata.ModifiedAt.IsZero() {
+		if !metadata.CreatedAt.IsZero() {
+			metadata.ModifiedAt = metadata.CreatedAt
+		} else if infoErr == nil {
+			metadata.ModifiedAt = fileInfo.ModTime()
+		}
+	}
+
+	return IndexEntry{
+		Filename:   entry.Name(),
+		Title:      metadata.Title,
+		CreatedAt:  metadata.CreatedAt,
+		ModifiedAt: metadata.ModifiedAt,
+	}, true
+}
+
+func (m *Manager) loadIndex() map[string]IndexEntry {
+	indexPath := filepath.Join(m.historyPath, indexFileName)
+	data, err := os.ReadFile(indexPath)
+	if err != nil {
+		return make(map[string]IndexEntry)
+	}
+
+	var entries map[string]IndexEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return make(map[string]IndexEntry)
+	}
+	return entries
+}
+
+func (m *Manager) saveIndex(entries map[string]IndexEntry) error {
+	data, err := json.MarshalIndent(entries, "", "  ")
+	if err != nil {
+		return err
+	}
+	indexPath := filepath.Join(m.historyPath, indexFileName)
+	return os.WriteFile(indexPath, data, 0644)
 }
 
 func BuildHistorySnippet(messages []types.Message) string {
