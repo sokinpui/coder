@@ -287,24 +287,6 @@ func resolveForDedup(p string) string {
 }
 
 func filterExcluded(paths []string, excludePatterns []string) ([]string, error) {
-	for _, p := range paths {
-		resolvedPath, err := filepath.EvalSymlinks(p)
-		if os.IsNotExist(err) {
-			resolvedPath, _ = filepath.Abs(p)
-		} else if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: could not resolve path %s: %v\n", p, err)
-			resolvedPath = p
-		}
-
-		if _, ok := seen[resolvedPath]; !ok {
-			uniquePaths = append(uniquePaths, p)
-			seen[resolvedPath] = struct{}{}
-		}
-	}
-	return uniquePaths
-}
-
-func filterExcluded(paths []string, excludePatterns []string) ([]string, error) {
 	if len(excludePatterns) == 0 {
 		return paths, nil
 	}

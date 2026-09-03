@@ -1,22 +1,26 @@
 package ui
 
 import (
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/sokinpui/coder/internal/types"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// renderConversationWithOffsets renders the conversation and returns the content string
-// and a map of message index to its starting line number.
 func (m Model) renderConversationWithOffsets() (string, map[int]int) {
-	messageLineOffsets := make(map[int]int)
+	messages := m.Session.GetMessages()
 	viewportWidth := m.Chat.Viewport.Width
+	m.warmupRenderCache(messages, viewportWidth)
+
+	messageLineOffsets := make(map[int]int)
 	currentLine := 0
 	var allLines []string
 
-	for i, msg := range m.Session.GetMessages() {
+	for i, msg := range messages {
 		messageLineOffsets[i] = currentLine
 		var lines []string
 
@@ -47,7 +51,85 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	return strings.Join(allLines, "\n"), messageLineOffsets
 }
 
+type renderJob struct {
+	index int
+	msg   types.Message
+}
+
+type renderResult struct {
+	index   int
+	content string
+	lines   []string
+}
+
+func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
+	var uncached []renderJob
+	for i, msg := range messages {
+		cache, ok := m.Chat.RenderCache[i]
+		if !ok || cache.content != msg.Content || cache.width != viewportWidth {
+			uncached = append(uncached, renderJob{index: i, msg: msg})
+		}
+	}
+
+	if len(uncached) <= 1 {
+		return
+	}
+
+	workerCount := min(len(uncached), runtime.NumCPU())
+	if workerCount < 1 {
+		workerCount = 1
+	}
+
+	jobs := make(chan renderJob, len(uncached))
+	for _, j := range uncached {
+		jobs <- j
+	}
+	close(jobs)
+
+	results := make(chan renderResult, len(uncached))
+	var wg sync.WaitGroup
+	theme := m.Session.GetConfig().UI.MarkdownTheme
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			renderer, _ := glamour.NewTermRenderer(
+				glamour.WithStandardStyle(theme),
+				glamour.WithWordWrap(viewportWidth),
+			)
+			for job := range jobs {
+				rendered := renderMessageWithRenderer(job.msg, viewportWidth, renderer)
+				if rendered != "" || job.msg.Type == types.AIMessage {
+					results <- renderResult{
+						index:   job.index,
+						content: job.msg.Content,
+						lines:   strings.Split(rendered, "\n"),
+					}
+				}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for res := range results {
+		m.Chat.RenderCache[res.index] = cachedRender{
+			lines:   res.lines,
+			content: res.content,
+			width:   viewportWidth,
+		}
+	}
+}
+
 func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
+	return renderMessageWithRenderer(msg, viewportWidth, m.GlamourRenderer)
+}
+
+func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *glamour.TermRenderer) string {
 	content := msg.Content
 	switch msg.Type {
 	case types.InitMessage:
@@ -68,7 +150,10 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 		if content == "" {
 			return ""
 		}
-		renderedAI, err := m.GlamourRenderer.Render(content)
+		if renderer == nil {
+			return content
+		}
+		renderedAI, err := renderer.Render(content)
 		if err != nil {
 			return content
 		}
