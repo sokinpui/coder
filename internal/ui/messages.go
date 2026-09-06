@@ -154,11 +154,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Reset()
 		m = m.updateLayout()
 
+		var cmds []tea.Cmd
+		cmds = append(cmds, saveConversationCmd(targetSess), m.Chat.Spinner.Tick)
 		if !m.Chat.LastInteractionFailed {
-			m.UpdateTokenCount()
+			cmds = append(cmds, m.updateTokenCountCmd())
 		}
 
-		return m, tea.Batch(saveConversationCmd(targetSess), m.Chat.Spinner.Tick), true
+		return m, tea.Batch(cmds...), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {
@@ -199,8 +201,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 
 			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
-			m.UpdateTokenCount()
-			return m, cmd, true
+			return m, tea.Batch(cmd, m.updateTokenCountCmd()), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
@@ -319,8 +320,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.SetHeight(1)
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.UpdateTokenCount()
-		return m, textarea.Blink, true
+		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
 
 	case switchActiveSessionMsg:
 		if m.Session != nil {
@@ -357,8 +357,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.UpdateTokenCount()
-		return m, textarea.Blink, true
+		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
 
 	case titleGeneratedMsg:
 		m.Chat.AnimatingTitle = true
@@ -374,9 +373,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.isImage {
 			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
-			m.UpdateTokenCount()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
+			return m, m.updateTokenCountCmd(), false
 		} else {
 			m.Chat.TextArea.InsertString(msg.content)
 		}
@@ -421,8 +420,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return model, cmd, true
 		}
 
-		m.UpdateTokenCount()
-		return m, nil, true
+		return m, m.updateTokenCountCmd(), true
 
 	case termFinishedMsg:
 		if msg.cmdStr != "" {
@@ -444,8 +442,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.Chat.TextArea.Reset()
-		m.UpdateTokenCount()
-		return m, textarea.Blink, true
+		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
 
 	case errorMsg:
 		targetSess := m.getSessionByID(msg.sessID)
@@ -481,6 +478,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.TextArea.Focus()
 		}
 		return m, saveConversationCmd(targetSess), true
+
+	case tokenCountResultMsg:
+		if m.Session != nil && m.Session.ID == msg.sessID {
+			m.TokenCount = msg.count
+		}
+		return m, nil, true
 
 	case tea.WindowSizeMsg:
 		m.Height = msg.Height

@@ -40,7 +40,6 @@ func (m Model) openGenericSelector(items []SelectorItem, title, placeholder, foo
 	}
 
 	m.Selector.SetItems(items)
-	m.UpdateTokenCount()
 
 	if showSearch {
 		return m, textinput.Blink
@@ -85,7 +84,6 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 			if mod.State == stateIdle {
 				mod.Chat.TextArea.Focus()
 			}
-			mod.UpdateTokenCount()
 			return mod, textarea.Blink
 		},
 	)
@@ -450,7 +448,6 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		m.Session.DeleteMessages(targetIndices)
 		m.ClearCache()
-		m.UpdateTokenCount()
 		if len(targetIndices) > 1 {
 			m.StatusBarMessage = fmt.Sprintf("Deleted %d messages.", len(targetIndices))
 		} else {
@@ -462,7 +459,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.TextArea.Focus()
 		}
 		m.Chat.Viewport.SetContent(m.renderConversation())
-		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd()), true
 
 	case "b":
 		m.Selector.IsSelecting = false
@@ -492,8 +489,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Focus()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.UpdateTokenCount()
-		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd()), true
 	}
 
 	return m, nil, false

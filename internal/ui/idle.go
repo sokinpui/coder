@@ -24,8 +24,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m = m.updateLayout()
-		m.UpdateTokenCount()
-		return m, nil
+		return m, m.updateTokenCountCmd()
 
 	case types.NewSessionStarted:
 		return m.newSession(event.Mode)
@@ -74,10 +73,9 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		})
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.UpdateTokenCount()
 		m.ActiveOverlay = overlayQuickView
 		m.Chat.TextArea.Blur()
-		return m, nil
+		return m, m.updateTokenCountCmd()
 	case types.TermExecutionStarted:
 		cmdStr, _ := event.Data.(string)
 		m.ActiveOverlay = overlayNone
@@ -120,7 +118,6 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
 
-	m.UpdateTokenCount()
 	return m, loadInitialContextCmd(m.Session)
 }
 
@@ -134,13 +131,13 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 
 	if !strings.HasPrefix(input, "/") {
 		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
-		m.UpdateTokenCount()
 		m.Chat.ShowPalette = false
 
 		var cmds []tea.Cmd
 		if !m.Session.IsTitleGenerated() {
 			cmds = append(cmds, generateTitleCmd(m.Session, input))
 		}
+		cmds = append(cmds, m.updateTokenCountCmd())
 
 		event := m.Session.StartGeneration()
 		switch event.Type {

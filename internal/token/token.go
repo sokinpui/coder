@@ -3,6 +3,7 @@ package token
 import (
 	"hash/fnv"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -139,12 +140,56 @@ func getCacheKey(s string) cacheKey {
 
 func encodeTokens(content string, encoder tokenizer.Codec) int {
 	if encoder != nil {
+		if len(content) > 64*1024 && runtime.NumCPU() > 1 {
+			return encodeTokensParallel(content, encoder)
+		}
 		ids, _, err := encoder.Encode(content)
 		if err == nil {
 			return len(ids)
 		}
 	}
 	return estimateTokensFallback(content)
+}
+
+func encodeTokensParallel(content string, encoder tokenizer.Codec) int {
+	lines := strings.Split(content, "\n")
+	if len(lines) <= 1 {
+		ids, _, err := encoder.Encode(content)
+		if err == nil {
+			return len(ids)
+		}
+		return estimateTokensFallback(content)
+	}
+
+	workerCount := min(runtime.NumCPU(), len(lines))
+	chunkSize := (len(lines) + workerCount - 1) / workerCount
+	counts := make([]int, workerCount)
+	var wg sync.WaitGroup
+
+	for w := 0; w < workerCount; w++ {
+		start := w * chunkSize
+		if start >= len(lines) {
+			break
+		}
+		end := min(start+chunkSize, len(lines))
+
+		wg.Add(1)
+		go func(idx, s, e int) {
+			defer wg.Done()
+			chunkText := strings.Join(lines[s:e], "\n")
+			if e < len(lines) {
+				chunkText += "\n"
+			}
+			ids, _, err := encoder.Encode(chunkText)
+			if err == nil {
+				counts[idx] = len(ids)
+				return
+			}
+			counts[idx] = estimateTokensFallback(chunkText)
+		}(w, start, end)
+	}
+	wg.Wait()
+	return sumCounts(counts)
 }
 
 func estimateTokensFallback(text string) int {

@@ -41,6 +41,10 @@ type (
 		sessID string
 		error  error
 	}
+	tokenCountResultMsg struct {
+		sessID string
+		count  int
+	}
 	ctrlCTimeoutMsg         struct{}
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg       struct {

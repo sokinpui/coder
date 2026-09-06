@@ -62,7 +62,6 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		AvailableCommands:   availableCommands,
 		CommandDescriptions: commandDescriptions,
 	}
-	m.UpdateTokenCount()
 	return m, nil
 }
 
@@ -70,9 +69,15 @@ func (m *Model) ClearCache() {
 	m.Chat.RenderCache = make(map[int]cachedRender)
 }
 
-func (m *Model) UpdateTokenCount() {
-	if m.Session != nil {
-		m.TokenCount = token.CountTokens(m.Session.GetPrompt())
+func (m Model) updateTokenCountCmd() tea.Cmd {
+	if m.Session == nil {
+		return nil
+	}
+	sessID := m.Session.ID
+	promptMsgs := m.Session.GetPrompt()
+	return func() tea.Msg {
+		count := token.CountTokens(promptMsgs)
+		return tokenCountResultMsg{sessID: sessID, count: count}
 	}
 }
 
