@@ -37,6 +37,13 @@ type (
 	streamFinishedMsg struct {
 		sessID string
 	}
+	aiRenderedMsg struct {
+		sessID  string
+		msgIdx  int
+		content string
+		lines   []string
+		width   int
+	}
 	errorMsg struct {
 		sessID string
 		error  error

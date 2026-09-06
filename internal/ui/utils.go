@@ -19,6 +19,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -37,6 +38,39 @@ func listenForStream(sessID string, sub chan types.StreamChunk) tea.Cmd {
 			sessID: sessID,
 			chunk:  chunk,
 			sub:    sub,
+		}
+	}
+}
+
+func renderAIMessageCmd(sessID string, msgIdx int, content string, width int, theme string) tea.Cmd {
+	return func() tea.Msg {
+		if content == "" {
+			return aiRenderedMsg{
+				sessID:  sessID,
+				msgIdx:  msgIdx,
+				content: content,
+				lines:   nil,
+				width:   width,
+			}
+		}
+
+		renderer, err := glamour.NewTermRenderer(
+			glamour.WithStandardStyle(theme),
+			glamour.WithWordWrap(width),
+		)
+		var rendered string
+		if err == nil {
+			rendered, err = renderer.Render(content)
+		}
+		if err != nil {
+			rendered = content
+		}
+		return aiRenderedMsg{
+			sessID:  sessID,
+			msgIdx:  msgIdx,
+			content: content,
+			lines:   strings.Split(rendered, "\n"),
+			width:   width,
 		}
 	}
 }

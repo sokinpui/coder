@@ -20,6 +20,8 @@ type ChatModel struct {
 	Spinner                  spinner.Model
 	StreamSub                chan types.StreamChunk
 	IsStreaming              bool
+	IsAIRendering            bool
+	PendingAIRender          bool
 	CtrlCPressed             bool
 	LastInteractionFailed    bool
 	ShowPalette              bool

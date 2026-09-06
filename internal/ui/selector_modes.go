@@ -428,6 +428,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Focus()
+		m.ClearCache()
 		event := m.Session.RegenerateFrom(currIdx)
 		model, cmd := m.startGeneration(event)
 		return model, cmd, true

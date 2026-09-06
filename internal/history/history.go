@@ -409,10 +409,7 @@ type scanResult struct {
 }
 
 func (m *Manager) scanEntriesParallel(entries []os.DirEntry) map[string]IndexEntry {
-	workerCount := min(len(entries), runtime.NumCPU()*2)
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount := max(min(len(entries), runtime.NumCPU()*2), 1)
 
 	jobs := make(chan os.DirEntry, len(entries))
 	for _, entry := range entries {
@@ -424,9 +421,7 @@ func (m *Manager) scanEntriesParallel(entries []os.DirEntry) map[string]IndexEnt
 	var wg sync.WaitGroup
 
 	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for entry := range jobs {
 				item, ok := m.parseEntry(entry)
 				if !ok {
@@ -434,7 +429,7 @@ func (m *Manager) scanEntriesParallel(entries []os.DirEntry) map[string]IndexEnt
 				}
 				resultsChan <- scanResult{filename: entry.Name(), entry: item}
 			}
-		}()
+		})
 	}
 
 	go func() {

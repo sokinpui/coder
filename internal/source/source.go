@@ -59,10 +59,7 @@ func (c *SourceCache) Load(files []string) (string, error) {
 		return joinFormattedResults(results), nil
 	}
 
-	workerCount := min(len(toReadIndices), runtime.NumCPU())
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount := max(min(len(toReadIndices), runtime.NumCPU()), 1)
 
 	jobs := make(chan int, len(toReadIndices))
 	for _, idx := range toReadIndices {
@@ -72,15 +69,13 @@ func (c *SourceCache) Load(files []string) (string, error) {
 
 	var wg sync.WaitGroup
 	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for idx := range jobs {
 				file := files[idx]
 				formatted := pcat.FormatSingleFile(file, false)
 				results[idx] = formatted
 			}
-		}()
+		})
 	}
 	wg.Wait()
 

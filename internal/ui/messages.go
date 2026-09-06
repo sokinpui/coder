@@ -104,28 +104,65 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.chunk.ReasoningContent != "" && isActive && m.State != stateGenerating {
 			m.State = stateThinking
 		}
+		var renderCmd tea.Cmd
 		if msg.chunk.Content != "" {
 			if isActive && m.State != stateGenerating {
 				m.State = stateGenerating
 				m.Chat.StateStartTime = time.Now()
 			}
 			messages := targetSess.GetMessages()
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage {
-				messages[len(messages)-1].Content += msg.chunk.Content
+			aiIdx := len(messages) - 1
+			if len(messages) > 0 && messages[aiIdx].Type == types.AIMessage {
+				messages[aiIdx].Content += msg.chunk.Content
 			} else {
 				targetSess.AddMessages(types.Message{Type: types.AIMessage, Content: msg.chunk.Content})
+				aiIdx = len(targetSess.GetMessages()) - 1
 			}
 
 			if isActive {
-				wasAtBottom := m.Chat.Viewport.AtBottom()
-				m.Chat.Viewport.SetContent(m.renderConversation())
-				if wasAtBottom {
-					m.Chat.Viewport.GotoBottom()
+				if !m.Chat.IsAIRendering {
+					m.Chat.IsAIRendering = true
+					m.Chat.PendingAIRender = false
+					viewportWidth := max(10, m.Chat.Viewport.Width)
+					theme := m.Session.GetConfig().UI.MarkdownTheme
+					latestContent := messages[aiIdx].Content
+					renderCmd = renderAIMessageCmd(msg.sessID, aiIdx, latestContent, viewportWidth, theme)
+				} else {
+					m.Chat.PendingAIRender = true
 				}
 			}
 		}
 
-		return m, listenForStream(msg.sessID, msg.sub), true
+		return m, tea.Batch(listenForStream(msg.sessID, msg.sub), renderCmd), true
+
+	case aiRenderedMsg:
+		if m.Session == nil || m.Session.ID != msg.sessID {
+			return m, nil, true
+		}
+		m.Chat.IsAIRendering = false
+		messages := m.Session.GetMessages()
+		if msg.msgIdx < 0 || msg.msgIdx >= len(messages) {
+			return m, nil, true
+		}
+		if messages[msg.msgIdx].Type != types.AIMessage {
+			return m, nil, true
+		}
+
+		m.Chat.RenderCache[msg.msgIdx] = cachedRender{
+			lines:   msg.lines,
+			content: msg.content,
+			width:   msg.width,
+		}
+
+		wasAtBottom := m.Chat.Viewport.AtBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		if wasAtBottom {
+			m.Chat.Viewport.GotoBottom()
+		}
+		if m.Chat.PendingAIRender || messages[msg.msgIdx].Content != msg.content || msg.width != m.Chat.Viewport.Width {
+			return m.renderLastAIMessage(msg.sessID)
+		}
+		return m, nil, true
 
 	case streamFinishedMsg:
 		targetSess := m.getSessionByID(msg.sessID)
@@ -144,11 +181,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if m.ActiveOverlay == overlayNone {
 			m.Chat.TextArea.Focus()
 		}
-		wasAtBottom := m.Chat.Viewport.AtBottom()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if wasAtBottom {
-			m.Chat.Viewport.GotoBottom()
-		}
 
 		m.Chat.StreamSub = nil
 		m.Chat.TextArea.Reset()
@@ -158,6 +190,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		cmds = append(cmds, saveConversationCmd(targetSess), m.Chat.Spinner.Tick)
 		if !m.Chat.LastInteractionFailed {
 			cmds = append(cmds, m.updateTokenCountCmd())
+		}
+
+		if newModel, cmd, handled := m.finalizeAIMessageRender(msg.sessID); handled {
+			cmds = append(cmds, cmd)
+			return newModel, tea.Batch(cmds...), true
 		}
 
 		return m, tea.Batch(cmds...), true
@@ -312,6 +349,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		} else {
 			m.State = stateIdle
 			m.Chat.IsStreaming = false
+			m.Chat.IsAIRendering = false
+			m.Chat.PendingAIRender = false
 			m.Chat.TextArea.Focus()
 		}
 
@@ -344,6 +383,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		} else {
 			m.State = stateIdle
 			m.Chat.IsStreaming = false
+			m.Chat.IsAIRendering = false
+			m.Chat.PendingAIRender = false
 			m.Chat.TextArea.Focus()
 		}
 		m.Chat.LastInteractionFailed = false
@@ -466,6 +507,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if targetSess.ID == m.Session.ID {
 			m.Chat.IsStreaming = false
+			m.Chat.IsAIRendering = false
+			m.Chat.PendingAIRender = false
 			m.Chat.LastInteractionFailed = true
 			m.State = stateIdle
 			wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -505,6 +548,50 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.SetContent(m.renderConversation())
 		}
 		return m, nil, false
+	}
+	return m, nil, false
+}
+
+func (m Model) renderLastAIMessage(sessID string) (tea.Model, tea.Cmd, bool) {
+	messages := m.Session.GetMessages()
+	lastIdx := len(messages) - 1
+	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
+		return m, nil, true
+	}
+
+	m.Chat.PendingAIRender = false
+	m.Chat.IsAIRendering = true
+	viewportWidth := max(10, m.Chat.Viewport.Width)
+	theme := m.Session.GetConfig().UI.MarkdownTheme
+	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme), true
+}
+
+func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool) {
+	if m.Chat.IsAIRendering {
+		m.Chat.PendingAIRender = true
+		return m, nil, true
+	}
+
+	messages := m.Session.GetMessages()
+	lastIdx := len(messages) - 1
+	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
+		return m, nil, false
+	}
+
+	cache, ok := m.Chat.RenderCache[lastIdx]
+	isStale := !ok || cache.content != messages[lastIdx].Content || cache.width != m.Chat.Viewport.Width
+	if isStale {
+		m.Chat.IsAIRendering = true
+		m.Chat.PendingAIRender = false
+		viewportWidth := max(10, m.Chat.Viewport.Width)
+		theme := m.Session.GetConfig().UI.MarkdownTheme
+		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme), true
+	}
+
+	wasAtBottom := m.Chat.Viewport.AtBottom()
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	if wasAtBottom {
+		m.Chat.Viewport.GotoBottom()
 	}
 	return m, nil, false
 }

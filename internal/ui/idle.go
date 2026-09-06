@@ -113,6 +113,8 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 
 	m.State = stateIdle
 	m.Chat.IsStreaming = false
+	m.Chat.IsAIRendering = false
+	m.Chat.PendingAIRender = false
 	m.Chat.LastInteractionFailed = false
 	m.Chat.TextArea.Focus()
 	m.Chat.Viewport.GotoTop()

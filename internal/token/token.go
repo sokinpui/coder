@@ -83,14 +83,12 @@ func CountTokens(messages []types.Message) int {
 	close(jobs)
 
 	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range workerCount {
+		wg.Go(func() {
 			for idx := range jobs {
 				counts[idx] = countAndCache(messages[idx].Content, encoder)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -166,7 +164,7 @@ func encodeTokensParallel(content string, encoder tokenizer.Codec) int {
 	counts := make([]int, workerCount)
 	var wg sync.WaitGroup
 
-	for w := 0; w < workerCount; w++ {
+	for w := range workerCount {
 		start := w * chunkSize
 		if start >= len(lines) {
 			break

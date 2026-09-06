@@ -11,34 +11,51 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func (m Model) isLiveAIMessage(idx, total int, msg types.Message) bool {
+	return (m.Chat.IsStreaming || m.Chat.IsAIRendering) && idx == total-1 && msg.Type == types.AIMessage
+}
+
+func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int) []string {
+	cache, isCached := m.Chat.RenderCache[idx]
+
+	switch {
+	case m.isLiveAIMessage(idx, total, msg):
+		if msg.Content == "" || !isCached {
+			return nil
+		}
+		return cache.lines
+
+	case isCached && cache.content == msg.Content && cache.width == viewportWidth:
+		return cache.lines
+
+	default:
+		rendered := m.renderMessage(msg, viewportWidth)
+		if rendered == "" && msg.Type != types.AIMessage {
+			return nil
+		}
+		lines := strings.Split(rendered, "\n")
+		m.Chat.RenderCache[idx] = cachedRender{
+			lines:   lines,
+			content: msg.Content,
+			width:   viewportWidth,
+		}
+		return lines
+	}
+}
+
 func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	messages := m.Session.GetMessages()
 	viewportWidth := m.Chat.Viewport.Width
 	m.warmupRenderCache(messages, viewportWidth)
 
-	messageLineOffsets := make(map[int]int)
+	messageLineOffsets := make(map[int]int, len(messages))
 	currentLine := 0
 	var allLines []string
 
+	total := len(messages)
 	for i, msg := range messages {
 		messageLineOffsets[i] = currentLine
-		var lines []string
-
-		cache, ok := m.Chat.RenderCache[i]
-		if ok && cache.content == msg.Content && cache.width == viewportWidth {
-			lines = cache.lines
-		} else {
-			renderedMsg := m.renderMessage(msg, viewportWidth)
-
-			if renderedMsg != "" || msg.Type == types.AIMessage {
-				lines = strings.Split(renderedMsg, "\n")
-				m.Chat.RenderCache[i] = cachedRender{
-					lines:   lines,
-					content: msg.Content,
-					width:   viewportWidth,
-				}
-			}
-		}
+		lines := m.getMessageLines(msg, i, total, viewportWidth)
 
 		allLines = append(allLines, lines...)
 		currentLine += len(lines)
@@ -63,22 +80,24 @@ type renderResult struct {
 }
 
 func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
+	total := len(messages)
 	var uncached []renderJob
 	for i, msg := range messages {
-		cache, ok := m.Chat.RenderCache[i]
-		if !ok || cache.content != msg.Content || cache.width != viewportWidth {
-			uncached = append(uncached, renderJob{index: i, msg: msg})
+		if m.isLiveAIMessage(i, total, msg) || msg.Content == "" {
+			continue
 		}
+		cache, ok := m.Chat.RenderCache[i]
+		if ok && cache.content == msg.Content && cache.width == viewportWidth {
+			continue
+		}
+		uncached = append(uncached, renderJob{index: i, msg: msg})
 	}
 
 	if len(uncached) <= 1 {
 		return
 	}
 
-	workerCount := min(len(uncached), runtime.NumCPU())
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount := max(min(len(uncached), runtime.NumCPU()), 1)
 
 	jobs := make(chan renderJob, len(uncached))
 	for _, j := range uncached {
@@ -91,9 +110,7 @@ func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 	theme := m.Session.GetConfig().UI.MarkdownTheme
 
 	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			renderer, _ := glamour.NewTermRenderer(
 				glamour.WithStandardStyle(theme),
 				glamour.WithWordWrap(viewportWidth),
@@ -108,7 +125,7 @@ func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	go func() {

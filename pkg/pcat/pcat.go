@@ -53,10 +53,7 @@ func formatFiles(files []string, withLineNumbers bool) (string, error) {
 		return "", nil
 	}
 
-	workerCount := min(len(files), runtime.NumCPU())
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount := max(min(len(files), runtime.NumCPU()), 1)
 
 	jobs := make(chan int, len(files))
 	for i := range files {
@@ -68,14 +65,12 @@ func formatFiles(files []string, withLineNumbers bool) (string, error) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for idx := range jobs {
 				text := formatSingleFile(files[idx], withLineNumbers)
 				results <- formattedFile{index: idx, text: text}
 			}
-		}()
+		})
 	}
 
 	go func() {
@@ -230,10 +225,7 @@ func deduplicate(paths []string) []string {
 		return paths
 	}
 
-	workerCount := min(len(paths), runtime.NumCPU())
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount := max(min(len(paths), runtime.NumCPU()), 1)
 
 	jobs := make(chan int, len(paths))
 	for i := range paths {
@@ -245,14 +237,12 @@ func deduplicate(paths []string) []string {
 	var wg sync.WaitGroup
 
 	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for idx := range jobs {
 				resolved := resolveForDedup(paths[idx])
 				results <- resolvedEntry{index: idx, path: resolved}
 			}
-		}()
+		})
 	}
 
 	go func() {

@@ -17,12 +17,19 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.State = stateAsking
 	m.Chat.StateStartTime = time.Now()
 	m.Chat.IsStreaming = true
+	m.Chat.IsAIRendering = false
+	m.Chat.PendingAIRender = false
 	m.Chat.StreamSub = event.Data.(chan types.StreamChunk)
 	m.Chat.TextArea.Blur()
 	m.Chat.TextArea.Reset()
 	m = m.updateLayout()
 
 	m.Chat.LastInteractionFailed = false
+
+	messages := m.Session.GetMessages()
+	if len(messages) > 0 {
+		delete(m.Chat.RenderCache, len(messages)-1)
+	}
 
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
@@ -38,6 +45,8 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	case tea.KeyCtrlC:
 		m.Session.CancelGeneration()
 		m.Chat.IsStreaming = false
+		m.Chat.IsAIRendering = false
+		m.Chat.PendingAIRender = false
 		m.Chat.StreamSub = nil
 		m.Chat.LastInteractionFailed = true
 		m.State = stateIdle
