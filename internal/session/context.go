@@ -2,15 +2,40 @@ package session
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 )
 
+func (s *Session) NeedsContextReload() bool {
+	if s.projectSourceCode == "" && len(s.contextFiles) > 0 {
+		return true
+	}
+	if s.contextLoadedAt.IsZero() {
+		return true
+	}
+
+	for _, file := range s.contextFiles {
+		info, err := os.Stat(file)
+		if err != nil || info.ModTime().After(s.contextLoadedAt) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) LoadContext() error {
 	if len(s.contextFiles) == 0 {
 		s.projectSourceCode = ""
+		s.contextLoadedAt = time.Now()
+		return nil
+	}
+
+	if !s.NeedsContextReload() {
 		return nil
 	}
 
@@ -21,9 +46,11 @@ func (s *Session) LoadContext() error {
 
 	if projSource == "" {
 		s.projectSourceCode = ""
+		s.contextLoadedAt = time.Now()
 		return nil
 	}
 	s.projectSourceCode = prompt.ProjectSourceCodeHeader + projSource
+	s.contextLoadedAt = time.Now()
 	return nil
 }
 

@@ -36,6 +36,7 @@ type Session struct {
 	lastModifiedFiles []string
 	hasAppliedChanges bool
 	contextFiles      []string
+	contextLoadedAt   time.Time
 	isStreaming       bool
 }
 

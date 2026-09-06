@@ -102,7 +102,7 @@ func formatFiles(files []string, withLineNumbers bool) (string, error) {
 	return result + "\n---\n", nil
 }
 
-func formatSingleFile(file string, withLineNumbers bool) string {
+func FormatSingleFile(file string, withLineNumbers bool) string {
 	content, err := os.ReadFile(file)
 	if err != nil || bytes.Contains(content, []byte{0}) {
 		return ""
@@ -123,6 +123,10 @@ func formatSingleFile(file string, withLineNumbers bool) string {
 	out.WriteString(fmt.Sprintf("%s\n\n", fence))
 
 	return out.String()
+}
+
+func formatSingleFile(file string, withLineNumbers bool) string {
+	return FormatSingleFile(file, withLineNumbers)
 }
 
 func getLang(file string) string {
