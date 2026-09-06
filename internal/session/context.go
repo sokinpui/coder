@@ -44,6 +44,11 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
 	case ModeChat:
+		instr := s.instruction
+		if instr == "" {
+			instr = prompt.ChatInstructions
+		}
+		result = append(result, types.Message{Type: types.InstructionMessage, Content: instr})
 		if s.projectSourceCode != "" {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
