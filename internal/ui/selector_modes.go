@@ -470,6 +470,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.StreamSub = nil
 		}
 
+		oldSess := m.Session
 		newSess, err := m.Session.Branch(currIdx)
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error branching: %v", err)
@@ -490,7 +491,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Focus()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd()), true
+		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd(), saveConversationCmd(oldSess)), true
 	}
 
 	return m, nil, false

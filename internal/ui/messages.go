@@ -347,11 +347,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 		}
 
-		if m.Session != nil {
-			if err := m.Session.SaveConversation(); err != nil {
-				log.Printf("Error saving current conversation before switching: %v", err)
-			}
-		}
+		oldSess := m.Session
 
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
@@ -384,15 +380,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.SetHeight(1)
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
+		var cmds []tea.Cmd
+		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd())
+		if oldSess != nil && oldSess.ID != msg.sess.ID {
+			cmds = append(cmds, saveConversationCmd(oldSess))
+		}
+		return m, tea.Batch(cmds...), true
 
 	case switchActiveSessionMsg:
-		if m.Session != nil {
-			if err := m.Session.SaveConversation(); err != nil {
-				log.Printf("Error saving current conversation before switching: %v", err)
-			}
-		}
-
+		oldSess := m.Session
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
@@ -423,7 +419,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
+		var cmds []tea.Cmd
+		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd())
+		if oldSess != nil && oldSess.ID != msg.sess.ID {
+			cmds = append(cmds, saveConversationCmd(oldSess))
+		}
+		return m, tea.Batch(cmds...), true
 
 	case titleGeneratedMsg:
 		m.Chat.AnimatingTitle = true

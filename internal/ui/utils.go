@@ -12,6 +12,7 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/coder/pkg/sf"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -155,8 +156,12 @@ func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
 }
 
 func saveConversationCmd(sess *session.Session) tea.Cmd {
+	if sess == nil {
+		return nil
+	}
 	return func() tea.Msg {
 		if err := sess.SaveConversation(); err != nil {
+			log.Printf("Error saving conversation: %v", err)
 			return errorMsg{sessID: sess.ID, error: err}
 		}
 		return nil

@@ -64,7 +64,7 @@ func formatFiles(files []string, withLineNumbers bool) (string, error) {
 	results := make(chan formattedFile, len(files))
 	var wg sync.WaitGroup
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Go(func() {
 			for idx := range jobs {
 				text := formatSingleFile(files[idx], withLineNumbers)
@@ -236,7 +236,7 @@ func deduplicate(paths []string) []string {
 	results := make(chan resolvedEntry, len(paths))
 	var wg sync.WaitGroup
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Go(func() {
 			for idx := range jobs {
 				resolved := resolveForDedup(paths[idx])

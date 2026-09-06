@@ -68,7 +68,7 @@ func (c *SourceCache) Load(files []string) (string, error) {
 	close(jobs)
 
 	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Go(func() {
 			for idx := range jobs {
 				file := files[idx]

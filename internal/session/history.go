@@ -91,10 +91,6 @@ func (s *Session) LoadConversation(filename string) error {
 }
 
 func (s *Session) Branch(endMessageIndex int) (*Session, error) {
-	if err := s.SaveConversation(); err != nil {
-		return nil, fmt.Errorf("failed to save current session before branching: %w", err)
-	}
-
 	if endMessageIndex < 0 || endMessageIndex >= len(s.messages) {
 		return nil, fmt.Errorf("invalid index for branching: %d", endMessageIndex)
 	}

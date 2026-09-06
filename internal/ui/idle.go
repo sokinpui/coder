@@ -86,9 +86,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) newSession(mode string) (Model, tea.Cmd) {
-	if err := m.Session.SaveConversation(); err != nil {
-		log.Printf("Error saving conversation before switching: %v", err)
-	}
+	oldSess := m.Session
 
 	if mode == "" {
 		mode = "coding"
@@ -116,7 +114,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
 
-	return m, loadInitialContextCmd(m.Session)
+	return m, tea.Batch(loadInitialContextCmd(m.Session), saveConversationCmd(oldSess))
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {

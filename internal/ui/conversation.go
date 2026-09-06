@@ -109,7 +109,7 @@ func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 	var wg sync.WaitGroup
 	theme := m.Session.GetConfig().UI.MarkdownTheme
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Go(func() {
 			renderer, _ := glamour.NewTermRenderer(
 				glamour.WithStandardStyle(theme),

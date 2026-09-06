@@ -420,7 +420,7 @@ func (m *Manager) scanEntriesParallel(entries []os.DirEntry) map[string]IndexEnt
 	resultsChan := make(chan scanResult, len(entries))
 	var wg sync.WaitGroup
 
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Go(func() {
 			for entry := range jobs {
 				item, ok := m.parseEntry(entry)
