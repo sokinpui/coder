@@ -37,6 +37,7 @@ type SelectorModel struct {
 	Width         int
 	Height        int
 	FooterHelp    string
+	IsLoading     bool
 
 	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
 	OnCancel       func(m Model) (tea.Model, tea.Cmd)
@@ -157,7 +158,13 @@ func (s *SelectorModel) View(main *Model) string {
 	}
 
 	var listBuf strings.Builder
-	if len(s.FilteredItems) == 0 {
+	if s.IsLoading {
+		spinnerView := "•"
+		if main != nil {
+			spinnerView = main.Chat.Spinner.View()
+		}
+		listBuf.WriteString(fmt.Sprintf("  %s Loading files...\n", spinnerView))
+	} else if len(s.FilteredItems) == 0 {
 		listBuf.WriteString("  No matching items.\n")
 	} else {
 		maxItems := max(5, s.Height-6)

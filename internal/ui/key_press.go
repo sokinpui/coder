@@ -88,6 +88,9 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 			m.moveSelectorCursor(1)
 			return m, nil, true
 		case tea.KeyEnter:
+			if m.Selector.IsLoading {
+				return m, nil, true
+			}
 			if len(m.Selector.Tabs) > 0 {
 				m.Selector.IsSearching = false
 				m.Selector.SearchInput.Blur()
@@ -104,8 +107,14 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 			}
 			return m.cancelSelector()
 		case tea.KeyTab:
+			if m.Selector.IsLoading {
+				return m, nil, true
+			}
 			return m.toggleSelectorItem(1)
 		case tea.KeyShiftTab:
+			if m.Selector.IsLoading {
+				return m, nil, true
+			}
 			return m.toggleSelectorItem(-1)
 		}
 
@@ -117,6 +126,9 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 
 	switch msg.Type {
 	case tea.KeyTab, tea.KeyShiftTab:
+		if m.Selector.IsLoading {
+			return m, nil, true
+		}
 		if len(m.Selector.Tabs) > 0 {
 			dir := 1
 			if msg.Type == tea.KeyShiftTab {
@@ -148,6 +160,9 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 		return m.cancelSelector()
 
 	case tea.KeyEnter:
+		if m.Selector.IsLoading {
+			return m, nil, true
+		}
 		return m.confirmSelector()
 
 	case tea.KeyRunes:

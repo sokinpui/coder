@@ -8,8 +8,10 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/pkg/sf"
 	"net/http"
 	"os"
 	"os/exec"
@@ -114,6 +116,22 @@ func loadInitialContextCmd(sess *session.Session) tea.Cmd {
 	return func() tea.Msg {
 		err := sess.LoadContext()
 		return initialContextLoadedMsg{err: err}
+	}
+}
+
+func scanAddFilesCmd(customExclusions []string) tea.Cmd {
+	return func() tea.Msg {
+		allExclusions := append([]string{}, source.Exclusions...)
+		allExclusions = append(allExclusions, customExclusions...)
+		items := sf.Run([]string{"."}, "", allExclusions, false)
+		for i, it := range items {
+			p := filepath.ToSlash(it)
+			if info, err := os.Stat(it); err == nil && info.IsDir() {
+				p += "/"
+			}
+			items[i] = p
+		}
+		return addFilesListResultMsg{items: items}
 	}
 }
 

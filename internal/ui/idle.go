@@ -2,17 +2,13 @@ package ui
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
-	"github.com/sokinpui/coder/pkg/sf"
 )
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
@@ -344,26 +340,13 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case km.AddFile:
 		cfg := m.Session.GetConfig()
-		allExclusions := append([]string{}, source.Exclusions...)
-		allExclusions = append(allExclusions, cfg.Context.Exclusions...)
-		items := sf.Run([]string{"."}, "", allExclusions, false)
-		if len(items) == 0 {
-			m.StatusBarMessage = "No files or directories found."
-			return m, clearStatusBarCmd(), true
-		}
-		for i, it := range items {
-			p := filepath.ToSlash(it)
-			if info, err := os.Stat(it); err == nil && info.IsDir() {
-				p += "/"
-			}
-			items[i] = p
-		}
-		newModel, cmd := m.openFileListSelector("── Add Files to Context ──", "Search files/directories to add...", items, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+		newModel, cmd := m.openFileListSelector("── Add Files to Context ──", "Search files/directories to add...", nil, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			cmdStr := "/file " + strings.Join(selected, " ")
 			ev := mod.Session.HandleInput(cmdStr)
 			return mod.handleEvent(ev)
 		})
-		return newModel, cmd, true
+		newModel.Selector.IsLoading = true
+		return newModel, tea.Batch(cmd, scanAddFilesCmd(cfg.Context.Exclusions), m.Chat.Spinner.Tick), true
 
 	case km.ApplyITF:
 		// Equivalent to typing "/itf" and pressing enter.

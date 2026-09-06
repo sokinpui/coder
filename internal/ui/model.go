@@ -124,6 +124,9 @@ func (m Model) needsSpinner() bool {
 	if m.Chat.IsFetchingModels {
 		return true
 	}
+	if m.ActiveOverlay == overlaySelector && m.Selector.IsLoading {
+		return true
+	}
 	for _, s := range m.ActiveSessions {
 		if s.IsStreaming() {
 			return true

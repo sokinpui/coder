@@ -312,6 +312,31 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
+	case addFilesListResultMsg:
+		if m.ActiveOverlay != overlaySelector || !m.Selector.IsLoading {
+			return m, nil, true
+		}
+
+		m.Selector.IsLoading = false
+		if len(msg.items) == 0 {
+			m.ActiveOverlay = overlayNone
+			m.StatusBarMessage = "No files or directories found."
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		}
+
+		var items []SelectorItem
+		for _, p := range msg.items {
+			items = append(items, SelectorItem{
+				ID:    p,
+				Title: p,
+			})
+		}
+		m.Selector.SetItems(items)
+		return m, nil, true
+
 	case conversationLoadedMsg:
 		if msg.err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error loading conversation: %v", msg.err)

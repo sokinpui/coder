@@ -69,6 +69,9 @@ type (
 		items []history.ConversationInfo
 		err   error
 	}
+	addFilesListResultMsg struct {
+		items []string
+	}
 	conversationLoadedMsg struct {
 		sess *session.Session
 		err  error
