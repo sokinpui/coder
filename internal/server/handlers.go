@@ -30,16 +30,14 @@ func (s *Server) handleInit(req rpc.Request) {
 		return
 	}
 
-	s.mu.Lock()
 	s.session = sess
-	s.mu.Unlock()
 
-	_ = s.session.LoadContext()
+	_ = sess.LoadContext()
 	s.sendResult(req.ID, map[string]any{
-		"sessionId":    s.session.ID,
-		"mode":         s.session.GetMode(),
-		"contextFiles": s.session.GetContextFiles(),
-		"model":        s.cfg.Generation.ModelCode,
+		"sessionId":    sess.ID,
+		"mode":         sess.GetMode(),
+		"contextFiles": sess.GetContextFiles(),
+		"model":        sess.GetConfig().Generation.ModelCode,
 	})
 }
 
@@ -54,12 +52,6 @@ func (s *Server) handlePrompt(req rpc.Request) {
 		s.sendError(req.ID, -32603, err.Error())
 		return
 	}
-
-	s.mu.Lock()
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancelFunc = cancel
-	s.session.SetCancelGeneration(cancel)
-	s.mu.Unlock()
 
 	s.sendResult(req.ID, map[string]any{"status": "accepted"})
 
@@ -87,22 +79,20 @@ func (s *Server) handlePrompt(req rpc.Request) {
 		})
 	}
 
-	if ctx.Err() == context.Canceled {
+	if !s.session.IsStreaming() {
 		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true, Error: "Generation cancelled"})
 		return
 	}
 
+	s.session.SetStreaming(false)
 	s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true})
 	_ = s.session.SaveConversation()
 }
 
 func (s *Server) handleCancel(req rpc.Request) {
-	s.mu.Lock()
-	if s.cancelFunc != nil {
-		s.cancelFunc()
-		s.cancelFunc = nil
+	if s.session != nil {
+		s.session.CancelGeneration()
 	}
-	s.mu.Unlock()
 	s.sendResult(req.ID, map[string]any{"cancelled": true})
 }
 
@@ -250,8 +240,9 @@ func (s *Server) handleModelsList(req rpc.Request) {
 		s.sendError(req.ID, -32603, err.Error())
 		return
 	}
-	if s.cfg.Server.APIKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+s.cfg.Server.APIKey)
+	apiKey := s.cfg.Server.APIKey
+	if apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
 	resp, err := http.DefaultClient.Do(httpReq)
@@ -284,7 +275,9 @@ func (s *Server) handleModelsList(req rpc.Request) {
 	for i, m := range result.Data {
 		modelIDs[i] = m.ID
 	}
+
 	s.cfg.AvailableModels = modelIDs
+
 	s.sendResult(req.ID, map[string]any{
 		"models":  modelIDs,
 		"current": s.cfg.Generation.ModelCode,
@@ -341,8 +334,9 @@ func (s *Server) handleConfigReload(req rpc.Request) {
 		s.sendError(req.ID, -32603, err.Error())
 		return
 	}
-	s.cfg = s.session.GetConfig()
-	s.sendResult(req.ID, map[string]any{"reloaded": true, "config": s.cfg})
+	newCfg := s.session.GetConfig()
+	s.cfg = newCfg
+	s.sendResult(req.ID, map[string]any{"reloaded": true, "config": newCfg})
 }
 
 func joinArgs(args []string) string {

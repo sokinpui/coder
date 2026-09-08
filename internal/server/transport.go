@@ -68,12 +68,9 @@ func (s *Server) ServeHTTP(listener net.Listener) error {
 func (s *Server) handleWebSocket(ws *websocket.Conn) {
 	defer ws.Close()
 	defer func() {
-		s.mu.Lock()
-		if s.cancelFunc != nil {
-			s.cancelFunc()
-			s.cancelFunc = nil
+		if s.session != nil {
+			s.session.CancelGeneration()
 		}
-		s.mu.Unlock()
 	}()
 
 	for {

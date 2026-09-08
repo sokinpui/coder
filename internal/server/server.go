@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,12 +13,10 @@ import (
 )
 
 type Server struct {
-	cfg        *config.Config
-	session    *session.Session
-	mu         sync.Mutex
-	writerMu   sync.Mutex
-	writer     io.Writer
-	cancelFunc context.CancelFunc
+	cfg      *config.Config
+	session  *session.Session
+	writerMu sync.Mutex
+	writer   io.Writer
 }
 
 func New(cfg *config.Config) *Server {
@@ -71,12 +68,17 @@ func (s *Server) ensureSession() error {
 	if s.session != nil {
 		return nil
 	}
+
 	sess, err := session.New(s.cfg, session.ModeCoding, "", nil)
 	if err != nil {
 		return err
 	}
+	if err := sess.LoadContext(); err != nil {
+		return err
+	}
+
 	s.session = sess
-	return s.session.LoadContext()
+	return nil
 }
 
 func (s *Server) sendResult(id *json.RawMessage, result any) {
@@ -104,13 +106,16 @@ func (s *Server) sendNotification(method string, params any) {
 }
 
 func (s *Server) send(v any) {
-	s.writerMu.Lock()
-	defer s.writerMu.Unlock()
-
 	data, err := json.Marshal(v)
 	if err != nil {
 		return
 	}
 	data = append(data, '\n')
+
+	s.writerMu.Lock()
+	defer s.writerMu.Unlock()
+	if s.writer == nil {
+		return
+	}
 	_, _ = s.writer.Write(data)
 }
