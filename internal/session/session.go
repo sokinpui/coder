@@ -87,7 +87,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 				}
 			}
 		} else {
-			dirs = cfgCopy.Context.Dirs
+			dirs = getSafeContextDirs(cfgCopy.Context.Dirs)
 			files = cfgCopy.Context.Files
 		}
 
@@ -112,6 +112,27 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	}
 
 	return s, nil
+}
+
+func getSafeContextDirs(configuredDirs []string) []string {
+	if utils.IsGitRepo() {
+		return configuredDirs
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return configuredDirs
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return configuredDirs
+	}
+
+	if filepath.Clean(cwd) == filepath.Clean(home) {
+		return nil
+	}
+	return configuredDirs
 }
 
 func (s *Session) GetConfig() *config.Config {
