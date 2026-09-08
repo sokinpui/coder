@@ -442,7 +442,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
-			return m, m.updateTokenCountCmd(), false
+			return m, m.updateTokenCountCmd(), true
 		} else {
 			m.Chat.TextArea.InsertString(msg.content)
 		}

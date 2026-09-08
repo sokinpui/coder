@@ -52,6 +52,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = newModel.(Model)
 	}
 
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
 	// Update sub-components like textarea and viewport.
 	m, cmd = m.updateComponents(msg)
 	cmds = append(cmds, cmd)

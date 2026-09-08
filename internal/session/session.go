@@ -152,6 +152,7 @@ func (s *Session) GetContextFiles() []string {
 
 func (s *Session) SetContextFiles(files []string) {
 	s.contextFiles = files
+	s.contextLoadedAt = time.Time{}
 }
 
 func (s *Session) GetLastModifiedFiles() []string {

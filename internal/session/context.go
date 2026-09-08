@@ -31,7 +31,7 @@ func (s *Session) NeedsContextReload() bool {
 func (s *Session) LoadContext() error {
 	if len(s.contextFiles) == 0 {
 		s.projectSourceCode = ""
-		s.contextLoadedAt = time.Now()
+		s.contextLoadedAt = time.Time{}
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func (s *Session) LoadContext() error {
 
 	if projSource == "" {
 		s.projectSourceCode = ""
-		s.contextLoadedAt = time.Now()
+		s.contextLoadedAt = time.Time{}
 		return nil
 	}
 	s.projectSourceCode = prompt.ProjectSourceCodeHeader + projSource
