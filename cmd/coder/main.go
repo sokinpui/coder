@@ -39,6 +39,7 @@ var (
 	headlessMode      bool
 	serverPort        int
 	serverSocket      string
+	wsMode            bool
 )
 
 func main() {
@@ -76,6 +77,7 @@ func main() {
 	rootCmd.Flags().BoolVar(&headlessMode, "headless", false, "Run as headless JSON-RPC server over stdio")
 	rootCmd.Flags().IntVar(&serverPort, "port", 0, "Run headless server listening on TCP port")
 	rootCmd.Flags().StringVar(&serverSocket, "socket", "", "Run headless server listening on Unix socket path")
+	rootCmd.Flags().BoolVar(&wsMode, "ws", false, "Run headless server with WebSocket/HTTP support")
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
@@ -92,6 +94,20 @@ func runServer() {
 	}
 
 	srv := server.New(cfg)
+	if wsMode {
+		port := serverPort
+		if port == 0 {
+			port = 9005
+		}
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", port, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Coder WebSocket server listening on ws://localhost:%d/ws\n", port)
+		_ = srv.ServeHTTP(listener)
+		return
+	}
 	if serverPort > 0 {
 		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
 		if err != nil {
@@ -114,7 +130,7 @@ func runServer() {
 }
 
 func runCLI(cmd *cobra.Command, args []string) {
-	if headlessMode || serverPort > 0 || serverSocket != "" {
+	if headlessMode || serverPort > 0 || serverSocket != "" || wsMode {
 		runServer()
 		return
 	}
