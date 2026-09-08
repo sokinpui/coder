@@ -36,8 +36,9 @@ type InitParams struct {
 }
 
 type SendPromptParams struct {
-	Content string `json:"content"`
-	Silent  bool   `json:"silent,omitempty"`
+	Content string   `json:"content"`
+	Images  []string `json:"images,omitempty"`
+	Silent  bool     `json:"silent,omitempty"`
 }
 
 type ContextModifyParams struct {
@@ -55,4 +56,5 @@ type StreamChunkNotification struct {
 	ReasoningContent string `json:"reasoningContent,omitempty"`
 	Done             bool   `json:"done"`
 	Error            string `json:"error,omitempty"`
+	TokenCount       int    `json:"tokenCount,omitempty"`
 }

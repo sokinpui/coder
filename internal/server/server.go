@@ -45,6 +45,16 @@ func (s *Server) dispatch(req rpc.Request) {
 		s.handleModelSet(req)
 	case "session/rename":
 		s.handleSessionRename(req)
+	case "session/message/delete":
+		s.handleMessageDelete(req)
+	case "session/regenerate":
+		s.handleRegenerate(req)
+	case "session/branch":
+		s.handleBranch(req)
+	case "session/message/edit":
+		s.handleMessageEdit(req)
+	case "session/tokens":
+		s.handleTokens(req)
 	case "session/itf/apply":
 		s.handleItfApply(req)
 	case "session/itf/undo":

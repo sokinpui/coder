@@ -22,7 +22,7 @@ func (s *Session) hasConservation() bool {
 }
 
 func (s *Session) SaveConversation() error {
-	if !s.hasConservation() && s.title == "New Chat" {
+	if !s.hasConservation() && s.title == "New Chat" && s.historyFilename == "" {
 		return nil
 	}
 
