@@ -2,16 +2,22 @@ package pti
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/klippa-app/go-pdfium"
 	"github.com/klippa-app/go-pdfium/requests"
+	"github.com/klippa-app/go-pdfium/responses"
 	"github.com/klippa-app/go-pdfium/webassembly"
+	"github.com/tetratelabs/wazero"
 )
 
 const DefaultDPI = 150.0
@@ -20,6 +26,13 @@ type Options struct {
 	DPI       float64
 	OutputDir string
 	Pages     string
+	NoSave    bool
+}
+
+type PageResult struct {
+	PageNumber int
+	FilePath   string
+	Data       []byte
 }
 
 type Result struct {
@@ -27,6 +40,74 @@ type Result struct {
 	OutputDir   string
 	TotalPages  int
 	OutputFiles []string
+	Pages       []PageResult
+}
+
+var (
+	poolMu     sync.Mutex
+	sharedPool pdfium.Pool
+	compCache  wazero.CompilationCache
+)
+
+func maxWorkers() int {
+	workers := runtime.NumCPU()
+	if workers > 8 {
+		return 8
+	}
+	if workers < 1 {
+		return 1
+	}
+	return workers
+}
+
+func getPool() (pdfium.Pool, error) {
+	poolMu.Lock()
+	defer poolMu.Unlock()
+
+	if sharedPool != nil {
+		return sharedPool, nil
+	}
+
+	runtimeConfig := wazero.NewRuntimeConfig()
+	if cacheDir, err := os.UserCacheDir(); err == nil {
+		wazeroDir := filepath.Join(cacheDir, "coder", "wazero")
+		if err := os.MkdirAll(wazeroDir, 0755); err == nil {
+			if cache, err := wazero.NewCompilationCacheWithDir(wazeroDir); err == nil {
+				compCache = cache
+				runtimeConfig = runtimeConfig.WithCompilationCache(cache)
+			}
+		}
+	}
+
+	workers := maxWorkers()
+	pool, err := webassembly.Init(webassembly.Config{
+		RuntimeConfig: runtimeConfig,
+		MinIdle:       0,
+		MaxIdle:       workers,
+		MaxTotal:      workers,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize PDFium WASM pool: %w", err)
+	}
+
+	sharedPool = pool
+	return sharedPool, nil
+}
+
+func ClosePool() error {
+	poolMu.Lock()
+	defer poolMu.Unlock()
+
+	var err error
+	if sharedPool != nil {
+		err = sharedPool.Close()
+		sharedPool = nil
+	}
+	if compCache != nil {
+		_ = compCache.Close(context.Background())
+		compCache = nil
+	}
+	return err
 }
 
 func Convert(docPath string, opts Options) (*Result, error) {
@@ -39,15 +120,10 @@ func Convert(docPath string, opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	pool, err := webassembly.Init(webassembly.Config{
-		MinIdle:  1,
-		MaxIdle:  1,
-		MaxTotal: 1,
-	})
+	pool, err := getPool()
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize PDFium WASM pool: %w", err)
+		return nil, err
 	}
-	defer pool.Close()
 
 	instance, err := pool.GetInstance(time.Second * 30)
 	if err != nil {
@@ -85,55 +161,128 @@ func Convert(docPath string, opts Options) (*Result, error) {
 	baseName := filepath.Base(docPath)
 	docName := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 
-	targetDir := docName
-	if opts.OutputDir != "" {
-		targetDir = filepath.Join(opts.OutputDir, docName)
-	}
-
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create directory %s: %w", targetDir, err)
-	}
-
-	var outputFiles []string
-	for _, pageNum := range selectedPages {
-		pageIdx := pageNum - 1
-
-		pageRender, err := instance.RenderPageInDPI(&requests.RenderPageInDPI{
-			DPI: int(opts.DPI),
-			Page: requests.Page{
-				ByIndex: &requests.PageByIndex{
-					Document: doc.Document,
-					Index:    pageIdx,
-				},
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to render page %d: %w", pageNum, err)
+	var targetDir string
+	if !opts.NoSave {
+		targetDir = docName
+		if opts.OutputDir != "" {
+			targetDir = filepath.Join(opts.OutputDir, docName)
 		}
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create directory %s: %w", targetDir, err)
+		}
+	}
 
-		outFileName := fmt.Sprintf("%d.png", pageNum)
-		outFilePath := filepath.Join(targetDir, outFileName)
+	workerCount := min(len(selectedPages), maxWorkers())
+	tasks := make(chan int, len(selectedPages))
+	for i := range selectedPages {
+		tasks <- i
+	}
+	close(tasks)
 
-		outFile, err := os.Create(outFilePath)
-		if err != nil {
+	results := make([]PageResult, len(selectedPages))
+	var (
+		errOnce sync.Once
+		taskErr error
+	)
+	setErr := func(err error) {
+		errOnce.Do(func() {
+			taskErr = err
+		})
+	}
+
+	runWorker := func(inst pdfium.Pdfium, openedDoc *responses.OpenDocument) {
+		encoder := png.Encoder{CompressionLevel: png.BestSpeed}
+
+		for taskIdx := range tasks {
+			if taskErr != nil {
+				return
+			}
+
+			pageNum := selectedPages[taskIdx]
+			pageIdx := pageNum - 1
+
+			pageRender, err := inst.RenderPageInDPI(&requests.RenderPageInDPI{
+				DPI: int(opts.DPI),
+				Page: requests.Page{
+					ByIndex: &requests.PageByIndex{
+						Document: openedDoc.Document,
+						Index:    pageIdx,
+					},
+				},
+			})
+			if err != nil {
+				setErr(fmt.Errorf("failed to render page %d: %w", pageNum, err))
+				return
+			}
+
+			var buf bytes.Buffer
+			encodeErr := encoder.Encode(&buf, pageRender.Result.Image)
 			if pageRender.Cleanup != nil {
 				pageRender.Cleanup()
 			}
-			return nil, fmt.Errorf("failed to create image file %s: %w", outFilePath, err)
+			if encodeErr != nil {
+				setErr(fmt.Errorf("failed to encode PNG for page %d: %w", pageNum, encodeErr))
+				return
+			}
+
+			data := buf.Bytes()
+			var outFilePath string
+			if targetDir != "" {
+				outFilePath = filepath.Join(targetDir, fmt.Sprintf("%d.png", pageNum))
+				if writeErr := os.WriteFile(outFilePath, data, 0644); writeErr != nil {
+					setErr(fmt.Errorf("failed to create image file %s: %w", outFilePath, writeErr))
+					return
+				}
+			}
+
+			results[taskIdx] = PageResult{
+				PageNumber: pageNum,
+				FilePath:   outFilePath,
+				Data:       data,
+			}
 		}
+	}
 
-		err = png.Encode(outFile, pageRender.Result.Image)
-		outFile.Close()
+	var wg sync.WaitGroup
+	for w := 1; w < workerCount; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		if pageRender.Cleanup != nil {
-			pageRender.Cleanup()
+			inst, err := pool.GetInstance(time.Second * 30)
+			if err != nil {
+				setErr(fmt.Errorf("failed to acquire PDFium instance: %w", err))
+				return
+			}
+			defer inst.Close()
+
+			openedDoc, err := inst.OpenDocument(&requests.OpenDocument{
+				File: &pdfBytes,
+			})
+			if err != nil {
+				setErr(fmt.Errorf("failed to open PDF document: %w", err))
+				return
+			}
+			defer inst.FPDF_CloseDocument(&requests.FPDF_CloseDocument{
+				Document: openedDoc.Document,
+			})
+
+			runWorker(inst, openedDoc)
+		}()
+	}
+
+	runWorker(instance, doc)
+	wg.Wait()
+
+	if taskErr != nil {
+		return nil, taskErr
+	}
+
+	var outputFiles []string
+	for _, res := range results {
+		if res.FilePath != "" {
+			outputFiles = append(outputFiles, res.FilePath)
 		}
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode PNG %s: %w", outFilePath, err)
-		}
-
-		outputFiles = append(outputFiles, outFilePath)
 	}
 
 	return &Result{
@@ -141,6 +290,7 @@ func Convert(docPath string, opts Options) (*Result, error) {
 		OutputDir:   targetDir,
 		TotalPages:  totalPages,
 		OutputFiles: outputFiles,
+		Pages:       results,
 	}, nil
 }
 

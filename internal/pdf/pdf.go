@@ -28,22 +28,17 @@ func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, err
 		return nil, err
 	}
 
-	messages := make([]types.Message, 0, len(res.OutputFiles))
-	for _, outFile := range res.OutputFiles {
-		data, err := os.ReadFile(outFile)
+	messages := make([]types.Message, 0, len(res.Pages))
+	for _, page := range res.Pages {
+		relPath, err := filepath.Rel(repoRoot, page.FilePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read rendered image %s: %w", outFile, err)
-		}
-
-		relPath, err := filepath.Rel(repoRoot, outFile)
-		if err != nil {
-			relPath = outFile
+			relPath = page.FilePath
 		}
 
 		messages = append(messages, types.Message{
 			Type:    types.ImageMessage,
 			Content: filepath.ToSlash(relPath),
-			Data:    data,
+			Data:    page.Data,
 		})
 	}
 

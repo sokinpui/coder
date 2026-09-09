@@ -21,6 +21,8 @@ var rootCmd = &cobra.Command{
 	Version: version.Get(),
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		defer ClosePool()
+
 		opts := Options{
 			DPI:       dpiFlag,
 			OutputDir: outputDirFlag,
