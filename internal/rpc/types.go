@@ -41,6 +41,11 @@ type SendPromptParams struct {
 	Silent  bool     `json:"silent,omitempty"`
 }
 
+type AddPDFParams struct {
+	Path  string `json:"path"`
+	Pages string `json:"pages,omitempty"`
+}
+
 type ContextModifyParams struct {
 	Paths []string `json:"paths"`
 }

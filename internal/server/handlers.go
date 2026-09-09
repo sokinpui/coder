@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/rpc"
 	"github.com/sokinpui/coder/internal/session"
 	"github.com/sokinpui/coder/internal/utils"
@@ -40,11 +41,12 @@ func (s *Server) handleInit(req rpc.Request) {
 	_ = sess.LoadContext()
 	tokenCount := token.CountTokens(sess.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"sessionId":    sess.ID,
-		"mode":         sess.GetMode(),
-		"contextFiles": sess.GetContextFiles(),
-		"model":        sess.GetConfig().Generation.ModelCode,
-		"tokenCount":   tokenCount,
+		"sessionId":        sess.ID,
+		"mode":             sess.GetMode(),
+		"contextFiles":     sess.GetContextFiles(),
+		"contextDocuments": sess.GetContextDocuments(),
+		"model":            sess.GetConfig().Generation.ModelCode,
+		"tokenCount":       tokenCount,
 	})
 }
 
@@ -273,12 +275,13 @@ func (s *Server) handleBranch(req rpc.Request) {
 
 	tokenCount := token.CountTokens(s.session.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"branched":     true,
-		"sessionId":    newSess.ID,
-		"title":        newSess.GetTitle(),
-		"contextFiles": newSess.GetContextFiles(),
-		"messages":     newSess.GetMessages(),
-		"tokenCount":   tokenCount,
+		"branched":         true,
+		"sessionId":        newSess.ID,
+		"title":            newSess.GetTitle(),
+		"contextFiles":     newSess.GetContextFiles(),
+		"contextDocuments": newSess.GetContextDocuments(),
+		"messages":         newSess.GetMessages(),
+		"tokenCount":       tokenCount,
 	})
 }
 
@@ -317,6 +320,37 @@ func (s *Server) handleTokens(req rpc.Request) {
 		return
 	}
 	s.sendResult(req.ID, map[string]any{"tokenCount": token.CountTokens(s.session.GetPrompt())})
+}
+
+func (s *Server) handlePDFAdd(req rpc.Request) {
+	var params rpc.AddPDFParams
+	if err := json.Unmarshal(req.Params, &params); err != nil || params.Path == "" {
+		s.sendError(req.ID, -32602, "Path is required")
+		return
+	}
+	if err := s.ensureSession(); err != nil {
+		s.sendError(req.ID, -32603, err.Error())
+		return
+	}
+
+	msgs, err := pdf.RenderPDFToMessages(params.Path, params.Pages)
+	if err != nil {
+		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to render PDF: %v", err))
+		return
+	}
+
+	s.session.AddMessages(msgs...)
+	docEntry := filepath.ToSlash(params.Path)
+	if params.Pages != "" {
+		docEntry = fmt.Sprintf("%s (pages: %s)", docEntry, params.Pages)
+	}
+	s.session.SetContextDocuments(commands.AppendUnique(s.session.GetContextDocuments(), []string{docEntry}))
+	_ = s.session.SaveConversation()
+	s.sendResult(req.ID, map[string]any{
+		"success":    true,
+		"pagesAdded": len(msgs),
+		"tokenCount": token.CountTokens(s.session.GetPrompt()),
+	})
 }
 
 func (s *Server) handleCancel(req rpc.Request) {
@@ -373,11 +407,12 @@ func (s *Server) handleContextGet(req rpc.Request) {
 
 	s.hydrateSessionImages()
 	s.sendResult(req.ID, map[string]any{
-		"mode":         s.session.GetMode(),
-		"title":        s.session.GetTitle(),
-		"contextFiles": s.session.GetContextFiles(),
-		"tokenCount":   tokenCount,
-		"messages":     s.session.GetMessages(),
+		"mode":             s.session.GetMode(),
+		"title":            s.session.GetTitle(),
+		"contextFiles":     s.session.GetContextFiles(),
+		"contextDocuments": s.session.GetContextDocuments(),
+		"tokenCount":       tokenCount,
+		"messages":         s.session.GetMessages(),
 	})
 }
 
@@ -550,11 +585,12 @@ func (s *Server) handleHistoryLoad(req rpc.Request) {
 	s.hydrateSessionImages()
 	tokenCount := token.CountTokens(s.session.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"loaded":       true,
-		"title":        s.session.GetTitle(),
-		"contextFiles": s.session.GetContextFiles(),
-		"messages":     s.session.GetMessages(),
-		"tokenCount":   tokenCount,
+		"loaded":           true,
+		"title":            s.session.GetTitle(),
+		"contextFiles":     s.session.GetContextFiles(),
+		"contextDocuments": s.session.GetContextDocuments(),
+		"messages":         s.session.GetMessages(),
+		"tokenCount":       tokenCount,
 	})
 }
 

@@ -24,13 +24,14 @@ const (
 )
 
 type Metadata struct {
-	Title        string
-	Mode         string
-	CreatedAt    time.Time
-	ModifiedAt   time.Time
-	ContextFiles []string
-	Exclusions   []string
-	WorkingDir   string
+	Title            string
+	Mode             string
+	CreatedAt        time.Time
+	ModifiedAt       time.Time
+	ContextFiles     []string
+	ContextDocuments []string
+	Exclusions       []string
+	WorkingDir       string
 }
 
 type ConversationInfo struct {
@@ -42,14 +43,15 @@ type ConversationInfo struct {
 }
 
 type ConversationData struct {
-	Filename     string
-	Title        string
-	Mode         string
-	CreatedAt    time.Time
-	Messages     []types.Message
-	ContextFiles []string
-	Exclusions   []string
-	WorkingDir   string
+	Filename         string
+	Title            string
+	Mode             string
+	CreatedAt        time.Time
+	Messages         []types.Message
+	ContextFiles     []string
+	ContextDocuments []string
+	Exclusions       []string
+	WorkingDir       string
 }
 
 type IndexEntry struct {
@@ -97,6 +99,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 		fmt.Fprintf(&fileBuf, "workingDir: %s\n", data.WorkingDir)
 	}
 	writeYamlList(&fileBuf, "contextFiles", data.ContextFiles)
+	writeYamlList(&fileBuf, "contextDocuments", data.ContextDocuments)
 	writeYamlList(&fileBuf, "exclusions", data.Exclusions)
 	fmt.Fprintln(&fileBuf, "---")
 	fmt.Fprintln(&fileBuf, "")
@@ -176,6 +179,8 @@ func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 			switch currentKey {
 			case "contextFiles", "files":
 				metadata.ContextFiles = append(metadata.ContextFiles, val)
+			case "contextDocuments", "documents":
+				metadata.ContextDocuments = append(metadata.ContextDocuments, val)
 			case "exclusions":
 				metadata.Exclusions = append(metadata.Exclusions, val)
 			}
@@ -199,6 +204,10 @@ func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
 		case "contextFiles", "files":
 			if value != "" {
 				metadata.ContextFiles = append(metadata.ContextFiles, parseStringSlice(value)...)
+			}
+		case "contextDocuments", "documents":
+			if value != "" {
+				metadata.ContextDocuments = append(metadata.ContextDocuments, parseStringSlice(value)...)
 			}
 		case "exclusions":
 			if value != "" {

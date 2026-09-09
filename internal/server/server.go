@@ -37,6 +37,8 @@ func (s *Server) dispatch(req rpc.Request) {
 		s.handleCancel(req)
 	case "session/context/add":
 		s.handleContextAdd(req)
+	case "session/pdf/add":
+		s.handlePDFAdd(req)
 	case "session/context/exclude":
 		s.handleContextExclude(req)
 	case "session/context/get":

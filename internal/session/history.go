@@ -41,14 +41,15 @@ func (s *Session) SaveConversation() error {
 	allMsgs = append(allMsgs, s.messages...)
 
 	data := &history.ConversationData{
-		Filename:     s.historyFilename,
-		Title:        s.title,
-		Mode:         s.GetMode(),
-		CreatedAt:    s.createdAt,
-		Messages:     allMsgs,
-		ContextFiles: s.contextFiles,
-		Exclusions:   s.config.Context.Exclusions,
-		WorkingDir:   wd,
+		Filename:         s.historyFilename,
+		Title:            s.title,
+		Mode:             s.GetMode(),
+		CreatedAt:        s.createdAt,
+		Messages:         allMsgs,
+		ContextFiles:     s.contextFiles,
+		ContextDocuments: s.contextDocuments,
+		Exclusions:       s.config.Context.Exclusions,
+		WorkingDir:       wd,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -86,6 +87,7 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 	s.contextFiles = metadata.ContextFiles
+	s.contextDocuments = metadata.ContextDocuments
 
 	return s.LoadContext()
 }
@@ -103,6 +105,8 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	}
 	newSess.title = fmt.Sprintf("branch of %s", s.title)
 	newSess.titleGenerated = true
+	newSess.startupPDFMessages = append([]types.Message{}, s.startupPDFMessages...)
+	newSess.contextDocuments = append([]string{}, s.contextDocuments...)
 
 	if err := newSess.LoadContext(); err != nil {
 		return nil, fmt.Errorf("failed to load context for branched session: %w", err)

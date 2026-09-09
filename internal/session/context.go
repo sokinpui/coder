@@ -70,6 +70,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 		if s.projectSourceCode != "" {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
+		result = append(result, s.startupPDFMessages...)
 	case ModeChat:
 		instr := s.instruction
 		if instr == "" {
@@ -79,6 +80,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 		if s.projectSourceCode != "" {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
+		result = append(result, s.startupPDFMessages...)
 	default:
 	}
 

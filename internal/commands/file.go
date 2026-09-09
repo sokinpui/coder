@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -13,6 +14,7 @@ import (
 
 func init() {
 	registerCommand("file", fileCmd, "add path to context", PathArgumentCompleter)
+	registerCommand("files", fileCmd, "add path to context", PathArgumentCompleter)
 }
 
 func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
@@ -49,6 +51,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	if len(paths) == 0 {
 		s.SetContextFiles([]string{})
+		s.SetContextDocuments([]string{})
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
@@ -79,6 +82,34 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
+	var pdfFiles []string
+	var codeFiles []string
+	for _, f := range files {
+		if strings.EqualFold(filepath.Ext(f), ".pdf") {
+			pdfFiles = append(pdfFiles, f)
+			continue
+		}
+		codeFiles = append(codeFiles, f)
+	}
+	files = codeFiles
+
+	var pdfRenderNotes []string
+	var pdfErrors []string
+	var addedDocs []string
+	for _, pdfPath := range pdfFiles {
+		pdfMsgs, err := pdf.RenderPDFToMessages(pdfPath, "")
+		if err != nil {
+			pdfErrors = append(pdfErrors, fmt.Sprintf("%s: %v", pdfPath, err))
+			continue
+		}
+		s.AddMessages(pdfMsgs...)
+		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", pdfPath, len(pdfMsgs)))
+		addedDocs = append(addedDocs, filepath.ToSlash(pdfPath))
+	}
+	if len(addedDocs) > 0 {
+		s.SetContextDocuments(AppendUnique(s.GetContextDocuments(), addedDocs))
+	}
+
 	currentFiles := s.GetContextFiles()
 	cfg := s.GetConfig()
 	allExclusions := append([]string{}, source.Exclusions...)
@@ -98,6 +129,12 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		fileWord = "file"
 	}
 	msg := fmt.Sprintf("Successfully add: %s, %d %s added.", args, addedCount, fileWord)
+	if len(pdfRenderNotes) > 0 {
+		msg += fmt.Sprintf("\nPDF pages added: %s", strings.Join(pdfRenderNotes, ", "))
+	}
+	if len(pdfErrors) > 0 {
+		msg += fmt.Sprintf("\nPDF rendering failed: %s", strings.Join(pdfErrors, ", "))
+	}
 	if len(invalidPaths) > 0 {
 		msg += fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
 	}

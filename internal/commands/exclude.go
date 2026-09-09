@@ -27,8 +27,14 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	currentFiles := s.GetContextFiles()
 	newFiles := filterPaths(currentFiles, pathsToModify)
-	removedCount := len(currentFiles) - len(newFiles)
+	removedFilesCount := len(currentFiles) - len(newFiles)
 	s.SetContextFiles(newFiles)
+
+	currentDocs := s.GetContextDocuments()
+	newDocs := filterPaths(currentDocs, pathsToModify)
+	removedDocsCount := len(currentDocs) - len(newDocs)
+	s.SetContextDocuments(newDocs)
+	removedCount := removedFilesCount + removedDocsCount
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
@@ -44,6 +50,13 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 func filterPaths(original []string, toRemove map[string]struct{}) []string {
 	filtered := make([]string, 0, len(original))
 	for _, p := range original {
+		pathKey := p
+		if idx := strings.Index(pathKey, " (pages:"); idx != -1 {
+			pathKey = pathKey[:idx]
+		}
+		if _, found := toRemove[pathKey]; found {
+			continue
+		}
 		if _, found := toRemove[p]; !found {
 			filtered = append(filtered, p)
 		}

@@ -14,6 +14,7 @@ type CommandOutput struct {
 
 type SessionController interface {
 	GetMessages() []types.Message
+	AddMessages(msg ...types.Message)
 	GetConfig() *config.Config
 	SetTitle(title string)
 	ReloadConfig() error
@@ -24,6 +25,8 @@ type SessionController interface {
 	SetHasAppliedChanges(applied bool)
 	GetContextFiles() []string
 	SetContextFiles(files []string)
+	GetContextDocuments() []string
+	SetContextDocuments(docs []string)
 	GetMode() string
 	SetMode(mode string) error
 	SetModel(model string)
