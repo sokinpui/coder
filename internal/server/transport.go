@@ -8,9 +8,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/rpc"
+	"github.com/sokinpui/coder/internal/utils"
 	"golang.org/x/net/websocket"
 )
 
@@ -50,19 +52,102 @@ func (s *Server) ServeListener(listener net.Listener) error {
 }
 
 func (s *Server) ServeHTTP(listener net.Listener) error {
-	server := &http.Server{
-		Handler: websocket.Server{
-			Handshake: func(cfg *websocket.Config, req *http.Request) error {
-				return nil
-			},
-			Handler: func(ws *websocket.Conn) {
-				clientSrv := New(s.cfg)
-				clientSrv.writer = &wsWriter{ws: ws}
-				clientSrv.handleWebSocket(ws)
-			},
+	mux := http.NewServeMux()
+
+	wsHandler := websocket.Server{
+		Handshake: func(cfg *websocket.Config, req *http.Request) error {
+			return nil
+		},
+		Handler: func(ws *websocket.Conn) {
+			clientSrv := New(s.cfg)
+			clientSrv.writer = &wsWriter{ws: ws}
+			clientSrv.handleWebSocket(ws)
 		},
 	}
+
+	mux.Handle("/ws", wsHandler)
+	mux.HandleFunc("/upload/pdf", s.handleHTTPUploadPDF)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.ToLower(r.Header.Get("Upgrade")) == "websocket" {
+			wsHandler.ServeHTTP(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	server := &http.Server{Handler: mux}
 	return server.Serve(listener)
+}
+
+func (s *Server) handleHTTPUploadPDF(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseMultipartForm(64 << 20); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		file, header, err = r.FormFile("pdf")
+	}
+	if err != nil {
+		http.Error(w, "Missing 'file' in multipart form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	if !strings.EqualFold(filepath.Ext(header.Filename), ".pdf") {
+		http.Error(w, "Only .pdf files are accepted", http.StatusBadRequest)
+		return
+	}
+
+	repoRoot := utils.GetProjectRoot()
+	docsDir := filepath.Join(repoRoot, ".coder", "documents")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create document dir: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	cleanBase := filepath.Base(header.Filename)
+	destPath := filepath.Join(docsDir, cleanBase)
+	outFile, err := os.Create(destPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save file: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer outFile.Close()
+
+	n, err := io.Copy(outFile, file)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to write file content: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	relPath, err := filepath.Rel(repoRoot, destPath)
+	if err != nil {
+		relPath = destPath
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"success":  true,
+		"path":     filepath.ToSlash(relPath),
+		"filename": cleanBase,
+		"size":     n,
+	})
 }
 
 func (s *Server) handleWebSocket(ws *websocket.Conn) {
