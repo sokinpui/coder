@@ -36,6 +36,8 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	s.SetContextDocuments(newDocs)
 	removedCount := removedFilesCount + removedDocsCount
 
+	s.PurgeDocumentMessages(pathsToRemove)
+
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
 	}
@@ -44,7 +46,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	if removedCount == 1 {
 		fileWord = "file"
 	}
-	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Successfully excluded %s, %d %s removed.", args, removedCount, fileWord)}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Successfully excluded %s, %d %s removed.", args, removedCount, fileWord), IsContext: true}, true
 }
 
 func filterPaths(original []string, toRemove map[string]struct{}) []string {

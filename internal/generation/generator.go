@@ -84,7 +84,10 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		case types.InstructionMessage, types.DirectoryMessage, types.SourceCodeMessage:
 			role = "system"
 			content = msg.Content
-		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage:
+		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage,
+			types.ContextCmdMessage, types.ContextCmdResultMessage,
+			types.FileApplyCmdMessage, types.FileApplyCmdResultMessage, types.FileApplyCmdErrorMessage,
+			types.FileApplyUndoCmdMessage, types.FileApplyUndoCmdResultMessage, types.FileApplyUndoCmdErrorMessage:
 			role = "user"
 			content = msg.Content
 		case types.AIMessage:

@@ -3,8 +3,10 @@ package session
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
@@ -13,6 +15,12 @@ import (
 
 func (s *Session) NeedsContextReload() bool {
 	if s.projectSourceCode == "" && len(s.contextFiles) > 0 {
+		return true
+	}
+	if len(s.documentMessages) == 0 && len(s.contextDocuments) > 0 {
+		return true
+	}
+	if len(s.documentMessages) > 0 && len(s.contextDocuments) == 0 {
 		return true
 	}
 	if s.contextLoadedAt.IsZero() {
@@ -25,10 +33,18 @@ func (s *Session) NeedsContextReload() bool {
 			return true
 		}
 	}
+	for _, doc := range s.contextDocuments {
+		info, err := os.Stat(doc)
+		if err != nil || info.ModTime().After(s.contextLoadedAt) {
+			return true
+		}
+	}
 	return false
 }
 
 func (s *Session) LoadContext() error {
+	s.loadDocumentContext()
+
 	if len(s.contextFiles) == 0 {
 		s.projectSourceCode = ""
 		s.contextLoadedAt = time.Time{}
@@ -54,6 +70,46 @@ func (s *Session) LoadContext() error {
 	return nil
 }
 
+func (s *Session) loadDocumentContext() {
+	if len(s.contextDocuments) == 0 {
+		s.documentMessages = nil
+		return
+	}
+
+	if s.cachedDocMessages == nil {
+		s.cachedDocMessages = make(map[string][]types.Message)
+	}
+	if s.docModTimes == nil {
+		s.docModTimes = make(map[string]time.Time)
+	}
+
+	var allDocMsgs []types.Message
+	for _, doc := range s.contextDocuments {
+		cleanPath := filepath.ToSlash(doc)
+		info, err := os.Stat(cleanPath)
+		if err != nil {
+			continue
+		}
+
+		cached, ok := s.cachedDocMessages[cleanPath]
+		modTime, modOk := s.docModTimes[cleanPath]
+		if ok && modOk && modTime.Equal(info.ModTime()) {
+			allDocMsgs = append(allDocMsgs, cached...)
+			continue
+		}
+
+		msgs, err := pdf.RenderPDFToMessages(cleanPath, "")
+		if err != nil {
+			continue
+		}
+		s.cachedDocMessages[cleanPath] = msgs
+		s.docModTimes[cleanPath] = info.ModTime()
+		allDocMsgs = append(allDocMsgs, msgs...)
+	}
+
+	s.documentMessages = allDocMsgs
+}
+
 func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	var result []types.Message
 
@@ -70,7 +126,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 		if s.projectSourceCode != "" {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
-		result = append(result, s.startupPDFMessages...)
+		result = append(result, s.documentMessages...)
 	case ModeChat:
 		instr := s.instruction
 		if instr == "" {
@@ -80,7 +136,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 		if s.projectSourceCode != "" {
 			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
 		}
-		result = append(result, s.startupPDFMessages...)
+		result = append(result, s.documentMessages...)
 	default:
 	}
 

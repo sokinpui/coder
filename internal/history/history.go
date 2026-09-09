@@ -132,16 +132,24 @@ func writeYamlList(b *bytes.Buffer, key string, items []string) {
 }
 
 var roleToMessageType = map[string]types.MessageType{
-	"User:":                   types.UserMessage,
-	"AI Assistant:":           types.AIMessage,
-	"Image:":                  types.ImageMessage,
-	"Command Execute:":        types.CommandMessage,
-	"Command Execute Result:": types.CommandResultMessage,
-	"Command Execute Error:":  types.CommandErrorResultMessage,
-	"Instruction:":            types.InstructionMessage,
-	"Source Code:":            types.SourceCodeMessage,
-	"Shell Command:":          types.ShellCmdMessage,
-	"Shell Command Result:":   types.ShellCmdResultMessage,
+	"User:":                    types.UserMessage,
+	"AI Assistant:":            types.AIMessage,
+	"Image:":                   types.ImageMessage,
+	"Command Execute:":         types.CommandMessage,
+	"Command Execute Result:":  types.CommandResultMessage,
+	"Command Execute Error:":   types.CommandErrorResultMessage,
+	"Instruction:":             types.InstructionMessage,
+	"Source Code:":             types.SourceCodeMessage,
+	"Shell Command:":           types.ShellCmdMessage,
+	"Shell Command Result:":    types.ShellCmdResultMessage,
+	"Context Command:":         types.ContextCmdMessage,
+	"Context Command Result:":  types.ContextCmdResultMessage,
+	"File Apply Command:":      types.FileApplyCmdMessage,
+	"File Apply Result:":       types.FileApplyCmdResultMessage,
+	"File Apply Error:":        types.FileApplyCmdErrorMessage,
+	"File Apply Undo Command:": types.FileApplyUndoCmdMessage,
+	"File Apply Undo Result:":  types.FileApplyUndoCmdResultMessage,
+	"File Apply Undo Error:":   types.FileApplyUndoCmdErrorMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
@@ -163,6 +171,16 @@ func parseStringSlice(value string) []string {
 		return nil
 	}
 	return s
+}
+
+func isDocumentImage(content string) bool {
+	parts := strings.Split(filepath.ToSlash(content), "/")
+	for i, part := range parts {
+		if part == "images" && i+2 < len(parts) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
@@ -260,7 +278,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
 					processMessageContent(currentMessage, contentBuilder.String())
-					if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage {
+					if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage && !isDocumentImage(currentMessage.Content) {
 						messages = append(messages, *currentMessage)
 					}
 				}
@@ -279,7 +297,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 
 	if currentMessage != nil {
 		processMessageContent(currentMessage, contentBuilder.String())
-		if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage {
+		if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage && !isDocumentImage(currentMessage.Content) {
 			messages = append(messages, *currentMessage)
 		}
 	}
@@ -546,6 +564,30 @@ func BuildHistorySnippet(messages []types.Message) string {
 			sb.WriteString(msg.Content)
 		case types.ShellCmdResultMessage:
 			sb.WriteString("Shell Command Result:\n")
+			sb.WriteString(msg.Content)
+		case types.ContextCmdMessage:
+			sb.WriteString("Context Command:\n")
+			sb.WriteString(msg.Content)
+		case types.ContextCmdResultMessage:
+			sb.WriteString("Context Command Result:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyCmdMessage:
+			sb.WriteString("File Apply Command:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyCmdResultMessage:
+			sb.WriteString("File Apply Result:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyCmdErrorMessage:
+			sb.WriteString("File Apply Error:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyUndoCmdMessage:
+			sb.WriteString("File Apply Undo Command:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyUndoCmdResultMessage:
+			sb.WriteString("File Apply Undo Result:\n")
+			sb.WriteString(msg.Content)
+		case types.FileApplyUndoCmdErrorMessage:
+			sb.WriteString("File Apply Undo Error:\n")
 			sb.WriteString(msg.Content)
 		}
 		sb.WriteString("\n\n")

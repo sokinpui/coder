@@ -56,16 +56,19 @@ func (m *QuickViewModel) renderContent() string {
 				renderedAI = msg.Content
 			}
 			renderedMsg = renderedAI
-		case types.CommandMessage:
+		case types.CommandMessage, types.ContextCmdMessage,
+			types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
 			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
 			renderedMsg = commandInputStyle.Width(blockWidth).Render(msg.Content)
 		case types.ImageMessage:
 			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
 			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + msg.Content)
-		case types.CommandResultMessage:
+		case types.CommandResultMessage, types.ContextCmdResultMessage,
+			types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
 			renderedMsg = commandResultStyle.Width(blockWidth).Render(msg.Content)
-		case types.CommandErrorResultMessage:
+		case types.CommandErrorResultMessage,
+			types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(msg.Content)
 		default:

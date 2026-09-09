@@ -43,6 +43,12 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 				msgType := types.CommandMessage
 				if cmdOutput.IsShell {
 					msgType = types.ShellCmdMessage
+				} else if cmdOutput.IsFileApply {
+					msgType = types.FileApplyCmdMessage
+				} else if cmdOutput.IsFileApplyUndo {
+					msgType = types.FileApplyUndoCmdMessage
+				} else if cmdOutput.IsContext {
+					msgType = types.ContextCmdMessage
 				}
 				s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
 			}
@@ -53,7 +59,13 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	s.generator.Config = s.config.Generation
 	if !silent {
 		msgType := types.CommandMessage
-		if cmdOutput.IsShell {
+		if cmdOutput.IsFileApply {
+			msgType = types.FileApplyCmdMessage
+		} else if cmdOutput.IsFileApplyUndo {
+			msgType = types.FileApplyUndoCmdMessage
+		} else if cmdSuccess && cmdOutput.IsContext {
+			msgType = types.ContextCmdMessage
+		} else if cmdOutput.IsShell {
 			msgType = types.ShellCmdMessage
 		}
 		s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
@@ -61,12 +73,24 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 
 	if cmdSuccess {
 		msgType := types.CommandResultMessage
-		if cmdOutput.IsShell {
+		if cmdOutput.IsFileApply {
+			msgType = types.FileApplyCmdResultMessage
+		} else if cmdOutput.IsFileApplyUndo {
+			msgType = types.FileApplyUndoCmdResultMessage
+		} else if cmdOutput.IsShell {
 			msgType = types.ShellCmdResultMessage
+		} else if cmdOutput.IsContext {
+			msgType = types.ContextCmdResultMessage
 		}
 		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
 	} else {
-		s.messages = append(s.messages, types.Message{Type: types.CommandErrorResultMessage, Content: cmdOutput.Payload})
+		msgType := types.CommandErrorResultMessage
+		if cmdOutput.IsFileApply {
+			msgType = types.FileApplyCmdErrorMessage
+		} else if cmdOutput.IsFileApplyUndo {
+			msgType = types.FileApplyUndoCmdErrorMessage
+		}
+		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
 	}
 	return types.Event{Type: types.MessagesUpdated}
 }

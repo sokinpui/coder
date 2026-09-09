@@ -18,16 +18,16 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 	itfCfg := &itf.Config{Undo: true}
 	app, err := itf.NewApp(itfCfg)
 	if err != nil {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Failed to initialize itf: " + err.Error()}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Failed to initialize itf: " + err.Error(), IsFileApplyUndo: true}, false
 	}
 
 	summary, err := app.Execute()
 	if err != nil {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Error undoing changes: " + err.Error()}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Error undoing changes: " + err.Error(), IsFileApplyUndo: true}, false
 	}
 
 	if summary.Message == "No undo" {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No changes to undo."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No changes to undo.", IsFileApplyUndo: true}, true
 	}
 
 	// Update context paths based on what was undone
@@ -73,5 +73,9 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 		_ = s.LoadContext()
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: itf.FormatSummary(summary)}, true
+	return CommandOutput{
+		Type:            types.MessagesUpdated,
+		Payload:         itf.FormatSummary(summary),
+		IsFileApplyUndo: true,
+	}, true
 }

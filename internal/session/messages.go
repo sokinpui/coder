@@ -66,6 +66,57 @@ func (s *Session) DeleteMessages(indices []int) {
 	s.messages = newMessages
 }
 
+func (s *Session) PurgeDocumentMessages(docPaths []string) {
+	if len(docPaths) == 0 || len(s.messages) == 0 {
+		return
+	}
+
+	docNames := make(map[string]struct{}, len(docPaths))
+	for _, p := range docPaths {
+		base := filepath.Base(p)
+		name := strings.TrimSuffix(base, filepath.Ext(base))
+		docNames[name] = struct{}{}
+	}
+
+	filtered := make([]types.Message, 0, len(s.messages))
+	for _, msg := range s.messages {
+		if msg.Type != types.ImageMessage {
+			filtered = append(filtered, msg)
+			continue
+		}
+		slashed := filepath.ToSlash(msg.Content)
+		isDocImage := false
+		for name := range docNames {
+			if strings.Contains(slashed, "/"+name+"/") {
+				isDocImage = true
+				break
+			}
+		}
+		if !isDocImage {
+			filtered = append(filtered, msg)
+		}
+	}
+	s.messages = filtered
+}
+
+func (s *Session) ClearAllDocumentMessages() {
+	if len(s.messages) == 0 {
+		return
+	}
+	filtered := make([]types.Message, 0, len(s.messages))
+	for _, msg := range s.messages {
+		if msg.Type == types.ImageMessage {
+			slashed := filepath.ToSlash(msg.Content)
+			parts := strings.Split(slashed, "/")
+			if len(parts) >= 3 && parts[len(parts)-3] == "images" {
+				continue
+			}
+		}
+		filtered = append(filtered, msg)
+	}
+	s.messages = filtered
+}
+
 func (s *Session) EditMessage(index int, newContent string) error {
 	if index < 0 || index >= len(s.messages) {
 		return fmt.Errorf("index out of bounds: %d", index)

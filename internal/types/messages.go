@@ -15,6 +15,14 @@ const (
 	SourceCodeMessage
 	ShellCmdMessage
 	ShellCmdResultMessage
+	ContextCmdMessage
+	ContextCmdResultMessage
+	FileApplyCmdMessage
+	FileApplyCmdResultMessage
+	FileApplyCmdErrorMessage
+	FileApplyUndoCmdMessage
+	FileApplyUndoCmdResultMessage
+	FileApplyUndoCmdErrorMessage
 )
 
 type Message struct {
@@ -54,6 +62,22 @@ func (t MessageType) String() string {
 		return "Shell Command"
 	case ShellCmdResultMessage:
 		return "Shell Command Result"
+	case ContextCmdMessage:
+		return "Context Command"
+	case ContextCmdResultMessage:
+		return "Context Command Result"
+	case FileApplyCmdMessage:
+		return "File Apply Command"
+	case FileApplyCmdResultMessage:
+		return "File Apply Result"
+	case FileApplyCmdErrorMessage:
+		return "File Apply Error"
+	case FileApplyUndoCmdMessage:
+		return "File Apply Undo Command"
+	case FileApplyUndoCmdResultMessage:
+		return "File Apply Undo Result"
+	case FileApplyUndoCmdErrorMessage:
+		return "File Apply Undo Error"
 	default:
 		return "Unknown"
 	}
@@ -83,7 +107,10 @@ func (t MessageType) IsSelectable() bool {
 func (t MessageType) IsHistory() bool {
 	switch t {
 	case UserMessage, AIMessage, CommandMessage, CommandResultMessage, CommandErrorResultMessage, ImageMessage,
-		InstructionMessage, SourceCodeMessage, ShellCmdMessage, ShellCmdResultMessage:
+		InstructionMessage, SourceCodeMessage, ShellCmdMessage, ShellCmdResultMessage,
+		ContextCmdMessage, ContextCmdResultMessage,
+		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
 		return true
 	default:
 		return false
@@ -104,7 +131,10 @@ func (m Message) CanSendToAI() bool {
 	switch m.Type {
 	case InstructionMessage, DirectoryMessage, SourceCodeMessage,
 		UserMessage, AIMessage, ImageMessage,
-		ShellCmdMessage, ShellCmdResultMessage:
+		ShellCmdMessage, ShellCmdResultMessage,
+		ContextCmdMessage, ContextCmdResultMessage,
+		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
 		return true
 	default:
 		return false

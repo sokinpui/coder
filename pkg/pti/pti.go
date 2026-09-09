@@ -164,7 +164,7 @@ func readPDF(filePath string) ([]byte, error) {
 func resolvePages(pagesSpec string, totalPages int) ([]int, error) {
 	if strings.TrimSpace(pagesSpec) == "" {
 		all := make([]int, totalPages)
-		for i := 0; i < totalPages; i++ {
+		for i := range totalPages {
 			all[i] = i + 1
 		}
 		return all, nil
@@ -172,9 +172,9 @@ func resolvePages(pagesSpec string, totalPages int) ([]int, error) {
 
 	var pages []int
 	seen := make(map[int]struct{})
-	segments := strings.Split(pagesSpec, ",")
+	segments := strings.SplitSeq(pagesSpec, ",")
 
-	for _, seg := range segments {
+	for seg := range segments {
 		seg = strings.TrimSpace(seg)
 		if seg == "" {
 			continue

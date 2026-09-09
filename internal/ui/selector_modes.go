@@ -335,12 +335,12 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		res := commands.ExecuteItf(aiResponseToApply, "")
 		m.Session.SetLastModifiedFiles(res.AffectedFiles)
-		m.Session.AddMessages(types.Message{Type: types.CommandMessage, Content: "/itf"})
+		m.Session.AddMessages(types.Message{Type: types.FileApplyCmdMessage, Content: "/itf"})
 
 		if res.Success {
-			m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: res.Summary})
+			m.Session.AddMessages(types.Message{Type: types.FileApplyCmdResultMessage, Content: res.Summary})
 		} else {
-			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: res.Summary})
+			m.Session.AddMessages(types.Message{Type: types.FileApplyCmdErrorMessage, Content: res.Summary})
 		}
 
 		m.ActiveOverlay = overlayNone

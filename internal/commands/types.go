@@ -6,10 +6,13 @@ import (
 )
 
 type CommandOutput struct {
-	Type    types.EventType
-	Payload string
-	Mode    string
-	IsShell bool
+	Type            types.EventType
+	Payload         string
+	Mode            string
+	IsShell         bool
+	IsContext       bool
+	IsFileApply     bool
+	IsFileApplyUndo bool
 }
 
 type SessionController interface {
@@ -27,6 +30,9 @@ type SessionController interface {
 	SetContextFiles(files []string)
 	GetContextDocuments() []string
 	SetContextDocuments(docs []string)
+	GetDocumentPageCount(doc string) int
+	PurgeDocumentMessages(docPaths []string)
+	ClearAllDocumentMessages()
 	GetMode() string
 	SetMode(mode string) error
 	SetModel(model string)

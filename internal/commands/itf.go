@@ -88,10 +88,6 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	res := ExecuteItf(lastAIResponse, args)
 	s.SetLastModifiedFiles(res.AffectedFiles)
 
-	if !res.Success {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: res.Summary}, false
-	}
-
 	// Mark that this session has applied changes
 	if len(res.Raw["Created"]) > 0 ||
 		len(res.Raw["Modified"]) > 0 ||
@@ -141,5 +137,9 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 		_ = s.LoadContext()
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: res.Summary}, res.Success
+	return CommandOutput{
+		Type:        types.MessagesUpdated,
+		Payload:     res.Summary,
+		IsFileApply: true,
+	}, res.Success
 }

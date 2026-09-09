@@ -6,7 +6,6 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/generation"
 	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -22,26 +21,28 @@ const (
 )
 
 type Session struct {
-	ID                 string
-	config             *config.Config
-	generator          *generation.Generator
-	historyManager     *history.Manager
-	messages           []types.Message
-	cancelGeneration   context.CancelFunc
-	title              string
-	titleGenerated     bool
-	historyFilename    string
-	createdAt          time.Time
-	mode               string
-	instruction        string
-	projectSourceCode  string
-	lastModifiedFiles  []string
-	hasAppliedChanges  bool
-	contextFiles       []string
-	contextDocuments   []string
-	startupPDFMessages []types.Message
-	contextLoadedAt    time.Time
-	isStreaming        bool
+	ID                string
+	config            *config.Config
+	generator         *generation.Generator
+	historyManager    *history.Manager
+	messages          []types.Message
+	cancelGeneration  context.CancelFunc
+	title             string
+	titleGenerated    bool
+	historyFilename   string
+	createdAt         time.Time
+	mode              string
+	instruction       string
+	projectSourceCode string
+	lastModifiedFiles []string
+	hasAppliedChanges bool
+	contextFiles      []string
+	contextDocuments  []string
+	documentMessages  []types.Message
+	cachedDocMessages map[string][]types.Message
+	docModTimes       map[string]time.Time
+	contextLoadedAt   time.Time
+	isStreaming       bool
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
@@ -86,11 +87,6 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 		cleanContextFiles = append(cleanContextFiles, p)
 	}
 
-	var startupPDFs []types.Message
-	if len(pdfFiles) > 0 {
-		startupPDFs, _ = pdf.RenderPDFs(pdfFiles)
-	}
-
 	var resolvedContextFiles []string
 	switch mode {
 	case ModeCoding:
@@ -116,20 +112,21 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	}
 
 	s := &Session{
-		ID:                 fmt.Sprintf("%d", time.Now().UnixNano()),
-		config:             &cfgCopy,
-		generator:          gen,
-		historyManager:     hist,
-		messages:           messages,
-		title:              "New Chat",
-		titleGenerated:     false,
-		createdAt:          time.Now(),
-		historyFilename:    "",
-		mode:               mode,
-		instruction:        instruction,
-		contextFiles:       resolvedContextFiles,
-		contextDocuments:   pdfFiles,
-		startupPDFMessages: startupPDFs,
+		ID:                fmt.Sprintf("%d", time.Now().UnixNano()),
+		config:            &cfgCopy,
+		generator:         gen,
+		historyManager:    hist,
+		messages:          messages,
+		title:             "New Chat",
+		titleGenerated:    false,
+		createdAt:         time.Now(),
+		historyFilename:   "",
+		mode:              mode,
+		instruction:       instruction,
+		contextFiles:      resolvedContextFiles,
+		contextDocuments:  AppendUnique([]string{}, pdfFiles),
+		cachedDocMessages: make(map[string][]types.Message),
+		docModTimes:       make(map[string]time.Time),
 	}
 
 	return s, nil
@@ -200,17 +197,36 @@ func (s *Session) SetContextDocuments(docs []string) {
 	s.contextDocuments = docs
 }
 
-func (s *Session) GetStartupPDFMessages() []types.Message {
-	return s.startupPDFMessages
+func (s *Session) GetDocumentPageCount(doc string) int {
+	doc = filepath.ToSlash(doc)
+	if msgs, ok := s.cachedDocMessages[doc]; ok {
+		return len(msgs)
+	}
+	return 0
 }
 
-func (s *Session) SetStartupPDFMessages(msgs []types.Message) {
-	s.startupPDFMessages = msgs
+func (s *Session) GetDocumentMessages() []types.Message {
+	return s.documentMessages
 }
 
 func (s *Session) SetContextFiles(files []string) {
 	s.contextFiles = files
 	s.contextLoadedAt = time.Time{}
+}
+
+func AppendUnique(original []string, newItems []string) []string {
+	seen := make(map[string]struct{}, len(original)+len(newItems))
+	for _, item := range original {
+		seen[item] = struct{}{}
+	}
+	result := append([]string{}, original...)
+	for _, item := range newItems {
+		if _, ok := seen[item]; !ok {
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func (s *Session) GetLastModifiedFiles() []string {

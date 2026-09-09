@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/utils"
@@ -14,7 +13,6 @@ import (
 
 func init() {
 	registerCommand("file", fileCmd, "add path to context", PathArgumentCompleter)
-	registerCommand("files", fileCmd, "add path to context", PathArgumentCompleter)
 }
 
 func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
@@ -52,11 +50,12 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	if len(paths) == 0 {
 		s.SetContextFiles([]string{})
 		s.SetContextDocuments([]string{})
+		s.ClearAllDocumentMessages()
 		if err := s.LoadContext(); err != nil {
 			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 		}
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared."}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared.", IsContext: true}, true
 	}
 
 	var files []string
@@ -93,19 +92,11 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 	files = codeFiles
 
-	var pdfRenderNotes []string
-	var pdfErrors []string
 	var addedDocs []string
 	for _, pdfPath := range pdfFiles {
-		pdfMsgs, err := pdf.RenderPDFToMessages(pdfPath, "")
-		if err != nil {
-			pdfErrors = append(pdfErrors, fmt.Sprintf("%s: %v", pdfPath, err))
-			continue
-		}
-		s.AddMessages(pdfMsgs...)
-		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", pdfPath, len(pdfMsgs)))
 		addedDocs = append(addedDocs, filepath.ToSlash(pdfPath))
 	}
+
 	if len(addedDocs) > 0 {
 		s.SetContextDocuments(AppendUnique(s.GetContextDocuments(), addedDocs))
 	}
@@ -124,6 +115,17 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
 	}
 
+	var pdfRenderNotes []string
+	var pdfErrors []string
+	for _, doc := range addedDocs {
+		pages := s.GetDocumentPageCount(doc)
+		if pages > 0 {
+			pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", doc, pages))
+			continue
+		}
+		pdfErrors = append(pdfErrors, fmt.Sprintf("%s (failed to render or 0 pages)", doc))
+	}
+
 	fileWord := "files"
 	if addedCount == 1 {
 		fileWord = "file"
@@ -139,5 +141,5 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		msg += fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: msg, IsContext: true}, true
 }

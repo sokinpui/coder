@@ -155,7 +155,8 @@ func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *g
 		return directoryWelcomeStyle.Width(viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()).Render(content)
 	case types.UserMessage:
 		return userInputStyle.Width(viewportWidth - userInputStyle.GetHorizontalFrameSize()).Render(content)
-	case types.CommandMessage, types.ShellCmdMessage:
+	case types.CommandMessage, types.ShellCmdMessage, types.ContextCmdMessage,
+		types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
 		prefix := ""
 		if msg.Type == types.ShellCmdMessage {
 			prefix = "Shell: "
@@ -175,9 +176,11 @@ func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *g
 			return content
 		}
 		return renderedAI
-	case types.CommandResultMessage, types.ShellCmdResultMessage:
+	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
+		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		return commandResultStyle.Width(viewportWidth - commandResultStyle.GetHorizontalFrameSize()).Render(content)
-	case types.CommandErrorResultMessage:
+	case types.CommandErrorResultMessage,
+		types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
 	default:
 		return ""

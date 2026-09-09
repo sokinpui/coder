@@ -12,12 +12,11 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/commands"
-	"github.com/sokinpui/coder/internal/pdf"
 	"github.com/sokinpui/coder/internal/rpc"
 	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/coder/internal/token"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (s *Server) handleInit(req rpc.Request) {
@@ -333,22 +332,16 @@ func (s *Server) handlePDFAdd(req rpc.Request) {
 		return
 	}
 
-	msgs, err := pdf.RenderPDFToMessages(params.Path, params.Pages)
-	if err != nil {
-		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to render PDF: %v", err))
+	docEntry := filepath.ToSlash(params.Path)
+	s.session.SetContextDocuments(commands.AppendUnique(s.session.GetContextDocuments(), []string{docEntry}))
+	if err := s.session.LoadContext(); err != nil {
+		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to load PDF document: %v", err))
 		return
 	}
-
-	s.session.AddMessages(msgs...)
-	docEntry := filepath.ToSlash(params.Path)
-	if params.Pages != "" {
-		docEntry = fmt.Sprintf("%s (pages: %s)", docEntry, params.Pages)
-	}
-	s.session.SetContextDocuments(commands.AppendUnique(s.session.GetContextDocuments(), []string{docEntry}))
 	_ = s.session.SaveConversation()
 	s.sendResult(req.ID, map[string]any{
 		"success":    true,
-		"pagesAdded": len(msgs),
+		"pagesAdded": s.session.GetDocumentPageCount(docEntry),
 		"tokenCount": token.CountTokens(s.session.GetPrompt()),
 	})
 }

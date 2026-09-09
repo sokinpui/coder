@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/history"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
+	"maps"
 	"os"
 	"strings"
 )
@@ -105,8 +106,9 @@ func (s *Session) Branch(endMessageIndex int) (*Session, error) {
 	}
 	newSess.title = fmt.Sprintf("branch of %s", s.title)
 	newSess.titleGenerated = true
-	newSess.startupPDFMessages = append([]types.Message{}, s.startupPDFMessages...)
 	newSess.contextDocuments = append([]string{}, s.contextDocuments...)
+	maps.Copy(newSess.cachedDocMessages, s.cachedDocMessages)
+	maps.Copy(newSess.docModTimes, s.docModTimes)
 
 	if err := newSess.LoadContext(); err != nil {
 		return nil, fmt.Errorf("failed to load context for branched session: %w", err)
