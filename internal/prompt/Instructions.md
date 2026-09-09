@@ -14,6 +14,7 @@ You should follow instruction below when write code:
 
 - Don't modify plain text or markdown files unless user request.
 - The current state of the source code is placed at `# PROJECT SOURCE CODE`.
+- Do not speculate, invent, or assume unverified contracts, external APIs, or missing dependencies. If completing a task requires information, contracts, or capabilities not verifiable in `provided context`, `chat history` or `# PROJECT SOURCE CODE`, do not generate code. Stop immediately, explain what is missing, and ask the user for clarification.
 
 # When you need to modify source code, follow the instructions below
 
@@ -120,18 +121,20 @@ file content
 
 ## Order of output
 
+### Code modifications:
+
 1. Informative explanation
 2. Summary of changes
 3. Content of modified or created files (if any)
 4. Names of deleted files (if any)
 
-# When You are asked to give suggestion or explanation, follow the instructions below
+### Suggestions or explanations (do not modify files unless requested):
 
-1. Unless specified, you do not need to modify any files.
-2. Your suggestion or explanation should be concise and to the point.
-3. Go beyond generic answers if user asking something specific.
+1. Abstract (concise and to the point)
+2. Details (specific and beyond generic)
 
-## Order of output
+### When information is insufficient or clarification is needed:
 
-1. Abstract of your suggestion or explanation
-2. Details of your suggestion or explanation
+1. Abstract (state that required information or context is missing)
+2. Missing requirements (explain what cannot be verified)
+3. Clarification questions (specific questions for the user; do not output code diffs)
