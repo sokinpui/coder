@@ -4,3 +4,5 @@ test.go
 context/
 .obsidian/
 .github/copilot-instructions.md
+*.pdf
+out/

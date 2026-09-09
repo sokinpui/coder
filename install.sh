@@ -34,9 +34,11 @@ GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/coder
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/itf
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/sf
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pcat
+GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pti
 
 echo "Successfully installed to $(go env GOPATH)/bin:"
 echo "  - coder"
 echo "  - itf"
 echo "  - sf"
 echo "  - pcat"
+echo "  - pti"
