@@ -45,22 +45,54 @@ type openAIResponse struct {
 	} `json:"choices"`
 }
 
+type responseStreamEvent struct {
+	Type  string `json:"type"`
+	Delta string `json:"delta,omitempty"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+type responseNonStreamResponse struct {
+	Output []struct {
+		Type    string `json:"type"`
+		Role    string `json:"role"`
+		Content []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"content"`
+	} `json:"output"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
 type Generator struct {
-	Config  config.Generation
-	BaseURL string
-	APIKey  string
+	Config   config.Generation
+	BaseURL  string
+	Protocol string
+	APIKey   string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
+	protocol := cfg.Server.Protocol
+	if protocol == "" {
+		protocol = "responses"
+	}
 	return &Generator{
-		Config:  cfg.Generation,
-		BaseURL: cfg.Server.URL,
-		APIKey:  cfg.Server.APIKey,
+		Config:   cfg.Generation,
+		BaseURL:  cfg.Server.URL,
+		Protocol: protocol,
+		APIKey:   cfg.Server.APIKey,
 	}, nil
 }
 
 func (g *Generator) getChatURL() string {
 	return strings.TrimSuffix(g.BaseURL, "/") + "/chat/completions"
+}
+
+func (g *Generator) getResponsesURL() string {
+	return strings.TrimSuffix(g.BaseURL, "/") + "/responses"
 }
 
 func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
@@ -71,6 +103,14 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		genConfig = *generationConfig
 	}
 
+	if strings.EqualFold(g.Protocol, "chat") {
+		g.generateChatTask(ctx, messages, streamChan, &genConfig)
+		return
+	}
+	g.generateResponsesTask(ctx, messages, streamChan, &genConfig)
+}
+
+func (g *Generator) generateChatTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var apiMessages []openAIMessage
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
@@ -171,50 +211,209 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		return
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
+	reader := bufio.NewReader(resp.Body)
+	for {
 		if ctx.Err() != nil {
 			return
 		}
 
-		line := scanner.Text()
-		if line == "" || !strings.HasPrefix(line, "data: ") {
-			continue
+		line, readErr := reader.ReadString('\n')
+		if len(line) > 0 {
+			line = strings.TrimRight(line, "\r\n")
+			if strings.HasPrefix(line, "data:") {
+				data := strings.TrimPrefix(line, "data:")
+				if strings.HasPrefix(data, " ") {
+					data = data[1:]
+				}
+				if strings.TrimSpace(data) == "[DONE]" {
+					break
+				}
+
+				var streamResp openAIStreamResponse
+				if err := json.Unmarshal([]byte(data), &streamResp); err == nil && len(streamResp.Choices) > 0 {
+					delta := streamResp.Choices[0].Delta
+					if delta.Content != "" || delta.ReasoningContent != "" {
+						select {
+						case <-ctx.Done():
+							return
+						case streamChan <- types.StreamChunk{
+							Content:          delta.Content,
+							ReasoningContent: delta.ReasoningContent,
+						}:
+						}
+					}
+				}
+			}
 		}
 
-		data := strings.TrimPrefix(line, "data: ")
-		if strings.TrimSpace(data) == "[DONE]" {
+		if readErr != nil {
+			if readErr != io.EOF && ctx.Err() == nil {
+				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
+			}
 			break
 		}
+	}
+}
 
-		var streamResp openAIStreamResponse
-		if err := json.Unmarshal([]byte(data), &streamResp); err != nil {
+func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+	var instructionsBuilder strings.Builder
+	var inputItems []openAIMessage
+
+	for _, msg := range messages {
+		if !msg.CanSendToAI() {
 			continue
 		}
 
-		if len(streamResp.Choices) == 0 {
-			continue
-		}
-
-		delta := streamResp.Choices[0].Delta
-		if delta.Content != "" || delta.ReasoningContent != "" {
-			select {
-			case <-ctx.Done():
-				return
-			case streamChan <- types.StreamChunk{
-				Content:          delta.Content,
-				ReasoningContent: delta.ReasoningContent,
-			}:
+		switch msg.Type {
+		case types.InstructionMessage, types.DirectoryMessage, types.SourceCodeMessage:
+			if instructionsBuilder.Len() > 0 {
+				instructionsBuilder.WriteString("\n\n")
 			}
+			instructionsBuilder.WriteString(msg.Content)
+
+		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage,
+			types.ContextCmdMessage, types.ContextCmdResultMessage,
+			types.FileApplyCmdMessage, types.FileApplyCmdResultMessage, types.FileApplyCmdErrorMessage,
+			types.FileApplyUndoCmdMessage, types.FileApplyUndoCmdResultMessage, types.FileApplyUndoCmdErrorMessage:
+			inputItems = append(inputItems, openAIMessage{
+				Role:    "user",
+				Content: msg.Content,
+			})
+
+		case types.AIMessage:
+			inputItems = append(inputItems, openAIMessage{
+				Role:    "assistant",
+				Content: msg.Content,
+			})
+
+		case types.ImageMessage:
+			if msg.Data == nil {
+				continue
+			}
+			b64 := base64.StdEncoding.EncodeToString(msg.Data)
+			mimeType := "image/png"
+			if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+				mimeType = "image/jpeg"
+			}
+			inputItems = append(inputItems, openAIMessage{
+				Role: "user",
+				Content: []openAIContentPart{
+					{
+						Type: "input_image",
+						ImageURL: &openAIImageURL{
+							URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+						},
+					},
+				},
+			})
 		}
 	}
 
-	if err := scanner.Err(); err != nil && ctx.Err() == nil {
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
+	body := map[string]any{
+		"model":        genConfig.ModelCode,
+		"stream":       true,
+		"store":        false,
+		"instructions": instructionsBuilder.String(),
+		"input":        inputItems,
+	}
+
+	if genConfig.ReasoningEffort != "" {
+		body["reasoning"] = map[string]any{
+			"effort": genConfig.ReasoningEffort,
+		}
+	}
+
+	jsonBody, _ := json.Marshal(body)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
+	if err != nil {
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
+		return
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if g.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+g.APIKey)
+	}
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		if ctx.Err() == context.Canceled {
+			return
+		}
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
+		return
+	}
+
+	reader := bufio.NewReader(resp.Body)
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+
+		line, readErr := reader.ReadString('\n')
+		if len(line) > 0 {
+			line = strings.TrimRight(line, "\r\n")
+			if strings.HasPrefix(line, "data:") {
+				raw := strings.TrimPrefix(line, "data:")
+				if strings.HasPrefix(raw, " ") {
+					raw = raw[1:]
+				}
+				trimmed := strings.TrimSpace(raw)
+				if trimmed == "[DONE]" {
+					break
+				}
+
+				var ev responseStreamEvent
+				if err := json.Unmarshal([]byte(trimmed), &ev); err == nil {
+					switch ev.Type {
+					case "response.output_text.delta":
+						if ev.Delta != "" {
+							select {
+							case <-ctx.Done():
+								return
+							case streamChan <- types.StreamChunk{Content: ev.Delta}:
+							}
+						}
+					case "response.reasoning_summary_text.delta", "response.reasoning_text.delta":
+						if ev.Delta != "" {
+							select {
+							case <-ctx.Done():
+								return
+							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
+							}
+						}
+					case "response.completed", "response.incomplete":
+						return
+					case "error", "response.failed":
+						errMsg := trimmed
+						if ev.Error != nil && ev.Error.Message != "" {
+							errMsg = ev.Error.Message
+						}
+						streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
+						return
+					}
+				}
+			}
+		}
+
+		if readErr != nil {
+			if readErr != io.EOF && ctx.Err() == nil {
+				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
+			}
+			break
+		}
 	}
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
+	if strings.EqualFold(g.Protocol, "chat") {
+		return g.generateChatTitle(ctx, prompt)
+	}
+	return g.generateResponsesTitle(ctx, prompt)
+}
+
+func (g *Generator) generateChatTitle(ctx context.Context, prompt string) (string, error) {
 	body := map[string]any{
 		"model":  g.Config.TitleModelCode,
 		"stream": false,
@@ -257,4 +456,56 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 	}
 
 	return strings.TrimSpace(openAIResp.Choices[0].Message.Content.(string)), nil
+}
+
+func (g *Generator) generateResponsesTitle(ctx context.Context, prompt string) (string, error) {
+	body := map[string]any{
+		"model":             g.Config.TitleModelCode,
+		"stream":            false,
+		"store":             false,
+		"instructions":      "You are an expert in summarizing conversations. Create a short, concise title (5-10 words) for the prompt. Do not add quotes or prefixes like 'Title:'.",
+		"input":             prompt,
+		"max_output_tokens": 256,
+		"temperature":       1.0,
+	}
+
+	jsonBody, _ := json.Marshal(body)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return "", err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if g.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+g.APIKey)
+	}
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errMsg, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("server error %d: %s", resp.StatusCode, string(errMsg))
+	}
+
+	var respObj responseNonStreamResponse
+	if err := json.NewDecoder(resp.Body).Decode(&respObj); err != nil {
+		return "", err
+	}
+
+	if respObj.Error != nil {
+		return "", fmt.Errorf("API error: %s", respObj.Error.Message)
+	}
+
+	for _, out := range respObj.Output {
+		for _, part := range out.Content {
+			if part.Type == "output_text" && strings.TrimSpace(part.Text) != "" {
+				return strings.Trim(strings.TrimSpace(part.Text), "\""), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("empty text output in responses title response")
 }

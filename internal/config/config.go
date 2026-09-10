@@ -23,8 +23,9 @@ type Clipboard struct {
 }
 
 type Server struct {
-	URL    string `mapstructure:"url"`
-	APIKey string `mapstructure:"-" yaml:"-"`
+	URL      string `mapstructure:"url"`
+	Protocol string `mapstructure:"protocol"`
+	APIKey   string `mapstructure:"-" yaml:"-"`
 }
 
 type Generation struct {
@@ -82,7 +83,8 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Server: Server{
-			URL: "http://localhost:9001/v1",
+			URL:      "http://localhost:9001/v1",
+			Protocol: "responses",
 		},
 		Generation: Generation{
 			ModelCode:       "aisrp/gemini-3-flash-preview",

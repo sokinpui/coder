@@ -97,7 +97,8 @@ To use `coder` with your preferred provider, update your `config.yaml`:
 
 ```yaml
 server:
-  url: http://localhost:9001/v1 # Base URL of the OpenAI-compatible provider
+  url: http://localhost:9001/v1   # Base URL of the OpenAI-compatible provider
+  protocol: responses             # Protocol: "responses" (default, /v1/responses) or "chat" (/v1/chat/completions)
 
 generation:
   modelcode: gemini-3-flash-preview # The model ID used for chat
