@@ -100,14 +100,17 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	currentMessages := append([]types.Message(nil), messages...)
-	const maxToolIterations = 5
+	maxIterations := genConfig.MaxToolIterations
+	if maxIterations <= 0 {
+		maxIterations = 20
+	}
 
-	for range maxToolIterations {
+	for range maxIterations {
 		if ctx.Err() != nil {
 			return
 		}
 
-		toolCalls, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig)
+		toolCalls, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, true)
 		if hasError || ctx.Err() != nil || len(toolCalls) == 0 {
 			return
 		}
@@ -146,9 +149,15 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 			)
 		}
 	}
+
+	if ctx.Err() != nil {
+		return
+	}
+
+	_, _ = g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
 }
 
-func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) ([]types.ToolCallInfo, bool) {
+func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation, enableTools bool) ([]types.ToolCallInfo, bool) {
 	var instructionsBuilder strings.Builder
 	var inputItems []any
 
@@ -234,10 +243,12 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		"input":        inputItems,
 	}
 
-	toolDecls := tools.DefaultRegistry.Declarations()
-	if len(toolDecls) > 0 {
-		body["tools"] = toolDecls
-		body["tool_choice"] = "auto"
+	if enableTools {
+		toolDecls := tools.DefaultRegistry.Declarations()
+		if len(toolDecls) > 0 {
+			body["tools"] = toolDecls
+			body["tool_choice"] = "auto"
+		}
 	}
 
 	if genConfig.ReasoningEffort != "" {

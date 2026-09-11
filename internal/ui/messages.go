@@ -206,10 +206,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		messages := targetSess.GetMessages()
 		if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 			targetSess.DeleteMessages([]int{len(messages) - 1})
-			if m.Session != nil && targetSess.ID == m.Session.ID {
-				m.Chat.Viewport.SetContent(m.renderConversation())
-				m.Chat.Viewport.GotoBottom()
-			}
 		}
 
 		isActive := m.Session != nil && targetSess.ID == m.Session.ID
@@ -642,6 +638,11 @@ func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool)
 	messages := m.Session.GetMessages()
 	lastIdx := len(messages) - 1
 	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
+		wasAtBottom := m.Chat.Viewport.AtBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		if wasAtBottom {
+			m.Chat.Viewport.GotoBottom()
+		}
 		return m, nil, false
 	}
 
