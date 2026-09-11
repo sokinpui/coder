@@ -234,13 +234,13 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		}
 	}
 
-	if !enableTools {
-		inputItems = append(inputItems, map[string]any{
-			"type":    "message",
-			"role":    "user",
-			"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
-		})
-	}
+	// if !enableTools {
+	// 	inputItems = append(inputItems, map[string]any{
+	// 		"type":    "message",
+	// 		"role":    "user",
+	// 		"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
+	// 	})
+	// }
 
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
