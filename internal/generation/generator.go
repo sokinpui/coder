@@ -16,11 +16,6 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-type openAIMessage struct {
-	Role    string `json:"role"`
-	Content any    `json:"content"`
-}
-
 type openAIImageURL struct {
 	URL string `json:"url"`
 }
