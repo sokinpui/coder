@@ -105,7 +105,11 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 			return
 		}
 
-		toolCalls, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, true)
+		// disable tools call until we introduce agent mode, but we don't have any plan for this
+		toolCalls, turnText, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
+		if turnText != "" {
+			currentMessages = append(currentMessages, types.Message{Type: types.AIMessage, Content: turnText})
+		}
 		if hasError || ctx.Err() != nil || len(toolCalls) == 0 {
 			return
 		}
@@ -149,10 +153,10 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 		return
 	}
 
-	_, _ = g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
+	_, _, _ = g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
 }
 
-func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation, enableTools bool) ([]types.ToolCallInfo, bool) {
+func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation, enableTools bool) ([]types.ToolCallInfo, string, bool) {
 	var instructionsBuilder strings.Builder
 	var inputItems []any
 
@@ -230,6 +234,14 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		}
 	}
 
+	if !enableTools {
+		inputItems = append(inputItems, map[string]any{
+			"type":    "message",
+			"role":    "user",
+			"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
+		})
+	}
+
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
 		"stream":       true,
@@ -238,11 +250,13 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		"input":        inputItems,
 	}
 
-	if enableTools {
-		toolDecls := tools.DefaultRegistry.Declarations()
-		if len(toolDecls) > 0 {
-			body["tools"] = toolDecls
+	toolDecls := tools.DefaultRegistry.Declarations()
+	if len(toolDecls) > 0 {
+		body["tools"] = toolDecls
+		if enableTools {
 			body["tool_choice"] = "auto"
+		} else {
+			body["tool_choice"] = "none"
 		}
 	}
 
@@ -257,7 +271,7 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
-		return nil, true
+		return nil, "", true
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -268,26 +282,27 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
-			return nil, false
+			return nil, "", false
 		}
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
-		return nil, true
+		return nil, "", true
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errBytes, _ := io.ReadAll(resp.Body)
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned status %d: %s", resp.StatusCode, string(errBytes))}
-		return nil, true
+		return nil, "", true
 	}
 
 	var toolCalls []types.ToolCallInfo
 	var currentToolCall *types.ToolCallInfo
+	var textBuilder strings.Builder
 
 	reader := bufio.NewReader(resp.Body)
 	for {
 		if ctx.Err() != nil {
-			return nil, false
+			return nil, textBuilder.String(), false
 		}
 
 		line, readErr := reader.ReadString('\n')
@@ -308,9 +323,10 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 					switch ev.Type {
 					case "response.output_text.delta":
 						if ev.Delta != "" {
+							textBuilder.WriteString(ev.Delta)
 							select {
 							case <-ctx.Done():
-								return nil, false
+								return nil, textBuilder.String(), false
 							case streamChan <- types.StreamChunk{Content: ev.Delta}:
 							}
 						}
@@ -318,7 +334,7 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 						if ev.Delta != "" {
 							select {
 							case <-ctx.Done():
-								return nil, false
+								return nil, textBuilder.String(), false
 							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
 							}
 						}
@@ -374,16 +390,16 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 								}
 							}
 						}
-						return toolCalls, false
+						return toolCalls, textBuilder.String(), false
 					case "response.incomplete":
-						return toolCalls, false
+						return toolCalls, textBuilder.String(), false
 					case "error", "response.failed":
 						errMsg := trimmed
 						if ev.Error != nil && ev.Error.Message != "" {
 							errMsg = ev.Error.Message
 						}
 						streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
-						return nil, true
+						return nil, textBuilder.String(), true
 					}
 				}
 			}
@@ -392,7 +408,7 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		if readErr != nil {
 			if readErr != io.EOF && ctx.Err() == nil {
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
-				return nil, true
+				return nil, textBuilder.String(), true
 			}
 			break
 		}
@@ -402,7 +418,7 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		toolCalls = append(toolCalls, *currentToolCall)
 	}
 
-	return toolCalls, false
+	return toolCalls, textBuilder.String(), false
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {

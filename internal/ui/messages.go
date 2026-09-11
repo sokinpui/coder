@@ -229,12 +229,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			cmds = append(cmds, m.updateTokenCountCmd())
 		}
 
-		if newModel, cmd, handled := m.finalizeAIMessageRender(msg.sessID); handled {
-			cmds = append(cmds, cmd)
-			return newModel, tea.Batch(cmds...), true
+		newModel, renderCmd := m.finalizeAIMessageRender(msg.sessID)
+		if renderCmd != nil {
+			cmds = append(cmds, renderCmd)
 		}
-
-		return m, tea.Batch(cmds...), true
+		return newModel, tea.Batch(cmds...), true
 
 	case editorFinishedMsg:
 		if msg.err != nil {
@@ -629,10 +628,10 @@ func (m Model) renderLastAIMessage(sessID string) (tea.Model, tea.Cmd, bool) {
 	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme), true
 }
 
-func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool) {
+func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
 	if m.Chat.IsAIRendering {
 		m.Chat.PendingAIRender = true
-		return m, nil, true
+		return m, nil
 	}
 
 	messages := m.Session.GetMessages()
@@ -643,7 +642,7 @@ func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool)
 		if wasAtBottom {
 			m.Chat.Viewport.GotoBottom()
 		}
-		return m, nil, false
+		return m, nil
 	}
 
 	cache, ok := m.Chat.RenderCache[lastIdx]
@@ -653,7 +652,7 @@ func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool)
 		m.Chat.PendingAIRender = false
 		viewportWidth := max(10, m.Chat.Viewport.Width)
 		theme := m.Session.GetConfig().UI.MarkdownTheme
-		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme), true
+		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme)
 	}
 
 	wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -661,5 +660,5 @@ func (m Model) finalizeAIMessageRender(sessID string) (tea.Model, tea.Cmd, bool)
 	if wasAtBottom {
 		m.Chat.Viewport.GotoBottom()
 	}
-	return m, nil, false
+	return m, nil
 }

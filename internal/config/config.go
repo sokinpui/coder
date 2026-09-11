@@ -89,7 +89,7 @@ func DefaultConfig() Config {
 			ModelCode:         "aisrp/gemini-3-flash-preview",
 			TitleModelCode:    "aisrp/gemini-flash-lite-latest",
 			ReasoningEffort:   "high",
-			MaxToolIterations: 5,
+			MaxToolIterations: 20,
 		},
 		Context: Context{
 			Dirs:       []string{"."},
