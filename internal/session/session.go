@@ -165,7 +165,6 @@ func (s *Session) ReloadConfig() error {
 	s.config = cfg
 	s.generator.Config = cfg.Generation
 	s.generator.BaseURL = cfg.Server.URL
-	s.generator.Protocol = cfg.Server.Protocol
 	s.generator.APIKey = cfg.Server.APIKey
 	return nil
 }
