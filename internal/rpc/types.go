@@ -2,6 +2,8 @@ package rpc
 
 import "encoding/json"
 
+import "github.com/sokinpui/coder/internal/types"
+
 type Request struct {
 	JSONRPC string           `json:"jsonrpc"`
 	ID      *json.RawMessage `json:"id,omitempty"`
@@ -57,9 +59,11 @@ type ApplyItfParams struct {
 
 // Stream Notification Params
 type StreamChunkNotification struct {
-	Content          string `json:"content,omitempty"`
-	ReasoningContent string `json:"reasoningContent,omitempty"`
-	Done             bool   `json:"done"`
-	Error            string `json:"error,omitempty"`
-	TokenCount       int    `json:"tokenCount,omitempty"`
+	Content          string                `json:"content,omitempty"`
+	ReasoningContent string                `json:"reasoningContent,omitempty"`
+	ToolCall         *types.ToolCallInfo   `json:"toolCall,omitempty"`
+	ToolResult       *types.ToolResultInfo `json:"toolResult,omitempty"`
+	Done             bool                  `json:"done"`
+	Error            string                `json:"error,omitempty"`
+	TokenCount       int                   `json:"tokenCount,omitempty"`
 }

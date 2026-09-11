@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/tools"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -31,8 +32,25 @@ type openAIContentPart struct {
 }
 
 type responseStreamEvent struct {
-	Type  string `json:"type"`
-	Delta string `json:"delta,omitempty"`
+	Type      string `json:"type"`
+	Delta     string `json:"delta,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
+	Item      *struct {
+		Type      string `json:"type"`
+		ID        string `json:"id"`
+		CallID    string `json:"call_id"`
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"item,omitempty"`
+	Response *struct {
+		Output []struct {
+			Type      string `json:"type"`
+			ID        string `json:"id"`
+			CallID    string `json:"call_id"`
+			Name      string `json:"name"`
+			Arguments string `json:"arguments"`
+		} `json:"output"`
+	} `json:"response,omitempty"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -53,16 +71,16 @@ type responseNonStreamResponse struct {
 }
 
 type Generator struct {
-	Config   config.Generation
-	BaseURL  string
-	APIKey   string
+	Config  config.Generation
+	BaseURL string
+	APIKey  string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
 	return &Generator{
-		Config:   cfg.Generation,
-		BaseURL:  cfg.Server.URL,
-		APIKey:   cfg.Server.APIKey,
+		Config:  cfg.Generation,
+		BaseURL: cfg.Server.URL,
+		APIKey:  cfg.Server.APIKey,
 	}, nil
 }
 
@@ -81,8 +99,58 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 }
 
 func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+	currentMessages := append([]types.Message(nil), messages...)
+	const maxToolIterations = 5
+
+	for range maxToolIterations {
+		if ctx.Err() != nil {
+			return
+		}
+
+		toolCalls, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig)
+		if hasError || ctx.Err() != nil || len(toolCalls) == 0 {
+			return
+		}
+
+		for _, tc := range toolCalls {
+			if ctx.Err() != nil {
+				return
+			}
+
+			streamChan <- types.StreamChunk{ToolCall: &tc}
+			output, err := tools.DefaultRegistry.Execute(ctx, tc.Name, tc.Arguments)
+			if err != nil {
+				output = fmt.Sprintf("Error: %v", err)
+			}
+
+			resInfo := types.ToolResultInfo{
+				CallID: tc.CallID,
+				Name:   tc.Name,
+				Output: output,
+			}
+			streamChan <- types.StreamChunk{ToolResult: &resInfo}
+
+			currentMessages = append(currentMessages,
+				types.Message{
+					Type:     types.ToolCallMessage,
+					CallID:   tc.CallID,
+					ToolName: tc.Name,
+					Content:  tc.Arguments,
+				},
+				types.Message{
+					Type:     types.ToolCallResultMessage,
+					CallID:   tc.CallID,
+					ToolName: tc.Name,
+					Content:  output,
+				},
+			)
+		}
+	}
+}
+
+func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) ([]types.ToolCallInfo, bool) {
 	var instructionsBuilder strings.Builder
-	var inputItems []openAIMessage
+	var inputItems []any
 
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
@@ -100,15 +168,38 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 			types.ContextCmdMessage, types.ContextCmdResultMessage,
 			types.FileApplyCmdMessage, types.FileApplyCmdResultMessage, types.FileApplyCmdErrorMessage,
 			types.FileApplyUndoCmdMessage, types.FileApplyUndoCmdResultMessage, types.FileApplyUndoCmdErrorMessage:
-			inputItems = append(inputItems, openAIMessage{
-				Role:    "user",
-				Content: msg.Content,
+			inputItems = append(inputItems, map[string]any{
+				"type":    "message",
+				"role":    "user",
+				"content": msg.Content,
 			})
 
 		case types.AIMessage:
-			inputItems = append(inputItems, openAIMessage{
-				Role:    "assistant",
-				Content: msg.Content,
+			if msg.Content != "" {
+				inputItems = append(inputItems, map[string]any{
+					"type":    "message",
+					"role":    "assistant",
+					"content": msg.Content,
+				})
+			}
+
+		case types.ToolCallMessage:
+			callID := msg.CallID
+			if callID == "" {
+				callID = "call_fallback"
+			}
+			inputItems = append(inputItems, map[string]any{
+				"type":      "function_call",
+				"call_id":   callID,
+				"name":      msg.ToolName,
+				"arguments": msg.Content,
+			})
+
+		case types.ToolCallResultMessage:
+			inputItems = append(inputItems, map[string]any{
+				"type":    "function_call_output",
+				"call_id": msg.CallID,
+				"output":  msg.Content,
 			})
 
 		case types.ImageMessage:
@@ -120,9 +211,10 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 			if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
 				mimeType = "image/jpeg"
 			}
-			inputItems = append(inputItems, openAIMessage{
-				Role: "user",
-				Content: []openAIContentPart{
+			inputItems = append(inputItems, map[string]any{
+				"type": "message",
+				"role": "user",
+				"content": []openAIContentPart{
 					{
 						Type: "input_image",
 						ImageURL: &openAIImageURL{
@@ -142,6 +234,12 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 		"input":        inputItems,
 	}
 
+	toolDecls := tools.DefaultRegistry.Declarations()
+	if len(toolDecls) > 0 {
+		body["tools"] = toolDecls
+		body["tool_choice"] = "auto"
+	}
+
 	if genConfig.ReasoningEffort != "" {
 		body["reasoning"] = map[string]any{
 			"effort": genConfig.ReasoningEffort,
@@ -153,7 +251,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
-		return
+		return nil, true
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -164,23 +262,33 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
-			return
+			return nil, false
 		}
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
-		return
+		return nil, true
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errBytes, _ := io.ReadAll(resp.Body)
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned status %d: %s", resp.StatusCode, string(errBytes))}
+		return nil, true
+	}
+
+	var toolCalls []types.ToolCallInfo
+	var currentToolCall *types.ToolCallInfo
 
 	reader := bufio.NewReader(resp.Body)
 	for {
 		if ctx.Err() != nil {
-			return
+			return nil, false
 		}
 
 		line, readErr := reader.ReadString('\n')
 		if len(line) > 0 {
 			line = strings.TrimRight(line, "\r\n")
-			if strings.HasPrefix(line, "data:") {
-				raw := strings.TrimPrefix(line, "data:")
+			if after, ok := strings.CutPrefix(line, "data:"); ok {
+				raw := after
 				if strings.HasPrefix(raw, " ") {
 					raw = raw[1:]
 				}
@@ -196,7 +304,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 						if ev.Delta != "" {
 							select {
 							case <-ctx.Done():
-								return
+								return nil, false
 							case streamChan <- types.StreamChunk{Content: ev.Delta}:
 							}
 						}
@@ -204,19 +312,72 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 						if ev.Delta != "" {
 							select {
 							case <-ctx.Done():
-								return
+								return nil, false
 							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
 							}
 						}
-					case "response.completed", "response.incomplete":
-						return
+					case "response.output_item.added":
+						if ev.Item != nil && ev.Item.Type == "function_call" {
+							currentToolCall = &types.ToolCallInfo{
+								CallID:    ev.Item.CallID,
+								Name:      ev.Item.Name,
+								Arguments: ev.Item.Arguments,
+							}
+							if currentToolCall.CallID == "" {
+								currentToolCall.CallID = ev.Item.ID
+							}
+						}
+					case "response.function_call_arguments.delta":
+						if currentToolCall != nil {
+							currentToolCall.Arguments += ev.Delta
+						}
+					case "response.function_call_arguments.done":
+						if currentToolCall != nil && ev.Arguments != "" {
+							currentToolCall.Arguments = ev.Arguments
+						}
+					case "response.output_item.done":
+						if ev.Item != nil && ev.Item.Type == "function_call" {
+							cid := ev.Item.CallID
+							if cid == "" {
+								cid = ev.Item.ID
+							}
+							args := ev.Item.Arguments
+							if args == "" && currentToolCall != nil {
+								args = currentToolCall.Arguments
+							}
+							toolCalls = append(toolCalls, types.ToolCallInfo{
+								CallID:    cid,
+								Name:      ev.Item.Name,
+								Arguments: args,
+							})
+							currentToolCall = nil
+						}
+					case "response.completed":
+						if len(toolCalls) == 0 && ev.Response != nil {
+							for _, out := range ev.Response.Output {
+								if out.Type == "function_call" {
+									cid := out.CallID
+									if cid == "" {
+										cid = out.ID
+									}
+									toolCalls = append(toolCalls, types.ToolCallInfo{
+										CallID:    cid,
+										Name:      out.Name,
+										Arguments: out.Arguments,
+									})
+								}
+							}
+						}
+						return toolCalls, false
+					case "response.incomplete":
+						return toolCalls, false
 					case "error", "response.failed":
 						errMsg := trimmed
 						if ev.Error != nil && ev.Error.Message != "" {
 							errMsg = ev.Error.Message
 						}
 						streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
-						return
+						return nil, true
 					}
 				}
 			}
@@ -225,10 +386,17 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 		if readErr != nil {
 			if readErr != io.EOF && ctx.Err() == nil {
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
+				return nil, true
 			}
 			break
 		}
 	}
+
+	if len(toolCalls) == 0 && currentToolCall != nil {
+		toolCalls = append(toolCalls, *currentToolCall)
+	}
+
+	return toolCalls, false
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {

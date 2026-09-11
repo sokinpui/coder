@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 
@@ -71,6 +72,25 @@ func (m *QuickViewModel) renderContent() string {
 			types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
 			renderedMsg = commandErrorStyle.Width(blockWidth).Render(msg.Content)
+		case types.ToolCallMessage:
+			header := "Tool Call"
+			if msg.ToolName != "" {
+				header = fmt.Sprintf("Tool Call: %s", msg.ToolName)
+			}
+			display := header
+			if strings.TrimSpace(msg.Content) != "" {
+				display = fmt.Sprintf("%s\n%s", header, msg.Content)
+			}
+			blockWidth := m.Viewport.Width - toolCallStyle.GetHorizontalFrameSize()
+			renderedMsg = toolCallStyle.Width(blockWidth).Render(display)
+		case types.ToolCallResultMessage:
+			header := "Tool Result"
+			if msg.ToolName != "" {
+				header = fmt.Sprintf("Tool Result [%s]", msg.ToolName)
+			}
+			display := fmt.Sprintf("%s:\n%s", header, msg.Content)
+			blockWidth := m.Viewport.Width - toolCallResultStyle.GetHorizontalFrameSize()
+			renderedMsg = toolCallResultStyle.Width(blockWidth).Render(display)
 		default:
 			continue
 		}

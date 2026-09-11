@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -182,6 +183,23 @@ func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *g
 	case types.CommandErrorResultMessage,
 		types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
+	case types.ToolCallMessage:
+		header := "Tool Call"
+		if msg.ToolName != "" {
+			header = fmt.Sprintf("Tool Call: %s", msg.ToolName)
+		}
+		display := header
+		if strings.TrimSpace(content) != "" {
+			display = fmt.Sprintf("%s\n%s", header, content)
+		}
+		return toolCallStyle.Width(viewportWidth - toolCallStyle.GetHorizontalFrameSize()).Render(display)
+	case types.ToolCallResultMessage:
+		header := "Tool Result"
+		if msg.ToolName != "" {
+			header = fmt.Sprintf("Tool Result [%s]", msg.ToolName)
+		}
+		display := fmt.Sprintf("%s:\n%s", header, content)
+		return toolCallResultStyle.Width(viewportWidth - toolCallResultStyle.GetHorizontalFrameSize()).Render(display)
 	default:
 		return ""
 	}

@@ -343,6 +343,12 @@ func runSingleShot(args []string) {
 
 	hasError := false
 	for chunk := range streamChan {
+		if chunk.ToolCall != nil {
+			fmt.Printf("\n[Tool Call: %s(%s)]\n", chunk.ToolCall.Name, chunk.ToolCall.Arguments)
+		}
+		if chunk.ToolResult != nil {
+			fmt.Printf("[Tool Result: %s]\n", chunk.ToolResult.Output)
+		}
 		if strings.HasPrefix(chunk.Content, "Error:") {
 			fmt.Fprintf(os.Stderr, "\n%s\n", chunk.Content)
 			hasError = true

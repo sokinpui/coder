@@ -56,10 +56,12 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			lastMsg := messages[len(messages)-1]
 			if lastMsg.Type == types.AIMessage && strings.TrimSpace(lastMsg.Content) != "" {
 				m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: "Generation cancelled."})
-			} else {
+			} else if lastMsg.Type == types.AIMessage {
 				lastMsg.Content = "Generation cancelled."
 				lastMsg.Type = types.CommandResultMessage
 				m.Session.ReplaceLastMessage(lastMsg)
+			} else {
+				m.Session.AddMessages(types.Message{Type: types.CommandResultMessage, Content: "Generation cancelled."})
 			}
 		}
 

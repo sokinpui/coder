@@ -245,9 +245,7 @@ func Convert(docPath string, opts Options) (*Result, error) {
 
 	var wg sync.WaitGroup
 	for w := 1; w < workerCount; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			inst, err := pool.GetInstance(time.Second * 30)
 			if err != nil {
@@ -268,7 +266,7 @@ func Convert(docPath string, opts Options) (*Result, error) {
 			})
 
 			runWorker(inst, openedDoc)
-		}()
+		})
 	}
 
 	runWorker(instance, doc)

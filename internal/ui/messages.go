@@ -104,6 +104,38 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.chunk.ReasoningContent != "" && isActive && m.State != stateGenerating {
 			m.State = stateThinking
 		}
+
+		if msg.chunk.ToolCall != nil {
+			messages := targetSess.GetMessages()
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
+				targetSess.DeleteMessages([]int{len(messages) - 1})
+			}
+			targetSess.AddMessages(types.Message{
+				Type:     types.ToolCallMessage,
+				CallID:   msg.chunk.ToolCall.CallID,
+				ToolName: msg.chunk.ToolCall.Name,
+				Content:  msg.chunk.ToolCall.Arguments,
+			})
+			if isActive {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
+		}
+
+		if msg.chunk.ToolResult != nil {
+			targetSess.AddMessages(types.Message{
+				Type:     types.ToolCallResultMessage,
+				CallID:   msg.chunk.ToolResult.CallID,
+				ToolName: msg.chunk.ToolResult.Name,
+				Content:  msg.chunk.ToolResult.Output,
+			})
+			targetSess.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
+			if isActive {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
+		}
+
 		var renderCmd tea.Cmd
 		if msg.chunk.Content != "" {
 			if isActive && m.State != stateGenerating {
@@ -170,6 +202,15 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 		targetSess.SetStreaming(false)
+
+		messages := targetSess.GetMessages()
+		if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
+			targetSess.DeleteMessages([]int{len(messages) - 1})
+			if m.Session != nil && targetSess.ID == m.Session.ID {
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+			}
+		}
 
 		isActive := m.Session != nil && targetSess.ID == m.Session.ID
 		if !isActive {
