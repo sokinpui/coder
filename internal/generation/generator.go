@@ -105,8 +105,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 			return
 		}
 
-		// disable tools call until we introduce agent mode, but we don't have any plan for this
-		toolCalls, turnText, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
+		toolCalls, turnText, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, genConfig.EnableTools)
 		if turnText != "" {
 			currentMessages = append(currentMessages, types.Message{Type: types.AIMessage, Content: turnText})
 		}
@@ -234,13 +233,13 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		}
 	}
 
-	// if !enableTools {
-	// 	inputItems = append(inputItems, map[string]any{
-	// 		"type":    "message",
-	// 		"role":    "user",
-	// 		"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
-	// 	})
-	// }
+	if genConfig.EnableTools && !enableTools {
+		inputItems = append(inputItems, map[string]any{
+			"type":    "message",
+			"role":    "user",
+			"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
+		})
+	}
 
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
@@ -250,13 +249,15 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		"input":        inputItems,
 	}
 
-	toolDecls := tools.DefaultRegistry.Declarations()
-	if len(toolDecls) > 0 {
-		body["tools"] = toolDecls
-		if enableTools {
-			body["tool_choice"] = "auto"
-		} else {
-			body["tool_choice"] = "none"
+	if genConfig.EnableTools {
+		toolDecls := tools.DefaultRegistry.Declarations()
+		if len(toolDecls) > 0 {
+			body["tools"] = toolDecls
+			if enableTools {
+				body["tool_choice"] = "auto"
+			} else {
+				body["tool_choice"] = "none"
+			}
 		}
 	}
 

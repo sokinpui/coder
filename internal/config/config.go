@@ -32,6 +32,7 @@ type Generation struct {
 	TitleModelCode    string `mapstructure:"titlemodelcode"`
 	ReasoningEffort   string `mapstructure:"reasoningeffort"`
 	MaxToolIterations int    `mapstructure:"maxtooliterations"`
+	EnableTools       bool   `mapstructure:"enabletools"`
 }
 
 type UI struct {
@@ -90,6 +91,7 @@ func DefaultConfig() Config {
 			TitleModelCode:    "aisrp/gemini-flash-lite-latest",
 			ReasoningEffort:   "high",
 			MaxToolIterations: 20,
+			EnableTools:       false,
 		},
 		Context: Context{
 			Dirs:       []string{"."},
