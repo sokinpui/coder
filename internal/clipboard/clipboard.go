@@ -1,4 +1,4 @@
-package utils
+package clipboard
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/sokinpui/coder/internal/project"
 )
 
 func Copy(content, customCmd string) error {
@@ -30,7 +31,7 @@ func Copy(content, customCmd string) error {
 func CopyImage(imagePath string, data []byte) error {
 	absPath := imagePath
 	if absPath != "" && !filepath.IsAbs(absPath) {
-		absPath = filepath.Join(GetProjectRoot(), absPath)
+		absPath = filepath.Join(project.Root(), absPath)
 	}
 
 	if absPath != "" {

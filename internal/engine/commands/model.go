@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"slices"
+	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
@@ -19,13 +19,13 @@ func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
-		return CommandOutput{Type: types.PickerModeStarted, Payload: ""}, true
+		msg := fmt.Sprintf("Current model: %s", cfg.Generation.ModelCode)
+		if len(cfg.AvailableModels) > 0 {
+			msg += fmt.Sprintf("\nAvailable models: %s", strings.Join(cfg.AvailableModels, ", "))
+		}
+		return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, true
 	}
 
-	if len(cfg.AvailableModels) == 0 || slices.Contains(cfg.AvailableModels, args) {
-		s.SetModel(args)
-		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
-	}
-
-	return CommandOutput{Type: types.PickerModeStarted, Payload: args}, true
+	s.SetModel(args)
+	return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Switched model to: %s", args)}, true
 }

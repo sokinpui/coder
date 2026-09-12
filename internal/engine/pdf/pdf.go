@@ -5,13 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/coder/pkg/pti"
 )
 
 func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, error) {
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	imagesBaseDir := filepath.Join(repoRoot, ".coder", "images")
 	if err := os.MkdirAll(imagesBaseDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create images directory: %w", err)

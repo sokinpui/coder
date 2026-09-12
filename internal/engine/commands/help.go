@@ -120,5 +120,5 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 		}
 	}
 
-	return CommandOutput{Type: types.HelpViewerStarted, Payload: strings.TrimSpace(b.String())}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: strings.TrimSpace(b.String())}, true
 }

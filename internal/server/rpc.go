@@ -1,8 +1,10 @@
-package rpc
+package server
 
-import "encoding/json"
+import (
+	"encoding/json"
 
-import "github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/types"
+)
 
 type Request struct {
 	JSONRPC string           `json:"jsonrpc"`
@@ -29,7 +31,6 @@ type Notification struct {
 	Params  any    `json:"params"`
 }
 
-// Session parameters
 type InitParams struct {
 	Mode         string   `json:"mode,omitempty"`
 	Instruction  string   `json:"instruction,omitempty"`
@@ -57,7 +58,6 @@ type ApplyItfParams struct {
 	Args    string `json:"args,omitempty"`
 }
 
-// Stream Notification Params
 type StreamChunkNotification struct {
 	Content          string                `json:"content,omitempty"`
 	ReasoningContent string                `json:"reasoningContent,omitempty"`

@@ -6,9 +6,10 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
@@ -28,50 +29,6 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.GenerationStarted:
 		return m.startGeneration(event)
 
-	case types.AtomicMsgModeStarted,
-		types.GenerateModeStarted,
-		types.EditModeStarted,
-		types.BranchModeStarted:
-		return m.openAtomicMsgMode()
-	case types.PickerModeStarted:
-		query, _ := event.Data.(string)
-		return m.openModelSelector(query)
-	case types.ExcludePickerStarted:
-		files := m.Session.GetContextFiles()
-		if len(files) == 0 {
-			m.StatusBarMessage = "No project source files in context."
-			return m, clearStatusBarCmd()
-		}
-		return m.openFileListSelector("── Exclude Files ──", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
-			cmdStr := "/exclude " + strings.Join(selected, " ")
-			ev := mod.Session.HandleInput(cmdStr)
-			return mod.handleEvent(ev)
-		})
-	case types.HistoryModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.openHistorySelector(0)
-	case types.ActiveModeStarted:
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m.openHistorySelector(1)
-	case types.HelpViewerStarted, types.ConfigViewerStarted, types.ListViewerStarted:
-		cmdName := "/help"
-		switch event.Type {
-		case types.ConfigViewerStarted:
-			cmdName = "/config"
-		case types.ListViewerStarted:
-			cmdName = "/list"
-		}
-		m.QuickView.SetMessages([]types.Message{
-			{Type: types.CommandMessage, Content: cmdName},
-			{Type: types.CommandResultMessage, Content: event.Data.(string)},
-		})
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.ActiveOverlay = overlayQuickView
-		m.Chat.TextArea.Blur()
-		return m, m.updateTokenCountCmd()
 	case types.TermExecutionStarted:
 		cmdStr, _ := event.Data.(string)
 		m.ActiveOverlay = overlayNone
@@ -101,8 +58,8 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Session = newSess
 	m.ClearCache()
 	m.addActiveSession(newSess)
-	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
-	dirMsg := utils.GetDirInfoContent()
+	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
+	dirMsg := project.DirInfo()
 	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 
 	m.State = stateIdle
@@ -153,6 +110,11 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	m.Chat.ShowPalette = false
+
+	if model, cmd, handled := m.handleUICommand(input); handled {
+		return model, cmd
+	}
+
 	event := m.Session.HandleInput(input)
 
 	shouldPreserve := m.Chat.PreserveInputOnSubmit
@@ -172,6 +134,74 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	return model, cmd
+}
+
+func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
+	trimmed := strings.TrimSpace(strings.TrimPrefix(input, "/"))
+	parts := strings.Fields(trimmed)
+	if len(parts) == 0 {
+		return m, nil, false
+	}
+
+	cmdName := parts[0]
+	args := strings.Join(parts[1:], " ")
+
+	switch cmdName {
+	case "msg", "cards", "gen", "edit", "branch":
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.openAtomicMsgMode()
+		return newModel, cmd, true
+
+	case "history":
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.openHistorySelector(0)
+		return newModel, cmd, true
+
+	case "active":
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.openHistorySelector(1)
+		return newModel, cmd, true
+
+	case "model":
+		if strings.TrimSpace(args) == "" {
+			m.Chat.TextArea.Reset()
+			newModel, cmd := m.openModelSelector("")
+			return newModel, cmd, true
+		}
+		return m, nil, false
+
+	case "exclude":
+		if strings.TrimSpace(args) == "" {
+			m.Chat.TextArea.Reset()
+			files := m.Session.GetContextFiles()
+			if len(files) == 0 {
+				m.StatusBarMessage = "No project source files in context."
+				return m, clearStatusBarCmd(), true
+			}
+			newModel, cmd := m.openFileListSelector("── Exclude Files ──", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+				cmdStr := "/exclude " + strings.Join(selected, " ")
+				ev := mod.Session.HandleInput(cmdStr)
+				return mod.handleEvent(ev)
+			})
+			return newModel, cmd, true
+		}
+		return m, nil, false
+
+	case "help", "list":
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.showQuickView("/" + cmdName)
+		return newModel, cmd, true
+
+	case "config":
+		if strings.TrimSpace(args) != "reload" {
+			m.Chat.TextArea.Reset()
+			newModel, cmd := m.showQuickView("/config")
+			return newModel, cmd, true
+		}
+		return m, nil, false
+	}
+
+	return m, nil, false
 }
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -302,9 +332,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.History:
-		event := m.Session.HandleShortcut("/history")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
+		newModel, cmd := m.openHistorySelector(0)
+		return newModel, cmd, true
 
 	case km.Editor:
 		if m.Chat.TextArea.Focused() {
@@ -321,9 +350,8 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.Branch:
-		event := m.Session.HandleShortcut("/branch")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
+		newModel, cmd := m.openAtomicMsgMode()
+		return newModel, cmd, true
 
 	case km.Finder:
 		files := m.Session.GetContextFiles()
@@ -356,6 +384,19 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, handlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false
+}
+
+func (m Model) showQuickView(cmdName string) (tea.Model, tea.Cmd) {
+	res, _, _ := commands.ProcessCommand(cmdName, m.Session)
+	m.QuickView.SetMessages([]types.Message{
+		{Type: types.CommandMessage, Content: cmdName},
+		{Type: types.CommandResultMessage, Content: res.Payload},
+	})
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.Chat.Viewport.GotoBottom()
+	m.ActiveOverlay = overlayQuickView
+	m.Chat.TextArea.Blur()
+	return m, m.updateTokenCountCmd()
 }
 
 func (m Model) applyPaletteSelection() Model {

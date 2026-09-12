@@ -2,7 +2,7 @@ package session
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/history"
+	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
 	"maps"

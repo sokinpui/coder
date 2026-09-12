@@ -2,12 +2,14 @@ package source
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/sokinpui/coder/pkg/pcat"
+	"github.com/sokinpui/coder/pkg/sf"
 )
 
 type fileCacheEntry struct {
@@ -106,4 +108,29 @@ func joinFormattedResults(results []string) string {
 		return ""
 	}
 	return res + "\n---\n"
+}
+
+func ResolveFileList(dirs []string, initialFiles []string, exclusions []string) ([]string, error) {
+	seen := make(map[string]struct{})
+	allFiles := make([]string, 0)
+
+	for _, f := range initialFiles {
+		p := filepath.ToSlash(f)
+		if _, ok := seen[p]; !ok {
+			allFiles = append(allFiles, p)
+			seen[p] = struct{}{}
+		}
+	}
+
+	if len(dirs) > 0 {
+		for _, f := range sf.Run(dirs, "file", exclusions, true) {
+			p := filepath.ToSlash(f)
+			if _, ok := seen[p]; !ok {
+				allFiles = append(allFiles, p)
+				seen[p] = struct{}{}
+			}
+		}
+	}
+
+	return allFiles, nil
 }

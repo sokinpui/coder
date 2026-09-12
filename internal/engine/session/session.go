@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/generation"
-	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/engine/generation"
+	"github.com/sokinpui/coder/internal/engine/history"
+	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,7 +106,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 			files = cfgCopy.Context.Files
 		}
 
-		resolvedContextFiles, _ = utils.SourceToFileList(dirs, files, allExclusions)
+		resolvedContextFiles, _ = source.ResolveFileList(dirs, files, allExclusions)
 	default:
 		// Other modes do not load context files by default
 	}
@@ -133,7 +133,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 }
 
 func getSafeContextDirs(configuredDirs []string) []string {
-	if utils.IsGitRepo() {
+	if project.IsGitRepo() {
 		return configuredDirs
 	}
 

@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/session"
+	"github.com/sokinpui/coder/internal/engine/history"
+	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/types"
 )
 

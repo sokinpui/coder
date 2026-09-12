@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/rpc"
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/pkg/version"
 )
 
 type Server struct {
@@ -25,10 +25,10 @@ func New(cfg *config.Config) *Server {
 	}
 }
 
-func (s *Server) dispatch(req rpc.Request) {
+func (s *Server) dispatch(req Request) {
 	switch req.Method {
 	case "ping":
-		s.sendResult(req.ID, map[string]any{"pong": true, "version": utils.GetVersion()})
+		s.sendResult(req.ID, map[string]any{"pong": true, "version": version.Get()})
 	case "session/init":
 		s.handleInit(req)
 	case "session/prompt":
@@ -81,7 +81,7 @@ func (s *Server) ensureSession() error {
 		return nil
 	}
 
-	sess, err := session.New(s.cfg, session.ModeCoding, "", nil)
+	sess, err := engine.New(s.cfg, session.ModeCoding, "", nil)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (s *Server) ensureSession() error {
 }
 
 func (s *Server) sendResult(id *json.RawMessage, result any) {
-	s.send(rpc.Response{
+	s.send(Response{
 		JSONRPC: "2.0",
 		ID:      id,
 		Result:  result,
@@ -102,15 +102,15 @@ func (s *Server) sendResult(id *json.RawMessage, result any) {
 }
 
 func (s *Server) sendError(id *json.RawMessage, code int, msg string) {
-	s.send(rpc.Response{
+	s.send(Response{
 		JSONRPC: "2.0",
 		ID:      id,
-		Error:   &rpc.ResponseError{Code: code, Message: msg},
+		Error:   &ResponseError{Code: code, Message: msg},
 	})
 }
 
 func (s *Server) sendNotification(method string, params any) {
-	s.send(rpc.Notification{
+	s.send(Notification{
 		JSONRPC: "2.0",
 		Method:  method,
 		Params:  params,

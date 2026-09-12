@@ -11,16 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sokinpui/coder/internal/commands"
-	"github.com/sokinpui/coder/internal/rpc"
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/token"
+	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine/token"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 )
 
-func (s *Server) handleInit(req rpc.Request) {
-	var params rpc.InitParams
+func (s *Server) handleInit(req Request) {
+	var params InitParams
 	if len(req.Params) > 0 {
 		_ = json.Unmarshal(req.Params, &params)
 	}
@@ -29,7 +28,7 @@ func (s *Server) handleInit(req rpc.Request) {
 		s.cfg.Generation.ModelCode = params.Model
 	}
 
-	sess, err := session.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
+	sess, err := engine.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to initialize session: %v", err))
 		return
@@ -49,8 +48,8 @@ func (s *Server) handleInit(req rpc.Request) {
 	})
 }
 
-func (s *Server) handlePrompt(req rpc.Request) {
-	var params rpc.SendPromptParams
+func (s *Server) handlePrompt(req Request) {
+	var params SendPromptParams
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		s.sendError(req.ID, -32602, "Invalid params")
 		return
@@ -63,7 +62,7 @@ func (s *Server) handlePrompt(req rpc.Request) {
 
 	s.sendResult(req.ID, map[string]any{"status": "accepted"})
 
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	imagesDir := filepath.Join(repoRoot, ".coder", "images")
 	for _, imgB64 := range params.Images {
 		if commaIdx := strings.Index(imgB64, ","); commaIdx != -1 {
@@ -110,13 +109,13 @@ func (s *Server) handlePrompt(req rpc.Request) {
 			"payload": event.Data,
 		})
 		tokenCount := token.CountTokens(s.session.GetPrompt())
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true, TokenCount: tokenCount})
+		s.sendNotification("session/chunk", StreamChunkNotification{Done: true, TokenCount: tokenCount})
 		return
 	}
 
 	streamChan, ok := event.Data.(chan types.StreamChunk)
 	if !ok {
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true})
+		s.sendNotification("session/chunk", StreamChunkNotification{Done: true})
 		return
 	}
 
@@ -152,7 +151,7 @@ func (s *Server) streamToClient(streamChan chan types.StreamChunk) {
 				msgs[len(msgs)-1].Content += chunk.Content
 			}
 		}
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{
+		s.sendNotification("session/chunk", StreamChunkNotification{
 			Content:          chunk.Content,
 			ReasoningContent: chunk.ReasoningContent,
 			ToolCall:         chunk.ToolCall,
@@ -167,20 +166,20 @@ func (s *Server) streamToClient(streamChan chan types.StreamChunk) {
 	}
 
 	if !s.session.IsStreaming() {
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true, Error: "Generation cancelled"})
+		s.sendNotification("session/chunk", StreamChunkNotification{Done: true, Error: "Generation cancelled"})
 		return
 	}
 
 	s.session.SetStreaming(false)
 	_ = s.session.SaveConversation()
 	tokenCount := token.CountTokens(s.session.GetPrompt())
-	s.sendNotification("session/chunk", rpc.StreamChunkNotification{
+	s.sendNotification("session/chunk", StreamChunkNotification{
 		Done:       true,
 		TokenCount: tokenCount,
 	})
 }
 
-func (s *Server) handleMessageDelete(req rpc.Request) {
+func (s *Server) handleMessageDelete(req Request) {
 	var params struct {
 		Index   *int  `json:"index"`
 		Indices []int `json:"indices"`
@@ -215,7 +214,7 @@ func (s *Server) handleMessageDelete(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleRegenerate(req rpc.Request) {
+func (s *Server) handleRegenerate(req Request) {
 	var params struct {
 		Index *int `json:"index"`
 	}
@@ -257,18 +256,18 @@ func (s *Server) handleRegenerate(req rpc.Request) {
 	if event.Type != types.GenerationStarted {
 		s.sendNotification("session/event", map[string]any{"type": event.Type, "payload": event.Data})
 		tokenCount := token.CountTokens(s.session.GetPrompt())
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true, TokenCount: tokenCount})
+		s.sendNotification("session/chunk", StreamChunkNotification{Done: true, TokenCount: tokenCount})
 		return
 	}
 	streamChan, ok := event.Data.(chan types.StreamChunk)
 	if !ok {
-		s.sendNotification("session/chunk", rpc.StreamChunkNotification{Done: true})
+		s.sendNotification("session/chunk", StreamChunkNotification{Done: true})
 		return
 	}
 	s.streamToClient(streamChan)
 }
 
-func (s *Server) handleBranch(req rpc.Request) {
+func (s *Server) handleBranch(req Request) {
 	var params struct {
 		Index *int `json:"index"`
 	}
@@ -312,7 +311,7 @@ func (s *Server) handleBranch(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleMessageEdit(req rpc.Request) {
+func (s *Server) handleMessageEdit(req Request) {
 	var params struct {
 		Index   *int   `json:"index"`
 		Content string `json:"content"`
@@ -341,7 +340,7 @@ func (s *Server) handleMessageEdit(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleTokens(req rpc.Request) {
+func (s *Server) handleTokens(req Request) {
 	if err := s.ensureSession(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
@@ -349,8 +348,8 @@ func (s *Server) handleTokens(req rpc.Request) {
 	s.sendResult(req.ID, map[string]any{"tokenCount": token.CountTokens(s.session.GetPrompt())})
 }
 
-func (s *Server) handlePDFAdd(req rpc.Request) {
-	var params rpc.AddPDFParams
+func (s *Server) handlePDFAdd(req Request) {
+	var params AddPDFParams
 	if err := json.Unmarshal(req.Params, &params); err != nil || params.Path == "" {
 		s.sendError(req.ID, -32602, "Path is required")
 		return
@@ -374,15 +373,15 @@ func (s *Server) handlePDFAdd(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleCancel(req rpc.Request) {
+func (s *Server) handleCancel(req Request) {
 	if s.session != nil {
 		s.session.CancelGeneration()
 	}
 	s.sendResult(req.ID, map[string]any{"cancelled": true})
 }
 
-func (s *Server) handleContextAdd(req rpc.Request) {
-	var params rpc.ContextModifyParams
+func (s *Server) handleContextAdd(req Request) {
+	var params ContextModifyParams
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		s.sendError(req.ID, -32602, "Invalid params")
 		return
@@ -399,8 +398,8 @@ func (s *Server) handleContextAdd(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleContextExclude(req rpc.Request) {
-	var params rpc.ContextModifyParams
+func (s *Server) handleContextExclude(req Request) {
+	var params ContextModifyParams
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		s.sendError(req.ID, -32602, "Invalid params")
 		return
@@ -417,7 +416,7 @@ func (s *Server) handleContextExclude(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleContextGet(req rpc.Request) {
+func (s *Server) handleContextGet(req Request) {
 	if err := s.ensureSession(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
@@ -437,7 +436,7 @@ func (s *Server) handleContextGet(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleModelSet(req rpc.Request) {
+func (s *Server) handleModelSet(req Request) {
 	var params struct {
 		Model string `json:"model"`
 	}
@@ -455,7 +454,7 @@ func (s *Server) handleModelSet(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleSessionRename(req rpc.Request) {
+func (s *Server) handleSessionRename(req Request) {
 	var params struct {
 		Title string `json:"title"`
 	}
@@ -473,8 +472,8 @@ func (s *Server) handleSessionRename(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleItfApply(req rpc.Request) {
-	var params rpc.ApplyItfParams
+func (s *Server) handleItfApply(req Request) {
+	var params ApplyItfParams
 	if len(req.Params) > 0 {
 		_ = json.Unmarshal(req.Params, &params)
 	}
@@ -499,7 +498,7 @@ func (s *Server) handleItfApply(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleItfUndo(req rpc.Request) {
+func (s *Server) handleItfUndo(req Request) {
 	if err := s.ensureSession(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
@@ -512,7 +511,7 @@ func (s *Server) handleItfUndo(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleModelsList(req rpc.Request) {
+func (s *Server) handleModelsList(req Request) {
 	if len(s.cfg.AvailableModels) > 0 {
 		s.sendResult(req.ID, map[string]any{
 			"models":  s.cfg.AvailableModels,
@@ -571,7 +570,7 @@ func (s *Server) handleModelsList(req rpc.Request) {
 	})
 }
 
-func (s *Server) handleHistoryList(req rpc.Request) {
+func (s *Server) handleHistoryList(req Request) {
 	if err := s.ensureSession(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
@@ -585,7 +584,7 @@ func (s *Server) handleHistoryList(req rpc.Request) {
 	s.sendResult(req.ID, items)
 }
 
-func (s *Server) handleHistoryLoad(req rpc.Request) {
+func (s *Server) handleHistoryLoad(req Request) {
 	var params struct {
 		Filename string `json:"filename"`
 	}
@@ -619,7 +618,7 @@ func (s *Server) hydrateSessionImages() {
 	if s.session == nil {
 		return
 	}
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	msgs := s.session.GetMessages()
 	for i := range msgs {
 		if msgs[i].Type != types.ImageMessage || len(msgs[i].Data) > 0 || msgs[i].Content == "" {
@@ -632,7 +631,7 @@ func (s *Server) hydrateSessionImages() {
 	}
 }
 
-func (s *Server) handleConfigReload(req rpc.Request) {
+func (s *Server) handleConfigReload(req Request) {
 	if err := s.ensureSession(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return

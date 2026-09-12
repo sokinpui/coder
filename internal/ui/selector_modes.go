@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/clipboard"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (m Model) openGenericSelector(items []SelectorItem, title, placeholder, footer string, showSearch bool, onConfirm func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)) (Model, tea.Cmd) {
@@ -359,7 +359,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		if len(targetIndices) == 1 && messages[targetIndices[0]].Type == types.ImageMessage {
 			imgMsg := messages[targetIndices[0]]
-			err := utils.CopyImage(imgMsg.Content, imgMsg.Data)
+			err := clipboard.CopyImage(imgMsg.Content, imgMsg.Data)
 			if err != nil {
 				m.StatusBarMessage = fmt.Sprintf("Failed to copy image: %v", err)
 			} else {
@@ -379,7 +379,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		combined := strings.Join(contents, "\n\n")
 		cfg := m.Session.GetConfig()
-		_ = utils.Copy(combined, cfg.Clipboard.CopyCmd)
+		_ = clipboard.Copy(combined, cfg.Clipboard.CopyCmd)
 		if len(targetIndices) > 1 {
 			m.StatusBarMessage = fmt.Sprintf("%d messages copied to clipboard.", len(targetIndices))
 		} else {

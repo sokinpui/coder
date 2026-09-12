@@ -2,16 +2,29 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/token"
+	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/internal/engine/token"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"sort"
 
 	"github.com/charmbracelet/glamour"
 )
+
+const welcomeMessage = `Welcome to Coder!
+
+- Press Enter for a new line in your prompt (or to run a command).
+- Use Ctrl+J to send your message.
+- Use Ctrl+E to edit your prompt in an external editor ($EDITOR).
+- Use /model to open the model switcher.
+- Use Ctrl+D and Ctrl+U to scroll the conversation.
+- Use Ctrl+H to view conversation history.
+- Use Esc or Ctrl+C to clear the input. Press Ctrl+C again on an empty line to quit.
+- During generation, press Ctrl+C to cancel.
+- Type '/help' for a list of all commands and shortcuts.
+`
 
 type Model struct {
 	Chat      ChatModel
@@ -42,9 +55,9 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 		glamour.WithWordWrap(80),
 	)
 
-	sess.AddMessages(types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage})
+	sess.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 
-	dirMsg := utils.GetDirInfoContent()
+	dirMsg := project.DirInfo()
 	sess.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
 	availableCommands := commands.GetCommands()
 	commandDescriptions := commands.GetCommandDescriptions()

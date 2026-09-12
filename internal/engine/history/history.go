@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -67,7 +67,7 @@ type Manager struct {
 }
 
 func NewManager() (*Manager, error) {
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	historyPath := filepath.Join(repoRoot, historyDirName)
 	if err := os.MkdirAll(historyPath, 0755); err != nil {
 		return nil, fmt.Errorf("could not create history directory at %s: %w", historyPath, err)

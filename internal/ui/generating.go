@@ -99,18 +99,8 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		}
 		return m, nil, true
 	case km.Branch:
-		event := m.Session.HandleInput("/branch")
-		switch event.Type {
-		case types.BranchModeStarted, types.AtomicMsgModeStarted:
-			model, cmd := m.openAtomicMsgMode()
-			return model, cmd, true
-		case types.MessagesUpdated:
-			// This handles the case where branching is not possible (e.g., no messages)
-			// and an error message was added to the session.
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-		}
-		return m, nil, true
+		model, cmd := m.openAtomicMsgMode()
+		return model, cmd, true
 	case km.History:
 		newModel, cmd := m.openHistorySelector(0)
 		return newModel, cmd, true

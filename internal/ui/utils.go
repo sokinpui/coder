@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sokinpui/coder/internal/clipboard"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/history"
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/engine/history"
+	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"github.com/sokinpui/coder/pkg/sf"
 	"log"
 	"net/http"
@@ -314,7 +315,7 @@ func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 func handlePasteCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
 		if cfg.Clipboard.PasteCmd != "" {
-			data, contentType, err := utils.PasteCustom(cfg.Clipboard.PasteCmd)
+			data, contentType, err := clipboard.PasteCustom(cfg.Clipboard.PasteCmd)
 			if err != nil {
 				return pasteResultMsg{err: err}
 			}
@@ -338,13 +339,13 @@ func handlePasteCmd(cfg *config.Config) tea.Cmd {
 			return pasteResultMsg{isImage: true, content: relPath}
 		}
 
-		if data, _, err := utils.GetImageFromClipboard(); err == nil {
+		if data, _, err := clipboard.GetImageFromClipboard(); err == nil {
 			if relPath, err := saveImageToRepo(data, ".png"); err == nil {
 				return pasteResultMsg{isImage: true, content: relPath}
 			}
 		}
 
-		content, err := utils.PasteText()
+		content, err := clipboard.PasteText()
 		if err != nil {
 			return pasteResultMsg{err: fmt.Errorf("failed to read clipboard: %w", err)}
 		}
@@ -353,7 +354,7 @@ func handlePasteCmd(cfg *config.Config) tea.Cmd {
 }
 
 func saveImageToRepo(data []byte, ext string) (string, error) {
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	imagesDir := filepath.Join(repoRoot, ".coder", "images")
 	if err := os.MkdirAll(imagesDir, 0755); err != nil {
 		return "", fmt.Errorf("could not create images directory: %w", err)

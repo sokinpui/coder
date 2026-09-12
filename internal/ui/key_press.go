@@ -23,9 +23,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	// Handle global keybindings first
 	switch keyStr {
 	case km.ContextList:
-		event := m.Session.HandleShortcut("/list")
-		model, cmd := m.handleEvent(event)
-		return model, cmd, true
+		newModel, cmd := m.showQuickView("/list")
+		return newModel, cmd, true
 	case km.Suspend:
 		return m, tea.Suspend, true
 	case km.ScrollUp:

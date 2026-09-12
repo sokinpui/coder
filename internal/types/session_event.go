@@ -6,19 +6,8 @@ const (
 	NoOp EventType = iota
 	MessagesUpdated
 	GenerationStarted
-	AtomicMsgModeStarted
-	GenerateModeStarted
-	EditModeStarted
-	BranchModeStarted
-	HistoryModeStarted
-	ActiveModeStarted
 	NewSessionStarted
-	PickerModeStarted
-	HelpViewerStarted
-	ConfigViewerStarted
-	ListViewerStarted
 	TermExecutionStarted
-	ExcludePickerStarted
 	Quit
 )
 

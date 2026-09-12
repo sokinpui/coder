@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sokinpui/coder/internal/pdf"
+	"github.com/sokinpui/coder/internal/engine/pdf"
+	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/prompt"
-	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 )
 
 func (s *Session) NeedsContextReload() bool {
@@ -120,7 +120,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			instr = prompt.CoderInstructions
 		}
 		result = append(result, types.Message{Type: types.InstructionMessage, Content: instr})
-		if dirInfo := utils.GetDirInfoContent(); dirInfo != "" {
+		if dirInfo := project.DirInfo(); dirInfo != "" {
 			result = append(result, types.Message{Type: types.DirectoryMessage, Content: dirInfo})
 		}
 		if s.projectSourceCode != "" {

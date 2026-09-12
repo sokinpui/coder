@@ -2,8 +2,8 @@ package session
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,7 +33,7 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 
 	toDelete := make(map[int]struct{})
 	for _, idx := range indices {

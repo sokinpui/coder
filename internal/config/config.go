@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/internal/project"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -171,7 +171,7 @@ func Load() (*Config, error) {
 	}
 
 	// Local config in repo root .coder/
-	repoRoot, err := utils.FindRepoRoot()
+	repoRoot, err := project.FindRepoRoot()
 	if err == nil {
 		localViper := viper.New()
 		localViper.AddConfigPath(filepath.Join(repoRoot, ".coder"))

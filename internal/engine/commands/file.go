@@ -3,9 +3,8 @@ package commands
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/source"
+	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,7 +105,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	allExclusions := append([]string{}, source.Exclusions...)
 	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
 
-	newResolvedFiles, _ := utils.SourceToFileList(dirs, files, allExclusions)
+	newResolvedFiles, _ := source.ResolveFileList(dirs, files, allExclusions)
 	updatedFiles := AppendUnique(currentFiles, newResolvedFiles)
 	addedCount := len(updatedFiles) - len(currentFiles)
 	s.SetContextFiles(updatedFiles)

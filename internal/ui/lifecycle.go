@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/pkg/version"
 )
 
 func (m Model) StatusView() string {
@@ -36,7 +36,7 @@ func (m Model) StatusView() string {
 	}
 
 	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
-	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", utils.GetVersion()))
+	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", version.Get()))
 
 	modelPart := modelInfoStyle.Render(modelInfo)
 

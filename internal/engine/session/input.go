@@ -1,7 +1,7 @@
 package session
 
 import (
-	"github.com/sokinpui/coder/internal/commands"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 )
@@ -29,31 +29,16 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	cmdOutput, _, cmdSuccess := commands.ProcessCommand(input, s)
 	// ProcessCommand returns isCmd=true for any string with '/', so we don't need to check it.
 
-	if cmdSuccess {
-		switch cmdOutput.Type {
-		case types.NewSessionStarted, types.Quit:
-			return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
-		case types.NoOp:
-			return types.Event{Type: types.NoOp}
-		case types.MessagesUpdated:
-			// Fall through to standard logging below
-		default:
-			// Mode transition events: log the command call then return transition event.
-			if !silent {
-				msgType := types.CommandMessage
-				if cmdOutput.IsShell {
-					msgType = types.ShellCmdMessage
-				} else if cmdOutput.IsFileApply {
-					msgType = types.FileApplyCmdMessage
-				} else if cmdOutput.IsFileApplyUndo {
-					msgType = types.FileApplyUndoCmdMessage
-				} else if cmdOutput.IsContext {
-					msgType = types.ContextCmdMessage
-				}
-				s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
-			}
-			return types.Event{Type: cmdOutput.Type, Data: cmdOutput.Payload}
+	switch cmdOutput.Type {
+	case types.NewSessionStarted, types.Quit:
+		return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
+	case types.TermExecutionStarted:
+		if !silent {
+			s.messages = append(s.messages, types.Message{Type: types.ShellCmdMessage, Content: input})
 		}
+		return types.Event{Type: types.TermExecutionStarted, Data: cmdOutput.Payload}
+	case types.NoOp:
+		return types.Event{Type: types.NoOp}
 	}
 
 	s.generator.Config = s.config.Generation

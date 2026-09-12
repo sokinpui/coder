@@ -2,20 +2,23 @@ package ui
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/config"
+	"io"
 	"log"
 	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/config"
 )
 
-func Start(mode string, initialInput string, contextFiles []string, instruction string) {
+func Start(mode string, prompt string, contextFiles []string, instruction string) {
+	log.SetOutput(io.Discard)
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("Error loading configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	mainModel, err := NewModel(cfg, mode, initialInput, contextFiles, instruction)
+	mainModel, err := NewModel(cfg, mode, prompt, contextFiles, instruction)
 	if err != nil {
 		fmt.Printf("Error creating model: %v\n", err)
 		os.Exit(1)

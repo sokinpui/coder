@@ -11,8 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sokinpui/coder/internal/rpc"
-	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/internal/project"
 	"golang.org/x/net/websocket"
 )
 
@@ -114,7 +113,7 @@ func (s *Server) handleHTTPUploadPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 	docsDir := filepath.Join(repoRoot, ".coder", "documents")
 	if err := os.MkdirAll(docsDir, 0755); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create document dir: %v", err), http.StatusInternalServerError)
@@ -169,7 +168,7 @@ func (s *Server) handleWebSocket(ws *websocket.Conn) {
 			continue
 		}
 
-		var req rpc.Request
+		var req Request
 		if err := json.Unmarshal([]byte(raw), &req); err == nil {
 			go s.dispatch(req)
 			continue
@@ -181,7 +180,7 @@ func (s *Server) handleWebSocket(ws *websocket.Conn) {
 			if line == "" {
 				continue
 			}
-			var r rpc.Request
+			var r Request
 			if err := json.Unmarshal([]byte(line), &r); err != nil {
 				s.sendError(nil, -32700, fmt.Sprintf("Parse error: %v", err))
 				continue
@@ -202,7 +201,7 @@ func (s *Server) handleReader(reader io.Reader) error {
 			continue
 		}
 
-		var req rpc.Request
+		var req Request
 		if err := json.Unmarshal(line, &req); err != nil {
 			s.sendError(nil, -32700, fmt.Sprintf("Parse error: %v", err))
 			continue

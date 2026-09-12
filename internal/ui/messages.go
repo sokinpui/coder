@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -390,8 +390,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ClearCache()
 		m.addActiveSession(msg.sess)
 
-		welcome := types.Message{Type: types.InitMessage, Content: utils.WelcomeMessage}
-		dirInfo := types.Message{Type: types.DirectoryMessage, Content: utils.GetDirInfoContent()}
+		welcome := types.Message{Type: types.InitMessage, Content: welcomeMessage}
+		dirInfo := types.Message{Type: types.DirectoryMessage, Content: project.DirInfo()}
 		m.Session.PrependMessages(welcome, dirInfo)
 
 		if m.Session.IsStreaming() {

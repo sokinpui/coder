@@ -3,8 +3,8 @@ package session
 import (
 	"context"
 	"fmt"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -36,7 +36,7 @@ func (s *Session) StartGeneration() types.Event {
 	}
 
 	messages := s.GetPrompt()
-	repoRoot := utils.GetProjectRoot()
+	repoRoot := project.Root()
 
 	for i := range messages {
 		if messages[i].Type == types.ImageMessage && messages[i].Data == nil {

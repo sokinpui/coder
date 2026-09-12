@@ -11,16 +11,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sokinpui/coder/internal/commands"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/generation"
-	"github.com/sokinpui/coder/internal/logger"
+	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine/generation"
+	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
-	"github.com/sokinpui/coder/internal/session"
-	"github.com/sokinpui/coder/internal/source"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
-	"github.com/sokinpui/coder/internal/utils"
+	"github.com/sokinpui/coder/pkg/version"
 
 	"github.com/spf13/cobra"
 )
@@ -47,7 +47,7 @@ func main() {
 		Use:     "coder [flags] [files...]",
 		Short:   "Coder is a TUI-based AI code editor",
 		Long:    "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
-		Version: utils.GetVersion(),
+		Version: version.Get(),
 		Example: `  coder main.go
   coder -p "refactor this" main.go
   coder -e -p "explain this file" main.go
@@ -219,7 +219,7 @@ func getConfigPath() (string, error) {
 		return filepath.Join(home, ".config", "coder", "config.yaml"), nil
 	}
 
-	repoRoot, err := utils.FindRepoRoot()
+	repoRoot, err := project.FindRepoRoot()
 	if err != nil {
 		return "", fmt.Errorf("local config can only be edited from within a git repository. Use --global to edit the global config")
 	}
@@ -262,9 +262,9 @@ func printContext(mode string, args []string) {
 
 	var resolvedFiles []string
 	if len(files) > 0 {
-		resolvedFiles, _ = utils.SourceToFileList(nil, files, allExclusions)
+		resolvedFiles, _ = source.ResolveFileList(nil, files, allExclusions)
 	} else {
-		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
+		resolvedFiles, _ = source.ResolveFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
 	}
 
 	sess, err := session.New(cfg, mode, customInstruction, resolvedFiles)
@@ -306,9 +306,9 @@ func runSingleShot(args []string) {
 
 	var resolvedFiles []string
 	if len(files) > 0 {
-		resolvedFiles, _ = utils.SourceToFileList(nil, files, allExclusions)
+		resolvedFiles, _ = source.ResolveFileList(nil, files, allExclusions)
 	} else {
-		resolvedFiles, _ = utils.SourceToFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
+		resolvedFiles, _ = source.ResolveFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
 	}
 
 	sess, err := session.New(cfg, session.ModeCoding, customInstruction, resolvedFiles)
@@ -382,7 +382,6 @@ func runEditor(path string) {
 }
 
 func startApp(mode string, prompt string, contextFiles []string, instruction string) {
-	logger.Init()
 	ui.Start(mode, prompt, contextFiles, instruction)
 }
 

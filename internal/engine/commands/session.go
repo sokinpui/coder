@@ -15,49 +15,28 @@ func init() {
 	registerCommand("active", activeCmd, "view active sessions", nil)
 }
 
-func hasSelectableMessages(messages []types.Message) bool {
-	for _, msg := range messages {
-		if msg.Type.IsSelectable() {
-			return true
-		}
-	}
-	return false
-}
-
 func genCmd(args string, s SessionController) (CommandOutput, bool) {
-	messages := s.GetMessages()
-	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.NoOp}, true
-	}
-	return CommandOutput{Type: types.GenerateModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func editModeCmd(args string, s SessionController) (CommandOutput, bool) {
-	messages := s.GetMessages()
-	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.NoOp}, true
-	}
-	return CommandOutput{Type: types.EditModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func msgCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.AtomicMsgModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func branchCmd(args string, s SessionController) (CommandOutput, bool) {
-	messages := s.GetMessages()
-	if !hasSelectableMessages(messages) {
-		return CommandOutput{Type: types.NoOp}, true
-	}
-	return CommandOutput{Type: types.BranchModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode or session/branch RPC."}, true
 }
 
 func historyCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.HistoryModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode or history RPC endpoints."}, true
 }
 
 func activeCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.ActiveModeStarted}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func renameCmd(args string, s SessionController) (CommandOutput, bool) {

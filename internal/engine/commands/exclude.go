@@ -15,7 +15,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	paths := strings.Fields(args)
 
 	if len(paths) == 0 {
-		return CommandOutput{Type: types.ExcludePickerStarted}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /exclude <paths...>"}, false
 	}
 
 	pathsToRemove, _ := ExpandPaths(paths)
