@@ -257,6 +257,31 @@ func (s *Session) SetModel(model string) {
 	s.generator.Config.ModelCode = model
 }
 
+func (s *Session) IsToolsEnabled() bool {
+	return s.config.Generation.EnableTools
+}
+
+func (s *Session) SetToolsEnabled(enabled bool) {
+	s.config.Generation.EnableTools = enabled
+	s.generator.Config.EnableTools = enabled
+}
+
+func (s *Session) HasChatHistory() bool {
+	if s.historyFilename != "" {
+		return true
+	}
+	for _, msg := range s.messages {
+		switch msg.Type {
+		case types.UserMessage, types.AIMessage, types.ImageMessage, types.ToolCallMessage, types.ToolCallResultMessage:
+			if msg.Type == types.AIMessage && strings.TrimSpace(msg.Content) == "" {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) SetMode(mode string) error {
 	s.mode = mode
 	return s.LoadContext()

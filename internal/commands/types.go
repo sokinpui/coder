@@ -36,6 +36,9 @@ type SessionController interface {
 	GetMode() string
 	SetMode(mode string) error
 	SetModel(model string)
+	IsToolsEnabled() bool
+	SetToolsEnabled(enabled bool)
+	HasChatHistory() bool
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)
