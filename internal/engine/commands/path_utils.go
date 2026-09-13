@@ -1,23 +1,57 @@
 package commands
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 )
 
+func ExpandHome(path string) string {
+	if path != "~" && !strings.HasPrefix(path, "~/") && !strings.HasPrefix(path, "~\\") {
+		return path
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+
+	if path == "~" {
+		return home
+	}
+
+	return filepath.Join(home, path[2:])
+}
+
+func RelativizeToCWD(path string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return path
+	}
+
+	rel, err := filepath.Rel(cwd, path)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return path
+	}
+	return rel
+}
+
 func ExpandPaths(patterns []string) (expanded []string, invalid []string) {
 	for _, p := range patterns {
-		if !strings.ContainsAny(p, "*?[]") {
-			expanded = append(expanded, p)
+		expandedPath := RelativizeToCWD(ExpandHome(p))
+		if !strings.ContainsAny(expandedPath, "*?[]") {
+			expanded = append(expanded, expandedPath)
 			continue
 		}
 
-		matches, err := filepath.Glob(p)
+		matches, err := filepath.Glob(expandedPath)
 		if err != nil || len(matches) == 0 {
 			invalid = append(invalid, p)
 			continue
 		}
-		expanded = append(expanded, matches...)
+		for _, m := range matches {
+			expanded = append(expanded, RelativizeToCWD(m))
+		}
 	}
 	return expanded, invalid
 }

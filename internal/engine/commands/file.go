@@ -15,12 +15,16 @@ func init() {
 }
 
 func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
+	if prefix == "~" {
+		return []string{"~/"}
+	}
+
 	dir := "."
-	if lastSlash := strings.LastIndex(prefix, "/"); lastSlash != -1 {
+	if lastSlash := strings.LastIndexAny(prefix, "/\\"); lastSlash != -1 {
 		dir = prefix[:lastSlash+1]
 	}
 
-	entries, err := os.ReadDir(dir)
+	entries, err := os.ReadDir(ExpandHome(dir))
 	if err != nil {
 		return nil
 	}

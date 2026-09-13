@@ -87,7 +87,7 @@ func DefaultConfig() Config {
 			URL: "http://localhost:9001/v1",
 		},
 		Generation: Generation{
-			ModelCode:         "aisrp/gemini-3-flash-preview",
+			ModelCode:         "aisrp/gemini-flash-latest",
 			TitleModelCode:    "aisrp/gemini-flash-lite-latest",
 			ReasoningEffort:   "high",
 			MaxToolIterations: 20,
