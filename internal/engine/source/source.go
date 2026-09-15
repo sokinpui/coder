@@ -32,8 +32,20 @@ func LoadProjectSource(files []string) (string, error) {
 }
 
 func (c *SourceCache) Load(files []string) (string, error) {
+	results, err := c.LoadFiles(files)
+	if err != nil {
+		return "", err
+	}
+	return joinFormattedResults(results), nil
+}
+
+func LoadProjectSourceFiles(files []string) ([]string, error) {
+	return defaultCache.LoadFiles(files)
+}
+
+func (c *SourceCache) LoadFiles(files []string) ([]string, error) {
 	if len(files) == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	c.mu.RLock()
@@ -58,7 +70,7 @@ func (c *SourceCache) Load(files []string) (string, error) {
 	c.mu.RUnlock()
 
 	if len(toReadIndices) == 0 {
-		return joinFormattedResults(results), nil
+		return filterEmptyResults(results), nil
 	}
 
 	workerCount := max(min(len(toReadIndices), runtime.NumCPU()), 1)
@@ -95,7 +107,17 @@ func (c *SourceCache) Load(files []string) (string, error) {
 	}
 	c.mu.Unlock()
 
-	return joinFormattedResults(results), nil
+	return filterEmptyResults(results), nil
+}
+
+func filterEmptyResults(results []string) []string {
+	filtered := make([]string, 0, len(results))
+	for _, res := range results {
+		if strings.TrimSpace(res) != "" {
+			filtered = append(filtered, res)
+		}
+	}
+	return filtered
 }
 
 func joinFormattedResults(results []string) string {

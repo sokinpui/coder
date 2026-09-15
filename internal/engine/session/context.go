@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Session) NeedsContextReload() bool {
-	if s.projectSourceCode == "" && len(s.contextFiles) > 0 {
+	if len(s.projectSourceFiles) == 0 && len(s.contextFiles) > 0 {
 		return true
 	}
 	if len(s.documentMessages) == 0 && len(s.contextDocuments) > 0 {
@@ -46,7 +46,7 @@ func (s *Session) LoadContext() error {
 	s.loadDocumentContext()
 
 	if len(s.contextFiles) == 0 {
-		s.projectSourceCode = ""
+		s.projectSourceFiles = nil
 		s.contextLoadedAt = time.Time{}
 		return nil
 	}
@@ -55,17 +55,17 @@ func (s *Session) LoadContext() error {
 		return nil
 	}
 
-	projSource, err := source.LoadProjectSource(s.contextFiles)
+	files, err := source.LoadProjectSourceFiles(s.contextFiles)
 	if err != nil {
 		return fmt.Errorf("failed to load project source: %w", err)
 	}
 
-	if projSource == "" {
-		s.projectSourceCode = ""
+	if len(files) == 0 {
+		s.projectSourceFiles = nil
 		s.contextLoadedAt = time.Time{}
 		return nil
 	}
-	s.projectSourceCode = prompt.ProjectSourceCodeHeader + projSource
+	s.projectSourceFiles = files
 	s.contextLoadedAt = time.Now()
 	return nil
 }
@@ -123,8 +123,11 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 		if dirInfo := project.DirInfo(); dirInfo != "" {
 			result = append(result, types.Message{Type: types.DirectoryMessage, Content: dirInfo})
 		}
-		if s.projectSourceCode != "" {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
+		if len(s.projectSourceFiles) > 0 {
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader})
+			for _, fileContent := range s.projectSourceFiles {
+				result = append(result, types.Message{Type: types.SourceCodeMessage, Content: fileContent})
+			}
 		}
 		result = append(result, s.documentMessages...)
 	case ModeChat:
@@ -133,8 +136,11 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			instr = prompt.ChatInstructions
 		}
 		result = append(result, types.Message{Type: types.InstructionMessage, Content: instr})
-		if s.projectSourceCode != "" {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: s.projectSourceCode})
+		if len(s.projectSourceFiles) > 0 {
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader})
+			for _, fileContent := range s.projectSourceFiles {
+				result = append(result, types.Message{Type: types.SourceCodeMessage, Content: fileContent})
+			}
 		}
 		result = append(result, s.documentMessages...)
 	default:

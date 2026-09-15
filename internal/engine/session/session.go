@@ -33,7 +33,7 @@ type Session struct {
 	createdAt         time.Time
 	mode              string
 	instruction       string
-	projectSourceCode string
+	projectSourceFiles []string
 	lastModifiedFiles []string
 	hasAppliedChanges bool
 	contextFiles      []string

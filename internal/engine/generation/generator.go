@@ -129,16 +129,42 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 
 func (g *Generator) generateChatTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var apiMessages []openAIMessage
+	var sourceCodeParts []openAIContentPart
+
+	flushSourceParts := func() {
+		if len(sourceCodeParts) == 0 {
+			return
+		}
+		apiMessages = append(apiMessages, openAIMessage{
+			Role:    "user",
+			Content: sourceCodeParts,
+		})
+		sourceCodeParts = nil
+	}
+
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
 			continue
 		}
 
+		if msg.Type == types.SourceCodeMessage {
+			if strings.TrimSpace(msg.Content) == "" {
+				continue
+			}
+			sourceCodeParts = append(sourceCodeParts, openAIContentPart{
+				Type: "text",
+				Text: msg.Content,
+			})
+			continue
+		}
+
+		flushSourceParts()
+
 		role := ""
 		var content any
 
 		switch msg.Type {
-		case types.InstructionMessage, types.DirectoryMessage, types.SourceCodeMessage:
+		case types.InstructionMessage, types.DirectoryMessage:
 			role = "system"
 			content = msg.Content
 		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage,
@@ -190,6 +216,8 @@ func (g *Generator) generateChatTask(ctx context.Context, messages []types.Messa
 			Content: content,
 		})
 	}
+
+	flushSourceParts()
 
 	body := map[string]any{
 		"model":            genConfig.ModelCode,
@@ -331,14 +359,40 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation, enableTools bool) ([]types.ToolCallInfo, string, bool) {
 	var instructionsBuilder strings.Builder
 	var inputItems []any
+	var sourceCodeParts []openAIContentPart
+
+	flushSourceParts := func() {
+		if len(sourceCodeParts) == 0 {
+			return
+		}
+		inputItems = append(inputItems, map[string]any{
+			"type":    "message",
+			"role":    "user",
+			"content": sourceCodeParts,
+		})
+		sourceCodeParts = nil
+	}
 
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
 			continue
 		}
 
+		if msg.Type == types.SourceCodeMessage {
+			if strings.TrimSpace(msg.Content) == "" {
+				continue
+			}
+			sourceCodeParts = append(sourceCodeParts, openAIContentPart{
+				Type: "input_text",
+				Text: msg.Content,
+			})
+			continue
+		}
+
+		flushSourceParts()
+
 		switch msg.Type {
-		case types.InstructionMessage, types.DirectoryMessage, types.SourceCodeMessage:
+		case types.InstructionMessage, types.DirectoryMessage:
 			if instructionsBuilder.Len() > 0 {
 				instructionsBuilder.WriteString("\n\n")
 			}
@@ -405,6 +459,8 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 			})
 		}
 	}
+
+	flushSourceParts()
 
 	if genConfig.EnableTools && !enableTools {
 		inputItems = append(inputItems, map[string]any{
