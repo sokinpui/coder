@@ -26,6 +26,7 @@ You should follow instruction below when write code:
 6. Use relative path from the current directory for all files.
 7. Diff should always be generated based on the code Shown in `# PROJECT SOURCE CODE`.
 8. No trailing whitespace in diff output, unless the original file has trailing whitespace.
+9. Must not use "..." to omit content.
 
 ## File Modify:
 
