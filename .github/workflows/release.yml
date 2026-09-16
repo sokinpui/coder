@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Build and Package
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=${TAG_NAME}"
+          DIST_DIR="dist/coder-${{ matrix.goos }}-${{ matrix.goarch }}"
+          mkdir -p "${DIST_DIR}"
+
+          BINARIES=("coder" "itf" "sf" "pcat" "pti")
+          for bin in "${BINARIES[@]}"; do
+            CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+              go build -trimpath -ldflags="${LD_FLAGS}" -o "${DIST_DIR}/${bin}" "./cmd/${bin}"
+          done
+
+          ARCHIVE_NAME="coder-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
+          tar -czf "${ARCHIVE_NAME}" -C "${DIST_DIR}" .
+          sha256sum "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            coder-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+            coder-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true

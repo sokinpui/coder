@@ -1,6 +1,18 @@
 # Installation
 
-### Quick Install
+### Quick Install (Pre-compiled Binaries)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
+```
+
+Or via `wget`:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
+```
+
+### Install From Source (Development)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/install.sh | bash

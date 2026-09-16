@@ -257,13 +257,18 @@ func openFilesInEditorCmd(filePaths []string) tea.Cmd {
 	})
 }
 
+func getUserShell() string {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		return "/bin/sh"
+	}
+	return shell
+}
+
 func execTerminalCmd(cmdStr string) tea.Cmd {
+	shell := getUserShell()
 	trimmed := strings.TrimSpace(cmdStr)
 	if trimmed == "" {
-		shell := os.Getenv("SHELL")
-		if shell == "" {
-			shell = "/bin/sh"
-		}
 		c := exec.Command(shell)
 		return tea.ExecProcess(c, func(err error) tea.Msg {
 			return termFinishedMsg{cmdStr: "", err: err}
@@ -272,7 +277,7 @@ func execTerminalCmd(cmdStr string) tea.Cmd {
 
 	tmpFile, err := os.CreateTemp("", "coder-term-*.log")
 	if err != nil {
-		c := exec.Command("sh", "-c", trimmed)
+		c := exec.Command(shell, "-c", trimmed)
 		return tea.ExecProcess(c, func(err error) tea.Msg {
 			return termFinishedMsg{cmdStr: trimmed, err: err}
 		})
@@ -281,7 +286,7 @@ func execTerminalCmd(cmdStr string) tea.Cmd {
 	tmpFile.Close()
 
 	wrapped := fmt.Sprintf("(%s) 2>&1 | tee %s", trimmed, tmpPath)
-	c := exec.Command("sh", "-c", wrapped)
+	c := exec.Command(shell, "-c", wrapped)
 	return tea.ExecProcess(c, func(runErr error) tea.Msg {
 		defer os.Remove(tmpPath)
 		data, _ := os.ReadFile(tmpPath)
