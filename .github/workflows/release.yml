@@ -11,6 +11,15 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - "linux/amd64"
+          - "linux/arm64"
+          - "darwin/amd64"
+          - "darwin/arm64"
+          - "windows/amd64"
+          - "windows/arm64"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,53 +28,64 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Build and Package Binaries
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          PLATFORMS=(
-            "linux/amd64"
-            "linux/arm64"
-            "darwin/amd64"
-            "darwin/arm64"
-            "windows/amd64"
-            "windows/arm64"
-          )
+          PLATFORM="${{ matrix.platform }}"
+          GOOS="${PLATFORM%/*}"
+          GOARCH="${PLATFORM#*/}"
           BINARIES=("coder" "itf" "sf" "pcat" "pti")
 
           mkdir -p dist
 
-          for platform in "${PLATFORMS[@]}"; do
-            GOOS="${platform%/*}"
-            GOARCH="${platform#*/}"
-            EXT=""
-            if [ "$GOOS" = "windows" ]; then
-              EXT=".exe"
-            fi
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then
+            EXT=".exe"
+          fi
 
-            ARCHIVE_DIR="coder_${VERSION}_${GOOS}_${GOARCH}"
-            mkdir -p "$ARCHIVE_DIR"
+          ARCHIVE_DIR="coder_${VERSION}_${GOOS}_${GOARCH}"
+          mkdir -p "$ARCHIVE_DIR"
 
-            for bin in "${BINARIES[@]}"; do
-              CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build \
-                -ldflags="-s -w -X github.com/sokinpui/coder/pkg/version.Version=${VERSION}" \
-                -o "${ARCHIVE_DIR}/${bin}${EXT}" \
-                "./cmd/${bin}"
-            done
-
-            if [ -f README.md ]; then
-              cp README.md "$ARCHIVE_DIR/"
-            fi
-
-            if [ "$GOOS" = "windows" ]; then
-              zip -r "dist/${ARCHIVE_DIR}.zip" "$ARCHIVE_DIR"
-            else
-              tar -czf "dist/${ARCHIVE_DIR}.tar.gz" "$ARCHIVE_DIR"
-            fi
-
-            rm -rf "$ARCHIVE_DIR"
+          for bin in "${BINARIES[@]}"; do
+            CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build \
+              -ldflags="-s -w -X github.com/sokinpui/coder/pkg/version.Version=${VERSION}" \
+              -o "${ARCHIVE_DIR}/${bin}${EXT}" \
+              "./cmd/${bin}"
           done
 
+          if [ -f README.md ]; then
+            cp README.md "$ARCHIVE_DIR/"
+          fi
+
+          if [ "$GOOS" = "windows" ]; then
+            zip -r "dist/${ARCHIVE_DIR}.zip" "$ARCHIVE_DIR"
+          else
+            tar -czf "dist/${ARCHIVE_DIR}.tar.gz" "$ARCHIVE_DIR"
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.platform }}
+          path: dist/*
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate Checksums
+        run: |
           cd dist
           sha256sum * > checksums.txt
 

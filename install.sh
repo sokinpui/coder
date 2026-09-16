@@ -135,11 +135,14 @@ install_prebuilt() {
   tmp_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'coder-install')
   trap 'rm -rf "$tmp_dir"' EXIT
 
-  echo "Downloading Coder Suite (${version} for ${os}/${arch})..."
-  if ! curl -fsSL "$download_url" -o "$tmp_dir/$archive_name"; then
-    return 1
+  echo "==> [1/3] Downloading Coder Suite (${version} for ${os}/${arch})..."
+  if [ -t 1 ] || [ -t 2 ]; then
+    curl -fL --progress-bar "$download_url" -o "$tmp_dir/$archive_name" || return 1
+  else
+    curl -fsSL "$download_url" -o "$tmp_dir/$archive_name" || return 1
   fi
 
+  echo "==> [2/3] Extracting archive..."
   local extract_dir="$tmp_dir/extracted"
   mkdir -p "$extract_dir"
 
@@ -159,11 +162,13 @@ install_prebuilt() {
     src_dir="$extract_dir"
   fi
 
+  echo "==> [3/3] Installing binaries to ${dest_dir}..."
   for bin in "${BINARIES[@]}"; do
     local bin_name="${bin}${ext}"
     if [ -f "$src_dir/$bin_name" ]; then
       chmod +x "$src_dir/$bin_name"
       $USE_SUDO cp -f "$src_dir/$bin_name" "$dest_dir/$bin_name"
+      echo "  ✓ Installed ${bin_name}"
     fi
   done
 
