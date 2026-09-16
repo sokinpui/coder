@@ -36,13 +36,13 @@ detect_os() {
   local os
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$os" in
-    linux*)  echo "linux" ;;
-    darwin*) echo "darwin" ;;
-    msys*|mingw*|cygwin*) echo "windows" ;;
-    *)
-      echo "Error: Unsupported operating system: $os" >&2
-      exit 1
-      ;;
+  linux*) echo "linux" ;;
+  darwin*) echo "darwin" ;;
+  msys* | mingw* | cygwin*) echo "windows" ;;
+  *)
+    echo "Error: Unsupported operating system: $os" >&2
+    exit 1
+    ;;
   esac
 }
 
@@ -50,19 +50,19 @@ detect_arch() {
   local arch
   arch="$(uname -m)"
   case "$arch" in
-    x86_64|amd64) echo "amd64" ;;
-    arm64|aarch64) echo "arm64" ;;
-    *)
-      echo "Error: Unsupported architecture: $arch" >&2
-      exit 1
-      ;;
+  x86_64 | amd64) echo "amd64" ;;
+  arm64 | aarch64) echo "arm64" ;;
+  *)
+    echo "Error: Unsupported architecture: $arch" >&2
+    exit 1
+    ;;
   esac
 }
 
 is_in_path() {
   case ":$PATH:" in
-    *":$1:"*) return 0 ;;
-    *) return 1 ;;
+  *":$1:"*) return 0 ;;
+  *) return 1 ;;
   esac
 }
 
