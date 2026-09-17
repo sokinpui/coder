@@ -1,52 +1,23 @@
 # Installation
 
-### Quick Install (Pre-compiled Binaries)
+### Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
 ```
 
-Or via `wget`:
-
-```bash
-wget -qO- https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
-```
-
-### Install From Source (Development)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/install.sh | bash
-```
-
 ### Prerequisites
 
-- **Common**: Go, Git.
 - `pngpaste` (macOS) or `xclip` (Linux) or `wl-clipboard` (Linux Wayland)
 
 ### Installation
 
-From source (recommended for correct versioning):
+From source:
 
 ```bash
 git clone https://github.com/sokinpui/coder.git
 cd coder
 ./install.sh
-```
-
-Or via Go directly:
-
-```bash
-# To install sf
-go install github.com/sokinpui/coder/cmd/sf@latest
-
-# To install pcat
-go install github.com/sokinpui/coder/cmd/pcat@latest
-
-# To install itf
-go install github.com/sokinpui/coder/cmd/itf@latest
-
-# To install the main coder TUI
-go install github.com/sokinpui/coder/cmd/coder@latest
 ```
 
 # Coder
@@ -109,15 +80,14 @@ To use `coder` with your preferred provider, update your `config.yaml`:
 
 ```yaml
 server:
-  url: http://localhost:9001/v1   # Base URL of the OpenAI-compatible provider
-  protocol: responses             # Protocol: "responses" (default, /v1/responses) or "chat" (/v1/chat/completions)
+  url: http://localhost:9001/v1 # Base URL of the OpenAI-compatible provider
+  protocol: responses # Protocol: "responses" (default, /v1/responses) or "chat" (/v1/chat/completions)
 
 generation:
   modelcode: gemini-3-flash-preview # The model ID used for chat
   titlemodelcode: gemini-2.5-flash-lite # The model ID used for session titles
   reasoning_effort: high # Reasoning effort for models that support it (minimal, low, medium, high)
 ```
-
 
 ### API Key
 
