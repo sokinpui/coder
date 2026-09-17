@@ -29,7 +29,8 @@ var behaviorGroup = helpGroup{
 var commandGroup = helpGroup{
 	{key: "active", desc: "View active chat sessions."},
 	{key: "branch", desc: "Enter branch mode to branch from a message."},
-	{key: "chat", desc: "Start a new chat session with no context/instructions."},
+	{key: "chat", desc: "Switch conversation mode to chat."},
+	{key: "coding", desc: "Switch conversation mode to coding."},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source."},
@@ -39,7 +40,6 @@ var commandGroup = helpGroup{
 	{key: "history", desc: "View conversation history."},
 	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes."},
 	{key: "list", desc: "List the current project source files/directories."},
-	{key: "mode", desc: "Switch conversation mode (coding/chat)."},
 	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro)."},
 	{key: "msg", desc: "Open atomic messages overlay."},
 	{key: "new", desc: "Start a new chat session."},

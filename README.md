@@ -127,6 +127,8 @@ Commands are prefixed with a slash `/`.
 - `/list`: Show a summary of files currently in context.
 - `/undo`: Undo the last file changes applied by `itf`.
 - `/itf`: Manually trigger the code application tool on the last response.
+- `/chat`: Switch conversation mode to chat.
+- `/coding`: Switch conversation mode to coding.
 - `/model [name]`: Switch the generation model on the fly (or open model switcher).
 - `/new`: Reset the session but keep current configuration.
 - `/history`: Browse and load previous conversations.
