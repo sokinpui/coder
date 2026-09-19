@@ -6,6 +6,7 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -60,58 +61,17 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared.", IsContext: true}, true
 	}
 
-	var files []string
-	var dirs []string
-	var invalidPaths []string
-
-	expandedPaths, invalidPatterns := ExpandPaths(paths)
-	invalidPaths = append(invalidPaths, invalidPatterns...)
-
-	for _, p := range expandedPaths {
-		info, err := os.Stat(p)
-		if err != nil {
-			if os.IsNotExist(err) {
-				invalidPaths = append(invalidPaths, p)
-				continue
-			}
-			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Error accessing path %s: %v", p, err)}, false
-		}
-		if info.IsDir() {
-			dirs = append(dirs, p)
-		} else {
-			files = append(files, p)
-		}
-	}
-
-	var pdfFiles []string
-	var codeFiles []string
-	for _, f := range files {
-		if strings.EqualFold(filepath.Ext(f), ".pdf") {
-			pdfFiles = append(pdfFiles, f)
-			continue
-		}
-		codeFiles = append(codeFiles, f)
-	}
-	files = codeFiles
-
-	var addedDocs []string
-	for _, pdfPath := range pdfFiles {
-		addedDocs = append(addedDocs, filepath.ToSlash(pdfPath))
-	}
-
-	if len(addedDocs) > 0 {
-		s.SetContextDocuments(AppendUnique(s.GetContextDocuments(), addedDocs))
-	}
-
 	currentFiles := s.GetContextFiles()
+	currentDocs := s.GetContextDocuments()
+
 	cfg := s.GetConfig()
 	allExclusions := append([]string{}, source.Exclusions...)
 	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
 
-	newResolvedFiles, _ := source.ResolveFileList(dirs, files, allExclusions)
-	updatedFiles := AppendUnique(currentFiles, newResolvedFiles)
-	addedCount := len(updatedFiles) - len(currentFiles)
-	s.SetContextFiles(updatedFiles)
+	newFiles, newDocs, invalidPaths := source.Add(currentFiles, currentDocs, paths, allExclusions)
+	addedCount := len(newFiles) - len(currentFiles)
+	s.SetContextFiles(newFiles)
+	s.SetContextDocuments(newDocs)
 
 	if err := s.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
@@ -119,7 +79,10 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	var pdfRenderNotes []string
 	var pdfErrors []string
-	for _, doc := range addedDocs {
+	for _, doc := range newDocs {
+		if slices.Contains(currentDocs, doc) {
+			continue
+		}
 		pages := s.GetDocumentPageCount(doc)
 		if pages > 0 {
 			pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", doc, pages))

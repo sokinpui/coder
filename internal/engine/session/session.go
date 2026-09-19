@@ -77,38 +77,19 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	allExclusions := append([]string{}, source.Exclusions...)
 	allExclusions = append(allExclusions, cfgCopy.Context.Exclusions...)
 
-	var cleanContextFiles []string
-	var pdfFiles []string
-	for _, p := range contextFiles {
-		if strings.EqualFold(filepath.Ext(p), ".pdf") {
-			pdfFiles = append(pdfFiles, filepath.ToSlash(p))
-			continue
-		}
-		cleanContextFiles = append(cleanContextFiles, p)
-	}
-
 	var resolvedContextFiles []string
+	var resolvedContextDocs []string
 	switch mode {
 	case ModeCoding:
-		var dirs, files []string
-
-		if len(cleanContextFiles) > 0 {
-			for _, p := range cleanContextFiles {
-				p = filepath.ToSlash(p)
-				if info, err := os.Stat(p); err == nil && info.IsDir() {
-					dirs = append(dirs, p)
-				} else {
-					files = append(files, p)
-				}
-			}
-		} else {
-			dirs = getSafeContextDirs(cfgCopy.Context.Dirs)
-			files = cfgCopy.Context.Files
+		initialPaths := contextFiles
+		if len(initialPaths) == 0 {
+			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Context.Dirs)...), cfgCopy.Context.Files...)
 		}
-
-		resolvedContextFiles, _ = source.ResolveFileList(dirs, files, allExclusions)
+		resolvedContextFiles, resolvedContextDocs, _ = source.Add(nil, nil, initialPaths, allExclusions)
 	default:
-		// Other modes do not load context files by default
+		if len(contextFiles) > 0 {
+			resolvedContextFiles, resolvedContextDocs, _ = source.Add(nil, nil, contextFiles, allExclusions)
+		}
 	}
 
 	s := &Session{
@@ -124,7 +105,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 		mode:              mode,
 		instruction:       instruction,
 		contextFiles:      resolvedContextFiles,
-		contextDocuments:  AppendUnique([]string{}, pdfFiles),
+		contextDocuments:  resolvedContextDocs,
 		cachedDocMessages: make(map[string][]types.Message),
 		docModTimes:       make(map[string]time.Time),
 	}
@@ -216,18 +197,7 @@ func (s *Session) SetContextFiles(files []string) {
 }
 
 func AppendUnique(original []string, newItems []string) []string {
-	seen := make(map[string]struct{}, len(original)+len(newItems))
-	for _, item := range original {
-		seen[item] = struct{}{}
-	}
-	result := append([]string{}, original...)
-	for _, item := range newItems {
-		if _, ok := seen[item]; !ok {
-			seen[item] = struct{}{}
-			result = append(result, item)
-		}
-	}
-	return result
+	return source.AppendUnique(original, newItems)
 }
 
 func (s *Session) GetLastModifiedFiles() []string {

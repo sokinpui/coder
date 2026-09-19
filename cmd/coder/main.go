@@ -15,7 +15,6 @@ import (
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/engine/session"
-	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
@@ -257,17 +256,7 @@ func printContext(mode string, args []string) {
 		os.Exit(1)
 	}
 
-	allExclusions := append([]string{}, source.Exclusions...)
-	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
-
-	var resolvedFiles []string
-	if len(files) > 0 {
-		resolvedFiles, _ = source.ResolveFileList(nil, files, allExclusions)
-	} else {
-		resolvedFiles, _ = source.ResolveFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
-	}
-
-	sess, err := session.New(cfg, mode, customInstruction, resolvedFiles)
+	sess, err := session.New(cfg, mode, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -301,17 +290,7 @@ func runSingleShot(args []string) {
 		os.Exit(1)
 	}
 
-	allExclusions := append([]string{}, source.Exclusions...)
-	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
-
-	var resolvedFiles []string
-	if len(files) > 0 {
-		resolvedFiles, _ = source.ResolveFileList(nil, files, allExclusions)
-	} else {
-		resolvedFiles, _ = source.ResolveFileList(cfg.Context.Dirs, cfg.Context.Files, allExclusions)
-	}
-
-	sess, err := session.New(cfg, session.ModeCoding, customInstruction, resolvedFiles)
+	sess, err := session.New(cfg, session.ModeCoding, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)

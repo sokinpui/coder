@@ -72,10 +72,17 @@ func (m *Matcher) matchExcludes(path string, info os.DirEntry) bool {
 	rel := m.getRelativePath(path)
 	name := info.Name()
 
-	for _, pattern := range m.excludes {
-		pattern = filepath.ToSlash(pattern)
+	for _, rawPattern := range m.excludes {
+		pattern := strings.TrimSuffix(filepath.ToSlash(rawPattern), "/")
+		if pattern == "" {
+			continue
+		}
 
 		if matched, _ := filepath.Match(pattern, name); matched {
+			return true
+		}
+
+		if rel == pattern || strings.HasPrefix(rel, pattern+"/") {
 			return true
 		}
 
@@ -83,7 +90,7 @@ func (m *Matcher) matchExcludes(path string, info os.DirEntry) bool {
 			return true
 		}
 
-		if strings.Contains(pattern, "/") && m.matchSegments(rel, pattern) {
+		if m.matchSegments(rel, pattern) {
 			return true
 		}
 	}
@@ -94,6 +101,9 @@ func (m *Matcher) matchSegments(rel, pattern string) bool {
 	segments := strings.Split(rel, "/")
 	for i := 1; i < len(segments); i++ {
 		subPath := strings.Join(segments[i:], "/")
+		if subPath == pattern || strings.HasPrefix(subPath, pattern+"/") {
+			return true
+		}
 		if matched, _ := filepath.Match(pattern, subPath); matched {
 			return true
 		}
