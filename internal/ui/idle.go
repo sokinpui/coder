@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/commands"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -49,7 +49,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 		mode = "coding"
 	}
 
-	newSess, err := session.New(m.Session.GetConfig(), mode, m.Session.GetInstruction(), m.Session.GetContextFiles())
+	newSess, err := coder.New(m.Session.GetConfig(), mode, m.Session.GetInstruction(), m.Session.GetContextFiles())
 	if err != nil {
 		log.Printf("Error creating new session: %v", err)
 		return m, nil

@@ -8,13 +8,13 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/session"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/pkg/version"
 )
 
 type Server struct {
 	cfg      *config.Config
-	session  *session.Session
+	session  *coder.Session
 	writerMu sync.Mutex
 	writer   io.Writer
 }
@@ -81,7 +81,7 @@ func (s *Server) ensureSession() error {
 		return nil
 	}
 
-	sess, err := engine.New(s.cfg, session.ModeCoding, "", nil)
+	sess, err := engine.New(s.cfg, coder.ModeCoding, "", nil)
 	if err != nil {
 		return err
 	}

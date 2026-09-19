@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/history"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/types"
 )
 
-type Session = session.Session
+type Session = coder.Session
 
 type Engine interface {
 	GetConfig() *config.Config
@@ -61,10 +61,10 @@ type Engine interface {
 	GetHistoryManager() *history.Manager
 }
 
-func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*session.Session, error) {
-	return session.New(cfg, mode, instruction, contextFiles)
+func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*coder.Session, error) {
+	return coder.New(cfg, mode, instruction, contextFiles)
 }
 
-func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode string, instruction string, contextFiles []string) (*session.Session, error) {
-	return session.NewWithMessages(cfg, initialMessages, mode, instruction, contextFiles)
+func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode string, instruction string, contextFiles []string) (*coder.Session, error) {
+	return coder.NewWithMessages(cfg, initialMessages, mode, instruction, contextFiles)
 }

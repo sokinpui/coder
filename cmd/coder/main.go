@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/generation"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
@@ -150,9 +150,9 @@ func runCLI(cmd *cobra.Command, args []string) {
 	}
 
 	if printContextFlag {
-		mode := session.ModeCoding
+		mode := coder.ModeCoding
 		if chatMode {
-			mode = session.ModeChat
+			mode = coder.ModeChat
 		}
 		printContext(mode, args)
 		return
@@ -164,12 +164,12 @@ func runCLI(cmd *cobra.Command, args []string) {
 	}
 
 	if chatMode {
-		startApp(session.ModeChat, initialPrompt, nil, customInstruction)
+		startApp(coder.ModeChat, initialPrompt, nil, customInstruction)
 		return
 	}
 
 	files := collectFiles(args)
-	startApp(session.ModeCoding, initialPrompt, files, customInstruction)
+	startApp(coder.ModeCoding, initialPrompt, files, customInstruction)
 }
 
 func generateCompletion(cmd *cobra.Command, shell string) {
@@ -256,7 +256,7 @@ func printContext(mode string, args []string) {
 		os.Exit(1)
 	}
 
-	sess, err := session.New(cfg, mode, customInstruction, files)
+	sess, err := coder.New(cfg, mode, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -290,7 +290,7 @@ func runSingleShot(args []string) {
 		os.Exit(1)
 	}
 
-	sess, err := session.New(cfg, session.ModeCoding, customInstruction, files)
+	sess, err := coder.New(cfg, coder.ModeCoding, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)

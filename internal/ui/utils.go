@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/clipboard"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/history"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -114,7 +114,7 @@ func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	}
 }
 
-func loadInitialContextCmd(sess *session.Session) tea.Cmd {
+func loadInitialContextCmd(sess *coder.Session) tea.Cmd {
 	return func() tea.Msg {
 		err := sess.LoadContext()
 		return initialContextLoadedMsg{err: err}
@@ -144,9 +144,9 @@ func listHistoryCmd(histMgr *history.Manager) tea.Cmd {
 	}
 }
 
-func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
+func loadConversationCmd(sess *coder.Session, filename string) tea.Cmd {
 	return func() tea.Msg {
-		newSess, err := session.New(sess.GetConfig(), "chat", sess.GetInstruction(), nil)
+		newSess, err := coder.New(sess.GetConfig(), "chat", sess.GetInstruction(), nil)
 		if err != nil {
 			return conversationLoadedMsg{err: err}
 		}
@@ -156,7 +156,7 @@ func loadConversationCmd(sess *session.Session, filename string) tea.Cmd {
 	}
 }
 
-func saveConversationCmd(sess *session.Session) tea.Cmd {
+func saveConversationCmd(sess *coder.Session) tea.Cmd {
 	if sess == nil {
 		return nil
 	}
@@ -187,7 +187,7 @@ func clearStatusBarCmd() tea.Cmd {
 	})
 }
 
-func generateTitleCmd(sess *session.Session, userPrompt string) tea.Cmd {
+func generateTitleCmd(sess *coder.Session, userPrompt string) tea.Cmd {
 	return func() tea.Msg {
 		// This runs in a goroutine managed by Bubble Tea.
 		title := sess.GenerateTitle(context.Background(), userPrompt)

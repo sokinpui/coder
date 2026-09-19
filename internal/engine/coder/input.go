@@ -1,4 +1,4 @@
-package session
+package coder
 
 import (
 	"github.com/sokinpui/coder/internal/engine/commands"

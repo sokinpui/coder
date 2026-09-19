@@ -3,8 +3,8 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/commands"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -31,8 +31,8 @@ type Model struct {
 	Selector  SelectorModel
 	QuickView *QuickViewModel
 
-	ActiveSessions      []*session.Session
-	Session             *session.Session
+	ActiveSessions      []*coder.Session
+	Session             *coder.Session
 	State               state
 	ActiveOverlay       overlayMode
 	Quitting            bool
@@ -46,7 +46,7 @@ type Model struct {
 }
 
 func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string, instruction string) (Model, error) {
-	sess, err := session.New(cfg, mode, instruction, contextFiles)
+	sess, err := coder.New(cfg, mode, instruction, contextFiles)
 	if err != nil {
 		return Model{}, err
 	}
@@ -64,7 +64,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	sort.Strings(availableCommands)
 
 	m := Model{
-		ActiveSessions:      []*session.Session{sess},
+		ActiveSessions:      []*coder.Session{sess},
 		Chat:                NewChat(initialInput),
 		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
@@ -94,7 +94,7 @@ func (m Model) updateTokenCountCmd() tea.Cmd {
 	}
 }
 
-func (m *Model) addActiveSession(sess *session.Session) {
+func (m *Model) addActiveSession(sess *coder.Session) {
 	for i, s := range m.ActiveSessions {
 		if s.ID == sess.ID {
 			m.ActiveSessions[i] = sess
@@ -118,7 +118,7 @@ func (m Model) switchSessionByID(id string) tea.Cmd {
 	return nil
 }
 
-func (m Model) getSessionByID(id string) *session.Session {
+func (m Model) getSessionByID(id string) *coder.Session {
 	if id == "" {
 		return m.Session
 	}

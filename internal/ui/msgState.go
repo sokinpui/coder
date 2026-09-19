@@ -1,8 +1,8 @@
 package ui
 
 import (
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/history"
-	"github.com/sokinpui/coder/internal/engine/session"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -74,11 +74,11 @@ type (
 		items []string
 	}
 	conversationLoadedMsg struct {
-		sess *session.Session
+		sess *coder.Session
 		err  error
 	}
 	switchActiveSessionMsg struct {
-		sess *session.Session
+		sess *coder.Session
 	}
 	pasteResultMsg struct {
 		isImage bool
