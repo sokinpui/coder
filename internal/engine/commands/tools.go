@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -14,7 +13,7 @@ func init() {
 	registerCommand("tools", toolsCmd, "toggle tools execution (new sessions only)", toolsArgumentCompleter)
 }
 
-func toolsArgumentCompleter(cfg *config.Config, prefix string) []string {
+func toolsArgumentCompleter(s SessionController, prefix string) []string {
 	return toolsOptions
 }
 

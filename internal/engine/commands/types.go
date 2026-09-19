@@ -43,4 +43,4 @@ type SessionController interface {
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)
 
-type argumentCompleter func(cfg *config.Config, prefix string) []string
+type argumentCompleter func(s SessionController, prefix string) []string

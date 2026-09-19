@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
 	"os"
@@ -14,7 +13,7 @@ func init() {
 	registerCommand("file", fileCmd, "add path to context", PathArgumentCompleter)
 }
 
-func PathArgumentCompleter(cfg *config.Config, prefix string) []string {
+func PathArgumentCompleter(s SessionController, prefix string) []string {
 	if prefix == "~" {
 		return []string{"~/"}
 	}

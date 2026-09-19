@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -12,8 +11,11 @@ func init() {
 	registerCommand("model", modelCmd, "switch generation model", modelArgumentCompleter)
 }
 
-func modelArgumentCompleter(cfg *config.Config, prefix string) []string {
-	return cfg.AvailableModels
+func modelArgumentCompleter(s SessionController, prefix string) []string {
+	if s == nil || s.GetConfig() == nil {
+		return nil
+	}
+	return s.GetConfig().AvailableModels
 }
 
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {

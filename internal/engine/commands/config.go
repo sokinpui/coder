@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 	"gopkg.in/yaml.v3"
 )
@@ -13,7 +12,7 @@ func init() {
 	registerCommand("config", configCmd, "show or reload configuration", configArgumentCompleter)
 }
 
-func configArgumentCompleter(cfg *config.Config, prefix string) []string {
+func configArgumentCompleter(s SessionController, prefix string) []string {
 	return []string{"reload"}
 }
 

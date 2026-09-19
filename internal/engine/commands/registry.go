@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 )
@@ -23,9 +22,9 @@ func GetCommandDescriptions() map[string]string {
 	return commandDescriptions
 }
 
-func GetCommandArgumentSuggestions(cmdName string, cfg *config.Config, prefix string) []string {
+func GetCommandArgumentSuggestions(cmdName string, s SessionController, prefix string) []string {
 	if completer, ok := commandArgumentCompleters[cmdName]; ok {
-		return completer(cfg, prefix)
+		return completer(s, prefix)
 	}
 	return nil
 }

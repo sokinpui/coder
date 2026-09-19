@@ -72,7 +72,7 @@ func (m Model) updatePalette() Model {
 				argPrefix = parts[len(parts)-1]
 			}
 
-			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session.GetConfig(), argPrefix)
+			suggestions := commands.GetCommandArgumentSuggestions(cmdName, m.Session, argPrefix)
 			for _, s := range suggestions {
 				if strings.HasPrefix(strings.ToLower(s), strings.ToLower(argPrefix)) {
 					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
