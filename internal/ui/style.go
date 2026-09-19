@@ -89,6 +89,9 @@ var (
 	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
+	toolExecutingStatusStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("39")). // Blue
+					Italic(true)
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 	statusBarTitleStyle = lipgloss.NewStyle().

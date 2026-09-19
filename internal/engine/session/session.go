@@ -21,28 +21,28 @@ const (
 )
 
 type Session struct {
-	ID                string
-	config            *config.Config
-	generator         *generation.Generator
-	historyManager    *history.Manager
-	messages          []types.Message
-	cancelGeneration  context.CancelFunc
-	title             string
-	titleGenerated    bool
-	historyFilename   string
-	createdAt         time.Time
-	mode              string
-	instruction       string
+	ID                 string
+	config             *config.Config
+	generator          *generation.Generator
+	historyManager     *history.Manager
+	messages           []types.Message
+	cancelGeneration   context.CancelFunc
+	title              string
+	titleGenerated     bool
+	historyFilename    string
+	createdAt          time.Time
+	mode               string
+	instruction        string
 	projectSourceFiles []string
-	lastModifiedFiles []string
-	hasAppliedChanges bool
-	contextFiles      []string
-	contextDocuments  []string
-	documentMessages  []types.Message
-	cachedDocMessages map[string][]types.Message
-	docModTimes       map[string]time.Time
-	contextLoadedAt   time.Time
-	isStreaming       bool
+	lastModifiedFiles  []string
+	hasAppliedChanges  bool
+	contextFiles       []string
+	contextDocuments   []string
+	documentMessages   []types.Message
+	cachedDocMessages  map[string][]types.Message
+	docModTimes        map[string]time.Time
+	contextLoadedAt    time.Time
+	isStreaming        bool
 }
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {

@@ -85,7 +85,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
-		case stateAsking, stateThinking:
+		case stateAsking, stateThinking, stateExecutingTool:
 			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			if wasAtBottom {
@@ -117,6 +117,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Content:  msg.chunk.ToolCall.Arguments,
 			})
 			if isActive {
+				m.State = stateExecutingTool
+				m.Chat.ActiveToolName = msg.chunk.ToolCall.Name
+				m.Chat.StateStartTime = time.Now()
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}
@@ -131,6 +134,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			})
 			targetSess.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
 			if isActive {
+				m.State = stateAsking
+				m.Chat.ActiveToolName = ""
+				m.Chat.StateStartTime = time.Now()
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				m.Chat.Viewport.GotoBottom()
 			}
@@ -140,6 +146,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.chunk.Content != "" {
 			if isActive && m.State != stateGenerating {
 				m.State = stateGenerating
+				m.Chat.ActiveToolName = ""
 				m.Chat.StateStartTime = time.Now()
 			}
 			messages := targetSess.GetMessages()
@@ -214,6 +221,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.Chat.IsStreaming = false
+		m.Chat.ActiveToolName = ""
 		m.State = stateIdle
 		if m.ActiveOverlay == overlayNone {
 			m.Chat.TextArea.Focus()
@@ -396,7 +404,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if m.Session.IsStreaming() {
 			messages := m.Session.GetMessages()
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.ToolCallMessage {
+				m.State = stateExecutingTool
+				m.Chat.ActiveToolName = messages[len(messages)-1].ToolName
+			} else if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
 				m.State = stateGenerating
 			} else {
 				m.State = stateAsking
@@ -430,7 +441,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ClearCache()
 		if m.Session.IsStreaming() {
 			messages := m.Session.GetMessages()
-			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
+			if len(messages) > 0 && messages[len(messages)-1].Type == types.ToolCallMessage {
+				m.State = stateExecutingTool
+				m.Chat.ActiveToolName = messages[len(messages)-1].ToolName
+			} else if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {
 				m.State = stateGenerating
 			} else {
 				m.State = stateAsking
@@ -572,6 +586,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.IsAIRendering = false
 			m.Chat.PendingAIRender = false
 			m.Chat.LastInteractionFailed = true
+			m.Chat.ActiveToolName = ""
 			m.State = stateIdle
 			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())

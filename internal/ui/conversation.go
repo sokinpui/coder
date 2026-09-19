@@ -62,7 +62,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		currentLine += len(lines)
 	}
 
-	if m.State == stateAsking || m.State == stateThinking {
+	if m.State == stateAsking || m.State == stateThinking || m.State == stateExecutingTool {
 		thinkingLine := m.renderThinkingLine()
 		allLines = append(allLines, strings.Split(thinkingLine, "\n")...)
 	}
@@ -207,8 +207,15 @@ func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *g
 
 func (m Model) renderThinkingLine() string {
 	text := "Thinking "
-	if m.State == stateAsking {
+	switch m.State {
+	case stateAsking:
 		text = "Asking "
+	case stateExecutingTool:
+		if m.Chat.ActiveToolName != "" {
+			text = fmt.Sprintf("Executing %s ", m.Chat.ActiveToolName)
+		} else {
+			text = "Executing tool "
+		}
 	}
 	thinkingText := thinkingTextStyle.Render(text)
 	fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())

@@ -2,9 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
+	"strings"
 )
 
 func init() {
