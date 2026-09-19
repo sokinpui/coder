@@ -134,6 +134,10 @@ func RestoreFileFromTrash(originalPath string, trashPath string, wd string) erro
 		relPath = filepath.Base(originalPath)
 	}
 
+	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
+		return err
+	}
+
 	srcPath := filepath.Join(trashPath, relPath)
 	data, err := os.ReadFile(srcPath)
 	if err != nil {

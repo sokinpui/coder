@@ -2,6 +2,8 @@ package itf
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -169,6 +171,18 @@ func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]st
 		if !isAllowed(abs, allowed) {
 			continue
 		}
+
+		info, err := os.Stat(abs)
+		if err == nil && info.IsDir() {
+			_ = filepath.WalkDir(abs, func(p string, d fs.DirEntry, walkErr error) error {
+				if walkErr == nil && !d.IsDir() && isAllowed(p, allowed) {
+					paths = append(paths, p)
+				}
+				return nil
+			})
+			continue
+		}
+
 		paths = append(paths, abs)
 	}
 	return paths

@@ -99,12 +99,14 @@ oldfile2 newfile2
 
 ## File Delete:
 
-List the name of the files that are deleted in a markdown code block tagged with `delete`.
+List the name of the files or directories to be deleted in a markdown code block tagged with `delete`.
 
 ```delete
 # Delete:
 file1
 file2
+dir1/
+dir2/
 ...
 ```
 

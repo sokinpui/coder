@@ -164,6 +164,10 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 		progress()
 	}
 
+	if len(deleted) > 0 {
+		cleanEmptyDirectories(deleted, a.stateManager.ProjectRoot)
+	}
+
 	a.recordHistory(created, modified, deleted, renamedSuccess, renamedMap, plan, oldHashes)
 
 	return a.createSummary(
@@ -256,6 +260,41 @@ func (a *App) redoLastOperation() (Summary, error) {
 	s.Message = "Redone"
 	a.relativizeSummaryPaths(&s)
 	return s, nil
+}
+
+func cleanEmptyDirectories(deletedPaths []string, root string) {
+	dirSet := make(map[string]struct{})
+	for _, p := range deletedPaths {
+		dir := filepath.Dir(p)
+		for dir != "." && dir != "/" && dir != root {
+			dirSet[dir] = struct{}{}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+
+	var dirs []string
+	for d := range dirSet {
+		dirs = append(dirs, d)
+	}
+
+	// Remove deeper directories first
+	for i := 0; i < len(dirs); i++ {
+		for j := i + 1; j < len(dirs); j++ {
+			if len(dirs[i]) < len(dirs[j]) {
+				dirs[i], dirs[j] = dirs[j], dirs[i]
+			}
+		}
+	}
+
+	for _, d := range dirs {
+		if entries, err := os.ReadDir(d); err == nil && len(entries) == 0 {
+			_ = os.Remove(d)
+		}
+	}
 }
 
 func (a *App) relativizeSummaryPaths(s *Summary) {
