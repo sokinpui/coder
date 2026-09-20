@@ -2,7 +2,7 @@ package coder
 
 import (
 	"context"
-	"github.com/sokinpui/coder/internal/prompt"
+	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"log"
 	"strings"
 )
@@ -19,7 +19,7 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.titleGenerated = true // Set this first to prevent concurrent calls.
 	s.generator.Config = s.config.Generation
 
-	prompt := strings.Replace(prompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
+	prompt := strings.Replace(coderprompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
 
 	title, err := s.generator.GenerateTitle(ctx, prompt)
 	if err != nil {

@@ -50,12 +50,14 @@ func (s *Session) StartGeneration() types.Event {
 		}
 	}
 
+	instruction, chatMsgs := types.AssemblePrompt(messages, "")
+
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
 	s.isStreaming = true
 	s.generator.Config = s.config.Generation
-	go s.generator.GenerateTask(ctx, messages, streamChan, &s.config.Generation)
+	go s.generator.GenerateTask(ctx, instruction, chatMsgs, streamChan, &s.config.Generation)
 
 	s.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
 

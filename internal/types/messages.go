@@ -1,5 +1,7 @@
 package types
 
+import "strings"
+
 type MessageType int
 
 const (
@@ -29,6 +31,20 @@ type Message struct {
 	Type    MessageType
 	Content string // For text content, or file path for images (for prompt)
 	Data    []byte // For raw image data
+}
+
+type ChatRole string
+
+const (
+	RoleSystem    ChatRole = "system"
+	RoleUser      ChatRole = "user"
+	RoleAssistant ChatRole = "assistant"
+)
+
+type ChatMessage struct {
+	Role    ChatRole
+	Content string
+	Data    []byte
 }
 
 type StreamChunk struct {
@@ -125,6 +141,61 @@ func (t MessageType) IsRegeneratable() bool {
 	default:
 		return false
 	}
+}
+
+func (t MessageType) ChatRole() (ChatRole, bool) {
+	switch t {
+	case InstructionMessage, DirectoryMessage:
+		return RoleSystem, true
+	case AIMessage:
+		return RoleAssistant, true
+	case UserMessage, ImageMessage, SourceCodeMessage,
+		ShellCmdMessage, ShellCmdResultMessage,
+		ContextCmdMessage, ContextCmdResultMessage,
+		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
+		return RoleUser, true
+	default:
+		return "", false
+	}
+}
+
+func AssemblePrompt(messages []Message, defaultInstruction string) (string, []ChatMessage) {
+	var instructions []string
+	var chatMessages []ChatMessage
+
+	for _, msg := range messages {
+		if !msg.CanSendToAI() {
+			continue
+		}
+		role, ok := msg.Type.ChatRole()
+		if !ok {
+			continue
+		}
+
+		if role == RoleSystem {
+			if trimmed := strings.TrimSpace(msg.Content); trimmed != "" {
+				instructions = append(instructions, trimmed)
+			}
+			continue
+		}
+
+		if msg.Type == ImageMessage && len(msg.Data) == 0 {
+			continue
+		}
+
+		chatMessages = append(chatMessages, ChatMessage{
+			Role:    role,
+			Content: msg.Content,
+			Data:    msg.Data,
+		})
+	}
+
+	systemInstruction := strings.Join(instructions, "\n\n")
+	if systemInstruction == "" {
+		systemInstruction = defaultInstruction
+	}
+	return systemInstruction, chatMessages
 }
 
 func (m Message) CanSendToAI() bool {

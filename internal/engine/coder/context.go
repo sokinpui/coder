@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
@@ -117,7 +118,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	case ModeCoding:
 		instr := s.instruction
 		if instr == "" {
-			instr = prompt.CoderInstructions
+			instr = coderprompt.Instructions
 		}
 		result = append(result, types.Message{Type: types.InstructionMessage, Content: instr})
 		if dirInfo := project.DirInfo(); dirInfo != "" {

@@ -96,7 +96,7 @@ func (g *Generator) getResponsesURL() string {
 	return strings.TrimSuffix(g.BaseURL, "/") + "/responses"
 }
 
-func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
+func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
 	defer close(streamChan)
 
 	genConfig := g.Config
@@ -104,103 +104,74 @@ func (g *Generator) GenerateTask(ctx context.Context, messages []types.Message, 
 		genConfig = *generationConfig
 	}
 	if strings.EqualFold(g.Protocol, "chat") {
-		g.generateChatTask(ctx, messages, streamChan, &genConfig)
+		g.generateChatTask(ctx, systemInstruction, messages, streamChan, &genConfig)
 		return
 	}
-	g.generateResponsesTask(ctx, messages, streamChan, &genConfig)
+	g.generateResponsesTask(ctx, systemInstruction, messages, streamChan, &genConfig)
 }
 
-func (g *Generator) generateChatTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var apiMessages []openAIMessage
-	var sourceCodeParts []openAIContentPart
-
-	flushSourceParts := func() {
-		if len(sourceCodeParts) == 0 {
-			return
-		}
+	if systemInstruction != "" {
 		apiMessages = append(apiMessages, openAIMessage{
-			Role:    "user",
-			Content: sourceCodeParts,
+			Role:    "system",
+			Content: systemInstruction,
 		})
-		sourceCodeParts = nil
 	}
 
 	for _, msg := range messages {
-		if !msg.CanSendToAI() {
-			continue
-		}
-
-		if msg.Type == types.SourceCodeMessage {
-			if strings.TrimSpace(msg.Content) == "" {
-				continue
-			}
-			sourceCodeParts = append(sourceCodeParts, openAIContentPart{
-				Type: "text",
-				Text: msg.Content,
-			})
-			continue
-		}
-
-		flushSourceParts()
-
-		role := ""
-		var content any
-
-		switch msg.Type {
-		case types.InstructionMessage, types.DirectoryMessage:
-			role = "system"
-			content = msg.Content
-		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage,
-			types.ContextCmdMessage, types.ContextCmdResultMessage,
-			types.FileApplyCmdMessage, types.FileApplyCmdResultMessage, types.FileApplyCmdErrorMessage,
-			types.FileApplyUndoCmdMessage, types.FileApplyUndoCmdResultMessage, types.FileApplyUndoCmdErrorMessage:
-			role = "user"
-			content = msg.Content
-		case types.AIMessage:
-			role = "assistant"
-			content = msg.Content
-		case types.ImageMessage:
-			if msg.Data == nil {
-				continue
-			}
-			role = "user"
-			b64 := base64.StdEncoding.EncodeToString(msg.Data)
-			mimeType := "image/png"
-			if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
-				mimeType = "image/jpeg"
-			}
-			content = []openAIContentPart{
-				{
-					Type: "image_url",
-					ImageURL: &openAIImageURL{
-						URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+		switch msg.Role {
+		case types.RoleUser:
+			if len(msg.Data) > 0 {
+				b64 := base64.StdEncoding.EncodeToString(msg.Data)
+				mimeType := "image/png"
+				if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+					mimeType = "image/jpeg"
+				}
+				apiMessages = append(apiMessages, openAIMessage{
+					Role: "user",
+					Content: []openAIContentPart{
+						{
+							Type: "image_url",
+							ImageURL: &openAIImageURL{
+								URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+							},
+						},
 					},
-				},
-			}
-		default:
-			continue
-		}
-
-		if role == "" || (content == "" && msg.Type != types.ImageMessage) {
-			continue
-		}
-
-		if len(apiMessages) > 0 && apiMessages[len(apiMessages)-1].Role == role {
-			prevContent, isPrevStr := apiMessages[len(apiMessages)-1].Content.(string)
-			currContent, isCurrStr := content.(string)
-			if isPrevStr && isCurrStr {
-				apiMessages[len(apiMessages)-1].Content = prevContent + "\n\n" + currContent
+				})
 				continue
 			}
+			if msg.Content == "" {
+				continue
+			}
+			if len(apiMessages) > 0 && apiMessages[len(apiMessages)-1].Role == "user" {
+				if prevStr, ok := apiMessages[len(apiMessages)-1].Content.(string); ok {
+					apiMessages[len(apiMessages)-1].Content = prevStr + "\n\n" + msg.Content
+					continue
+				}
+			}
+			apiMessages = append(apiMessages, openAIMessage{
+				Role:    "user",
+				Content: msg.Content,
+			})
+		case types.RoleAssistant:
+			if msg.Content == "" {
+				continue
+			}
+			apiMessages = append(apiMessages, openAIMessage{
+				Role:    "assistant",
+				Content: msg.Content,
+			})
+		case types.RoleSystem:
+			if msg.Content == "" {
+				continue
+			}
+			apiMessages = append(apiMessages, openAIMessage{
+				Role:    "system",
+				Content: msg.Content,
+			})
 		}
-
-		apiMessages = append(apiMessages, openAIMessage{
-			Role:    role,
-			Content: content,
-		})
 	}
-
-	flushSourceParts()
 
 	body := map[string]any{
 		"model":            genConfig.ModelCode,
@@ -277,73 +248,48 @@ func (g *Generator) generateChatTask(ctx context.Context, messages []types.Messa
 	}
 }
 
-func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
-	var instructionsBuilder strings.Builder
+func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var inputItems []any
 
 	for _, msg := range messages {
-		if !msg.CanSendToAI() {
-			continue
-		}
-
-		if msg.Type == types.SourceCodeMessage {
-			if strings.TrimSpace(msg.Content) == "" {
-				continue
-			}
-			inputItems = append(inputItems, map[string]any{
-				"type":    "message",
-				"role":    "user",
-				"content": msg.Content,
-			})
-			continue
-		}
-
-		switch msg.Type {
-		case types.InstructionMessage, types.DirectoryMessage:
-			if instructionsBuilder.Len() > 0 {
-				instructionsBuilder.WriteString("\n\n")
-			}
-			instructionsBuilder.WriteString(msg.Content)
-
-		case types.UserMessage, types.ShellCmdMessage, types.ShellCmdResultMessage,
-			types.ContextCmdMessage, types.ContextCmdResultMessage,
-			types.FileApplyCmdMessage, types.FileApplyCmdResultMessage, types.FileApplyCmdErrorMessage,
-			types.FileApplyUndoCmdMessage, types.FileApplyUndoCmdResultMessage, types.FileApplyUndoCmdErrorMessage:
-			inputItems = append(inputItems, map[string]any{
-				"type":    "message",
-				"role":    "user",
-				"content": msg.Content,
-			})
-
-		case types.AIMessage:
-			if msg.Content != "" {
+		switch msg.Role {
+		case types.RoleUser:
+			if len(msg.Data) > 0 {
+				b64 := base64.StdEncoding.EncodeToString(msg.Data)
+				mimeType := "image/png"
+				if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+					mimeType = "image/jpeg"
+				}
 				inputItems = append(inputItems, map[string]any{
-					"type":    "message",
-					"role":    "assistant",
-					"content": msg.Content,
-				})
-			}
-
-		case types.ImageMessage:
-			if msg.Data == nil {
-				continue
-			}
-			b64 := base64.StdEncoding.EncodeToString(msg.Data)
-			mimeType := "image/png"
-			if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
-				mimeType = "image/jpeg"
-			}
-			inputItems = append(inputItems, map[string]any{
-				"type": "message",
-				"role": "user",
-				"content": []openAIContentPart{
-					{
-						Type: "input_image",
-						ImageURL: &openAIImageURL{
-							URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+					"type": "message",
+					"role": "user",
+					"content": []openAIContentPart{
+						{
+							Type: "input_image",
+							ImageURL: &openAIImageURL{
+								URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
+							},
 						},
 					},
-				},
+				})
+				continue
+			}
+			if msg.Content == "" {
+				continue
+			}
+			inputItems = append(inputItems, map[string]any{
+				"type":    "message",
+				"role":    "user",
+				"content": msg.Content,
+			})
+		case types.RoleAssistant:
+			if msg.Content == "" {
+				continue
+			}
+			inputItems = append(inputItems, map[string]any{
+				"type":    "message",
+				"role":    "assistant",
+				"content": msg.Content,
 			})
 		}
 	}
@@ -352,7 +298,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.
 		"model":        genConfig.ModelCode,
 		"stream":       true,
 		"store":        false,
-		"instructions": instructionsBuilder.String(),
+		"instructions": systemInstruction,
 		"input":        inputItems,
 	}
 

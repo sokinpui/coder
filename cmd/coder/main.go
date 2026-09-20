@@ -315,10 +315,11 @@ func runSingleShot(args []string) {
 	}
 
 	promptMsgs := sess.BuildPrompt(messages)
+	instruction, chatMsgs := types.AssemblePrompt(promptMsgs, "")
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx := context.Background()
 
-	go gen.GenerateTask(ctx, promptMsgs, streamChan, nil)
+	go gen.GenerateTask(ctx, instruction, chatMsgs, streamChan, nil)
 
 	hasError := false
 	for chunk := range streamChan {
