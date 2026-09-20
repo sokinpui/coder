@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/types"
@@ -61,16 +62,25 @@ type openAIResponse struct {
 }
 
 type responseStreamEvent struct {
-	Type      string `json:"type"`
-	Delta     string `json:"delta,omitempty"`
-	Arguments string `json:"arguments,omitempty"`
+	Type      string          `json:"type"`
+	Delta     string          `json:"delta,omitempty"`
+	Arguments json.RawMessage `json:"arguments,omitempty"`
 	Item      *struct {
-		Type      string `json:"type"`
-		ID        string `json:"id"`
-		CallID    string `json:"call_id"`
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
+		Type      string          `json:"type"`
+		ID        string          `json:"id"`
+		CallID    string          `json:"call_id"`
+		Name      string          `json:"name"`
+		Arguments json.RawMessage `json:"arguments"`
 	} `json:"item,omitempty"`
+	Response *struct {
+		Output []struct {
+			Type      string          `json:"type"`
+			ID        string          `json:"id"`
+			CallID    string          `json:"call_id"`
+			Name      string          `json:"name"`
+			Arguments json.RawMessage `json:"arguments"`
+		} `json:"output"`
+	} `json:"response,omitempty"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -462,6 +472,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 	var toolCalls []*partialToolCall
 	var currentToolCall *partialToolCall
 	reader := bufio.NewReader(resp.Body)
+readLoop:
 	for {
 		if ctx.Err() != nil {
 			return
@@ -477,7 +488,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				}
 				trimmed := strings.TrimSpace(raw)
 				if trimmed == "[DONE]" {
-					break
+					break readLoop
 				}
 
 				var ev responseStreamEvent
@@ -509,16 +520,19 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 								id:   cid,
 								name: ev.Item.Name,
 							}
-							currentToolCall.arguments.WriteString(ev.Item.Arguments)
+							currentToolCall.arguments.WriteString(parseRawArgs(ev.Item.Arguments))
 						}
 					case "response.function_call_arguments.delta":
 						if currentToolCall != nil {
 							currentToolCall.arguments.WriteString(ev.Delta)
 						}
 					case "response.function_call_arguments.done":
-						if currentToolCall != nil && ev.Arguments != "" {
-							currentToolCall.arguments.Reset()
-							currentToolCall.arguments.WriteString(ev.Arguments)
+						if currentToolCall != nil {
+							args := parseRawArgs(ev.Arguments)
+							if args != "" {
+								currentToolCall.arguments.Reset()
+								currentToolCall.arguments.WriteString(args)
+							}
 						}
 					case "response.output_item.done":
 						if ev.Item != nil && ev.Item.Type == "function_call" {
@@ -527,7 +541,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 								cid = ev.Item.ID
 							}
 							name := ev.Item.Name
-							args := ev.Item.Arguments
+							args := parseRawArgs(ev.Item.Arguments)
 							if currentToolCall != nil {
 								if name == "" {
 									name = currentToolCall.name
@@ -547,8 +561,26 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 							toolCalls = append(toolCalls, tc)
 							currentToolCall = nil
 						}
-					case "response.completed", "response.incomplete":
-						return
+					case "response.completed":
+						if len(toolCalls) == 0 && ev.Response != nil {
+							for _, out := range ev.Response.Output {
+								if out.Type == "function_call" {
+									cid := out.CallID
+									if cid == "" {
+										cid = out.ID
+									}
+									tc := &partialToolCall{
+										id:   cid,
+										name: out.Name,
+									}
+									tc.arguments.WriteString(parseRawArgs(out.Arguments))
+									toolCalls = append(toolCalls, tc)
+								}
+							}
+						}
+						break readLoop
+					case "response.incomplete":
+						break readLoop
 					case "error", "response.failed":
 						errMsg := trimmed
 						if ev.Error != nil && ev.Error.Message != "" {
@@ -565,7 +597,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 			if readErr != io.EOF && ctx.Err() == nil {
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
 			}
-			break
+			break readLoop
 		}
 	}
 
@@ -577,18 +609,33 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 		if tc.name == "" && tc.id == "" && tc.arguments.Len() == 0 {
 			continue
 		}
+		id := tc.id
+		if id == "" {
+			id = fmt.Sprintf("call_%d", time.Now().UnixNano())
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case streamChan <- types.StreamChunk{
 			ToolCall: &types.ToolCall{
-				ID:        tc.id,
+				ID:        id,
 				Name:      tc.name,
 				Arguments: tc.arguments.String(),
 			},
 		}:
 		}
 	}
+}
+
+func parseRawArgs(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var str string
+	if err := json.Unmarshal(raw, &str); err == nil {
+		return str
+	}
+	return string(raw)
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
