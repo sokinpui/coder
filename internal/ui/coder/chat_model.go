@@ -1,4 +1,4 @@
-package ui
+package coderui
 
 import (
 	"github.com/charmbracelet/bubbles/spinner"

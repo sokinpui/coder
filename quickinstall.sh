@@ -76,7 +76,7 @@ download_file "$DOWNLOAD_URL" "$TMP_DIR/$TARBALL"
 
 tar -xzf "$TMP_DIR/$TARBALL" -C "$TMP_DIR"
 
-BINARIES="coder itf sf pcat pti"
+BINARIES="coder co itf sf pcat pti"
 for bin in $BINARIES; do
   if [ -f "$TMP_DIR/$bin" ]; then
     chmod +x "$TMP_DIR/$bin"

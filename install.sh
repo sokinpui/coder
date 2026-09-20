@@ -31,6 +31,7 @@ LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=$VERSION"
 echo "Installing Coder Suite ($VERSION)..."
 
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/coder
+GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/co
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/itf
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/sf
 GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pcat
@@ -38,6 +39,7 @@ GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pti
 
 echo "Successfully installed to $(go env GOPATH)/bin:"
 echo "  - coder"
+echo "  - co"
 echo "  - itf"
 echo "  - sf"
 echo "  - pcat"

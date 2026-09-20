@@ -18,7 +18,7 @@ import (
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui"
+	coderui "github.com/sokinpui/coder/internal/ui/coder"
 	"github.com/sokinpui/coder/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -356,7 +356,7 @@ func runEditor(path string) {
 }
 
 func startApp(mode string, prompt string, contextFiles []string, instruction string) {
-	ui.Start(mode, prompt, contextFiles, instruction)
+	coderui.Start(mode, prompt, contextFiles, instruction)
 }
 
 func applyChanges(args []string) {
