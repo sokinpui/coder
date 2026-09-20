@@ -603,9 +603,9 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 						}
 					}
 				}
-				return
+				break
 			case "response.incomplete":
-				return
+				break
 			case "error", "response.failed":
 				errMsg := data
 				if ev.Error != nil && ev.Error.Message != "" {
