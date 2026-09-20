@@ -3,6 +3,7 @@ package coagent
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
@@ -33,7 +34,7 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 	}, nil
 }
 
-func (ar *AgentRuntime) RunLoop(ctx context.Context, systemInstruction string, messages []types.Message, streamChan chan<- AgentStreamChunk) {
+func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string, messages []types.Message, streamChan chan<- AgentStreamChunk) {
 	defer close(streamChan)
 
 	currentMessages := append([]types.Message(nil), messages...)

@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	historyDirName = ".coder/history"
-	indexFileName  = "index.json"
+	historyDirName            = ".coder/history"
+	indexFileName             = "index.json"
 	ConversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 )
 
@@ -185,7 +185,7 @@ func processMessageContent(msg *types.Message, rawContent string) {
 		var cleanLines []string
 		inBlock := false
 		var blockBuf strings.Builder
-		for _, line := range strings.Split(content, "\n") {
+		for line := range strings.SplitSeq(content, "\n") {
 			trimmed := strings.TrimSpace(line)
 			if trimmed == "```tool_call" {
 				inBlock = true

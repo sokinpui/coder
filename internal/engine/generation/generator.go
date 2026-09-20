@@ -47,8 +47,8 @@ type openAIMessage struct {
 type openAIStreamResponse struct {
 	Choices []struct {
 		Delta struct {
-			Content          string `json:"content"`
-			ReasoningContent string `json:"reasoning_content"`
+			Content          string           `json:"content"`
+			ReasoningContent string           `json:"reasoning_content"`
 			ToolCalls        []openAIToolCall `json:"tool_calls,omitempty"`
 		} `json:"delta"`
 	} `json:"choices"`
@@ -71,7 +71,7 @@ type responseStreamEvent struct {
 		Name      string `json:"name"`
 		Arguments string `json:"arguments"`
 	} `json:"item,omitempty"`
-	Error     *struct {
+	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 }
@@ -405,7 +405,6 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 			})
 		}
 	}
-
 
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
