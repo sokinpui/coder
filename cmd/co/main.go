@@ -15,6 +15,7 @@ var (
 	initialPrompt     string
 	customInstruction string
 	runModel          string
+	runProtocol       string
 )
 
 func main() {
@@ -45,6 +46,10 @@ func main() {
 				os.Exit(1)
 			}
 
+			if runProtocol != "" {
+				cfg.Server.Protocol = runProtocol
+			}
+
 			if runModel != "" {
 				cfg.Generation.ModelCode = runModel
 			}
@@ -59,6 +64,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Initial prompt/task to run")
 	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instructions for the agent")
 	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model code to use for agent generation")
+	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "responses", "Protocol to use: chat or responses")
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 

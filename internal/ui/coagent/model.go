@@ -22,6 +22,7 @@ const (
 type streamChunkMsg coagent.AgentStreamChunk
 type agentFinishedMsg struct{}
 type agentErrorMsg struct{ err error }
+type initPromptMsg string
 
 type Model struct {
 	state          state
@@ -31,9 +32,8 @@ type Model struct {
 	spinner        spinner.Model
 	messages       []types.Message
 	chunkChan      chan coagent.AgentStreamChunk
-	currentContent strings.Builder
+	currentContent string
 	initialPrompt  string
-	startedInitial bool
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
@@ -61,8 +61,11 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 }
 
 func (m Model) Init() tea.Cmd {
-	if m.initialPrompt != "" && !m.startedInitial {
-		return m.runPrompt(m.initialPrompt)
+	if m.initialPrompt != "" {
+		return tea.Batch(
+			textinput.Blink,
+			func() tea.Msg { return initPromptMsg(m.initialPrompt) },
+		)
 	}
 	return textinput.Blink
 }

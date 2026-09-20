@@ -14,6 +14,8 @@ import (
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case initPromptMsg:
+		return m.startPrompt(string(msg))
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	case streamChunkMsg:
@@ -68,7 +70,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			m.input.Reset()
-			return m, m.runPrompt(text)
+			return m.startPrompt(text)
 		}
 	}
 
@@ -81,10 +83,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) runPrompt(prompt string) tea.Cmd {
-	m.startedInitial = true
+func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.state = stateRunning
-	m.currentContent.Reset()
+	m.currentContent = ""
 
 	m.messages = append(m.messages, types.Message{
 		Type:    types.UserMessage,
@@ -101,7 +102,7 @@ func (m *Model) runPrompt(prompt string) tea.Cmd {
 		m.runtime.AgentLoop(ctx, "", m.messages, m.chunkChan)
 	}()
 
-	return tea.Batch(
+	return m, tea.Batch(
 		tea.Println(userLine),
 		m.spinner.Tick,
 		waitForNextChunk(m.chunkChan),
@@ -112,9 +113,9 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	var cmds []tea.Cmd
 
 	if chunk.ToolCall != nil {
-		if m.currentContent.Len() > 0 {
-			cmds = append(cmds, tea.Println(m.currentContent.String()))
-			m.currentContent.Reset()
+		if len(m.currentContent) > 0 {
+			cmds = append(cmds, tea.Println(m.currentContent))
+			m.currentContent = ""
 		}
 		callLine := fmt.Sprintf("⚡ %s %s(%s)", toolCallStyle.Render("Tool:"), chunk.ToolCall.Name, chunk.ToolCall.Arguments)
 		cmds = append(cmds, tea.Println(callLine))
@@ -127,7 +128,7 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.Content != "" {
-		m.currentContent.WriteString(chunk.Content)
+		m.currentContent += chunk.Content
 	}
 
 	cmds = append(cmds, waitForNextChunk(m.chunkChan))
@@ -137,14 +138,14 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if m.currentContent.Len() > 0 {
-		finalText := m.currentContent.String()
+	if len(m.currentContent) > 0 {
+		finalText := m.currentContent
 		cmds = append(cmds, tea.Println(finalText))
 		m.messages = append(m.messages, types.Message{
 			Type:    types.AIMessage,
 			Content: finalText,
 		})
-		m.currentContent.Reset()
+		m.currentContent = ""
 	}
 
 	m.state = stateInput

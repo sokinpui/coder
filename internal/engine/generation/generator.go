@@ -50,8 +50,14 @@ type openAIStreamResponse struct {
 		Delta struct {
 			Content          string           `json:"content"`
 			ReasoningContent string           `json:"reasoning_content"`
+			Reasoning        string           `json:"reasoning"`
 			ToolCalls        []openAIToolCall `json:"tool_calls,omitempty"`
 		} `json:"delta"`
+		Message struct {
+			Content          string           `json:"content"`
+			ReasoningContent string           `json:"reasoning_content"`
+			ToolCalls        []openAIToolCall `json:"tool_calls,omitempty"`
+		} `json:"message"`
 	} `json:"choices"`
 }
 
@@ -187,6 +193,9 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 				Content: msg.Content,
 			})
 		case types.RoleAssistant:
+			if msg.Content == "" && len(msg.ToolCalls) == 0 {
+				continue
+			}
 			assistantMsg := openAIMessage{
 				Role: "assistant",
 			}
@@ -205,10 +214,14 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 			}
 			apiMessages = append(apiMessages, assistantMsg)
 		case types.RoleTool:
+			callID := msg.ToolCallID
+			if callID == "" {
+				callID = "call_fallback"
+			}
 			apiMessages = append(apiMessages, openAIMessage{
 				Role:       "tool",
 				Content:    msg.Content,
-				ToolCallID: msg.ToolCallID,
+				ToolCallID: callID,
 			})
 		case types.RoleSystem:
 			if msg.Content == "" {
@@ -282,73 +295,87 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	}
 	var toolCalls []*partialToolCall
 
-	reader := bufio.NewReader(resp.Body)
-	for {
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
 		if ctx.Err() != nil {
 			return
 		}
 
-		line, readErr := reader.ReadString('\n')
-		if len(line) > 0 {
-			line = strings.TrimRight(line, "\r\n")
-			if after, ok := strings.CutPrefix(line, "data:"); ok {
-				data := strings.TrimPrefix(after, " ")
-				if strings.TrimSpace(data) == "[DONE]" {
-					break
-				}
-				var streamResp openAIStreamResponse
-				if err := json.Unmarshal([]byte(data), &streamResp); err == nil && len(streamResp.Choices) > 0 {
-					delta := streamResp.Choices[0].Delta
-					if delta.Content != "" || delta.ReasoningContent != "" {
-						select {
-						case <-ctx.Done():
-							return
-						case streamChan <- types.StreamChunk{
-							Content:          delta.Content,
-							ReasoningContent: delta.ReasoningContent,
-						}:
-						}
-					}
-					for _, tcDelta := range delta.ToolCalls {
-						idx := tcDelta.Index
-						if idx < 0 {
-							continue
-						}
-						for len(toolCalls) <= idx {
-							toolCalls = append(toolCalls, &partialToolCall{})
-						}
-						if tcDelta.ID != "" {
-							toolCalls[idx].id = tcDelta.ID
-						}
-						if tcDelta.Function.Name != "" {
-							toolCalls[idx].name = tcDelta.Function.Name
-						}
-						if tcDelta.Function.Arguments != "" {
-							toolCalls[idx].arguments.WriteString(tcDelta.Function.Arguments)
-						}
-					}
-				}
-			}
+		line := strings.TrimSpace(scanner.Text())
+		after, isData := strings.CutPrefix(line, "data:")
+		if !isData {
+			continue
 		}
 
-		if readErr != nil {
-			if readErr != io.EOF && ctx.Err() == nil {
-				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
-			}
+		data := strings.TrimSpace(after)
+		if data == "[DONE]" {
 			break
 		}
+
+		var streamResp openAIStreamResponse
+		if err := json.Unmarshal([]byte(data), &streamResp); err == nil && len(streamResp.Choices) > 0 {
+			choice := streamResp.Choices[0]
+			delta := choice.Delta
+			reasoning := delta.ReasoningContent
+			if reasoning == "" {
+				reasoning = delta.Reasoning
+			}
+			if delta.Content != "" || reasoning != "" {
+				select {
+				case <-ctx.Done():
+					return
+				case streamChan <- types.StreamChunk{
+					Content:          delta.Content,
+					ReasoningContent: reasoning,
+				}:
+				}
+			}
+			rawTCs := delta.ToolCalls
+			if len(rawTCs) == 0 && len(choice.Message.ToolCalls) > 0 {
+				rawTCs = choice.Message.ToolCalls
+			}
+			for i, tcDelta := range rawTCs {
+				idx := tcDelta.Index
+				if idx == 0 && i > 0 {
+					idx = i
+				}
+				if idx < 0 {
+					continue
+				}
+				for len(toolCalls) <= idx {
+					toolCalls = append(toolCalls, &partialToolCall{})
+				}
+				if tcDelta.ID != "" {
+					toolCalls[idx].id = tcDelta.ID
+				}
+				if tcDelta.Function.Name != "" {
+					toolCalls[idx].name = tcDelta.Function.Name
+				}
+				if tcDelta.Function.Arguments != "" {
+					toolCalls[idx].arguments.WriteString(tcDelta.Function.Arguments)
+				}
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
 	}
 
 	for _, tc := range toolCalls {
 		if tc.name == "" && tc.id == "" && tc.arguments.Len() == 0 {
 			continue
 		}
+		id := tc.id
+		if id == "" {
+			id = fmt.Sprintf("call_%d", time.Now().UnixNano())
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case streamChan <- types.StreamChunk{
 			ToolCall: &types.ToolCall{
-				ID:        tc.id,
+				ID:        id,
 				Name:      tc.name,
 				Arguments: tc.arguments.String(),
 			},
@@ -471,134 +498,127 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 	}
 	var toolCalls []*partialToolCall
 	var currentToolCall *partialToolCall
-	reader := bufio.NewReader(resp.Body)
-readLoop:
-	for {
+	scanner := bufio.NewScanner(resp.Body)
+
+	for scanner.Scan() {
 		if ctx.Err() != nil {
 			return
 		}
 
-		line, readErr := reader.ReadString('\n')
-		if len(line) > 0 {
-			line = strings.TrimRight(line, "\r\n")
-			if after, ok := strings.CutPrefix(line, "data:"); ok {
-				raw := after
-				if strings.HasPrefix(raw, " ") {
-					raw = raw[1:]
-				}
-				trimmed := strings.TrimSpace(raw)
-				if trimmed == "[DONE]" {
-					break readLoop
-				}
+		line := strings.TrimSpace(scanner.Text())
+		after, isData := strings.CutPrefix(line, "data:")
+		if !isData {
+			continue
+		}
 
-				var ev responseStreamEvent
-				if err := json.Unmarshal([]byte(trimmed), &ev); err == nil {
-					switch ev.Type {
-					case "response.output_text.delta":
-						if ev.Delta != "" {
-							select {
-							case <-ctx.Done():
-								return
-							case streamChan <- types.StreamChunk{Content: ev.Delta}:
-							}
+		data := strings.TrimSpace(after)
+		if data == "[DONE]" {
+			break
+		}
+
+		var ev responseStreamEvent
+		if err := json.Unmarshal([]byte(data), &ev); err == nil {
+			switch ev.Type {
+			case "response.output_text.delta":
+				if ev.Delta != "" {
+					select {
+					case <-ctx.Done():
+						return
+					case streamChan <- types.StreamChunk{Content: ev.Delta}:
+					}
+				}
+			case "response.reasoning_summary_text.delta", "response.reasoning_text.delta":
+				if ev.Delta != "" {
+					select {
+					case <-ctx.Done():
+						return
+					case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
+					}
+				}
+			case "response.output_item.added":
+				if ev.Item != nil && ev.Item.Type == "function_call" {
+					cid := ev.Item.CallID
+					if cid == "" {
+						cid = ev.Item.ID
+					}
+					currentToolCall = &partialToolCall{
+						id:   cid,
+						name: ev.Item.Name,
+					}
+					currentToolCall.arguments.WriteString(parseRawArgs(ev.Item.Arguments))
+				}
+			case "response.function_call_arguments.delta":
+				if currentToolCall != nil {
+					currentToolCall.arguments.WriteString(ev.Delta)
+				}
+			case "response.function_call_arguments.done":
+				if currentToolCall != nil {
+					args := parseRawArgs(ev.Arguments)
+					if args != "" {
+						currentToolCall.arguments.Reset()
+						currentToolCall.arguments.WriteString(args)
+					}
+				}
+			case "response.output_item.done":
+				if ev.Item != nil && ev.Item.Type == "function_call" {
+					cid := ev.Item.CallID
+					if cid == "" {
+						cid = ev.Item.ID
+					}
+					name := ev.Item.Name
+					args := parseRawArgs(ev.Item.Arguments)
+					if currentToolCall != nil {
+						if name == "" {
+							name = currentToolCall.name
 						}
-					case "response.reasoning_summary_text.delta", "response.reasoning_text.delta":
-						if ev.Delta != "" {
-							select {
-							case <-ctx.Done():
-								return
-							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
-							}
+						if args == "" {
+							args = currentToolCall.arguments.String()
 						}
-					case "response.output_item.added":
-						if ev.Item != nil && ev.Item.Type == "function_call" {
-							cid := ev.Item.CallID
+						if cid == "" {
+							cid = currentToolCall.id
+						}
+					}
+					tc := &partialToolCall{
+						id:   cid,
+						name: name,
+					}
+					tc.arguments.WriteString(args)
+					toolCalls = append(toolCalls, tc)
+					currentToolCall = nil
+				}
+			case "response.completed":
+				if len(toolCalls) == 0 && ev.Response != nil {
+					for _, out := range ev.Response.Output {
+						if out.Type == "function_call" {
+							cid := out.CallID
 							if cid == "" {
-								cid = ev.Item.ID
-							}
-							currentToolCall = &partialToolCall{
-								id:   cid,
-								name: ev.Item.Name,
-							}
-							currentToolCall.arguments.WriteString(parseRawArgs(ev.Item.Arguments))
-						}
-					case "response.function_call_arguments.delta":
-						if currentToolCall != nil {
-							currentToolCall.arguments.WriteString(ev.Delta)
-						}
-					case "response.function_call_arguments.done":
-						if currentToolCall != nil {
-							args := parseRawArgs(ev.Arguments)
-							if args != "" {
-								currentToolCall.arguments.Reset()
-								currentToolCall.arguments.WriteString(args)
-							}
-						}
-					case "response.output_item.done":
-						if ev.Item != nil && ev.Item.Type == "function_call" {
-							cid := ev.Item.CallID
-							if cid == "" {
-								cid = ev.Item.ID
-							}
-							name := ev.Item.Name
-							args := parseRawArgs(ev.Item.Arguments)
-							if currentToolCall != nil {
-								if name == "" {
-									name = currentToolCall.name
-								}
-								if args == "" {
-									args = currentToolCall.arguments.String()
-								}
-								if cid == "" {
-									cid = currentToolCall.id
-								}
+								cid = out.ID
 							}
 							tc := &partialToolCall{
 								id:   cid,
-								name: name,
+								name: out.Name,
 							}
-							tc.arguments.WriteString(args)
+							tc.arguments.WriteString(parseRawArgs(out.Arguments))
 							toolCalls = append(toolCalls, tc)
-							currentToolCall = nil
 						}
-					case "response.completed":
-						if len(toolCalls) == 0 && ev.Response != nil {
-							for _, out := range ev.Response.Output {
-								if out.Type == "function_call" {
-									cid := out.CallID
-									if cid == "" {
-										cid = out.ID
-									}
-									tc := &partialToolCall{
-										id:   cid,
-										name: out.Name,
-									}
-									tc.arguments.WriteString(parseRawArgs(out.Arguments))
-									toolCalls = append(toolCalls, tc)
-								}
-							}
-						}
-						break readLoop
-					case "response.incomplete":
-						break readLoop
-					case "error", "response.failed":
-						errMsg := trimmed
-						if ev.Error != nil && ev.Error.Message != "" {
-							errMsg = ev.Error.Message
-						}
-						streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
-						return
 					}
 				}
+				return
+			case "response.incomplete":
+				return
+			case "error", "response.failed":
+				errMsg := data
+				if ev.Error != nil && ev.Error.Message != "" {
+					errMsg = ev.Error.Message
+				}
+				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
+				return
 			}
 		}
+	}
 
-		if readErr != nil {
-			if readErr != io.EOF && ctx.Err() == nil {
-				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
-			}
-			break readLoop
-		}
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
 	}
 
 	if len(toolCalls) == 0 && currentToolCall != nil {
