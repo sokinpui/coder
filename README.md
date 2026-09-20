@@ -188,5 +188,3 @@ Configuration files are not created automatically. You must explicitly create th
 - **Local Configuration**: Run `coder -c` within a Git repository to create and edit a project-specific config at `.coder/config.yaml`.
 
 Local settings override global settings.
-
-### OpenAI Compatible Service
