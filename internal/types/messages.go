@@ -25,12 +25,16 @@ const (
 	FileApplyUndoCmdMessage
 	FileApplyUndoCmdResultMessage
 	FileApplyUndoCmdErrorMessage
+	ToolCallMessage
+	ToolResultMessage
 )
 
 type Message struct {
-	Type    MessageType
-	Content string // For text content, or file path for images (for prompt)
-	Data    []byte // For raw image data
+	Type       MessageType
+	Content    string
+	Data       []byte
+	ToolCalls  []ToolCall
+	ToolCallID string
 }
 
 type ChatRole string
@@ -111,6 +115,10 @@ func (t MessageType) String() string {
 		return "File Apply Undo Result"
 	case FileApplyUndoCmdErrorMessage:
 		return "File Apply Undo Error"
+	case ToolCallMessage:
+		return "Tool Call"
+	case ToolResultMessage:
+		return "Tool Result"
 	default:
 		return "Unknown"
 	}
@@ -143,7 +151,8 @@ func (t MessageType) IsHistory() bool {
 		InstructionMessage, SourceCodeMessage, ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
-		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
+		ToolCallMessage, ToolResultMessage:
 		return true
 	default:
 		return false
@@ -164,8 +173,10 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 	switch t {
 	case InstructionMessage, DirectoryMessage:
 		return RoleSystem, true
-	case AIMessage:
+	case AIMessage, ToolCallMessage:
 		return RoleAssistant, true
+	case ToolResultMessage:
+		return RoleTool, true
 	case UserMessage, ImageMessage, SourceCodeMessage,
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
@@ -201,10 +212,27 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 			continue
 		}
 
+		if role == RoleAssistant && len(chatMessages) > 0 && chatMessages[len(chatMessages)-1].Role == RoleAssistant {
+			last := &chatMessages[len(chatMessages)-1]
+			if msg.Content != "" {
+				if last.Content != "" {
+					last.Content += "\n\n" + msg.Content
+				} else {
+					last.Content = msg.Content
+				}
+			}
+			if len(msg.ToolCalls) > 0 {
+				last.ToolCalls = append(last.ToolCalls, msg.ToolCalls...)
+			}
+			continue
+		}
+
 		chatMessages = append(chatMessages, ChatMessage{
-			Role:    role,
-			Content: msg.Content,
-			Data:    msg.Data,
+			Role:       role,
+			Content:    msg.Content,
+			Data:       msg.Data,
+			ToolCalls:  msg.ToolCalls,
+			ToolCallID: msg.ToolCallID,
 		})
 	}
 
@@ -222,7 +250,8 @@ func (m Message) CanSendToAI() bool {
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
-		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
+		ToolCallMessage, ToolResultMessage:
 		return true
 	default:
 		return false

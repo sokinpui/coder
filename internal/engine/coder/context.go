@@ -10,7 +10,6 @@ import (
 	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
-	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -125,7 +124,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			result = append(result, types.Message{Type: types.DirectoryMessage, Content: dirInfo})
 		}
 		if len(s.projectSourceFiles) > 0 {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader})
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: coderprompt.ProjectSourceCodeHeader})
 			for _, fileContent := range s.projectSourceFiles {
 				result = append(result, types.Message{Type: types.SourceCodeMessage, Content: fileContent})
 			}
@@ -134,11 +133,11 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	case ModeChat:
 		instr := s.instruction
 		if instr == "" {
-			instr = prompt.ChatInstructions
+			instr = coderprompt.ChatInstructions
 		}
 		result = append(result, types.Message{Type: types.InstructionMessage, Content: instr})
 		if len(s.projectSourceFiles) > 0 {
-			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: prompt.ProjectSourceCodeHeader})
+			result = append(result, types.Message{Type: types.SourceCodeMessage, Content: coderprompt.ProjectSourceCodeHeader})
 			for _, fileContent := range s.projectSourceFiles {
 				result = append(result, types.Message{Type: types.SourceCodeMessage, Content: fileContent})
 			}

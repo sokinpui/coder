@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	"github.com/sokinpui/coder/internal/types"
 )
 
-type ToolDeclaration struct {
-	Type        string         `json:"type"`
-	Name        string         `json:"name"`
-	Description string         `json:"description,omitempty"`
-	Parameters  map[string]any `json:"parameters,omitempty"`
-}
+type ToolDeclaration = types.ToolDeclaration
 
 type Tool interface {
 	Declaration() ToolDeclaration

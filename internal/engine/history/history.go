@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sokinpui/coder/internal/project"
-	"github.com/sokinpui/coder/internal/prompt"
 	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
@@ -21,6 +20,7 @@ import (
 const (
 	historyDirName = ".coder/history"
 	indexFileName  = "index.json"
+	ConversationHistoryHeader = "# CONVERSATION HISTORY\n\n"
 )
 
 type Metadata struct {
@@ -82,7 +82,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 
 	historyContent := BuildHistorySnippet(data.Messages)
 	var contentBuilder strings.Builder
-	contentBuilder.WriteString(prompt.ConversationHistoryHeader)
+	contentBuilder.WriteString(ConversationHistoryHeader)
 	contentBuilder.WriteString(historyContent)
 
 	content := contentBuilder.String()
@@ -134,6 +134,8 @@ func writeYamlList(b *bytes.Buffer, key string, items []string) {
 var roleToMessageType = map[string]types.MessageType{
 	"User:":                    types.UserMessage,
 	"AI Assistant:":            types.AIMessage,
+	"Tool Call:":               types.ToolCallMessage,
+	"Tool Result:":             types.ToolResultMessage,
 	"Image:":                   types.ImageMessage,
 	"Command Execute:":         types.CommandMessage,
 	"Command Execute Result:":  types.CommandResultMessage,
@@ -161,6 +163,51 @@ func processMessageContent(msg *types.Message, rawContent string) {
 		if len(matches) > 1 {
 			content = matches[1]
 		}
+	}
+	if msg.Type == types.ToolResultMessage {
+		if strings.HasPrefix(content, "[call_id: ") {
+			if endIdx := strings.Index(content, "]\n"); endIdx != -1 {
+				msg.ToolCallID = strings.TrimPrefix(content[:endIdx], "[call_id: ")
+				content = strings.TrimSpace(content[endIdx+2:])
+			} else if endIdx := strings.Index(content, "]"); endIdx != -1 && len(content) == endIdx+1 {
+				msg.ToolCallID = strings.TrimPrefix(content[:endIdx], "[call_id: ")
+				content = ""
+			}
+		}
+	}
+	if msg.Type == types.ToolCallMessage {
+		var tc types.ToolCall
+		if err := json.Unmarshal([]byte(content), &tc); err == nil && tc.Name != "" {
+			msg.ToolCalls = []types.ToolCall{tc}
+		}
+	}
+	if msg.Type == types.AIMessage && strings.Contains(content, "```tool_call") {
+		var cleanLines []string
+		inBlock := false
+		var blockBuf strings.Builder
+		for _, line := range strings.Split(content, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "```tool_call" {
+				inBlock = true
+				blockBuf.Reset()
+				continue
+			}
+			if inBlock {
+				if trimmed == "```" {
+					inBlock = false
+					var tc types.ToolCall
+					if err := json.Unmarshal([]byte(strings.TrimSpace(blockBuf.String())), &tc); err == nil {
+						msg.ToolCalls = append(msg.ToolCalls, tc)
+					}
+					continue
+				}
+				blockBuf.WriteString(line)
+				blockBuf.WriteByte('\n')
+				continue
+			}
+			cleanLines = append(cleanLines, line)
+		}
+		content = strings.TrimSpace(strings.Join(cleanLines, "\n"))
 	}
 	msg.Content = content
 }
@@ -545,10 +592,40 @@ func BuildHistorySnippet(messages []types.Message) string {
 			sb.WriteString("Image:\n")
 			fmt.Fprintf(&sb, "![image](%s)", msg.Content)
 		case types.AIMessage:
-			if msg.Content == "" {
+			if msg.Content == "" && len(msg.ToolCalls) == 0 {
 				continue
 			}
 			sb.WriteString("AI Assistant:\n")
+			if msg.Content != "" {
+				sb.WriteString(msg.Content)
+			}
+			for _, tc := range msg.ToolCalls {
+				if msg.Content != "" {
+					sb.WriteString("\n")
+				}
+				data, _ := json.Marshal(tc)
+				sb.WriteString("```tool_call\n")
+				sb.Write(data)
+				sb.WriteString("\n```")
+			}
+		case types.ToolCallMessage:
+			sb.WriteString("Tool Call:\n")
+			if len(msg.ToolCalls) > 0 {
+				for i, tc := range msg.ToolCalls {
+					if i > 0 {
+						sb.WriteString("\n")
+					}
+					data, _ := json.Marshal(tc)
+					sb.Write(data)
+				}
+			} else {
+				sb.WriteString(msg.Content)
+			}
+		case types.ToolResultMessage:
+			sb.WriteString("Tool Result:\n")
+			if msg.ToolCallID != "" {
+				fmt.Fprintf(&sb, "[call_id: %s]\n", msg.ToolCallID)
+			}
 			sb.WriteString(msg.Content)
 		case types.CommandMessage:
 			sb.WriteString("Command Execute:\n")

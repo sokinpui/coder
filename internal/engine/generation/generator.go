@@ -64,6 +64,13 @@ type responseStreamEvent struct {
 	Type      string `json:"type"`
 	Delta     string `json:"delta,omitempty"`
 	Arguments string `json:"arguments,omitempty"`
+	Item      *struct {
+		Type      string `json:"type"`
+		ID        string `json:"id"`
+		CallID    string `json:"call_id"`
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"item,omitempty"`
 	Error     *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -122,7 +129,7 @@ func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, 
 		g.generateChatTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 		return
 	}
-	g.generateResponsesTask(ctx, systemInstruction, messages, streamChan, &genConfig)
+	g.generateResponsesTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 }
 
 func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
@@ -340,7 +347,7 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	}
 }
 
-func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var inputItems []any
 
 	for _, msg := range messages {
@@ -375,16 +382,30 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				"content": msg.Content,
 			})
 		case types.RoleAssistant:
-			if msg.Content == "" {
-				continue
+			if msg.Content != "" {
+				inputItems = append(inputItems, map[string]any{
+					"type":    "message",
+					"role":    "assistant",
+					"content": msg.Content,
+				})
 			}
+			for _, tc := range msg.ToolCalls {
+				inputItems = append(inputItems, map[string]any{
+					"type":      "function_call",
+					"call_id":   tc.ID,
+					"name":      tc.Name,
+					"arguments": tc.Arguments,
+				})
+			}
+		case types.RoleTool:
 			inputItems = append(inputItems, map[string]any{
-				"type":    "message",
-				"role":    "assistant",
-				"content": msg.Content,
+				"type":    "function_call_output",
+				"call_id": msg.ToolCallID,
+				"output":  msg.Content,
 			})
 		}
 	}
+
 
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
@@ -392,6 +413,11 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 		"store":        false,
 		"instructions": systemInstruction,
 		"input":        inputItems,
+	}
+
+	if len(tools) > 0 {
+		body["tools"] = tools
+		body["tool_choice"] = "auto"
 	}
 
 	if genConfig.ReasoningEffort != "" {
@@ -429,6 +455,13 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 		return
 	}
 
+	type partialToolCall struct {
+		id        string
+		name      string
+		arguments strings.Builder
+	}
+	var toolCalls []*partialToolCall
+	var currentToolCall *partialToolCall
 	reader := bufio.NewReader(resp.Body)
 	for {
 		if ctx.Err() != nil {
@@ -467,6 +500,54 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
 							}
 						}
+					case "response.output_item.added":
+						if ev.Item != nil && ev.Item.Type == "function_call" {
+							cid := ev.Item.CallID
+							if cid == "" {
+								cid = ev.Item.ID
+							}
+							currentToolCall = &partialToolCall{
+								id:   cid,
+								name: ev.Item.Name,
+							}
+							currentToolCall.arguments.WriteString(ev.Item.Arguments)
+						}
+					case "response.function_call_arguments.delta":
+						if currentToolCall != nil {
+							currentToolCall.arguments.WriteString(ev.Delta)
+						}
+					case "response.function_call_arguments.done":
+						if currentToolCall != nil && ev.Arguments != "" {
+							currentToolCall.arguments.Reset()
+							currentToolCall.arguments.WriteString(ev.Arguments)
+						}
+					case "response.output_item.done":
+						if ev.Item != nil && ev.Item.Type == "function_call" {
+							cid := ev.Item.CallID
+							if cid == "" {
+								cid = ev.Item.ID
+							}
+							name := ev.Item.Name
+							args := ev.Item.Arguments
+							if currentToolCall != nil {
+								if name == "" {
+									name = currentToolCall.name
+								}
+								if args == "" {
+									args = currentToolCall.arguments.String()
+								}
+								if cid == "" {
+									cid = currentToolCall.id
+								}
+							}
+							tc := &partialToolCall{
+								id:   cid,
+								name: name,
+							}
+							tc.arguments.WriteString(args)
+							toolCalls = append(toolCalls, tc)
+							currentToolCall = nil
+						}
 					case "response.completed", "response.incomplete":
 						return
 					case "error", "response.failed":
@@ -486,6 +567,27 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
 			}
 			break
+		}
+	}
+
+	if len(toolCalls) == 0 && currentToolCall != nil {
+		toolCalls = append(toolCalls, currentToolCall)
+	}
+
+	for _, tc := range toolCalls {
+		if tc.name == "" && tc.id == "" && tc.arguments.Len() == 0 {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case streamChan <- types.StreamChunk{
+			ToolCall: &types.ToolCall{
+				ID:        tc.id,
+				Name:      tc.name,
+				Arguments: tc.arguments.String(),
+			},
+		}:
 		}
 	}
 }
