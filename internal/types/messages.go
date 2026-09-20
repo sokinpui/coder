@@ -23,35 +23,17 @@ const (
 	FileApplyUndoCmdMessage
 	FileApplyUndoCmdResultMessage
 	FileApplyUndoCmdErrorMessage
-	ToolCallMessage
-	ToolCallResultMessage
 )
 
 type Message struct {
-	Type     MessageType
-	Content  string // For text content, or file path for images (for prompt)
-	Data     []byte // For raw image data
-	CallID   string `json:"call_id,omitempty"`
-	ToolName string `json:"tool_name,omitempty"`
-}
-
-type ToolCallInfo struct {
-	CallID    string `json:"call_id"`
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
-}
-
-type ToolResultInfo struct {
-	CallID string `json:"call_id"`
-	Name   string `json:"name"`
-	Output string `json:"output"`
+	Type    MessageType
+	Content string // For text content, or file path for images (for prompt)
+	Data    []byte // For raw image data
 }
 
 type StreamChunk struct {
 	Content          string
 	ReasoningContent string
-	ToolCall         *ToolCallInfo
-	ToolResult       *ToolResultInfo
 }
 
 func (t MessageType) String() string {
@@ -96,10 +78,6 @@ func (t MessageType) String() string {
 		return "File Apply Undo Result"
 	case FileApplyUndoCmdErrorMessage:
 		return "File Apply Undo Error"
-	case ToolCallMessage:
-		return "Tool Call"
-	case ToolCallResultMessage:
-		return "Tool Result"
 	default:
 		return "Unknown"
 	}
@@ -132,8 +110,7 @@ func (t MessageType) IsHistory() bool {
 		InstructionMessage, SourceCodeMessage, ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
-		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
-		ToolCallMessage, ToolCallResultMessage:
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
 		return true
 	default:
 		return false
@@ -157,8 +134,7 @@ func (m Message) CanSendToAI() bool {
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
-		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
-		ToolCallMessage, ToolCallResultMessage:
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
 		return true
 	default:
 		return false

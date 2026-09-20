@@ -24,8 +24,6 @@ type Engine interface {
 	GetCreatedAt() time.Time
 	GetHistoryFilename() string
 	SetModel(model string)
-	IsToolsEnabled() bool
-	SetToolsEnabled(enabled bool)
 
 	GetContextFiles() []string
 	SetContextFiles(files []string)

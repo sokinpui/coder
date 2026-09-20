@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/engine/tools"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -50,23 +49,7 @@ type responseStreamEvent struct {
 	Type      string `json:"type"`
 	Delta     string `json:"delta,omitempty"`
 	Arguments string `json:"arguments,omitempty"`
-	Item      *struct {
-		Type      string `json:"type"`
-		ID        string `json:"id"`
-		CallID    string `json:"call_id"`
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
-	} `json:"item,omitempty"`
-	Response *struct {
-		Output []struct {
-			Type      string `json:"type"`
-			ID        string `json:"id"`
-			CallID    string `json:"call_id"`
-			Name      string `json:"name"`
-			Arguments string `json:"arguments"`
-		} `json:"output"`
-	} `json:"response,omitempty"`
-	Error *struct {
+	Error     *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 }
@@ -295,83 +278,8 @@ func (g *Generator) generateChatTask(ctx context.Context, messages []types.Messa
 }
 
 func (g *Generator) generateResponsesTask(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
-	currentMessages := append([]types.Message(nil), messages...)
-	maxIterations := genConfig.MaxToolIterations
-	if maxIterations <= 0 {
-		maxIterations = 20
-	}
-
-	for range maxIterations {
-		if ctx.Err() != nil {
-			return
-		}
-
-		toolCalls, turnText, hasError := g.executeTurn(ctx, currentMessages, streamChan, genConfig, genConfig.EnableTools)
-		if turnText != "" {
-			currentMessages = append(currentMessages, types.Message{Type: types.AIMessage, Content: turnText})
-		}
-		if hasError || ctx.Err() != nil || len(toolCalls) == 0 {
-			return
-		}
-
-		for _, tc := range toolCalls {
-			if ctx.Err() != nil {
-				return
-			}
-
-			streamChan <- types.StreamChunk{ToolCall: &tc}
-			output, err := tools.DefaultRegistry.Execute(ctx, tc.Name, tc.Arguments)
-			if err != nil {
-				output = fmt.Sprintf("Error: %v", err)
-			}
-
-			resInfo := types.ToolResultInfo{
-				CallID: tc.CallID,
-				Name:   tc.Name,
-				Output: output,
-			}
-			streamChan <- types.StreamChunk{ToolResult: &resInfo}
-
-			currentMessages = append(currentMessages,
-				types.Message{
-					Type:     types.ToolCallMessage,
-					CallID:   tc.CallID,
-					ToolName: tc.Name,
-					Content:  tc.Arguments,
-				},
-				types.Message{
-					Type:     types.ToolCallResultMessage,
-					CallID:   tc.CallID,
-					ToolName: tc.Name,
-					Content:  output,
-				},
-			)
-		}
-	}
-
-	if ctx.Err() != nil {
-		return
-	}
-
-	_, _, _ = g.executeTurn(ctx, currentMessages, streamChan, genConfig, false)
-}
-
-func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, streamChan chan<- types.StreamChunk, genConfig *config.Generation, enableTools bool) ([]types.ToolCallInfo, string, bool) {
 	var instructionsBuilder strings.Builder
 	var inputItems []any
-	var sourceCodeParts []openAIContentPart
-
-	flushSourceParts := func() {
-		if len(sourceCodeParts) == 0 {
-			return
-		}
-		inputItems = append(inputItems, map[string]any{
-			"type":    "message",
-			"role":    "user",
-			"content": sourceCodeParts,
-		})
-		sourceCodeParts = nil
-	}
 
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
@@ -382,14 +290,13 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 			if strings.TrimSpace(msg.Content) == "" {
 				continue
 			}
-			sourceCodeParts = append(sourceCodeParts, openAIContentPart{
-				Type: "input_text",
-				Text: msg.Content,
+			inputItems = append(inputItems, map[string]any{
+				"type":    "message",
+				"role":    "user",
+				"content": msg.Content,
 			})
 			continue
 		}
-
-		flushSourceParts()
 
 		switch msg.Type {
 		case types.InstructionMessage, types.DirectoryMessage:
@@ -417,25 +324,6 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 				})
 			}
 
-		case types.ToolCallMessage:
-			callID := msg.CallID
-			if callID == "" {
-				callID = "call_fallback"
-			}
-			inputItems = append(inputItems, map[string]any{
-				"type":      "function_call",
-				"call_id":   callID,
-				"name":      msg.ToolName,
-				"arguments": msg.Content,
-			})
-
-		case types.ToolCallResultMessage:
-			inputItems = append(inputItems, map[string]any{
-				"type":    "function_call_output",
-				"call_id": msg.CallID,
-				"output":  msg.Content,
-			})
-
 		case types.ImageMessage:
 			if msg.Data == nil {
 				continue
@@ -460,34 +348,12 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		}
 	}
 
-	flushSourceParts()
-
-	if genConfig.EnableTools && !enableTools {
-		inputItems = append(inputItems, map[string]any{
-			"type":    "message",
-			"role":    "user",
-			"content": "Tool execution iteration limit reached. Do not call any tools. Provide your final response to the user based on the tool results so far.",
-		})
-	}
-
 	body := map[string]any{
 		"model":        genConfig.ModelCode,
 		"stream":       true,
 		"store":        false,
 		"instructions": instructionsBuilder.String(),
 		"input":        inputItems,
-	}
-
-	if genConfig.EnableTools {
-		toolDecls := tools.DefaultRegistry.Declarations()
-		if len(toolDecls) > 0 {
-			body["tools"] = toolDecls
-			if enableTools {
-				body["tool_choice"] = "auto"
-			} else {
-				body["tool_choice"] = "none"
-			}
-		}
 	}
 
 	if genConfig.ReasoningEffort != "" {
@@ -501,7 +367,7 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
-		return nil, "", true
+		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -512,27 +378,23 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
-			return nil, "", false
+			return
 		}
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
-		return nil, "", true
+		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errBytes, _ := io.ReadAll(resp.Body)
 		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned status %d: %s", resp.StatusCode, string(errBytes))}
-		return nil, "", true
+		return
 	}
-
-	var toolCalls []types.ToolCallInfo
-	var currentToolCall *types.ToolCallInfo
-	var textBuilder strings.Builder
 
 	reader := bufio.NewReader(resp.Body)
 	for {
 		if ctx.Err() != nil {
-			return nil, textBuilder.String(), false
+			return
 		}
 
 		line, readErr := reader.ReadString('\n')
@@ -553,10 +415,9 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 					switch ev.Type {
 					case "response.output_text.delta":
 						if ev.Delta != "" {
-							textBuilder.WriteString(ev.Delta)
 							select {
 							case <-ctx.Done():
-								return nil, textBuilder.String(), false
+								return
 							case streamChan <- types.StreamChunk{Content: ev.Delta}:
 							}
 						}
@@ -564,72 +425,19 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 						if ev.Delta != "" {
 							select {
 							case <-ctx.Done():
-								return nil, textBuilder.String(), false
+								return
 							case streamChan <- types.StreamChunk{ReasoningContent: ev.Delta}:
 							}
 						}
-					case "response.output_item.added":
-						if ev.Item != nil && ev.Item.Type == "function_call" {
-							currentToolCall = &types.ToolCallInfo{
-								CallID:    ev.Item.CallID,
-								Name:      ev.Item.Name,
-								Arguments: ev.Item.Arguments,
-							}
-							if currentToolCall.CallID == "" {
-								currentToolCall.CallID = ev.Item.ID
-							}
-						}
-					case "response.function_call_arguments.delta":
-						if currentToolCall != nil {
-							currentToolCall.Arguments += ev.Delta
-						}
-					case "response.function_call_arguments.done":
-						if currentToolCall != nil && ev.Arguments != "" {
-							currentToolCall.Arguments = ev.Arguments
-						}
-					case "response.output_item.done":
-						if ev.Item != nil && ev.Item.Type == "function_call" {
-							cid := ev.Item.CallID
-							if cid == "" {
-								cid = ev.Item.ID
-							}
-							args := ev.Item.Arguments
-							if args == "" && currentToolCall != nil {
-								args = currentToolCall.Arguments
-							}
-							toolCalls = append(toolCalls, types.ToolCallInfo{
-								CallID:    cid,
-								Name:      ev.Item.Name,
-								Arguments: args,
-							})
-							currentToolCall = nil
-						}
-					case "response.completed":
-						if len(toolCalls) == 0 && ev.Response != nil {
-							for _, out := range ev.Response.Output {
-								if out.Type == "function_call" {
-									cid := out.CallID
-									if cid == "" {
-										cid = out.ID
-									}
-									toolCalls = append(toolCalls, types.ToolCallInfo{
-										CallID:    cid,
-										Name:      out.Name,
-										Arguments: out.Arguments,
-									})
-								}
-							}
-						}
-						return toolCalls, textBuilder.String(), false
-					case "response.incomplete":
-						return toolCalls, textBuilder.String(), false
+					case "response.completed", "response.incomplete":
+						return
 					case "error", "response.failed":
 						errMsg := trimmed
 						if ev.Error != nil && ev.Error.Message != "" {
 							errMsg = ev.Error.Message
 						}
 						streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
-						return nil, textBuilder.String(), true
+						return
 					}
 				}
 			}
@@ -638,17 +446,10 @@ func (g *Generator) executeTurn(ctx context.Context, messages []types.Message, s
 		if readErr != nil {
 			if readErr != io.EOF && ctx.Err() == nil {
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
-				return nil, textBuilder.String(), true
 			}
 			break
 		}
 	}
-
-	if len(toolCalls) == 0 && currentToolCall != nil {
-		toolCalls = append(toolCalls, *currentToolCall)
-	}
-
-	return toolCalls, textBuilder.String(), false
 }
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {

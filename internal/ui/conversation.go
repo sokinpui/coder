@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -62,7 +61,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 		currentLine += len(lines)
 	}
 
-	if m.State == stateAsking || m.State == stateThinking || m.State == stateExecutingTool {
+	if m.State == stateAsking || m.State == stateThinking {
 		thinkingLine := m.renderThinkingLine()
 		allLines = append(allLines, strings.Split(thinkingLine, "\n")...)
 	}
@@ -183,23 +182,6 @@ func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *g
 	case types.CommandErrorResultMessage,
 		types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
-	case types.ToolCallMessage:
-		header := "Tool Call"
-		if msg.ToolName != "" {
-			header = fmt.Sprintf("Tool Call: %s", msg.ToolName)
-		}
-		display := header
-		if strings.TrimSpace(content) != "" {
-			display = fmt.Sprintf("%s\n%s", header, content)
-		}
-		return toolCallStyle.Width(viewportWidth - toolCallStyle.GetHorizontalFrameSize()).Render(display)
-	case types.ToolCallResultMessage:
-		header := "Tool Result"
-		if msg.ToolName != "" {
-			header = fmt.Sprintf("Tool Result [%s]", msg.ToolName)
-		}
-		display := fmt.Sprintf("%s:\n%s", header, content)
-		return toolCallResultStyle.Width(viewportWidth - toolCallResultStyle.GetHorizontalFrameSize()).Render(display)
 	default:
 		return ""
 	}
@@ -210,12 +192,6 @@ func (m Model) renderThinkingLine() string {
 	switch m.State {
 	case stateAsking:
 		text = "Asking "
-	case stateExecutingTool:
-		if m.Chat.ActiveToolName != "" {
-			text = fmt.Sprintf("Executing %s ", m.Chat.ActiveToolName)
-		} else {
-			text = "Executing tool "
-		}
 	}
 	thinkingText := thinkingTextStyle.Render(text)
 	fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())

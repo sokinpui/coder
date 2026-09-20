@@ -29,11 +29,9 @@ type Server struct {
 }
 
 type Generation struct {
-	ModelCode         string `mapstructure:"modelcode"`
-	TitleModelCode    string `mapstructure:"titlemodelcode"`
-	ReasoningEffort   string `mapstructure:"reasoningeffort"`
-	MaxToolIterations int    `mapstructure:"maxtooliterations"`
-	EnableTools       bool   `mapstructure:"enabletools"`
+	ModelCode       string `mapstructure:"modelcode"`
+	TitleModelCode  string `mapstructure:"titlemodelcode"`
+	ReasoningEffort string `mapstructure:"reasoningeffort"`
 }
 
 type UI struct {
@@ -89,11 +87,9 @@ func DefaultConfig() Config {
 			Protocol: "responses",
 		},
 		Generation: Generation{
-			ModelCode:         "aisrp/gemini-flash-latest",
-			TitleModelCode:    "aisrp/gemini-flash-lite-latest",
-			ReasoningEffort:   "high",
-			MaxToolIterations: 20,
-			EnableTools:       false,
+			ModelCode:       "aisrp/gemini-flash-latest",
+			TitleModelCode:  "aisrp/gemini-flash-lite-latest",
+			ReasoningEffort: "high",
 		},
 		Context: Context{
 			Dirs:       []string{"."},

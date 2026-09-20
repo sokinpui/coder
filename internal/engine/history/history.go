@@ -150,8 +150,6 @@ var roleToMessageType = map[string]types.MessageType{
 	"File Apply Undo Command:": types.FileApplyUndoCmdMessage,
 	"File Apply Undo Result:":  types.FileApplyUndoCmdResultMessage,
 	"File Apply Undo Error:":   types.FileApplyUndoCmdErrorMessage,
-	"Tool Call:":               types.ToolCallMessage,
-	"Tool Result:":             types.ToolCallResultMessage,
 }
 
 var imageMarkdownRegex = regexp.MustCompile(`^!\[image\]\((.*)\)$`)
@@ -162,26 +160,6 @@ func processMessageContent(msg *types.Message, rawContent string) {
 		matches := imageMarkdownRegex.FindStringSubmatch(content)
 		if len(matches) > 1 {
 			content = matches[1]
-		}
-	}
-	if msg.Type == types.ToolCallMessage {
-		lines := strings.Split(content, "\n")
-		if len(lines) > 0 && strings.HasPrefix(lines[0], "[") && strings.Contains(lines[0], "] (call_id: ") {
-			firstLine := lines[0]
-			before, after, ok := strings.Cut(firstLine, "] (call_id: ")
-			if ok {
-				msg.ToolName = strings.TrimPrefix(before, "[")
-				callIDPart := after
-				msg.CallID = strings.TrimSuffix(callIDPart, ")")
-				content = strings.TrimSpace(strings.Join(lines[1:], "\n"))
-			}
-		}
-	}
-	if msg.Type == types.ToolCallResultMessage {
-		lines := strings.Split(content, "\n")
-		if len(lines) > 0 && strings.HasPrefix(lines[0], "(call_id: ") && strings.HasSuffix(lines[0], ")") {
-			msg.CallID = strings.TrimSuffix(strings.TrimPrefix(lines[0], "(call_id: "), ")")
-			content = strings.TrimSpace(strings.Join(lines[1:], "\n"))
 		}
 	}
 	msg.Content = content
@@ -610,18 +588,6 @@ func BuildHistorySnippet(messages []types.Message) string {
 			sb.WriteString(msg.Content)
 		case types.FileApplyUndoCmdErrorMessage:
 			sb.WriteString("File Apply Undo Error:\n")
-			sb.WriteString(msg.Content)
-		case types.ToolCallMessage:
-			sb.WriteString("Tool Call:\n")
-			if msg.ToolName != "" {
-				fmt.Fprintf(&sb, "[%s] (call_id: %s)\n", msg.ToolName, msg.CallID)
-			}
-			sb.WriteString(msg.Content)
-		case types.ToolCallResultMessage:
-			sb.WriteString("Tool Result:\n")
-			if msg.CallID != "" {
-				fmt.Fprintf(&sb, "(call_id: %s)\n", msg.CallID)
-			}
 			sb.WriteString(msg.Content)
 		}
 		sb.WriteString("\n\n")

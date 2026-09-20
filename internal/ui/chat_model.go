@@ -40,7 +40,6 @@ type ChatModel struct {
 	RenderCache              map[int]cachedRender
 	StateStartTime           time.Time
 	AutoSubmitPending        bool
-	ActiveToolName           string
 }
 
 func NewChat(initialInput string) ChatModel {

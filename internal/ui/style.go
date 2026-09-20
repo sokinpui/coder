@@ -66,18 +66,6 @@ var (
 				BorderForeground(lipgloss.Color("9")). // Red
 				Foreground(lipgloss.Color("9")).       // Red
 				Padding(0, 1)
-	toolCallStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("39")).
-			Foreground(lipgloss.Color("39")).
-			Padding(0, 1)
-	toolCallResultStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("39")).
-				Padding(0, 1).
-				BorderTop(false).
-				BorderBottom(false).
-				BorderRight(false)
 
 	// UI State Styles
 	askingStatusStyle = lipgloss.NewStyle().
@@ -89,9 +77,6 @@ var (
 	generatingStatusStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")). // Cyan
 				Italic(true)
-	toolExecutingStatusStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("39")). // Blue
-					Italic(true)
 	statusBarMsgStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("51")) // Cyan
 	statusBarTitleStyle = lipgloss.NewStyle().

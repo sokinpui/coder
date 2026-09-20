@@ -15,7 +15,6 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 		return m, nil // Should not happen
 	}
 	m.State = stateAsking
-	m.Chat.ActiveToolName = ""
 	m.Chat.StateStartTime = time.Now()
 	m.Chat.IsStreaming = true
 	m.Chat.IsAIRendering = false
@@ -45,7 +44,6 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		m.Session.CancelGeneration()
-		m.Chat.ActiveToolName = ""
 		m.Chat.IsStreaming = false
 		m.Chat.IsAIRendering = false
 		m.Chat.PendingAIRender = false

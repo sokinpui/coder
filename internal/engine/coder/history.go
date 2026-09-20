@@ -84,7 +84,7 @@ func (s *Session) LoadConversation(filename string) error {
 	s.mode = mode
 	s.messages = messages
 	s.title = metadata.Title
-	s.titleGenerated = true // A loaded conversation always has a title.
+	s.titleGenerated = true
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 	s.contextFiles = metadata.ContextFiles

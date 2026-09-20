@@ -36,8 +36,6 @@ type SessionController interface {
 	GetMode() string
 	SetMode(mode string) error
 	SetModel(model string)
-	IsToolsEnabled() bool
-	SetToolsEnabled(enabled bool)
 	HasChatHistory() bool
 }
 

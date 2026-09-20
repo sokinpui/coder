@@ -146,7 +146,7 @@ func (m Model) needsSpinner() bool {
 		}
 	}
 	switch m.State {
-	case stateAsking, stateThinking, stateGenerating, stateExecutingTool:
+	case stateAsking, stateThinking, stateGenerating:
 		return true
 	default:
 		return false

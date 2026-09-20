@@ -36,7 +36,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	switch m.State {
-	case stateAsking, stateThinking, stateGenerating, stateExecutingTool:
+	case stateAsking, stateThinking, stateGenerating:
 		return m.handleKeyPressGenerating(msg)
 	case stateIdle:
 		return m.handleKeyPressIdle(msg)

@@ -49,7 +49,7 @@ func (m Model) StatusView() string {
 	}
 
 	switch m.State {
-	case stateAsking, stateThinking, stateGenerating, stateExecutingTool:
+	case stateAsking, stateThinking, stateGenerating:
 		var (
 			statusText  string
 			statusStyle lipgloss.Style
@@ -64,13 +64,6 @@ func (m Model) StatusView() string {
 		case stateGenerating:
 			statusText = "Generating"
 			statusStyle = generatingStatusStyle
-		case stateExecutingTool:
-			if m.Chat.ActiveToolName != "" {
-				statusText = fmt.Sprintf("Executing %s", m.Chat.ActiveToolName)
-			} else {
-				statusText = "Executing tool"
-			}
-			statusStyle = toolExecutingStatusStyle
 		}
 
 		elapsed := time.Since(m.Chat.StateStartTime).Seconds()

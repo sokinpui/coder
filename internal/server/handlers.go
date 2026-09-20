@@ -124,27 +124,6 @@ func (s *Server) handlePrompt(req Request) {
 
 func (s *Server) streamToClient(streamChan chan types.StreamChunk) {
 	for chunk := range streamChan {
-		if chunk.ToolCall != nil {
-			msgs := s.session.GetMessages()
-			if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage && msgs[len(msgs)-1].Content == "" {
-				s.session.DeleteMessages([]int{len(msgs) - 1})
-			}
-			s.session.AddMessages(types.Message{
-				Type:     types.ToolCallMessage,
-				CallID:   chunk.ToolCall.CallID,
-				ToolName: chunk.ToolCall.Name,
-				Content:  chunk.ToolCall.Arguments,
-			})
-		}
-		if chunk.ToolResult != nil {
-			s.session.AddMessages(types.Message{
-				Type:     types.ToolCallResultMessage,
-				CallID:   chunk.ToolResult.CallID,
-				ToolName: chunk.ToolResult.Name,
-				Content:  chunk.ToolResult.Output,
-			})
-			s.session.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
-		}
 		if chunk.Content != "" {
 			msgs := s.session.GetMessages()
 			if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
@@ -154,8 +133,6 @@ func (s *Server) streamToClient(streamChan chan types.StreamChunk) {
 		s.sendNotification("session/chunk", StreamChunkNotification{
 			Content:          chunk.Content,
 			ReasoningContent: chunk.ReasoningContent,
-			ToolCall:         chunk.ToolCall,
-			ToolResult:       chunk.ToolResult,
 			Done:             false,
 		})
 	}
