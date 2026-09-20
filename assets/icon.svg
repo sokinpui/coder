@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="16" y1="16" x2="496" y2="496" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#131722"/>
+      <stop offset="100%" stop-color="#0A0D14"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="60" y1="20" x2="450" y2="490" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.40"/>
+      <stop offset="65%" stop-color="#6366F1" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="256" cy="256" r="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0072FF" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#0072FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="256" cy="256" r="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cGlow" x1="370" y1="130" x2="140" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.20"/>
+      <stop offset="50%" stop-color="#3B82F6" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="cPaint" x1="370" y1="130" x2="140" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="35%" stop-color="#3B82F6"/>
+      <stop offset="70%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="diamondFill" x1="214" y1="214" x2="298" y2="298" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="45%" stop-color="#38E1FF"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="3"/>
+  <circle cx="256" cy="256" r="220" fill="url(#bgGlow)"/>
+  <circle cx="256" cy="256" r="64" fill="url(#coreGlow)"/>
+  <path d="M 370 140 L 220 140 L 140 220 L 140 292 L 220 372 L 370 372" fill="none" stroke="url(#cGlow)" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 370 140 L 220 140 L 140 220 L 140 292 L 220 372 L 370 372" fill="none" stroke="url(#cPaint)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 256 214 L 298 256 L 256 298 L 214 256 Z" fill="url(#diamondFill)"/>
+</svg>

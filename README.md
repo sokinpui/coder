@@ -1,3 +1,18 @@
+<p align="center">
+  <img src="assets/icon.svg" alt="Coder Logo" width="128" height="128" />
+</p>
+
+<h1 align="center">Coder</h1>
+
+<p align="center">
+  A simple one-step AI code editor for terminal-centric workflows.
+</p>
+
+<p align="center">
+  <a href="https://github.com/sokinpui/coder.nvim"><b>coder.nvim</b></a> (Neovim Plugin) &nbsp;•&nbsp;
+  <a href="https://github.com/sokinpui/coder.flutter"><b>coder.flutter</b></a> (Desktop & Mobile GUI)
+</p>
+
 # Installation
 
 ### Quick Install
@@ -53,6 +68,13 @@ Coder uses a specialized output format to bridge the gap between chat and code. 
 
 - **Edit**: Apply Unified Diff format to existing files.
 - **Create / Delete / Rename**: Handle file lifecycle operations through specific Markdown blocks.
+
+## Ecosystem
+
+The Coder suite provides multiple clients powered by the same backend:
+
+- **[coder.nvim](https://github.com/sokinpui/coder.nvim)**: Neovim plugin integrating Coder as a persistent sidebar or floating window with bi-directional IPC.
+- **[coder.flutter](https://github.com/sokinpui/coder.flutter)**: cross-platform GUI client (macOS, Windows, Linux, Android, Web) connecting via WebSocket (`coder --ws`).
 
 ## Coder Suite (Sub-Tools)
 
