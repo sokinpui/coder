@@ -39,17 +39,34 @@ const (
 	RoleSystem    ChatRole = "system"
 	RoleUser      ChatRole = "user"
 	RoleAssistant ChatRole = "assistant"
+	RoleTool      ChatRole = "tool"
 )
 
+type ToolCall struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+type ToolDeclaration struct {
+	Type        string         `json:"type"`
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Parameters  map[string]any `json:"parameters,omitempty"`
+}
+
 type ChatMessage struct {
-	Role    ChatRole
-	Content string
-	Data    []byte
+	Role       ChatRole
+	Content    string
+	Data       []byte
+	ToolCalls  []ToolCall
+	ToolCallID string
 }
 
 type StreamChunk struct {
 	Content          string
 	ReasoningContent string
+	ToolCall         *ToolCall
 }
 
 func (t MessageType) String() string {

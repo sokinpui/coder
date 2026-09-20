@@ -319,7 +319,7 @@ func runSingleShot(args []string) {
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx := context.Background()
 
-	go gen.GenerateTask(ctx, instruction, chatMsgs, streamChan, nil)
+	go gen.GenerateTask(ctx, instruction, chatMsgs, nil, streamChan, nil)
 
 	hasError := false
 	for chunk := range streamChan {

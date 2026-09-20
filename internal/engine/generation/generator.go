@@ -25,9 +25,23 @@ type openAIContentPart struct {
 	ImageURL *openAIImageURL `json:"image_url,omitempty"`
 }
 
+type openAIToolCallFunction struct {
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
+}
+
+type openAIToolCall struct {
+	Index    int                    `json:"index,omitempty"`
+	ID       string                 `json:"id,omitempty"`
+	Type     string                 `json:"type,omitempty"`
+	Function openAIToolCallFunction `json:"function"`
+}
+
 type openAIMessage struct {
-	Role    string `json:"role"`
-	Content any    `json:"content"`
+	Role       string           `json:"role"`
+	Content    any              `json:"content,omitempty"`
+	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 type openAIStreamResponse struct {
@@ -35,6 +49,7 @@ type openAIStreamResponse struct {
 		Delta struct {
 			Content          string `json:"content"`
 			ReasoningContent string `json:"reasoning_content"`
+			ToolCalls        []openAIToolCall `json:"tool_calls,omitempty"`
 		} `json:"delta"`
 	} `json:"choices"`
 }
@@ -96,7 +111,7 @@ func (g *Generator) getResponsesURL() string {
 	return strings.TrimSuffix(g.BaseURL, "/") + "/responses"
 }
 
-func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
+func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
 	defer close(streamChan)
 
 	genConfig := g.Config
@@ -104,13 +119,13 @@ func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, 
 		genConfig = *generationConfig
 	}
 	if strings.EqualFold(g.Protocol, "chat") {
-		g.generateChatTask(ctx, systemInstruction, messages, streamChan, &genConfig)
+		g.generateChatTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 		return
 	}
 	g.generateResponsesTask(ctx, systemInstruction, messages, streamChan, &genConfig)
 }
 
-func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
 	var apiMessages []openAIMessage
 	if systemInstruction != "" {
 		apiMessages = append(apiMessages, openAIMessage{
@@ -155,12 +170,28 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 				Content: msg.Content,
 			})
 		case types.RoleAssistant:
-			if msg.Content == "" {
-				continue
+			assistantMsg := openAIMessage{
+				Role: "assistant",
 			}
+			if msg.Content != "" {
+				assistantMsg.Content = msg.Content
+			}
+			for _, tc := range msg.ToolCalls {
+				assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, openAIToolCall{
+					ID:   tc.ID,
+					Type: "function",
+					Function: openAIToolCallFunction{
+						Name:      tc.Name,
+						Arguments: tc.Arguments,
+					},
+				})
+			}
+			apiMessages = append(apiMessages, assistantMsg)
+		case types.RoleTool:
 			apiMessages = append(apiMessages, openAIMessage{
-				Role:    "assistant",
-				Content: msg.Content,
+				Role:       "tool",
+				Content:    msg.Content,
+				ToolCallID: msg.ToolCallID,
 			})
 		case types.RoleSystem:
 			if msg.Content == "" {
@@ -178,6 +209,25 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 		"stream":           true,
 		"messages":         apiMessages,
 		"reasoning_effort": genConfig.ReasoningEffort,
+	}
+
+	if len(tools) > 0 {
+		chatTools := make([]map[string]any, 0, len(tools))
+		for _, t := range tools {
+			toolDef := map[string]any{
+				"name":        t.Name,
+				"description": t.Description,
+			}
+			if t.Parameters != nil {
+				toolDef["parameters"] = t.Parameters
+			}
+			chatTools = append(chatTools, map[string]any{
+				"type":     "function",
+				"function": toolDef,
+			})
+		}
+		body["tools"] = chatTools
+		body["tool_choice"] = "auto"
 	}
 
 	jsonBody, _ := json.Marshal(body)
@@ -208,6 +258,13 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 		return
 	}
 
+	type partialToolCall struct {
+		id        string
+		name      string
+		arguments strings.Builder
+	}
+	var toolCalls []*partialToolCall
+
 	reader := bufio.NewReader(resp.Body)
 	for {
 		if ctx.Err() != nil {
@@ -235,6 +292,24 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 						}:
 						}
 					}
+					for _, tcDelta := range delta.ToolCalls {
+						idx := tcDelta.Index
+						if idx < 0 {
+							continue
+						}
+						for len(toolCalls) <= idx {
+							toolCalls = append(toolCalls, &partialToolCall{})
+						}
+						if tcDelta.ID != "" {
+							toolCalls[idx].id = tcDelta.ID
+						}
+						if tcDelta.Function.Name != "" {
+							toolCalls[idx].name = tcDelta.Function.Name
+						}
+						if tcDelta.Function.Arguments != "" {
+							toolCalls[idx].arguments.WriteString(tcDelta.Function.Arguments)
+						}
+					}
 				}
 			}
 		}
@@ -244,6 +319,23 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", readErr)}
 			}
 			break
+		}
+	}
+
+	for _, tc := range toolCalls {
+		if tc.name == "" && tc.id == "" && tc.arguments.Len() == 0 {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case streamChan <- types.StreamChunk{
+			ToolCall: &types.ToolCall{
+				ID:        tc.id,
+				Name:      tc.name,
+				Arguments: tc.arguments.String(),
+			},
+		}:
 		}
 	}
 }
