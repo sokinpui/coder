@@ -106,6 +106,11 @@ type responseNonStreamResponse struct {
 	} `json:"error,omitempty"`
 }
 
+const (
+	initialStreamBufferSize = 64 * 1024
+	maxStreamBufferSize     = 10 * 1024 * 1024
+)
+
 type Generator struct {
 	Config   config.Generation
 	BaseURL  string
@@ -296,6 +301,7 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	var toolCalls []*partialToolCall
 
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, initialStreamBufferSize), maxStreamBufferSize)
 	for scanner.Scan() {
 		if ctx.Err() != nil {
 			return
@@ -499,6 +505,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 	var toolCalls []*partialToolCall
 	var currentToolCall *partialToolCall
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, initialStreamBufferSize), maxStreamBufferSize)
 
 	for scanner.Scan() {
 		if ctx.Err() != nil {
