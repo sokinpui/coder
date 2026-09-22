@@ -15,6 +15,10 @@ type Tool interface {
 	Execute(ctx context.Context, arguments string) (string, error)
 }
 
+type ImageProducerTool interface {
+	ExecuteWithImages(ctx context.Context, arguments string) (string, []types.Message, error)
+}
+
 type Registry struct {
 	mu    sync.RWMutex
 	tools map[string]Tool
@@ -42,15 +46,19 @@ func (r *Registry) Declarations() []ToolDeclaration {
 	return decls
 }
 
-func (r *Registry) Execute(ctx context.Context, name, arguments string) (string, error) {
+func (r *Registry) Execute(ctx context.Context, name, arguments string) (string, []types.Message, error) {
 	r.mu.RLock()
 	tool, exists := r.tools[name]
 	r.mu.RUnlock()
 
 	if !exists {
-		return "", fmt.Errorf("tool '%s' not found", name)
+		return "", nil, fmt.Errorf("tool '%s' not found", name)
 	}
-	return tool.Execute(ctx, arguments)
+	if imgTool, ok := tool.(ImageProducerTool); ok {
+		return imgTool.ExecuteWithImages(ctx, arguments)
+	}
+	out, err := tool.Execute(ctx, arguments)
+	return out, nil, err
 }
 
 var DefaultRegistry = NewRegistry()

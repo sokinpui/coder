@@ -1,5 +1,7 @@
 package coagent
 
+import "github.com/sokinpui/coder/internal/types"
+
 type ToolCallInfo struct {
 	CallID    string `json:"call_id"`
 	Name      string `json:"name"`
@@ -17,4 +19,5 @@ type AgentStreamChunk struct {
 	ReasoningContent string
 	ToolCall         *ToolCallInfo
 	ToolResult       *ToolResultInfo
+	Messages         []types.Message
 }

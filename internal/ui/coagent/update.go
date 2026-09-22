@@ -112,6 +112,10 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if len(chunk.Messages) > 0 {
+		m.messages = chunk.Messages
+	}
+
 	if chunk.ToolCall != nil {
 		if len(m.currentContent) > 0 {
 			cmds = append(cmds, tea.Println(m.currentContent))
@@ -141,10 +145,12 @@ func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 	if len(m.currentContent) > 0 {
 		finalText := m.currentContent
 		cmds = append(cmds, tea.Println(finalText))
-		m.messages = append(m.messages, types.Message{
-			Type:    types.AIMessage,
-			Content: finalText,
-		})
+		if len(m.messages) == 0 || m.messages[len(m.messages)-1].Type != types.AIMessage {
+			m.messages = append(m.messages, types.Message{
+				Type:    types.AIMessage,
+				Content: finalText,
+			})
+		}
 		m.currentContent = ""
 	}
 

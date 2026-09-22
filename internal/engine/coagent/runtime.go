@@ -100,6 +100,10 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		}
 
 		if len(toolCalls) == 0 {
+			select {
+			case <-ctx.Done():
+			case streamChan <- AgentStreamChunk{Messages: currentMessages}:
+			}
 			return
 		}
 
@@ -115,7 +119,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			}
 			streamChan <- AgentStreamChunk{ToolCall: &callInfo}
 
-			output, err := ar.Registry.Execute(ctx, tc.Name, tc.Arguments)
+			output, images, err := ar.Registry.Execute(ctx, tc.Name, tc.Arguments)
 			if err != nil {
 				output = fmt.Sprintf("Error: %v", err)
 			}
@@ -132,6 +136,20 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				Content:    output,
 				ToolCallID: tc.ID,
 			})
+			if len(images) > 0 {
+				currentMessages = append(currentMessages, images...)
+			}
 		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case streamChan <- AgentStreamChunk{Messages: currentMessages}:
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+	case streamChan <- AgentStreamChunk{Messages: currentMessages}:
 	}
 }
