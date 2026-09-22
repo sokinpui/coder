@@ -1,11 +1,13 @@
 package coderui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/types"
-	"time"
 )
 
 type cachedRender struct {
@@ -57,6 +59,7 @@ func NewChat(initialInput string) ChatModel {
 	ta.CharLimit = 0
 	ta.MaxHeight = 0
 	ta.MaxWidth = 0
+	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
 
 	return ChatModel{
 		TextArea:            ta,
