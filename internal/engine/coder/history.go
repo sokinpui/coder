@@ -71,12 +71,6 @@ func (s *Session) LoadConversation(filename string) error {
 		return fmt.Errorf("failed to load conversation %s: %w", filename, err)
 	}
 
-	if metadata.WorkingDir != "" {
-		if err := os.Chdir(metadata.WorkingDir); err != nil {
-			log.Printf("could not switch to working directory '%s' from history file '%s': %v", metadata.WorkingDir, filename, err)
-		}
-	}
-
 	mode := metadata.Mode
 	if mode == "" {
 		mode = ModeCoding

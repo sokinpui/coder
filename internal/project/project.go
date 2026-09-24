@@ -5,6 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+)
+
+var (
+	initialRoot     string
+	initialRootOnce sync.Once
 )
 
 func IsGitRepo() bool {
@@ -26,12 +32,16 @@ func FindRepoRoot() (string, error) {
 }
 
 func Root() string {
-	root, err := FindRepoRoot()
-	if err != nil {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-	return root
+	initialRootOnce.Do(func() {
+		root, err := FindRepoRoot()
+		if err != nil {
+			cwd, _ := os.Getwd()
+			initialRoot = cwd
+			return
+		}
+		initialRoot = root
+	})
+	return initialRoot
 }
 
 func DirInfo() string {
