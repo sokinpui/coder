@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/coder/theme"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -107,14 +108,10 @@ func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 
 	results := make(chan renderResult, len(uncached))
 	var wg sync.WaitGroup
-	theme := m.Session.GetConfig().UI.MarkdownTheme
 
 	for range workerCount {
 		wg.Go(func() {
-			renderer, _ := glamour.NewTermRenderer(
-				glamour.WithStandardStyle(theme),
-				glamour.WithWordWrap(viewportWidth),
-			)
+			renderer, _ := theme.NewRenderer(viewportWidth)
 			for job := range jobs {
 				rendered := renderMessageWithRenderer(job.msg, viewportWidth, renderer)
 				if rendered != "" || job.msg.Type == types.AIMessage {

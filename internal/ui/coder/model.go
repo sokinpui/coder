@@ -8,6 +8,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/coder/theme"
 	"sort"
 
 	"github.com/charmbracelet/glamour"
@@ -50,10 +51,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	if err != nil {
 		return Model{}, err
 	}
-	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithStandardStyle(cfg.UI.MarkdownTheme),
-		glamour.WithWordWrap(80),
-	)
+	renderer, _ := theme.NewRenderer(80)
 
 	sess.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 

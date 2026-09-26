@@ -9,11 +9,11 @@ import (
 
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/coder/theme"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
 )
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
@@ -125,9 +125,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 					m.Chat.IsAIRendering = true
 					m.Chat.PendingAIRender = false
 					viewportWidth := max(10, m.Chat.Viewport.Width)
-					theme := m.Session.GetConfig().UI.MarkdownTheme
 					latestContent := messages[aiIdx].Content
-					renderCmd = renderAIMessageCmd(msg.sessID, aiIdx, latestContent, viewportWidth, theme)
+					renderCmd = renderAIMessageCmd(msg.sessID, aiIdx, latestContent, viewportWidth)
 				} else {
 					m.Chat.PendingAIRender = true
 				}
@@ -570,10 +569,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.CtrlCPressed = false
 
-		renderer, err := glamour.NewTermRenderer(
-			glamour.WithStandardStyle(m.Session.GetConfig().UI.MarkdownTheme),
-			glamour.WithWordWrap(m.Chat.Viewport.Width),
-		)
+		renderer, err := theme.NewRenderer(m.Chat.Viewport.Width)
 		if err == nil {
 			m.GlamourRenderer = renderer
 			m.Chat.Viewport.SetContent(m.renderConversation())
@@ -593,8 +589,7 @@ func (m Model) renderLastAIMessage(sessID string) (tea.Model, tea.Cmd, bool) {
 	m.Chat.PendingAIRender = false
 	m.Chat.IsAIRendering = true
 	viewportWidth := max(10, m.Chat.Viewport.Width)
-	theme := m.Session.GetConfig().UI.MarkdownTheme
-	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme), true
+	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth), true
 }
 
 func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
@@ -620,8 +615,7 @@ func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
 		m.Chat.IsAIRendering = true
 		m.Chat.PendingAIRender = false
 		viewportWidth := max(10, m.Chat.Viewport.Width)
-		theme := m.Session.GetConfig().UI.MarkdownTheme
-		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth, theme)
+		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth)
 	}
 
 	wasAtBottom := m.Chat.Viewport.AtBottom()

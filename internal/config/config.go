@@ -34,10 +34,6 @@ type Generation struct {
 	ReasoningEffort string `mapstructure:"reasoningeffort"`
 }
 
-type UI struct {
-	MarkdownTheme string `mapstructure:"markdowntheme"`
-}
-
 type HistoryKeymap struct {
 	Up           string `mapstructure:"up"`
 	Down         string `mapstructure:"down"`
@@ -75,7 +71,6 @@ type Config struct {
 	Generation      Generation `mapstructure:"generation"`
 	Context         Context    `mapstructure:"context"`
 	Clipboard       Clipboard  `mapstructure:"clipboard"`
-	UI              UI         `mapstructure:"ui"`
 	Keymap          Keymap     `mapstructure:"keymap"`
 	AvailableModels []string   `yaml:"-"`
 }
@@ -99,9 +94,6 @@ func DefaultConfig() Config {
 		Clipboard: Clipboard{
 			CopyCmd:  "",
 			PasteCmd: "",
-		},
-		UI: UI{
-			MarkdownTheme: "dark",
 		},
 		Keymap: Keymap{
 			Submit:      "ctrl+j",
