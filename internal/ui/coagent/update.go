@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine/coagent"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -24,6 +25,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAgentFinished()
 	case agentErrorMsg:
 		return m.handleAgentError(msg.err)
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		return m, nil
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -48,10 +52,17 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			m.state = stateInput
 			m.input.Focus()
-			return m, tea.Batch(
+			var cmds []tea.Cmd
+			if len(m.currentContent) > 0 {
+				rendered := markdown.Render(m.currentContent, m.renderWidth())
+				cmds = append(cmds, tea.Println(rendered))
+				m.currentContent = ""
+			}
+			cmds = append(cmds,
 				tea.Println(systemNoteStyle.Render("\n[Interrupted by user]")),
 				textinput.Blink,
 			)
+			return m, tea.Batch(cmds...)
 		}
 		return m, tea.Quit
 
@@ -118,7 +129,8 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 
 	if chunk.ToolCall != nil {
 		if len(m.currentContent) > 0 {
-			cmds = append(cmds, tea.Println(m.currentContent))
+			rendered := markdown.Render(m.currentContent, m.renderWidth())
+			cmds = append(cmds, tea.Println(rendered))
 			m.currentContent = ""
 		}
 		callLine := fmt.Sprintf("⚡ %s %s(%s)", toolCallStyle.Render("Tool:"), chunk.ToolCall.Name, chunk.ToolCall.Arguments)
@@ -144,7 +156,8 @@ func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 
 	if len(m.currentContent) > 0 {
 		finalText := m.currentContent
-		cmds = append(cmds, tea.Println(finalText))
+		rendered := markdown.Render(finalText, m.renderWidth())
+		cmds = append(cmds, tea.Println(rendered))
 		if len(m.messages) == 0 || m.messages[len(m.messages)-1].Type != types.AIMessage {
 			m.messages = append(m.messages, types.Message{
 				Type:    types.AIMessage,
@@ -188,4 +201,11 @@ func formatToolOutput(output string) string {
 	}
 	head := strings.Join(lines[:5], "\n")
 	return fmt.Sprintf("%s\n... [%d lines hidden]", head, len(lines)-5)
+}
+
+func (m Model) renderWidth() int {
+	if m.width > 0 {
+		return m.width
+	}
+	return 80
 }

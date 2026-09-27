@@ -12,7 +12,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/coder/theme"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 	"github.com/sokinpui/coder/pkg/sf"
 	"log"
 	"net/http"
@@ -58,19 +58,15 @@ func renderAIMessageCmd(sessID string, msgIdx int, content string, width int) te
 			}
 		}
 
-		renderer, err := theme.NewRenderer(width)
-		var rendered string
-		if err == nil {
-			rendered, err = renderer.Render(content)
-		}
+		lines, err := markdown.RenderLines(content, width)
 		if err != nil {
-			rendered = content
+			lines = strings.Split(content, "\n")
 		}
 		return aiRenderedMsg{
 			sessID:  sessID,
 			msgIdx:  msgIdx,
 			content: content,
-			lines:   strings.Split(rendered, "\n"),
+			lines:   lines,
 			width:   width,
 		}
 	}

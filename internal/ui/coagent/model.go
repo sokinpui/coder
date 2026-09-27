@@ -34,6 +34,7 @@ type Model struct {
 	chunkChan      chan coagent.AgentStreamChunk
 	currentContent string
 	initialPrompt  string
+	width          int
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
@@ -57,6 +58,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		input:         ti,
 		spinner:       sp,
 		initialPrompt: strings.TrimSpace(initialPrompt),
+		width:         80,
 	}, nil
 }
 

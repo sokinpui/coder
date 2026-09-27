@@ -8,13 +8,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 )
-
-type cachedRender struct {
-	lines   []string
-	content string
-	width   int
-}
 
 type ChatModel struct {
 	TextArea                 textarea.Model
@@ -39,7 +34,7 @@ type ChatModel struct {
 	EditingMessageIndex      int
 	MessageLineOffsets       map[int]int
 	PreserveInputOnSubmit    bool
-	RenderCache              map[int]cachedRender
+	RenderCache              map[int]markdown.CachedRender
 	StateStartTime           time.Time
 	AutoSubmitPending        bool
 }
@@ -68,7 +63,7 @@ func NewChat(initialInput string) ChatModel {
 		IsFetchingModels:    true,
 		MessageLineOffsets:  make(map[int]int),
 		EditingMessageIndex: -1,
-		RenderCache:         make(map[int]cachedRender),
+		RenderCache:         make(map[int]markdown.CachedRender),
 		AutoSubmitPending:   initialInput != "",
 	}
 }

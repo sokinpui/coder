@@ -2,16 +2,16 @@ package coderui
 
 import (
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
 )
 
 type QuickViewModel struct {
 	Viewport        viewport.Model
-	GlamourRenderer *glamour.TermRenderer
+	GlamourRenderer *markdown.Renderer
 	messages        []types.Message
 	needsRender     bool
 }
@@ -49,6 +49,10 @@ func (m *QuickViewModel) renderContent() string {
 			renderedMsg = userInputStyle.Width(blockWidth).Render(msg.Content)
 		case types.AIMessage:
 			if msg.Content == "" {
+				continue
+			}
+			if m.GlamourRenderer == nil {
+				parts = append(parts, msg.Content)
 				continue
 			}
 			renderedAI, err := m.GlamourRenderer.Render(msg.Content)

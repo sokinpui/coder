@@ -8,10 +8,8 @@ import (
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/coder/theme"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 	"sort"
-
-	"github.com/charmbracelet/glamour"
 )
 
 const welcomeMessage = `Welcome to Coder!
@@ -39,7 +37,7 @@ type Model struct {
 	Quitting            bool
 	Height              int
 	Width               int
-	GlamourRenderer     *glamour.TermRenderer
+	GlamourRenderer     *markdown.Renderer
 	AvailableCommands   []string
 	CommandDescriptions map[string]string
 	StatusBarMessage    string
@@ -51,7 +49,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 	if err != nil {
 		return Model{}, err
 	}
-	renderer, _ := theme.NewRenderer(80)
+	renderer, _ := markdown.NewRenderer(80)
 
 	sess.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 
@@ -77,7 +75,7 @@ func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles
 }
 
 func (m *Model) ClearCache() {
-	m.Chat.RenderCache = make(map[int]cachedRender)
+	m.Chat.RenderCache = make(map[int]markdown.CachedRender)
 }
 
 func (m Model) updateTokenCountCmd() tea.Cmd {

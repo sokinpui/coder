@@ -9,7 +9,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/coder/theme"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -148,10 +148,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		m.Chat.RenderCache[msg.msgIdx] = cachedRender{
-			lines:   msg.lines,
-			content: msg.content,
-			width:   msg.width,
+		m.Chat.RenderCache[msg.msgIdx] = markdown.CachedRender{
+			Lines:   msg.lines,
+			Content: msg.content,
+			Width:   msg.width,
 		}
 
 		wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -569,7 +569,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.CtrlCPressed = false
 
-		renderer, err := theme.NewRenderer(m.Chat.Viewport.Width)
+		renderer, err := markdown.NewRenderer(m.Chat.Viewport.Width)
 		if err == nil {
 			m.GlamourRenderer = renderer
 			m.Chat.Viewport.SetContent(m.renderConversation())
@@ -610,7 +610,7 @@ func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
 	}
 
 	cache, ok := m.Chat.RenderCache[lastIdx]
-	isStale := !ok || cache.content != messages[lastIdx].Content || cache.width != m.Chat.Viewport.Width
+	isStale := !ok || cache.Content != messages[lastIdx].Content || cache.Width != m.Chat.Viewport.Width
 	if isStale {
 		m.Chat.IsAIRendering = true
 		m.Chat.PendingAIRender = false

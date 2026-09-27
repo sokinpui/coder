@@ -1,15 +1,11 @@
 package coderui
 
 import (
-	"runtime"
 	"strings"
-	"sync"
 
-	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/coder/theme"
-
-	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
 func (m Model) isLiveAIMessage(idx, total int, msg types.Message) bool {
@@ -24,10 +20,10 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 		if msg.Content == "" || !isCached {
 			return nil
 		}
-		return cache.lines
+		return cache.Lines
 
-	case isCached && cache.content == msg.Content && cache.width == viewportWidth:
-		return cache.lines
+	case isCached && cache.Content == msg.Content && cache.Width == viewportWidth:
+		return cache.Lines
 
 	default:
 		rendered := m.renderMessage(msg, viewportWidth)
@@ -35,10 +31,10 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 			return nil
 		}
 		lines := strings.Split(rendered, "\n")
-		m.Chat.RenderCache[idx] = cachedRender{
-			lines:   lines,
-			content: msg.Content,
-			width:   viewportWidth,
+		m.Chat.RenderCache[idx] = markdown.CachedRender{
+			Lines:   lines,
+			Content: msg.Content,
+			Width:   viewportWidth,
 		}
 		return lines
 	}
@@ -69,72 +65,32 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int) {
 	return strings.Join(allLines, "\n"), messageLineOffsets
 }
 
-type renderJob struct {
-	index int
-	msg   types.Message
-}
-
-type renderResult struct {
-	index   int
-	content string
-	lines   []string
-}
-
 func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 	total := len(messages)
-	var uncached []renderJob
+	var items []markdown.RenderItem
 	for i, msg := range messages {
 		if m.isLiveAIMessage(i, total, msg) || msg.Content == "" {
 			continue
 		}
 		cache, ok := m.Chat.RenderCache[i]
-		if ok && cache.content == msg.Content && cache.width == viewportWidth {
+		if ok && cache.Content == msg.Content && cache.Width == viewportWidth {
 			continue
 		}
-		uncached = append(uncached, renderJob{index: i, msg: msg})
+		if msg.Type == types.AIMessage {
+			items = append(items, markdown.RenderItem{Index: i, Content: msg.Content})
+		}
 	}
 
-	if len(uncached) <= 1 {
+	if len(items) <= 1 {
 		return
 	}
 
-	workerCount := max(min(len(uncached), runtime.NumCPU()), 1)
-
-	jobs := make(chan renderJob, len(uncached))
-	for _, j := range uncached {
-		jobs <- j
-	}
-	close(jobs)
-
-	results := make(chan renderResult, len(uncached))
-	var wg sync.WaitGroup
-
-	for range workerCount {
-		wg.Go(func() {
-			renderer, _ := theme.NewRenderer(viewportWidth)
-			for job := range jobs {
-				rendered := renderMessageWithRenderer(job.msg, viewportWidth, renderer)
-				if rendered != "" || job.msg.Type == types.AIMessage {
-					results <- renderResult{
-						index:   job.index,
-						content: job.msg.Content,
-						lines:   strings.Split(rendered, "\n"),
-					}
-				}
-			}
-		})
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	for res := range results {
-		m.Chat.RenderCache[res.index] = cachedRender{
-			lines:   res.lines,
-			content: res.content,
-			width:   viewportWidth,
+	results := markdown.BatchRender(items, viewportWidth)
+	for _, res := range results {
+		m.Chat.RenderCache[res.Index] = markdown.CachedRender{
+			Lines:   res.Lines,
+			Content: res.Content,
+			Width:   viewportWidth,
 		}
 	}
 }
@@ -143,7 +99,7 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 	return renderMessageWithRenderer(msg, viewportWidth, m.GlamourRenderer)
 }
 
-func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *glamour.TermRenderer) string {
+func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *markdown.Renderer) string {
 	content := msg.Content
 	switch msg.Type {
 	case types.InitMessage:

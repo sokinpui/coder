@@ -59,7 +59,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		genChan := make(chan types.StreamChunk, 100)
 		go ar.Generator.GenerateTask(ctx, instruction, chatMsgs, toolDecls, genChan, &ar.Config)
 
-		var turnText string
+		var turnText strings.Builder
 		var toolCalls []types.ToolCall
 		var hasError bool
 
@@ -68,7 +68,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				hasError = true
 			}
 			if chunk.Content != "" {
-				turnText += chunk.Content
+				turnText.WriteString(chunk.Content)
 				select {
 				case <-ctx.Done():
 					return
@@ -91,10 +91,10 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			return
 		}
 
-		if turnText != "" || len(toolCalls) > 0 {
+		if turnText.String() != "" || len(toolCalls) > 0 {
 			currentMessages = append(currentMessages, types.Message{
 				Type:      types.AIMessage,
-				Content:   turnText,
+				Content:   turnText.String(),
 				ToolCalls: toolCalls,
 			})
 		}
