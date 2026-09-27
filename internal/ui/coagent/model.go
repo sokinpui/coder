@@ -33,6 +33,8 @@ type Model struct {
 	messages       []types.Message
 	chunkChan      chan coagent.AgentStreamChunk
 	currentContent string
+	streamBuffer   string
+	partialLine    string
 	initialPrompt  string
 	width          int
 }

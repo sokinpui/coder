@@ -53,9 +53,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.state = stateInput
 			m.input.Focus()
 			var cmds []tea.Cmd
-			if len(m.currentContent) > 0 {
-				rendered := markdown.Render(m.currentContent, m.renderWidth())
-				cmds = append(cmds, tea.Println(rendered))
+			if m.partialLine != "" {
+				cmds = append(cmds, tea.Println(cleanRender(m.partialLine, m.renderWidth())))
+				m.partialLine = ""
+				m.streamBuffer = ""
 				m.currentContent = ""
 			}
 			cmds = append(cmds,
@@ -97,6 +98,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.state = stateRunning
 	m.currentContent = ""
+	m.streamBuffer = ""
+	m.partialLine = ""
 
 	m.messages = append(m.messages, types.Message{
 		Type:    types.UserMessage,
@@ -128,9 +131,10 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolCall != nil {
-		if len(m.currentContent) > 0 {
-			rendered := markdown.Render(m.currentContent, m.renderWidth())
-			cmds = append(cmds, tea.Println(rendered))
+		if m.partialLine != "" {
+			cmds = append(cmds, tea.Println(cleanRender(m.partialLine, m.renderWidth())))
+			m.partialLine = ""
+			m.streamBuffer = ""
 			m.currentContent = ""
 		}
 		callLine := fmt.Sprintf("⚡ %s %s(%s)", toolCallStyle.Render("Tool:"), chunk.ToolCall.Name, chunk.ToolCall.Arguments)
@@ -145,6 +149,31 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 
 	if chunk.Content != "" {
 		m.currentContent += chunk.Content
+		m.streamBuffer += chunk.Content
+
+		if !isInIncompleteBlock(m.streamBuffer) {
+			if idx := strings.LastIndex(m.streamBuffer, "\n\n"); idx != -1 {
+				blockToPrint := m.streamBuffer[:idx]
+				m.partialLine = m.streamBuffer[idx+2:]
+				m.streamBuffer = m.partialLine
+
+				if strings.TrimSpace(blockToPrint) != "" {
+					rendered := cleanRender(blockToPrint, m.renderWidth())
+					if rendered != "" {
+						cmds = append(cmds, tea.Println(rendered))
+					}
+				}
+			} else if idx := strings.LastIndex(m.streamBuffer, "\n"); idx != -1 && isSimpleLine(m.streamBuffer[:idx]) {
+				linesToPrint := m.streamBuffer[:idx]
+				m.partialLine = m.streamBuffer[idx+1:]
+				m.streamBuffer = m.partialLine
+
+				rendered := cleanRender(linesToPrint, m.renderWidth())
+				if rendered != "" {
+					cmds = append(cmds, tea.Println(rendered))
+				}
+			}
+		}
 	}
 
 	cmds = append(cmds, waitForNextChunk(m.chunkChan))
@@ -154,14 +183,21 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if len(m.currentContent) > 0 {
-		finalText := m.currentContent
-		rendered := markdown.Render(finalText, m.renderWidth())
-		cmds = append(cmds, tea.Println(rendered))
+	if m.partialLine != "" || m.streamBuffer != "" {
+		remaining := m.partialLine
+		if remaining == "" {
+			remaining = m.streamBuffer
+		}
+		rendered := cleanRender(remaining, m.renderWidth())
+		if rendered != "" {
+			cmds = append(cmds, tea.Println(rendered))
+		}
+		m.partialLine = ""
+		m.streamBuffer = ""
 		if len(m.messages) == 0 || m.messages[len(m.messages)-1].Type != types.AIMessage {
 			m.messages = append(m.messages, types.Message{
 				Type:    types.AIMessage,
-				Content: finalText,
+				Content: m.currentContent,
 			})
 		}
 		m.currentContent = ""
@@ -208,4 +244,36 @@ func (m Model) renderWidth() int {
 		return m.width
 	}
 	return 80
+}
+
+func cleanRender(content string, width int) string {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return ""
+	}
+	rendered := markdown.Render(trimmed, width)
+	return strings.Trim(rendered, "\r\n")
+}
+
+func isInIncompleteBlock(buf string) bool {
+	codeFenceCount := strings.Count(buf, "```")
+	if codeFenceCount%2 != 0 {
+		return true
+	}
+	lastNewline := strings.LastIndex(buf, "\n")
+	if lastNewline != -1 {
+		lastLine := strings.TrimSpace(buf[lastNewline+1:])
+		if strings.HasPrefix(lastLine, "|") {
+			return true
+		}
+	}
+	return false
+}
+
+func isSimpleLine(buf string) bool {
+	trimmed := strings.TrimSpace(buf)
+	if strings.HasPrefix(trimmed, "|") || strings.Contains(buf, "```") {
+		return false
+	}
+	return true
 }

@@ -8,9 +8,9 @@ func (m Model) View() string {
 		sb.WriteString(m.spinner.View())
 		sb.WriteString(" ")
 		sb.WriteString(spinnerStyle.Render("Agent working... (Ctrl+C to interrupt)"))
-		if len(m.currentContent) > 0 {
+		if m.partialLine != "" {
 			sb.WriteString("\n")
-			sb.WriteString(m.currentContent)
+			sb.WriteString(m.partialLine)
 		}
 		return sb.String()
 	}
