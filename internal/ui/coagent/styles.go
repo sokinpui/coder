@@ -60,4 +60,20 @@ var (
 
 	diffContextStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244"))
+
+	thinkingHeaderStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("213")).
+				Bold(true)
+
+	reasoningStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244")).
+			Italic(true)
+
+	inputContainerStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1)
+
+	statusBarStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244"))
 )

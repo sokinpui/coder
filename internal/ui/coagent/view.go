@@ -1,18 +1,19 @@
 package coagentui
 
-import "strings"
+import (
+	"fmt"
+)
 
 func (m Model) View() string {
 	if m.state == stateRunning {
-		var sb strings.Builder
-		sb.WriteString(m.spinner.View())
-		sb.WriteString(" ")
-		sb.WriteString(spinnerStyle.Render("Agent working... (Ctrl+C to interrupt)"))
-		if m.partialLine != "" {
-			sb.WriteString("\n")
-			sb.WriteString(m.partialLine)
+		status := m.statusText
+		if status == "" {
+			status = "Agent working..."
 		}
-		return sb.String()
+		spinnerPart := m.spinner.View()
+		statusPart := spinnerStyle.Render(status)
+		helpPart := toolMutedStyle.Render("(Ctrl+C to interrupt)")
+		return fmt.Sprintf("%s %s %s", spinnerPart, statusPart, helpPart)
 	}
 
 	return promptPrefixStyle.Render("❯ ") + m.input.View()

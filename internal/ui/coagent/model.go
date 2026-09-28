@@ -25,19 +25,21 @@ type agentErrorMsg struct{ err error }
 type initPromptMsg string
 
 type Model struct {
-	state          state
-	runtime        *coagent.AgentRuntime
-	cancelFunc     context.CancelFunc
-	input          textinput.Model
-	spinner        spinner.Model
-	messages       []types.Message
-	chunkChan      chan coagent.AgentStreamChunk
-	currentContent string
-	streamBuffer   string
-	partialLine    string
-	initialPrompt  string
-	pendingCalls   map[string]coagent.ToolCallInfo
-	width          int
+	cfg           *config.Config
+	state         state
+	runtime       *coagent.AgentRuntime
+	cancelFunc    context.CancelFunc
+	input         textinput.Model
+	spinner       spinner.Model
+	messages      []types.Message
+	chunkChan     chan coagent.AgentStreamChunk
+	initialPrompt string
+	statusText    string
+	width         int
+
+	reasoningText *strings.Builder
+	assistantText *strings.Builder
+	pendingCalls  map[string]coagent.ToolCallInfo
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
@@ -56,22 +58,24 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 	sp.Style = spinnerStyle
 
 	return Model{
+		cfg:           cfg,
 		state:         stateInput,
 		runtime:       runtime,
 		input:         ti,
 		spinner:       sp,
 		initialPrompt: strings.TrimSpace(initialPrompt),
-		pendingCalls:  make(map[string]coagent.ToolCallInfo),
+		statusText:    "Ready",
 		width:         80,
+		reasoningText: &strings.Builder{},
+		assistantText: &strings.Builder{},
+		pendingCalls:  make(map[string]coagent.ToolCallInfo),
 	}, nil
 }
 
 func (m Model) Init() tea.Cmd {
+	cmds := []tea.Cmd{textinput.Blink}
 	if m.initialPrompt != "" {
-		return tea.Batch(
-			textinput.Blink,
-			func() tea.Msg { return initPromptMsg(m.initialPrompt) },
-		)
+		cmds = append(cmds, func() tea.Msg { return initPromptMsg(m.initialPrompt) })
 	}
-	return textinput.Blink
+	return tea.Batch(cmds...)
 }

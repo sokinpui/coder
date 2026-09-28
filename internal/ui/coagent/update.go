@@ -27,17 +27,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAgentError(msg.err)
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.input.Width = max(10, m.width-4)
 		return m, nil
 	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
-	}
-
-	if m.state == stateInput {
-		var cmd tea.Cmd
-		m.input, cmd = m.input.Update(msg)
-		return m, cmd
+		if m.state == stateRunning {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -51,21 +49,19 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.cancelFunc()
 			}
 			m.state = stateInput
+			m.statusText = "Ready"
 			m.input.Focus()
 			var cmds []tea.Cmd
-			if m.partialLine != "" {
-				if rendered := cleanRender(m.partialLine, m.renderWidth()); rendered != "" {
-					cmds = append(cmds, tea.Println(rendered+"\n"))
-				}
-				m.partialLine = ""
-				m.streamBuffer = ""
-				m.currentContent = ""
-			}
+			cmds = append(cmds, m.flushPendingText()...)
 			cmds = append(cmds,
 				tea.Println(systemNoteStyle.Render("[Interrupted by user]\n")),
 				textinput.Blink,
 			)
 			return m, tea.Batch(cmds...)
+		}
+		if m.input.Value() != "" {
+			m.input.Reset()
+			return m, nil
 		}
 		return m, tea.Quit
 
@@ -99,9 +95,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.state = stateRunning
-	m.currentContent = ""
-	m.streamBuffer = ""
-	m.partialLine = ""
+	m.statusText = "Thinking..."
+	m.reasoningText.Reset()
+	m.assistantText.Reset()
+	m.pendingCalls = make(map[string]coagent.ToolCallInfo)
 
 	m.messages = append(m.messages, types.Message{
 		Type:    types.UserMessage,
@@ -133,6 +130,8 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolCall != nil {
+		cmds = append(cmds, m.flushPendingText()...)
+
 		if m.pendingCalls == nil {
 			m.pendingCalls = make(map[string]coagent.ToolCallInfo)
 		}
@@ -140,14 +139,7 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 			m.pendingCalls[chunk.ToolCall.CallID] = *chunk.ToolCall
 		}
 
-		if m.partialLine != "" {
-			if rendered := cleanRender(m.partialLine, m.renderWidth()); rendered != "" {
-				cmds = append(cmds, tea.Println(rendered+"\n"))
-			}
-			m.partialLine = ""
-			m.streamBuffer = ""
-			m.currentContent = ""
-		}
+		m.statusText = fmt.Sprintf("Running %s...", chunk.ToolCall.Name)
 		callLine := renderToolCall(chunk.ToolCall, m.renderWidth())
 		cmds = append(cmds, tea.Println(callLine))
 	}
@@ -164,35 +156,17 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 
 		resLine := renderToolResult(chunk.ToolResult, matchedCall)
 		cmds = append(cmds, tea.Println(resLine+"\n"))
+		m.statusText = "Processing..."
+	}
+
+	if chunk.ReasoningContent != "" {
+		m.reasoningText.WriteString(chunk.ReasoningContent)
+		m.statusText = "Thinking..."
 	}
 
 	if chunk.Content != "" {
-		m.currentContent += chunk.Content
-		m.streamBuffer += chunk.Content
-
-		if !isInIncompleteBlock(m.streamBuffer) {
-			if idx := strings.LastIndex(m.streamBuffer, "\n\n"); idx != -1 {
-				blockToPrint := m.streamBuffer[:idx]
-				m.partialLine = m.streamBuffer[idx+2:]
-				m.streamBuffer = m.partialLine
-
-				if strings.TrimSpace(blockToPrint) != "" {
-					rendered := cleanRender(blockToPrint, m.renderWidth())
-					if rendered != "" {
-						cmds = append(cmds, tea.Println(rendered+"\n"))
-					}
-				}
-			} else if idx := strings.LastIndex(m.streamBuffer, "\n"); idx != -1 && isSimpleLine(m.streamBuffer[:idx]) {
-				linesToPrint := m.streamBuffer[:idx]
-				m.partialLine = m.streamBuffer[idx+1:]
-				m.streamBuffer = m.partialLine
-
-				rendered := cleanRender(linesToPrint, m.renderWidth())
-				if rendered != "" {
-					cmds = append(cmds, tea.Println(rendered))
-				}
-			}
-		}
+		m.assistantText.WriteString(chunk.Content)
+		m.statusText = "Responding..."
 	}
 
 	cmds = append(cmds, waitForNextChunk(m.chunkChan))
@@ -200,39 +174,61 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 }
 
 func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
-	if m.partialLine != "" || m.streamBuffer != "" {
-		remaining := m.partialLine
-		if remaining == "" {
-			remaining = m.streamBuffer
-		}
-		rendered := cleanRender(remaining, m.renderWidth())
-		if rendered != "" {
-			cmds = append(cmds, tea.Println(rendered+"\n"))
-		}
-		m.partialLine = ""
-		m.streamBuffer = ""
-		if len(m.messages) == 0 || m.messages[len(m.messages)-1].Type != types.AIMessage {
-			m.messages = append(m.messages, types.Message{
-				Type:    types.AIMessage,
-				Content: m.currentContent,
-			})
-		}
-		m.currentContent = ""
-	}
-
 	m.state = stateInput
+	m.statusText = "Ready"
 	m.input.Focus()
+
+	var cmds []tea.Cmd
+	cmds = append(cmds, m.flushPendingText()...)
 	cmds = append(cmds, textinput.Blink)
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleAgentError(err error) (tea.Model, tea.Cmd) {
 	m.state = stateInput
+	m.statusText = "Error"
 	m.input.Focus()
-	errLine := toolErrorStyle.Render(fmt.Sprintf("Error: %v\n", err))
-	return m, tea.Batch(tea.Println(errLine), textinput.Blink)
+
+	var cmds []tea.Cmd
+	cmds = append(cmds, m.flushPendingText()...)
+	cmds = append(cmds, tea.Println(toolErrorStyle.Render(fmt.Sprintf("Error: %v\n", err))))
+	cmds = append(cmds, textinput.Blink)
+	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) flushPendingText() []tea.Cmd {
+	var cmds []tea.Cmd
+	if m.reasoningText != nil && m.reasoningText.Len() > 0 {
+		txt := strings.TrimSpace(m.reasoningText.String())
+		m.reasoningText.Reset()
+		if txt != "" {
+			width := m.renderWidth()
+			header := thinkingHeaderStyle.Render("✦ Thinking")
+			body := reasoningStyle.Width(width).Render(txt)
+			cmds = append(cmds, tea.Println(fmt.Sprintf("%s\n%s\n", header, body)))
+		}
+	}
+
+	if m.assistantText != nil && m.assistantText.Len() > 0 {
+		txt := strings.TrimSpace(m.assistantText.String())
+		m.assistantText.Reset()
+		if txt != "" {
+			width := m.renderWidth()
+			rendered := markdown.Render(txt, width)
+			if rendered == "" {
+				rendered = txt
+			}
+			cmds = append(cmds, tea.Println(rendered+"\n"))
+		}
+	}
+	return cmds
+}
+
+func (m Model) renderWidth() int {
+	if m.width > 0 {
+		return max(20, m.width-2)
+	}
+	return 80
 }
 
 func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
@@ -243,56 +239,4 @@ func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
 		}
 		return streamChunkMsg(chunk)
 	}
-}
-
-func formatToolOutput(output string) string {
-	trimmed := strings.TrimSpace(output)
-	if trimmed == "" {
-		return "(no output)"
-	}
-	lines := strings.Split(trimmed, "\n")
-	if len(lines) <= 6 {
-		return trimmed
-	}
-	head := strings.Join(lines[:5], "\n")
-	return fmt.Sprintf("%s\n... [%d lines hidden]", head, len(lines)-5)
-}
-
-func (m Model) renderWidth() int {
-	if m.width > 0 {
-		return m.width
-	}
-	return 80
-}
-
-func cleanRender(content string, width int) string {
-	trimmed := strings.TrimSpace(content)
-	if trimmed == "" {
-		return ""
-	}
-	rendered := markdown.Render(trimmed, width)
-	return strings.Trim(rendered, "\r\n")
-}
-
-func isInIncompleteBlock(buf string) bool {
-	codeFenceCount := strings.Count(buf, "```")
-	if codeFenceCount%2 != 0 {
-		return true
-	}
-	lastNewline := strings.LastIndex(buf, "\n")
-	if lastNewline != -1 {
-		lastLine := strings.TrimSpace(buf[lastNewline+1:])
-		if strings.HasPrefix(lastLine, "|") {
-			return true
-		}
-	}
-	return false
-}
-
-func isSimpleLine(buf string) bool {
-	trimmed := strings.TrimSpace(buf)
-	if strings.HasPrefix(trimmed, "|") || strings.Contains(buf, "```") {
-		return false
-	}
-	return true
 }
