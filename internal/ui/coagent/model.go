@@ -36,6 +36,7 @@ type Model struct {
 	streamBuffer   string
 	partialLine    string
 	initialPrompt  string
+	pendingCalls   map[string]coagent.ToolCallInfo
 	width          int
 }
 
@@ -60,6 +61,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		input:         ti,
 		spinner:       sp,
 		initialPrompt: strings.TrimSpace(initialPrompt),
+		pendingCalls:  make(map[string]coagent.ToolCallInfo),
 		width:         80,
 	}, nil
 }

@@ -54,13 +54,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.input.Focus()
 			var cmds []tea.Cmd
 			if m.partialLine != "" {
-				cmds = append(cmds, tea.Println(cleanRender(m.partialLine, m.renderWidth())))
+				if rendered := cleanRender(m.partialLine, m.renderWidth()); rendered != "" {
+					cmds = append(cmds, tea.Println(rendered+"\n"))
+				}
 				m.partialLine = ""
 				m.streamBuffer = ""
 				m.currentContent = ""
 			}
 			cmds = append(cmds,
-				tea.Println(systemNoteStyle.Render("\n[Interrupted by user]")),
+				tea.Println(systemNoteStyle.Render("[Interrupted by user]\n")),
 				textinput.Blink,
 			)
 			return m, tea.Batch(cmds...)
@@ -110,7 +112,7 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancelFunc = cancel
 
-	userLine := fmt.Sprintf("\n%s %s", userHeaderStyle.Render("❯"), prompt)
+	userLine := fmt.Sprintf("%s %s\n", userHeaderStyle.Render("❯"), prompt)
 
 	go func() {
 		m.runtime.AgentLoop(ctx, "", m.messages, m.chunkChan)
@@ -131,20 +133,37 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolCall != nil {
+		if m.pendingCalls == nil {
+			m.pendingCalls = make(map[string]coagent.ToolCallInfo)
+		}
+		if chunk.ToolCall.CallID != "" {
+			m.pendingCalls[chunk.ToolCall.CallID] = *chunk.ToolCall
+		}
+
 		if m.partialLine != "" {
-			cmds = append(cmds, tea.Println(cleanRender(m.partialLine, m.renderWidth())))
+			if rendered := cleanRender(m.partialLine, m.renderWidth()); rendered != "" {
+				cmds = append(cmds, tea.Println(rendered+"\n"))
+			}
 			m.partialLine = ""
 			m.streamBuffer = ""
 			m.currentContent = ""
 		}
-		callLine := fmt.Sprintf("⚡ %s %s(%s)", toolCallStyle.Render("Tool:"), chunk.ToolCall.Name, chunk.ToolCall.Arguments)
+		callLine := renderToolCall(chunk.ToolCall, m.renderWidth())
 		cmds = append(cmds, tea.Println(callLine))
 	}
 
 	if chunk.ToolResult != nil {
-		out := formatToolOutput(chunk.ToolResult.Output)
-		resLine := fmt.Sprintf("↳ %s", toolResultStyle.Render(out))
-		cmds = append(cmds, tea.Println(resLine))
+		var matchedCall *coagent.ToolCallInfo
+		if m.pendingCalls != nil && chunk.ToolResult.CallID != "" {
+			if call, ok := m.pendingCalls[chunk.ToolResult.CallID]; ok {
+				callCopy := call
+				matchedCall = &callCopy
+				delete(m.pendingCalls, chunk.ToolResult.CallID)
+			}
+		}
+
+		resLine := renderToolResult(chunk.ToolResult, matchedCall)
+		cmds = append(cmds, tea.Println(resLine+"\n"))
 	}
 
 	if chunk.Content != "" {
@@ -160,7 +179,7 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 				if strings.TrimSpace(blockToPrint) != "" {
 					rendered := cleanRender(blockToPrint, m.renderWidth())
 					if rendered != "" {
-						cmds = append(cmds, tea.Println(rendered))
+						cmds = append(cmds, tea.Println(rendered+"\n"))
 					}
 				}
 			} else if idx := strings.LastIndex(m.streamBuffer, "\n"); idx != -1 && isSimpleLine(m.streamBuffer[:idx]) {
@@ -190,7 +209,7 @@ func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 		}
 		rendered := cleanRender(remaining, m.renderWidth())
 		if rendered != "" {
-			cmds = append(cmds, tea.Println(rendered))
+			cmds = append(cmds, tea.Println(rendered+"\n"))
 		}
 		m.partialLine = ""
 		m.streamBuffer = ""
@@ -212,7 +231,7 @@ func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 func (m Model) handleAgentError(err error) (tea.Model, tea.Cmd) {
 	m.state = stateInput
 	m.input.Focus()
-	errLine := toolErrorStyle.Render(fmt.Sprintf("Error: %v", err))
+	errLine := toolErrorStyle.Render(fmt.Sprintf("Error: %v\n", err))
 	return m, tea.Batch(tea.Println(errLine), textinput.Blink)
 }
 

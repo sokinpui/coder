@@ -33,4 +33,31 @@ var (
 	systemNoteStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")).
 			Italic(true)
+
+	toolSuccessStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("78"))
+
+	toolPathStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("255"))
+
+	toolCommandStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("255")).
+			Bold(true)
+
+	toolMutedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244"))
+
+	toolBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(0, 1)
+
+	diffRemovedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("203"))
+
+	diffAddedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("78"))
+
+	diffContextStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244"))
 )
