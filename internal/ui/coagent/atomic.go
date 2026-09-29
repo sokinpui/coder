@@ -12,7 +12,7 @@ import (
 )
 
 func (m Model) openAtomicMsgMode() (tea.Model, tea.Cmd) {
-	if m.session == nil || len(m.session.Messages) == 0 {
+	if m.session == nil {
 		return m, nil
 	}
 
@@ -32,10 +32,6 @@ func (m Model) openAtomicMsgMode() (tea.Model, tea.Cmd) {
 		})
 	}
 
-	if len(items) == 0 {
-		return m, nil
-	}
-
 	m.showSelector = true
 	m.activeOverlay = overlaySelector
 	m.input.Model.Blur()
@@ -46,8 +42,10 @@ func (m Model) openAtomicMsgMode() (tea.Model, tea.Cmd) {
 	m.selector.IsSearching = false
 	m.selector.FooterHelp = ""
 	m.selector.SetItems(items)
-	m.selector.Cursor = len(items) - 1
-	m.selector.Anchor = m.selector.Cursor
+	if len(items) > 0 {
+		m.selector.Cursor = len(items) - 1
+		m.selector.Anchor = m.selector.Cursor
+	}
 
 	m.selector.OnCursorChange = func(mod coderui.Model, current *coderui.SelectorItem) coderui.Model {
 		return mod
@@ -63,11 +61,22 @@ func (m Model) openAtomicMsgMode() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	primary := m.selector.GetPrimaryItem()
-	if primary == nil {
+	switch msg.String() {
+	case "q":
 		m.showSelector = false
 		m.activeOverlay = overlayNone
 		m.input.Model.Focus()
+		return m, nil
+	case "ctrl+d":
+		m.viewport.HalfPageDown()
+		return m, nil
+	case "ctrl+u", "u":
+		m.viewport.HalfPageUp()
+		return m, nil
+	}
+
+	primary := m.selector.GetPrimaryItem()
+	if primary == nil {
 		return m, nil
 	}
 
@@ -182,14 +191,6 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "ctrl+d":
-		m.viewport.HalfPageDown()
-		return m, nil
-
-	case "ctrl+u":
-		m.viewport.HalfPageUp()
-		return m, nil
-
 	case "j":
 		if len(m.selector.FilteredItems) > 0 {
 			m.selector.Cursor = min(len(m.selector.FilteredItems)-1, m.selector.Cursor+1)
@@ -206,16 +207,6 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.viewport.SyncToMessage(p.Data.(int))
 			}
 		}
-		return m, nil
-
-	case "u":
-		m.viewport.HalfPageUp()
-		return m, nil
-
-	case "q":
-		m.showSelector = false
-		m.activeOverlay = overlayNone
-		m.input.Model.Focus()
 		return m, nil
 	}
 

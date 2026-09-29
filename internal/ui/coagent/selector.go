@@ -72,15 +72,15 @@ func (m Model) handleSelectorUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if !m.selector.ShowSearch && len(m.selector.Tabs) == 0 {
-			switch keyMsg.Type {
-			case tea.KeyEsc, tea.KeyCtrlC:
-				m.showSelector = false
-				m.activeOverlay = overlayNone
-				m.input.Model.Focus()
-				return m, nil
-			}
-			return m.handleAtomicMsgKey(keyMsg)
+		switch keyMsg.Type {
+		case tea.KeyEsc, tea.KeyCtrlC:
+			m.showSelector = false
+			m.activeOverlay = overlayNone
+			m.input.Model.Focus()
+			return m, nil
 		}
+		return m.handleAtomicMsgKey(keyMsg)
+	}
 
 	if m.selector.IsSearching {
 		return m.handleSelectorSearchKey(keyMsg)
@@ -132,23 +132,23 @@ func (m Model) handleSelectorNavKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.moveSelectorCursor(1)
 		return m, nil
 	case tea.KeyTab, tea.KeyShiftTab:
-			dir := 1
-			if msg.Type == tea.KeyShiftTab {
-				dir = -1
-			}
-			m.selector.ActiveTab = (m.selector.ActiveTab + dir + len(m.selector.Tabs)) % len(m.selector.Tabs)
-			m.selector.Cursor = 0
-			m.selector.SearchInput.Reset()
-			if m.selector.ActiveTab == 1 {
-				m = m.refreshActiveSelectorItems()
-				return m, nil
-			}
-			return m, func() tea.Msg {
-				items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
-				return historyListResultMsg{items: items, err: err}
-			}
-		case tea.KeyRunes:
-			switch string(msg.Runes) {
+		dir := 1
+		if msg.Type == tea.KeyShiftTab {
+			dir = -1
+		}
+		m.selector.ActiveTab = (m.selector.ActiveTab + dir + len(m.selector.Tabs)) % len(m.selector.Tabs)
+		m.selector.Cursor = 0
+		m.selector.SearchInput.Reset()
+		if m.selector.ActiveTab == 1 {
+			m = m.refreshActiveSelectorItems()
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
+			return historyListResultMsg{items: items, err: err}
+		}
+	case tea.KeyRunes:
+		switch string(msg.Runes) {
 		case "h":
 			if m.selector.ActiveTab != 0 {
 				m.selector.ActiveTab = 0

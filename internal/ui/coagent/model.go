@@ -43,31 +43,31 @@ type agentErrorMsg struct {
 type initPromptMsg string
 
 type Model struct {
-	cfg            *config.Config
-	state          state
-	activeSessions []*coagent.Session
-	session        *coagent.Session
-	cancelFunc     context.CancelFunc
-	activeOverlay  overlayMode
-	input          core.InputBox
-	viewport       core.Viewport
-	spinner        spinner.Model
-	chunkChan      chan coagent.AgentStreamChunk
-	initialPrompt  string
-	statusText     string
-	stateStart     time.Time
-	width          int
-	height         int
-	ready          bool
-	ctrlCPressed   bool
-	tokenCount     int
-	editingMsgIdx  int
+	cfg              *config.Config
+	state            state
+	activeSessions   []*coagent.Session
+	session          *coagent.Session
+	cancelFunc       context.CancelFunc
+	activeOverlay    overlayMode
+	input            core.InputBox
+	viewport         core.Viewport
+	spinner          spinner.Model
+	chunkChan        chan coagent.AgentStreamChunk
+	initialPrompt    string
+	statusText       string
+	stateStart       time.Time
+	width            int
+	height           int
+	ready            bool
+	ctrlCPressed     bool
+	tokenCount       int
+	editingMsgIdx    int
 	statusBarMessage string
-	selector       coderui.SelectorModel
-	showSelector   bool
-	animatingTitle bool
-	fullTitle      string
-	displayTitle   string
+	selector         coderui.SelectorModel
+	showSelector     bool
+	animatingTitle   bool
+	fullTitle        string
+	displayTitle     string
 	isAIRendering    bool
 	pendingAIRender  bool
 	toolsExpanded    bool
@@ -92,20 +92,20 @@ func New(cfg *config.Config, initialPrompt string, instruction ...string) (Model
 	vp := core.NewViewport(80, 20)
 
 	m := Model{
-		cfg:           cfg,
-		state:         stateInput,
+		cfg:            cfg,
+		state:          stateInput,
 		activeSessions: []*coagent.Session{sess},
-		session:       sess,
-		input:         ib,
-		viewport:      vp,
-		spinner:       sp,
-		initialPrompt: strings.TrimSpace(initialPrompt),
-		width:         80,
-		height:        24,
-		ready:         true,
-		selector:      coderui.NewSelector(),
-		editingMsgIdx: -1,
-		tokenCount:    token.CountTokens(sess.GetPrompt()),
+		session:        sess,
+		input:          ib,
+		viewport:       vp,
+		spinner:        sp,
+		initialPrompt:  strings.TrimSpace(initialPrompt),
+		width:          80,
+		height:         24,
+		ready:          true,
+		selector:       coderui.NewSelector(),
+		editingMsgIdx:  -1,
+		tokenCount:     token.CountTokens(sess.GetPrompt()),
 	}
 	return m.updateLayout(), nil
 }

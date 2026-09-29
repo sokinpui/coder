@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/engine/coagent"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/token"
@@ -41,7 +41,10 @@ type aiRenderedMsg struct {
 	lines   []string
 	width   int
 }
-type precomputeToolMsg struct{ idx int; msg types.Message }
+type precomputeToolMsg struct {
+	idx int
+	msg types.Message
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {

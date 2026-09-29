@@ -68,6 +68,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case tea.KeyCtrlJ:
 		if m.state == stateInput {
 			text := strings.TrimSpace(m.input.Model.Value())
+			if text == "/msg" || text == "/cards" {
+				m.input.Model.Reset()
+				m = m.updateLayout()
+				return m.openAtomicMsgMode()
+			}
 			if text != "" {
 				m.input.Model.Reset()
 				m = m.updateLayout()
@@ -81,6 +86,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			text := strings.TrimSpace(m.input.Model.Value())
 			if text == "/exit" || text == "/quit" || text == "exit" || text == "quit" {
 				return m, tea.Quit
+			}
+			if text == "/msg" || text == "/cards" {
+				m.input.Model.Reset()
+				m = m.updateLayout()
+				return m.openAtomicMsgMode()
 			}
 		}
 
@@ -100,6 +110,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+j":
 		if m.state == stateInput {
 			text := strings.TrimSpace(m.input.Model.Value())
+			if text == "/msg" || text == "/cards" {
+				m.input.Model.Reset()
+				m = m.updateLayout()
+				return m.openAtomicMsgMode()
+			}
 			if text != "" {
 				m.input.Model.Reset()
 				m = m.updateLayout()
