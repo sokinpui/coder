@@ -141,7 +141,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.session.Messages = remaining
 		_ = m.session.SaveConversation()
-		m.tokenCount = token.CountTokens(m.session.Messages)
+		m.tokenCount = token.CountTokens(m.session.GetPrompt())
 		if len(targetIndices) > 1 {
 			m.statusBarMessage = fmt.Sprintf("Deleted %d messages.", len(targetIndices))
 		} else {

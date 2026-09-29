@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coagent"
+	"github.com/sokinpui/coder/internal/engine/token"
 	coderui "github.com/sokinpui/coder/internal/ui/coder"
 	"github.com/sokinpui/coder/internal/ui/core"
 )
@@ -72,10 +73,14 @@ type Model struct {
 	toolsExpanded    bool
 }
 
-func New(cfg *config.Config, initialPrompt string) (Model, error) {
+func New(cfg *config.Config, initialPrompt string, instruction ...string) (Model, error) {
 	sess, err := coagent.NewSession(cfg)
 	if err != nil {
 		return Model{}, err
+	}
+
+	if len(instruction) > 0 && instruction[0] != "" {
+		sess.Instruction = instruction[0]
 	}
 
 	ib := core.NewInputBox("Ask agent anything (Ctrl+C to quit)...")
@@ -100,6 +105,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		ready:         true,
 		selector:      coderui.NewSelector(),
 		editingMsgIdx: -1,
+		tokenCount:    token.CountTokens(sess.GetPrompt()),
 	}
 	return m.updateLayout(), nil
 }

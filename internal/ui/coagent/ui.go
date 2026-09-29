@@ -9,10 +9,10 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 )
 
-func Start(cfg *config.Config, initialPrompt string) error {
+func Start(cfg *config.Config, initialPrompt string, instruction ...string) error {
 	log.SetOutput(io.Discard)
 
-	m, err := New(cfg, initialPrompt)
+	m, err := New(cfg, initialPrompt, instruction...)
 	if err != nil {
 		return fmt.Errorf("failed to initialize coagent UI: %w", err)
 	}

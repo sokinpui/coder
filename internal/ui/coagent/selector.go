@@ -57,7 +57,7 @@ func (m Model) newSession() (tea.Model, tea.Cmd) {
 	}
 	m.addActiveSession(sess)
 	m.session = sess
-	m.tokenCount = 0
+	m.tokenCount = token.CountTokens(sess.GetPrompt())
 	m.isAIRendering = false
 	m.pendingAIRender = false
 	m.viewport.ClearCache()
@@ -242,7 +242,7 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 	if m.selector.ActiveTab == 1 {
 		if target := m.getSessionByID(item.ID); target != nil {
 			m.session = target
-			m.tokenCount = token.CountTokens(m.session.Messages)
+			m.tokenCount = token.CountTokens(m.session.GetPrompt())
 			m.showSelector = false
 			m.activeOverlay = overlayNone
 			m.isAIRendering = false
@@ -256,7 +256,7 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 	for _, s := range m.activeSessions {
 		if s.HistoryFilename == item.ID {
 			m.session = s
-			m.tokenCount = token.CountTokens(m.session.Messages)
+			m.tokenCount = token.CountTokens(m.session.GetPrompt())
 			m.showSelector = false
 			m.activeOverlay = overlayNone
 			m.isAIRendering = false
@@ -269,7 +269,7 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 	}
 	_ = m.session.LoadConversation(item.ID)
 	m.addActiveSession(m.session)
-	m.tokenCount = token.CountTokens(m.session.Messages)
+	m.tokenCount = token.CountTokens(m.session.GetPrompt())
 	m.showSelector = false
 	m.activeOverlay = overlayNone
 	m.input.Model.Focus()

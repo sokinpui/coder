@@ -29,11 +29,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				Content: "[Interrupted by user]",
 			})
 			_ = m.session.SaveConversation()
+			m = m.updateLayout()
 			return m.updateViewportContent(), nil
 		}
 		if m.input.Model.Value() != "" {
 			m.input.Model.Reset()
-			return m, nil
+			m.ctrlCPressed = false
+			m = m.updateLayout()
+			return m.updateViewportContent(), nil
 		}
 		if m.ctrlCPressed {
 			return m, tea.Quit
@@ -47,7 +50,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.state == stateInput {
 			if m.input.Model.Value() != "" {
 				m.input.Model.Reset()
-				return m, nil
+				m.ctrlCPressed = false
+				m = m.updateLayout()
+				return m.updateViewportContent(), nil
 			}
 			return m.openAtomicMsgMode()
 		}
@@ -122,6 +127,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "esc":
 		if m.state == stateInput {
+			if m.input.Model.Value() != "" {
+				m.input.Model.Reset()
+				m.ctrlCPressed = false
+				m = m.updateLayout()
+				return m.updateViewportContent(), nil
+			}
 			return m.openAtomicMsgMode()
 		}
 	}

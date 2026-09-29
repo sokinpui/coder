@@ -97,6 +97,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.content != "" && m.session != nil && m.editingMsgIdx < len(m.session.Messages) {
 				m.session.Messages[m.editingMsgIdx].Content = msg.content
 				_ = m.session.SaveConversation()
+				m.tokenCount = token.CountTokens(m.session.GetPrompt())
 			}
 			m.editingMsgIdx = -1
 			m.input.Model.Focus()
@@ -163,13 +164,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Type:    types.ImageMessage,
 				Content: msg.Content,
 			})
+			m.tokenCount = token.CountTokens(m.session.GetPrompt())
 			return m.updateViewportContent(), nil
 		}
 		m.input.Model.InsertString(msg.Content)
 		return m.updateLayout(), nil
 	case ctrlCTimeoutMsg:
 		m.ctrlCPressed = false
-		return m, nil
+		return m.updateViewportContent(), nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -213,6 +215,7 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 		Type:    types.UserMessage,
 		Content: prompt,
 	})
+	m.tokenCount = token.CountTokens(m.session.GetPrompt())
 	m = m.updateViewportContent()
 
 	var cmds []tea.Cmd
@@ -233,7 +236,7 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 
 	preparedMessages := m.session.PrepareMessages()
 	go func() {
-		m.session.Runtime.AgentLoop(ctx, "", preparedMessages, m.chunkChan)
+		m.session.Runtime.AgentLoop(ctx, m.session.Instruction, preparedMessages, m.chunkChan)
 	}()
 
 	cmds = append(cmds, waitForNextChunk(sessID, m.chunkChan))
@@ -343,7 +346,7 @@ func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {
 		m.state = stateInput
 		m.statusText = ""
 		m.input.Model.Focus()
-		m.tokenCount = token.CountTokens(m.session.Messages)
+		m.tokenCount = token.CountTokens(m.session.GetPrompt())
 		newModel, renderCmd := m.finalizeAIMessageRender(sessID)
 		return newModel, renderCmd
 	}
@@ -402,7 +405,12 @@ func (m Model) updateLayout() Model {
 	viewportHeight := max(1, m.height-inputHeight-statusHeight)
 	viewportWidth := max(10, m.width)
 
-	m.viewport.Resize(viewportWidth, viewportHeight)
+	if m.viewport.Height != viewportHeight || m.viewport.Width != viewportWidth {
+		m.viewport.Resize(viewportWidth, viewportHeight)
+		if m.session != nil {
+			m = m.updateViewportContent()
+		}
+	}
 
 	modalWidth := min(90, max(50, m.width-4))
 	modalHeight := min(30, max(12, m.height-4))

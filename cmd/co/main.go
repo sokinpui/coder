@@ -54,7 +54,7 @@ func main() {
 				cfg.Generation.ModelCode = runModel
 			}
 
-			if err := coagentui.Start(cfg, prompt); err != nil {
+			if err := coagentui.Start(cfg, prompt, customInstruction); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}

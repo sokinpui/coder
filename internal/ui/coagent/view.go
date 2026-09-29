@@ -48,23 +48,21 @@ func (m Model) statusView() string {
 	if m.animatingTitle {
 		titleText = m.displayTitle
 	}
-	title := core.StatusBarTitleStyle.Render(titleText)
+	title := core.StatusBarTitleStyle.MaxWidth(m.width).Render(titleText)
 	leftStatus := ""
 	if m.activeOverlay == overlaySelector && !m.selector.ShowSearch && len(m.selector.Tabs) == 0 {
 		leftStatus = core.StatusStyle.Render("-- ATOMIC MSG --")
 	}
 	var rightItems []string
+	rightItems = append(rightItems, core.TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.tokenCount)))
+	rightItems = append(rightItems, core.ModelInfoStyle.Render(fmt.Sprintf("%s", version.Get())))
+	rightItems = append(rightItems, core.ModelInfoStyle.Render(fmt.Sprintf("Model: %s", m.cfg.Generation.ModelCode)))
+
 	toolsStatus := "Tools: [Compact] (Ctrl+T)"
 	if m.toolsExpanded {
 		toolsStatus = "Tools: [Expanded] (Ctrl+T)"
 	}
 	rightItems = append(rightItems, core.ToolMutedStyle.Render(toolsStatus))
-
-	if m.tokenCount > 0 {
-		rightItems = append(rightItems, core.TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.tokenCount)))
-	}
-	rightItems = append(rightItems, core.ModelInfoStyle.Render(fmt.Sprintf("%s", version.Get())))
-	rightItems = append(rightItems, core.ModelInfoStyle.Render(fmt.Sprintf("Model: %s", m.cfg.Generation.ModelCode)))
 
 	if m.state != stateInput {
 		elapsed := time.Since(m.stateStart).Seconds()

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
+	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -26,6 +27,7 @@ type Session struct {
 	TitleGenerated  bool
 	HistoryFilename string
 	CreatedAt       time.Time
+	Instruction     string
 }
 
 func NewSession(cfg *config.Config) (*Session, error) {
@@ -47,6 +49,18 @@ func NewSession(cfg *config.Config) (*Session, error) {
 		Title:          "New Agent Session",
 		CreatedAt:      time.Now(),
 	}, nil
+}
+
+func (s *Session) GetPrompt() []types.Message {
+	instr := s.Instruction
+	if instr == "" {
+		instr = coagentprompt.Instructions
+	}
+	prompt := []types.Message{
+		{Type: types.InstructionMessage, Content: instr},
+	}
+	prompt = append(prompt, s.PrepareMessages()...)
+	return prompt
 }
 
 func (s *Session) PrepareMessages() []types.Message {
