@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -40,9 +39,9 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		}
 		return renderedAI
 	case types.ToolCallMessage:
-		return RenderToolCallMessage(msg)
+		return RenderToolCallMessage(msg, viewportWidth)
 	case types.ToolResultMessage:
-		return RenderToolResultMessage(msg)
+		return RenderToolResultMessage(msg, viewportWidth)
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		return CommandResultStyle.Width(viewportWidth - CommandResultStyle.GetHorizontalFrameSize()).Render(content)
@@ -54,7 +53,12 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	}
 }
 
-func RenderToolCallMessage(msg types.Message) string {
+func RenderToolCallMessage(msg types.Message, viewportWidth ...int) string {
+	width := 80
+	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
+		width = viewportWidth[0]
+	}
+
 	if len(msg.ToolCalls) == 0 {
 		if msg.Content == "" {
 			return ""
@@ -64,30 +68,18 @@ func RenderToolCallMessage(msg types.Message) string {
 
 	var lines []string
 	for _, tc := range msg.ToolCalls {
-		summary := SummarizeToolArgs(tc.Arguments)
-		prefix := ToolCallStyle.Render("⚡ " + tc.Name)
-		if summary == "" {
-			lines = append(lines, prefix+"()")
-			continue
-		}
-		lines = append(lines, fmt.Sprintf("%s(%s)", prefix, ToolMutedStyle.Render(summary)))
+		renderer := DefaultToolRegistry.Get(tc.Name)
+		lines = append(lines, renderer.RenderCall(tc, width))
 	}
 	return strings.Join(lines, "\n")
 }
 
-func RenderToolResultMessage(msg types.Message) string {
-	output := strings.TrimSpace(msg.Content)
-	if output == "" || output == "(no output)" {
-		return fmt.Sprintf("↳ %s", ToolMutedStyle.Render("(no output)"))
+func RenderToolResultMessage(msg types.Message, viewportWidth ...int) string {
+	width := 80
+	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
+		width = viewportWidth[0]
 	}
-
-	firstLine := strings.Split(output, "\n")[0]
-	summary := TruncateSingleLine(firstLine, 80)
-	if strings.HasPrefix(output, "Error:") || strings.Contains(output, "Command exited with error:") {
-		clean := strings.TrimPrefix(summary, "Error: ")
-		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(clean))
-	}
-	return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(summary))
+	return DefaultToolRegistry.fallback.RenderResult(msg.Content, msg.ToolCallID, width)
 }
 
 func SummarizeToolArgs(args string) string {
