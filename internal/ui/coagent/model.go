@@ -21,6 +21,13 @@ const (
 	stateGenerating
 )
 
+type overlayMode int
+
+const (
+	overlayNone overlayMode = iota
+	overlaySelector
+)
+
 type streamChunkMsg struct {
 	sessID string
 	chunk  coagent.AgentStreamChunk
@@ -40,6 +47,7 @@ type Model struct {
 	activeSessions []*coagent.Session
 	session        *coagent.Session
 	cancelFunc     context.CancelFunc
+	activeOverlay  overlayMode
 	input          core.InputBox
 	viewport       core.Viewport
 	spinner        spinner.Model
@@ -52,6 +60,8 @@ type Model struct {
 	ready          bool
 	ctrlCPressed   bool
 	tokenCount     int
+	editingMsgIdx  int
+	statusBarMessage string
 	selector       coderui.SelectorModel
 	showSelector   bool
 	animatingTitle bool
@@ -86,6 +96,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		height:        24,
 		ready:         true,
 		selector:      coderui.NewSelector(),
+		editingMsgIdx: -1,
 	}
 	return m.updateLayout(), nil
 }

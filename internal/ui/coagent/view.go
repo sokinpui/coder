@@ -36,6 +36,10 @@ func (m Model) View() string {
 }
 
 func (m Model) statusView() string {
+	if m.statusBarMessage != "" {
+		return core.StatusBarMsgStyle.Render(m.statusBarMessage)
+	}
+
 	if m.ctrlCPressed && m.state == stateInput && m.input.Model.Value() == "" {
 		return core.StatusStyle.Render("Press Ctrl+C again to quit.\n")
 	}
@@ -46,6 +50,9 @@ func (m Model) statusView() string {
 	}
 	title := core.StatusBarTitleStyle.Render(titleText)
 	leftStatus := ""
+	if m.activeOverlay == overlaySelector && !m.selector.ShowSearch && len(m.selector.Tabs) == 0 {
+		leftStatus = core.StatusStyle.Render("-- ATOMIC MSG --")
+	}
 	var rightItems []string
 	if m.tokenCount > 0 {
 		rightItems = append(rightItems, core.TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.tokenCount)))
