@@ -2,6 +2,8 @@
 
 set -e
 
+BINARIES="coder co itf sf pcat pti"
+
 if ! command -v go &>/dev/null; then
   echo "Error: Go is not installed."
   exit 1
@@ -27,20 +29,28 @@ fi
 
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "devel")
 LD_FLAGS="-s -w -X github.com/sokinpui/coder/pkg/version.Version=$VERSION"
+TARGET_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
+mkdir -p "$TARGET_DIR"
 
-echo "Installing Coder Suite ($VERSION)..."
+echo "Installing Coder Suite ($VERSION) to $TARGET_DIR..."
 
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/coder
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/co
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/itf
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/sf
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pcat
-GOWORK=off go install -ldflags="$LD_FLAGS" ./cmd/pti
+for bin in $BINARIES; do
+  GOWORK=off go build -trimpath -ldflags="$LD_FLAGS" -o "$TARGET_DIR/$bin" "./cmd/$bin"
+done
 
-echo "Successfully installed to $(go env GOPATH)/bin:"
-echo "  - coder"
-echo "  - co"
-echo "  - itf"
-echo "  - sf"
-echo "  - pcat"
-echo "  - pti"
+echo ""
+echo "Successfully installed to ${TARGET_DIR}:"
+for bin in $BINARIES; do
+  echo "  - $bin"
+done
+
+case ":$PATH:" in
+  *":$TARGET_DIR:"*) ;;
+  *)
+    echo ""
+    echo "Notice: ${TARGET_DIR} is not in your \$PATH."
+    echo "Add it by placing the following line in your shell profile (~/.bashrc, ~/.zshrc, etc.):"
+    echo ""
+    echo "  export PATH=\"${TARGET_DIR}:\$PATH\""
+    ;;
+esac
