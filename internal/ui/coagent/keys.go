@@ -20,6 +20,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.cancelFunc != nil {
 				m.cancelFunc()
 			}
+			m.isAIRendering = false
+			m.pendingAIRender = false
 			m.state = stateInput
 			m.input.Model.Focus()
 			m.session.Messages = append(m.session.Messages, types.Message{

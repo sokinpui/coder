@@ -17,6 +17,7 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	coderui "github.com/sokinpui/coder/internal/ui/coder"
 	"github.com/sokinpui/coder/internal/ui/core"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 )
 
 type editorFinishedMsg struct {
@@ -33,6 +34,13 @@ type historyListResultMsg struct {
 type clearStatusBarMsg struct{}
 type titleGeneratedMsg struct{ sessID, title string }
 type animateTitleTickMsg struct{}
+type aiRenderedMsg struct {
+	sessID  string
+	msgIdx  int
+	content string
+	lines   []string
+	width   int
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -45,6 +53,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.startPrompt(string(msg))
 	case streamChunkMsg:
 		return m.handleStreamChunk(msg.sessID, msg.chunk)
+	case aiRenderedMsg:
+		if m.session == nil || m.session.ID != msg.sessID {
+			return m, nil
+		}
+		m.isAIRendering = false
+		messages := m.session.Messages
+		if msg.msgIdx < 0 || msg.msgIdx >= len(messages) {
+			return m, nil
+		}
+		if messages[msg.msgIdx].Type != types.AIMessage {
+			return m, nil
+		}
+
+		m.viewport.RenderCache[msg.msgIdx] = markdown.CachedRender{
+			Lines:   msg.lines,
+			Content: msg.content,
+			Width:   msg.width,
+		}
+
+		m = m.updateViewportContent()
+		if m.pendingAIRender || messages[msg.msgIdx].Content != msg.content || msg.width != m.viewport.Width {
+			newModel, cmd := m.renderLastAIMessage(msg.sessID)
+			return newModel, cmd
+		}
+		return m, nil
 	case agentFinishedMsg:
 		return m.handleAgentFinished(msg.sessID)
 	case agentErrorMsg:
@@ -135,8 +168,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
-		m.viewport.Resize(m.width, m.height)
+		m.ctrlCPressed = false
 		m = m.updateLayout()
+		m.viewport.ClearCache()
+
+		if m.session != nil && len(m.session.Messages) > 0 {
+			lastIdx := len(m.session.Messages) - 1
+			lastMsg := m.session.Messages[lastIdx]
+			if (m.state == stateGenerating || m.state == stateThinking) && lastMsg.Type == types.AIMessage && lastMsg.Content != "" {
+				m.isAIRendering = true
+				m.pendingAIRender = false
+				viewportWidth := max(10, m.viewport.Width)
+				return m.updateViewportContent(), renderAIMessageCmd(m.session.ID, lastIdx, lastMsg.Content, viewportWidth)
+			}
+		}
 		return m.updateViewportContent(), nil
 	case spinner.TickMsg:
 		if m.state != stateInput {
@@ -155,6 +200,8 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.state = stateThinking
 	m.stateStart = time.Now()
 	m.statusText = "Thinking"
+	m.isAIRendering = false
+	m.pendingAIRender = false
 
 	m.session.Messages = append(m.session.Messages, types.Message{
 		Type:    types.UserMessage,
@@ -233,6 +280,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 		}
 	}
 
+	var renderCmd tea.Cmd
 	if chunk.Content != "" {
 		if isActive {
 			if m.state != stateGenerating {
@@ -242,6 +290,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 			m.statusText = "Generating"
 		}
 		msgs := targetSess.Messages
+		aiIdx := len(msgs) - 1
 		if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
 			targetSess.Messages[len(msgs)-1].Content += chunk.Content
 		} else {
@@ -249,13 +298,26 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 				Type:    types.AIMessage,
 				Content: chunk.Content,
 			})
+			aiIdx = len(targetSess.Messages) - 1
+		}
+
+		if isActive {
+			if !m.isAIRendering {
+				m.isAIRendering = true
+				m.pendingAIRender = false
+				viewportWidth := max(10, m.viewport.Width)
+				latestContent := targetSess.Messages[aiIdx].Content
+				renderCmd = renderAIMessageCmd(sessID, aiIdx, latestContent, viewportWidth)
+			} else {
+				m.pendingAIRender = true
+			}
 		}
 	}
 
-	if isActive {
+	if isActive && (chunk.ToolCall != nil || chunk.ToolResult != nil) {
 		m = m.updateViewportContent()
 	}
-	return m, waitForNextChunk(sessID, m.chunkChan)
+	return m, tea.Batch(waitForNextChunk(sessID, m.chunkChan), renderCmd)
 }
 
 func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {
@@ -269,7 +331,8 @@ func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {
 		m.statusText = ""
 		m.input.Model.Focus()
 		m.tokenCount = token.CountTokens(m.session.Messages)
-		return m.updateViewportContent(), nil
+		newModel, renderCmd := m.finalizeAIMessageRender(sessID)
+		return newModel, renderCmd
 	}
 	return m, nil
 }
@@ -287,6 +350,8 @@ func (m Model) handleAgentError(sessID string, err error) (tea.Model, tea.Cmd) {
 	if m.session != nil && m.session.ID == sessID {
 		m.state = stateInput
 		m.statusText = ""
+		m.isAIRendering = false
+		m.pendingAIRender = false
 		m.input.Model.Focus()
 		return m.updateViewportContent(), nil
 	}
@@ -303,7 +368,8 @@ func (m Model) updateViewportContent() Model {
 		}
 		trailing = core.RenderThinkingSpinner(text, m.spinner.View())
 	}
-	m.viewport.UpdateContent(m.session.Messages, m.state == stateGenerating, trailing)
+	isStreaming := m.state == stateGenerating || m.state == stateThinking
+	m.viewport.UpdateContent(m.session.Messages, isStreaming, trailing)
 	if wasAtBottom {
 		m.viewport.GotoBottom()
 	}
@@ -321,8 +387,15 @@ func (m Model) updateLayout() Model {
 	inputHeight := m.input.Model.Height() + core.TextAreaContainerStyle.GetVerticalFrameSize()
 	statusHeight := lipgloss.Height(m.statusView())
 	viewportHeight := max(1, m.height-inputHeight-statusHeight)
+	viewportWidth := max(10, m.width)
 
-	m.viewport.Resize(m.width, viewportHeight)
+	m.viewport.Resize(viewportWidth, viewportHeight)
+
+	modalWidth := min(90, max(50, m.width-4))
+	modalHeight := min(30, max(12, m.height-4))
+	m.selector.Width = modalWidth
+	m.selector.Height = modalHeight
+	m.selector.SearchInput.Width = modalWidth - 20
 	return m
 }
 
@@ -334,6 +407,67 @@ func waitForNextChunk(sessID string, ch chan coagent.AgentStreamChunk) tea.Cmd {
 		}
 		return streamChunkMsg{sessID: sessID, chunk: chunk}
 	}
+}
+
+func renderAIMessageCmd(sessID string, msgIdx int, content string, width int) tea.Cmd {
+	return func() tea.Msg {
+		if content == "" {
+			return aiRenderedMsg{
+				sessID:  sessID,
+				msgIdx:  msgIdx,
+				content: content,
+				lines:   nil,
+				width:   width,
+			}
+		}
+
+		lines, err := markdown.RenderLines(content, width)
+		if err != nil {
+			lines = strings.Split(content, "\n")
+		}
+		return aiRenderedMsg{
+			sessID:  sessID,
+			msgIdx:  msgIdx,
+			content: content,
+			lines:   lines,
+			width:   width,
+		}
+	}
+}
+
+func (m Model) renderLastAIMessage(sessID string) (Model, tea.Cmd) {
+	if m.session == nil || m.session.ID != sessID {
+		return m, nil
+	}
+	messages := m.session.Messages
+	lastIdx := len(messages) - 1
+	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
+		return m, nil
+	}
+
+	m.pendingAIRender = false
+	m.isAIRendering = true
+	viewportWidth := max(10, m.viewport.Width)
+	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth)
+}
+
+func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
+	if m.isAIRendering {
+		m.pendingAIRender = true
+		return m, nil
+	}
+
+	if m.session == nil || m.session.ID != sessID {
+		return m, nil
+	}
+
+	messages := m.session.Messages
+	lastIdx := len(messages) - 1
+	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
+		return m.updateViewportContent(), nil
+	}
+
+	return m.renderLastAIMessage(sessID)
 }
 
 func editInEditorCmd(content string) tea.Cmd {

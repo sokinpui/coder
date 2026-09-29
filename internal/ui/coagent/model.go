@@ -67,6 +67,8 @@ type Model struct {
 	animatingTitle bool
 	fullTitle      string
 	displayTitle   string
+	isAIRendering    bool
+	pendingAIRender  bool
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {

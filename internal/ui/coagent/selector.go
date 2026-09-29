@@ -58,6 +58,8 @@ func (m Model) newSession() (tea.Model, tea.Cmd) {
 	m.addActiveSession(sess)
 	m.session = sess
 	m.tokenCount = 0
+	m.isAIRendering = false
+	m.pendingAIRender = false
 	m.viewport.ClearCache()
 	m.viewport.GotoTop()
 	return m.updateViewportContent(), nil
@@ -243,6 +245,8 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 			m.tokenCount = token.CountTokens(m.session.Messages)
 			m.showSelector = false
 			m.activeOverlay = overlayNone
+			m.isAIRendering = false
+			m.pendingAIRender = false
 			m.input.Model.Focus()
 			m.viewport.ClearCache()
 			m.viewport.GotoBottom()
@@ -255,6 +259,8 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 			m.tokenCount = token.CountTokens(m.session.Messages)
 			m.showSelector = false
 			m.activeOverlay = overlayNone
+			m.isAIRendering = false
+			m.pendingAIRender = false
 			m.input.Model.Focus()
 			m.viewport.ClearCache()
 			m.viewport.GotoBottom()
