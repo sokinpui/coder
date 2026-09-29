@@ -4,6 +4,23 @@ set -e
 
 REPO="sokinpui/coder"
 
+INSTALL_ALL=false
+for arg in "$@"; do
+  case "$arg" in
+    --all|--full|-a)
+      INSTALL_ALL=true
+      ;;
+  esac
+done
+if [ "$CODER_INSTALL_ALL" = "1" ] || [ "$INSTALL_ALL_TOOLS" = "1" ]; then
+  INSTALL_ALL=true
+fi
+
+BINARIES="coder co"
+if [ "$INSTALL_ALL" = "true" ]; then
+  BINARIES="coder co itf sf pcat pti"
+fi
+
 detect_os() {
   case "$(uname -s)" in
     Darwin) echo "darwin" ;;
@@ -71,12 +88,11 @@ mkdir -p "$TARGET_DIR"
 TMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'coder-quickinstall')
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo "Downloading Coder Suite ${TAG} for ${OS}/${ARCH}..."
+echo "Downloading Coder ${TAG} for ${OS}/${ARCH}..."
 download_file "$DOWNLOAD_URL" "$TMP_DIR/$TARBALL"
 
 tar -xzf "$TMP_DIR/$TARBALL" -C "$TMP_DIR"
 
-BINARIES="coder co itf sf pcat pti"
 for bin in $BINARIES; do
   if [ -f "$TMP_DIR/$bin" ]; then
     chmod +x "$TMP_DIR/$bin"
@@ -85,10 +101,15 @@ for bin in $BINARIES; do
 done
 
 echo ""
-echo "Successfully installed Coder Suite to ${TARGET_DIR}:"
+echo "Successfully installed to ${TARGET_DIR}:"
 for bin in $BINARIES; do
   echo "  - $bin"
 done
+
+if [ "$INSTALL_ALL" != "true" ]; then
+  echo ""
+  echo "Tip: Run with --all (or set CODER_INSTALL_ALL=1) to also install standalone sub-tools (itf, sf, pcat, pti)."
+fi
 
 case ":$PATH:" in
   *":$TARGET_DIR:"*) ;;
