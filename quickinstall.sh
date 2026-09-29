@@ -30,7 +30,7 @@ download_file() {
   url="$1"
   dest="$2"
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url" -o "$dest"
+    curl -fL --progress-bar --connect-timeout 15 --retry 3 --speed-limit 1024 --speed-time 30 "$url" -o "$dest"
     return 0
   fi
   if command -v wget >/dev/null 2>&1; then
