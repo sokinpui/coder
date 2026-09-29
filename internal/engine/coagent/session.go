@@ -10,6 +10,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -119,7 +120,8 @@ func (s *Session) LoadConversation(filename string) error {
 
 func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.TitleGenerated = true
-	title, err := s.Runtime.Generator.GenerateTitle(ctx, userPrompt)
+	prompt := strings.Replace(coderprompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
+	title, err := s.Runtime.Generator.GenerateTitle(ctx, prompt)
 	if err != nil {
 		words := strings.Fields(userPrompt)
 		numWords := min(len(words), 5)
