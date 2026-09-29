@@ -21,14 +21,23 @@ const (
 	stateGenerating
 )
 
-type streamChunkMsg coagent.AgentStreamChunk
-type agentFinishedMsg struct{}
-type agentErrorMsg struct{ err error }
+type streamChunkMsg struct {
+	sessID string
+	chunk  coagent.AgentStreamChunk
+}
+type agentFinishedMsg struct {
+	sessID string
+}
+type agentErrorMsg struct {
+	sessID string
+	err    error
+}
 type initPromptMsg string
 
 type Model struct {
 	cfg            *config.Config
 	state          state
+	activeSessions []*coagent.Session
 	session        *coagent.Session
 	cancelFunc     context.CancelFunc
 	input          core.InputBox
@@ -67,6 +76,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 	m := Model{
 		cfg:           cfg,
 		state:         stateInput,
+		activeSessions: []*coagent.Session{sess},
 		session:       sess,
 		input:         ib,
 		viewport:      vp,
@@ -86,4 +96,30 @@ func (m Model) Init() tea.Cmd {
 		cmds = append(cmds, func() tea.Msg { return initPromptMsg(m.initialPrompt) })
 	}
 	return tea.Batch(cmds...)
+}
+
+func (m *Model) addActiveSession(sess *coagent.Session) {
+	for i, s := range m.activeSessions {
+		if s.ID == sess.ID {
+			m.activeSessions[i] = sess
+			return
+		}
+		if sess.HistoryFilename != "" && s.HistoryFilename == sess.HistoryFilename {
+			m.activeSessions[i] = sess
+			return
+		}
+	}
+	m.activeSessions = append(m.activeSessions, sess)
+}
+
+func (m Model) getSessionByID(id string) *coagent.Session {
+	if id == "" || (m.session != nil && m.session.ID == id) {
+		return m.session
+	}
+	for _, s := range m.activeSessions {
+		if s.ID == id {
+			return s
+		}
+	}
+	return nil
 }

@@ -30,7 +30,7 @@ type historyListResultMsg struct {
 	items []history.ConversationInfo
 	err   error
 }
-type titleGeneratedMsg struct{ title string }
+type titleGeneratedMsg struct{ sessID, title string }
 type animateTitleTickMsg struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -43,11 +43,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case initPromptMsg:
 		return m.startPrompt(string(msg))
 	case streamChunkMsg:
-		return m.handleStreamChunk(coagent.AgentStreamChunk(msg))
+		return m.handleStreamChunk(msg.sessID, msg.chunk)
 	case agentFinishedMsg:
-		return m.handleAgentFinished()
+		return m.handleAgentFinished(msg.sessID)
 	case agentErrorMsg:
-		return m.handleAgentError(msg.err)
+		return m.handleAgentError(msg.sessID, msg.err)
 	case editorFinishedMsg:
 		if msg.err == nil && msg.content != "" {
 			m.input.Model.Reset()
@@ -55,6 +55,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case titleGeneratedMsg:
+		if m.session != nil && m.session.ID != msg.sessID {
+			return m, nil
+		}
 		m.animatingTitle = true
 		m.fullTitle = msg.title
 		m.displayTitle = ""
@@ -72,7 +75,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.animatingTitle = false
 		return m, nil
 	case historyListResultMsg:
-		if msg.err != nil {
+		if msg.err != nil || m.selector.ActiveTab != 0 {
 			m.showSelector = false
 			return m, nil
 		}
@@ -86,6 +89,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 		m.selector.SetItems(items)
+		if m.session != nil && m.session.HistoryFilename != "" {
+			for i, it := range items {
+				if it.ID == m.session.HistoryFilename {
+					m.selector.Cursor = i
+					break
+				}
+			}
+		}
 		return m, nil
 	case core.PasteResultMsg:
 		if msg.Err != nil {
@@ -204,7 +215,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "ctrl+h":
 		if m.state == stateInput {
-			return m.openHistorySelector()
+			return m.openHistorySelector(0)
 		}
 	case "ctrl+n":
 		if m.state == stateInput {
@@ -252,11 +263,12 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	cmds = append(cmds, m.spinner.Tick)
 
+	sessID := m.session.ID
 	if !m.session.TitleGenerated {
 		cmds = append(cmds, func() tea.Msg {
 			title := m.session.GenerateTitle(context.Background(), prompt)
 			_ = m.session.SaveConversation()
-			return titleGeneratedMsg{title: title}
+			return titleGeneratedMsg{sessID: sessID, title: title}
 		})
 	}
 
@@ -269,18 +281,27 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 		m.session.Runtime.AgentLoop(ctx, "", preparedMessages, m.chunkChan)
 	}()
 
-	cmds = append(cmds, waitForNextChunk(m.chunkChan))
+	cmds = append(cmds, waitForNextChunk(sessID, m.chunkChan))
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea.Cmd) {
+func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) (tea.Model, tea.Cmd) {
+	targetSess := m.getSessionByID(sessID)
+	if targetSess == nil {
+		return m, nil
+	}
+
+	isActive := m.session != nil && targetSess.ID == m.session.ID
+
 	if len(chunk.Messages) > 0 {
-		m.session.Messages = chunk.Messages
+		targetSess.Messages = chunk.Messages
 	}
 
 	if chunk.ToolCall != nil {
-		m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
-		m.session.Messages = append(m.session.Messages, types.Message{
+		if isActive {
+			m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
+		}
+		targetSess.Messages = append(targetSess.Messages, types.Message{
 			Type: types.ToolCallMessage,
 			ToolCalls: []types.ToolCall{
 				{
@@ -293,59 +314,81 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolResult != nil {
-		m.session.Messages = append(m.session.Messages, types.Message{
+		targetSess.Messages = append(targetSess.Messages, types.Message{
 			Type:       types.ToolResultMessage,
 			Content:    chunk.ToolResult.Output,
 			ToolCallID: chunk.ToolResult.CallID,
 		})
-		m.statusText = "Processing"
+		if isActive {
+			m.statusText = "Processing"
+		}
 	}
 
 	if chunk.ReasoningContent != "" {
-		m.state = stateThinking
-		m.statusText = "Thinking"
+		if isActive {
+			m.state = stateThinking
+			m.statusText = "Thinking"
+		}
 	}
 
 	if chunk.Content != "" {
-		if m.state != stateGenerating {
-			m.state = stateGenerating
-			m.stateStart = time.Now()
+		if isActive {
+			if m.state != stateGenerating {
+				m.state = stateGenerating
+				m.stateStart = time.Now()
+			}
+			m.statusText = "Generating"
 		}
-		m.statusText = "Generating"
-		msgs := m.session.Messages
+		msgs := targetSess.Messages
 		if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
-			m.session.Messages[len(msgs)-1].Content += chunk.Content
+			targetSess.Messages[len(msgs)-1].Content += chunk.Content
 		} else {
-			m.session.Messages = append(m.session.Messages, types.Message{
+			targetSess.Messages = append(targetSess.Messages, types.Message{
 				Type:    types.AIMessage,
 				Content: chunk.Content,
 			})
 		}
 	}
 
-	m = m.updateViewportContent()
-	return m, waitForNextChunk(m.chunkChan)
+	if isActive {
+		m = m.updateViewportContent()
+	}
+	return m, waitForNextChunk(sessID, m.chunkChan)
 }
 
-func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
-	m.state = stateInput
-	m.statusText = ""
-	m.input.Model.Focus()
-	m.tokenCount = token.CountTokens(m.session.Messages)
-	_ = m.session.SaveConversation()
-	return m.updateViewportContent(), nil
+func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {
+	targetSess := m.getSessionByID(sessID)
+	if targetSess != nil {
+		_ = targetSess.SaveConversation()
+	}
+
+	if m.session != nil && m.session.ID == sessID {
+		m.state = stateInput
+		m.statusText = ""
+		m.input.Model.Focus()
+		m.tokenCount = token.CountTokens(m.session.Messages)
+		return m.updateViewportContent(), nil
+	}
+	return m, nil
 }
 
-func (m Model) handleAgentError(err error) (tea.Model, tea.Cmd) {
-	m.state = stateInput
-	m.statusText = ""
-	m.input.Model.Focus()
-	m.session.Messages = append(m.session.Messages, types.Message{
-		Type:    types.CommandErrorResultMessage,
-		Content: fmt.Sprintf("Error: %v", err),
-	})
-	_ = m.session.SaveConversation()
-	return m.updateViewportContent(), nil
+func (m Model) handleAgentError(sessID string, err error) (tea.Model, tea.Cmd) {
+	targetSess := m.getSessionByID(sessID)
+	if targetSess != nil {
+		targetSess.Messages = append(targetSess.Messages, types.Message{
+			Type:    types.CommandErrorResultMessage,
+			Content: fmt.Sprintf("Error: %v", err),
+		})
+		_ = targetSess.SaveConversation()
+	}
+
+	if m.session != nil && m.session.ID == sessID {
+		m.state = stateInput
+		m.statusText = ""
+		m.input.Model.Focus()
+		return m.updateViewportContent(), nil
+	}
+	return m, nil
 }
 
 func (m Model) updateViewportContent() Model {
@@ -381,13 +424,13 @@ func (m Model) updateLayout() Model {
 	return m
 }
 
-func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
+func waitForNextChunk(sessID string, ch chan coagent.AgentStreamChunk) tea.Cmd {
 	return func() tea.Msg {
 		chunk, ok := <-ch
 		if !ok {
-			return agentFinishedMsg{}
+			return agentFinishedMsg{sessID: sessID}
 		}
-		return streamChunkMsg(chunk)
+		return streamChunkMsg{sessID: sessID, chunk: chunk}
 	}
 }
 
@@ -420,14 +463,19 @@ func animateTitleTick() tea.Cmd {
 	})
 }
 
-func (m Model) openHistorySelector() (tea.Model, tea.Cmd) {
+func (m Model) openHistorySelector(initialTab int) (tea.Model, tea.Cmd) {
 	m.showSelector = true
 	m.selector = coderui.NewSelector()
-	m.selector.Title = "── CoAgent History ──"
+	m.selector.Tabs = []string{"History", "Active"}
+	m.selector.ActiveTab = initialTab
 	m.selector.ShowSearch = true
-	m.selector.IsSearching = true
-	m.selector.SearchInput.Focus()
-	m.selector.FooterHelp = "── [Esc/Ctrl+C: cancel | Enter: load] ──"
+	m.selector.IsSearching = false
+	m.selector.FooterHelp = "── [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load] ──"
+
+	if initialTab == 1 {
+		m = m.refreshActiveSelectorItems()
+		return m, nil
+	}
 
 	return m, func() tea.Msg {
 		items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
@@ -435,11 +483,34 @@ func (m Model) openHistorySelector() (tea.Model, tea.Cmd) {
 	}
 }
 
+func (m Model) refreshActiveSelectorItems() Model {
+	if m.selector.ActiveTab != 1 {
+		return m
+	}
+	var items []coderui.SelectorItem
+	for i := len(m.activeSessions) - 1; i >= 0; i-- {
+		sess := m.activeSessions[i]
+		marker := ""
+		if sess.ID == m.session.ID {
+			marker = "*"
+		}
+		items = append(items, coderui.SelectorItem{
+			ID:          sess.ID,
+			Title:       sess.Title,
+			Description: marker,
+			Data:        sess,
+		})
+	}
+	m.selector.SetItems(items)
+	return m
+}
+
 func (m Model) newSession() (tea.Model, tea.Cmd) {
 	sess, err := coagent.NewSession(m.cfg)
 	if err != nil {
 		return m, nil
 	}
+	m.addActiveSession(sess)
 	m.session = sess
 	m.tokenCount = 0
 	m.viewport.ClearCache()
@@ -457,7 +528,28 @@ func (m Model) handleSelectorUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			item := m.selector.GetPrimaryItem()
 			if item != nil {
+				if m.selector.ActiveTab == 1 {
+					if target := m.getSessionByID(item.ID); target != nil {
+						m.session = target
+						m.tokenCount = token.CountTokens(m.session.Messages)
+						m.showSelector = false
+						m.viewport.ClearCache()
+						m.viewport.GotoBottom()
+						return m.updateViewportContent(), nil
+					}
+				}
+				for _, s := range m.activeSessions {
+					if s.HistoryFilename == item.ID {
+						m.session = s
+						m.tokenCount = token.CountTokens(m.session.Messages)
+						m.showSelector = false
+						m.viewport.ClearCache()
+						m.viewport.GotoBottom()
+						return m.updateViewportContent(), nil
+					}
+				}
 				_ = m.session.LoadConversation(item.ID)
+				m.addActiveSession(m.session)
 				m.tokenCount = token.CountTokens(m.session.Messages)
 				m.showSelector = false
 				m.viewport.ClearCache()
@@ -466,14 +558,47 @@ func (m Model) handleSelectorUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.showSelector = false
 			return m, nil
-		case tea.KeyUp, tea.KeyDown:
-			delta := 1
-			if msg.Type == tea.KeyUp {
-				delta = -1
+		case tea.KeyTab, tea.KeyShiftTab:
+			dir := 1
+			if msg.Type == tea.KeyShiftTab {
+				dir = -1
 			}
+			m.selector.ActiveTab = (m.selector.ActiveTab + dir + len(m.selector.Tabs)) % len(m.selector.Tabs)
+			m.selector.Cursor = 0
+			m.selector.SearchInput.Reset()
+			if m.selector.ActiveTab == 1 {
+				m = m.refreshActiveSelectorItems()
+				return m, nil
+			}
+			return m, func() tea.Msg {
+				items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
+				return historyListResultMsg{items: items, err: err}
+			}
+		case tea.KeyRunes:
+			switch string(msg.Runes) {
+			case "h":
+				m.selector.ActiveTab = 0
+				m.selector.Cursor = 0
+				return m, func() tea.Msg {
+					items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
+					return historyListResultMsg{items: items, err: err}
+				}
+			case "l":
+				m.selector.ActiveTab = 1
+				m.selector.Cursor = 0
+				m = m.refreshActiveSelectorItems()
+				return m, nil
+			}
+		case tea.KeyUp, tea.KeyCtrlK, tea.KeyCtrlP:
 			total := len(m.selector.FilteredItems)
 			if total > 0 {
-				m.selector.Cursor = max(0, min(total-1, m.selector.Cursor+delta))
+				m.selector.Cursor = max(0, min(total-1, m.selector.Cursor-1))
+			}
+			return m, nil
+		case tea.KeyDown, tea.KeyCtrlJ, tea.KeyCtrlN:
+			total := len(m.selector.FilteredItems)
+			if total > 0 {
+				m.selector.Cursor = max(0, min(total-1, m.selector.Cursor+1))
 			}
 			return m, nil
 		}
