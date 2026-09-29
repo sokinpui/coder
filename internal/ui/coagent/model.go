@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coagent"
@@ -19,6 +20,25 @@ const (
 	stateRunning
 )
 
+type itemKind int
+
+const (
+	kindUser itemKind = iota
+	kindThinking
+	kindAssistant
+	kindToolCall
+	kindToolResult
+	kindNote
+	kindError
+)
+
+type historyItem struct {
+	kind       itemKind
+	text       string
+	toolCall   *coagent.ToolCallInfo
+	toolResult *coagent.ToolResultInfo
+}
+
 type streamChunkMsg coagent.AgentStreamChunk
 type agentFinishedMsg struct{}
 type agentErrorMsg struct{ err error }
@@ -30,12 +50,16 @@ type Model struct {
 	runtime       *coagent.AgentRuntime
 	cancelFunc    context.CancelFunc
 	input         textinput.Model
+	viewport      viewport.Model
 	spinner       spinner.Model
 	messages      []types.Message
 	chunkChan     chan coagent.AgentStreamChunk
 	initialPrompt string
 	statusText    string
 	width         int
+	height        int
+	ready         bool
+	history       []historyItem
 
 	reasoningText *strings.Builder
 	assistantText *strings.Builder
@@ -57,19 +81,25 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 	sp.Spinner = spinner.Dot
 	sp.Style = spinnerStyle
 
-	return Model{
+	vp := viewport.New(80, 20)
+
+	m := Model{
 		cfg:           cfg,
 		state:         stateInput,
 		runtime:       runtime,
 		input:         ti,
+		viewport:      vp,
 		spinner:       sp,
 		initialPrompt: strings.TrimSpace(initialPrompt),
 		statusText:    "Ready",
 		width:         80,
+		height:        24,
+		ready:         true,
 		reasoningText: &strings.Builder{},
 		assistantText: &strings.Builder{},
 		pendingCalls:  make(map[string]coagent.ToolCallInfo),
-	}, nil
+	}
+	return m.updateLayout(), nil
 }
 
 func (m Model) Init() tea.Cmd {

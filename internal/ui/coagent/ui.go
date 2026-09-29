@@ -17,7 +17,10 @@ func Start(cfg *config.Config, initialPrompt string) error {
 		return fmt.Errorf("failed to initialize coagent UI: %w", err)
 	}
 
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(
+		m,
+		tea.WithAltScreen(),
+	)
 	_, err = p.Run()
 	return err
 }

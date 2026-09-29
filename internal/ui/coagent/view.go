@@ -1,20 +1,22 @@
 package coagentui
 
 import (
-	"fmt"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func (m Model) View() string {
-	if m.state == stateRunning {
-		status := m.statusText
-		if status == "" {
-			status = "Agent working..."
-		}
-		spinnerPart := m.spinner.View()
-		statusPart := spinnerStyle.Render(status)
-		helpPart := toolMutedStyle.Render("(Ctrl+C to interrupt)")
-		return fmt.Sprintf("%s %s %s", spinnerPart, statusPart, helpPart)
+	if !m.ready {
+		return "Initializing..."
 	}
 
-	return promptPrefixStyle.Render("❯ ") + m.input.View()
+	inputLine := promptPrefixStyle.Render("❯ ") + m.input.View()
+	inputBox := inputContainerStyle.Width(max(10, m.width-2)).Render(inputLine)
+	statusBar := m.statusView()
+
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		m.viewport.View(),
+		inputBox,
+		statusBar,
+	)
 }
