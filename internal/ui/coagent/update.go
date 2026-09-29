@@ -2,6 +2,7 @@ package coagentui
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -129,7 +130,6 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.statusText = "Thinking..."
 	m.reasoningText.Reset()
 	m.assistantText.Reset()
-	m.pendingCalls = make(map[string]coagent.ToolCallInfo)
 
 	m.history = append(m.history, historyItem{
 		kind: kindUser,
@@ -163,37 +163,17 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 
 	if chunk.ToolCall != nil {
 		m = m.flushPendingText()
-
-		if m.pendingCalls == nil {
-			m.pendingCalls = make(map[string]coagent.ToolCallInfo)
-		}
-		if chunk.ToolCall.CallID != "" {
-			m.pendingCalls[chunk.ToolCall.CallID] = *chunk.ToolCall
-		}
-
 		m.statusText = fmt.Sprintf("Running %s...", chunk.ToolCall.Name)
-		callCopy := *chunk.ToolCall
 		m.history = append(m.history, historyItem{
-			kind:     kindToolCall,
-			toolCall: &callCopy,
+			kind: kindToolCall,
+			text: formatToolCall(chunk.ToolCall),
 		})
 	}
 
 	if chunk.ToolResult != nil {
-		var matchedCall *coagent.ToolCallInfo
-		if m.pendingCalls != nil && chunk.ToolResult.CallID != "" {
-			if call, ok := m.pendingCalls[chunk.ToolResult.CallID]; ok {
-				callCopy := call
-				matchedCall = &callCopy
-				delete(m.pendingCalls, chunk.ToolResult.CallID)
-			}
-		}
-
-		resultCopy := *chunk.ToolResult
 		m.history = append(m.history, historyItem{
-			kind:       kindToolResult,
-			toolCall:   matchedCall,
-			toolResult: &resultCopy,
+			kind: kindToolResult,
+			text: formatToolResult(chunk.ToolResult),
 		})
 		m.statusText = "Processing..."
 	}
@@ -306,9 +286,9 @@ func (m Model) renderHistoryItem(item historyItem, w int) string {
 		}
 		return rendered + "\n\n"
 	case kindToolCall:
-		return renderToolCall(item.toolCall, w) + "\n"
+		return item.text + "\n"
 	case kindToolResult:
-		return renderToolResult(item.toolResult, item.toolCall) + "\n\n"
+		return item.text + "\n\n"
 	case kindNote:
 		return systemNoteStyle.Render(item.text) + "\n\n"
 	case kindError:
@@ -382,4 +362,59 @@ func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
 		}
 		return streamChunkMsg(chunk)
 	}
+}
+
+func formatToolCall(call *coagent.ToolCallInfo) string {
+	if call == nil {
+		return ""
+	}
+	summary := summarizeToolArgs(call.Arguments)
+	prefix := toolCallStyle.Render("⚡ " + call.Name)
+	if summary == "" {
+		return prefix + "()"
+	}
+	return fmt.Sprintf("%s(%s)", prefix, toolMutedStyle.Render(summary))
+}
+
+func summarizeToolArgs(args string) string {
+	trimmed := strings.TrimSpace(args)
+	if trimmed == "" {
+		return ""
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(trimmed), &m); err == nil {
+		for _, key := range []string{"path", "command", "query"} {
+			if val, ok := m[key]; ok {
+				if s, ok := val.(string); ok && s != "" {
+					return truncateSingleLine(s, 60)
+				}
+			}
+		}
+	}
+	return truncateSingleLine(trimmed, 60)
+}
+
+func formatToolResult(result *coagent.ToolResultInfo) string {
+	if result == nil {
+		return ""
+	}
+	output := strings.TrimSpace(result.Output)
+	if output == "" || output == "(no output)" {
+		return fmt.Sprintf("↳ %s", toolMutedStyle.Render("(no output)"))
+	}
+	firstLine := strings.Split(output, "\n")[0]
+	summary := truncateSingleLine(firstLine, 80)
+	if strings.HasPrefix(output, "Error:") || strings.Contains(output, "Command exited with error:") {
+		clean := strings.TrimPrefix(summary, "Error: ")
+		return fmt.Sprintf("↳ %s %s", toolErrorStyle.Render("✗"), toolResultStyle.Render(clean))
+	}
+	return fmt.Sprintf("↳ %s %s", toolSuccessStyle.Render("✓"), toolResultStyle.Render(summary))
+}
+
+func truncateSingleLine(s string, maxLen int) string {
+	clean := strings.Join(strings.Fields(s), " ")
+	if len(clean) <= maxLen {
+		return clean
+	}
+	return clean[:maxLen-3] + "..."
 }

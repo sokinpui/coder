@@ -33,10 +33,8 @@ const (
 )
 
 type historyItem struct {
-	kind       itemKind
-	text       string
-	toolCall   *coagent.ToolCallInfo
-	toolResult *coagent.ToolResultInfo
+	kind itemKind
+	text string
 }
 
 type streamChunkMsg coagent.AgentStreamChunk
@@ -63,7 +61,6 @@ type Model struct {
 
 	reasoningText *strings.Builder
 	assistantText *strings.Builder
-	pendingCalls  map[string]coagent.ToolCallInfo
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
@@ -97,7 +94,6 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		ready:         true,
 		reasoningText: &strings.Builder{},
 		assistantText: &strings.Builder{},
-		pendingCalls:  make(map[string]coagent.ToolCallInfo),
 	}
 	return m.updateLayout(), nil
 }
