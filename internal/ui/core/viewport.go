@@ -14,6 +14,9 @@ type Viewport struct {
 	Renderer           *markdown.Renderer
 	RenderCache        map[int]markdown.CachedRender
 	MessageLineOffsets map[int]int
+	ToolsExpanded      bool
+	ToolExpandedCache  map[int][]string
+	callIDToName       map[string]string
 }
 
 func NewViewport(width, height int) Viewport {
@@ -24,11 +27,15 @@ func NewViewport(width, height int) Viewport {
 		Renderer:           renderer,
 		RenderCache:        make(map[int]markdown.CachedRender),
 		MessageLineOffsets: make(map[int]int),
+		ToolExpandedCache:  make(map[int][]string),
+		callIDToName:       make(map[string]string),
 	}
 }
 
 func (v *Viewport) ClearCache() {
 	v.RenderCache = make(map[int]markdown.CachedRender)
+	v.ToolExpandedCache = make(map[int][]string)
+	v.callIDToName = make(map[string]string)
 }
 
 func (v *Viewport) Resize(width, height int) {
@@ -81,6 +88,61 @@ func (v *Viewport) WarmupCache(messages []types.Message, isStreaming bool) {
 func (v *Viewport) GetMessageLines(msg types.Message, idx, total int, isStreaming bool) []string {
 	viewportWidth := v.Width
 	isLiveAI := isStreaming && idx == total-1 && msg.Type == types.AIMessage
+
+	if len(msg.ToolCalls) > 0 {
+		for _, tc := range msg.ToolCalls {
+			if tc.ID != "" && tc.Name != "" {
+				v.callIDToName[tc.ID] = tc.Name
+			}
+		}
+	}
+
+	if msg.Type == types.ToolCallMessage || msg.Type == types.ToolResultMessage {
+		if v.ToolsExpanded {
+			if lines, ok := v.ToolExpandedCache[idx]; ok {
+				return lines
+			}
+			rendered := v.renderToolMessage(msg, true)
+			if rendered == "" {
+				v.ToolExpandedCache[idx] = nil
+				return nil
+			}
+			lines := strings.Split(rendered, "\n")
+			v.ToolExpandedCache[idx] = lines
+			return lines
+		}
+
+		cache, isCached := v.RenderCache[idx]
+		if isCached && cache.Content == msg.Content && cache.Width == viewportWidth {
+			return cache.Lines
+		}
+
+		rendered := v.renderToolMessage(msg, false)
+		if rendered == "" {
+			return nil
+		}
+
+		lines := strings.Split(rendered, "\n")
+		v.RenderCache[idx] = markdown.CachedRender{
+			Lines:   lines,
+			Content: msg.Content,
+			Width:   viewportWidth,
+		}
+		return lines
+	}
+
+	if msg.Type == types.AIMessage && len(msg.ToolCalls) > 0 && v.ToolsExpanded {
+		if lines, ok := v.ToolExpandedCache[idx]; ok {
+			return lines
+		}
+		renderedCalls := RenderToolCallMessage(msg, true, viewportWidth)
+		renderedAI := RenderMessage(types.Message{Type: types.AIMessage, Content: msg.Content}, viewportWidth, v.Renderer)
+		combined := strings.TrimSpace(renderedCalls + "\n" + renderedAI)
+		lines := strings.Split(combined, "\n")
+		v.ToolExpandedCache[idx] = lines
+		return lines
+	}
+
 	cache, isCached := v.RenderCache[idx]
 
 	if isLiveAI {
@@ -108,7 +170,32 @@ func (v *Viewport) GetMessageLines(msg types.Message, idx, total int, isStreamin
 	return lines
 }
 
+func (v *Viewport) renderToolMessage(msg types.Message, expanded bool) string {
+	if msg.Type == types.ToolCallMessage {
+		return RenderToolCallMessage(msg, expanded, v.Width)
+	}
+	toolName := v.callIDToName[msg.ToolCallID]
+	return RenderToolResultMessage(msg, toolName, expanded, v.Width)
+}
+
+func (v *Viewport) PrecomputeToolExpanded(idx int, msg types.Message) {
+	if msg.Type != types.ToolCallMessage && msg.Type != types.ToolResultMessage {
+		return
+	}
+	v.syncToolCallIDs([]types.Message{msg})
+	if _, ok := v.ToolExpandedCache[idx]; ok {
+		return
+	}
+	rendered := v.renderToolMessage(msg, true)
+	if rendered == "" {
+		v.ToolExpandedCache[idx] = nil
+		return
+	}
+	v.ToolExpandedCache[idx] = strings.Split(rendered, "\n")
+}
+
 func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, trailingLine string) string {
+	v.syncToolCallIDs(messages)
 	v.WarmupCache(messages, isStreaming)
 
 	offsets := make(map[int]int, len(messages))
@@ -129,6 +216,18 @@ func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, tr
 
 	v.MessageLineOffsets = offsets
 	return strings.Join(allLines, "\n")
+}
+
+func (v *Viewport) syncToolCallIDs(messages []types.Message) {
+	for _, msg := range messages {
+		if msg.Type == types.ToolCallMessage || msg.Type == types.AIMessage {
+			for _, tc := range msg.ToolCalls {
+				if tc.ID != "" && tc.Name != "" {
+					v.callIDToName[tc.ID] = tc.Name
+				}
+			}
+		}
+	}
 }
 
 func (v *Viewport) UpdateContent(messages []types.Message, isStreaming bool, trailingLine string) {

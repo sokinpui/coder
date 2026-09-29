@@ -27,21 +27,30 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	case types.ImageMessage:
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
 	case types.AIMessage:
-		if content == "" {
-			return ""
+		var parts []string
+		if len(msg.ToolCalls) > 0 {
+			tcPart := RenderToolCallMessage(msg, false, viewportWidth)
+			if tcPart != "" {
+				parts = append(parts, tcPart)
+			}
 		}
-		if renderer == nil {
-			return content
+		if content != "" {
+			if renderer != nil {
+				renderedAI, err := renderer.Render(content)
+				if err == nil {
+					parts = append(parts, renderedAI)
+				} else {
+					parts = append(parts, content)
+				}
+			} else {
+				parts = append(parts, content)
+			}
 		}
-		renderedAI, err := renderer.Render(content)
-		if err != nil {
-			return content
-		}
-		return renderedAI
+		return strings.Join(parts, "\n")
 	case types.ToolCallMessage:
-		return RenderToolCallMessage(msg, viewportWidth)
+		return RenderToolCallMessage(msg, false, viewportWidth)
 	case types.ToolResultMessage:
-		return RenderToolResultMessage(msg, viewportWidth)
+		return RenderToolResultMessage(msg, "", false, viewportWidth)
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		return CommandResultStyle.Width(viewportWidth - CommandResultStyle.GetHorizontalFrameSize()).Render(content)
@@ -53,7 +62,7 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	}
 }
 
-func RenderToolCallMessage(msg types.Message, viewportWidth ...int) string {
+func RenderToolCallMessage(msg types.Message, expanded bool, viewportWidth ...int) string {
 	width := 80
 	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
 		width = viewportWidth[0]
@@ -69,23 +78,39 @@ func RenderToolCallMessage(msg types.Message, viewportWidth ...int) string {
 	var lines []string
 	for _, tc := range msg.ToolCalls {
 		renderer := DefaultToolRegistry.Get(tc.Name)
-		lines = append(lines, renderer.RenderCall(tc, width))
+		if expanded {
+			lines = append(lines, renderer.RenderExpandedCall(tc, width))
+		} else {
+			lines = append(lines, renderer.RenderCall(tc, width))
+		}
 	}
 	return strings.Join(lines, "\n")
 }
 
-func RenderToolResultMessage(msg types.Message, viewportWidth ...int) string {
+func RenderToolResultMessage(msg types.Message, toolName string, expanded bool, viewportWidth ...int) string {
 	width := 80
 	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
 		width = viewportWidth[0]
 	}
-	return DefaultToolRegistry.fallback.RenderResult(msg.Content, msg.ToolCallID, width)
+	renderer := DefaultToolRegistry.fallback
+	if toolName != "" {
+		renderer = DefaultToolRegistry.Get(toolName)
+	}
+	if expanded {
+		return renderer.RenderExpandedResult(msg.Content, msg.ToolCallID, width)
+	}
+	return renderer.RenderResult(msg.Content, msg.ToolCallID, width)
 }
 
 func SummarizeToolArgs(args string) string {
 	trimmed := strings.TrimSpace(args)
 	if trimmed == "" {
 		return ""
+	}
+
+	var rawString string
+	if err := json.Unmarshal([]byte(trimmed), &rawString); err == nil && strings.HasPrefix(strings.TrimSpace(rawString), "{") {
+		trimmed = strings.TrimSpace(rawString)
 	}
 
 	var m map[string]any
