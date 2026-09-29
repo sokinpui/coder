@@ -41,6 +41,7 @@ type aiRenderedMsg struct {
 	lines   []string
 	width   int
 }
+type precomputeToolMsg struct{ idx int; msg types.Message }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -53,6 +54,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.startPrompt(string(msg))
 	case streamChunkMsg:
 		return m.handleStreamChunk(msg.sessID, msg.chunk)
+	case precomputeToolMsg:
+		if m.session != nil {
+			m.viewport.PrecomputeToolExpanded(msg.idx, msg.msg)
+		}
+		return m, nil
 	case aiRenderedMsg:
 		if m.session == nil || m.session.ID != msg.sessID {
 			return m, nil
@@ -246,6 +252,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 		targetSess.Messages = chunk.Messages
 	}
 
+	var precomputeCmd tea.Cmd
 	if chunk.ToolCall != nil {
 		if isActive {
 			m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
@@ -260,6 +267,9 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 				},
 			},
 		})
+		callIdx := len(targetSess.Messages) - 1
+		callMsg := targetSess.Messages[callIdx]
+		precomputeCmd = func() tea.Msg { return precomputeToolMsg{idx: callIdx, msg: callMsg} }
 	}
 
 	if chunk.ToolResult != nil {
@@ -268,6 +278,9 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 			Content:    chunk.ToolResult.Output,
 			ToolCallID: chunk.ToolResult.CallID,
 		})
+		resIdx := len(targetSess.Messages) - 1
+		resMsg := targetSess.Messages[resIdx]
+		precomputeCmd = func() tea.Msg { return precomputeToolMsg{idx: resIdx, msg: resMsg} }
 		if isActive {
 			m.statusText = "Processing"
 		}
@@ -317,7 +330,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 	if isActive && (chunk.ToolCall != nil || chunk.ToolResult != nil) {
 		m = m.updateViewportContent()
 	}
-	return m, tea.Batch(waitForNextChunk(sessID, m.chunkChan), renderCmd)
+	return m, tea.Batch(waitForNextChunk(sessID, m.chunkChan), renderCmd, precomputeCmd)
 }
 
 func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {

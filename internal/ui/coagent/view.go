@@ -54,6 +54,12 @@ func (m Model) statusView() string {
 		leftStatus = core.StatusStyle.Render("-- ATOMIC MSG --")
 	}
 	var rightItems []string
+	toolsStatus := "Tools: [Compact] (Ctrl+T)"
+	if m.toolsExpanded {
+		toolsStatus = "Tools: [Expanded] (Ctrl+T)"
+	}
+	rightItems = append(rightItems, core.ToolMutedStyle.Render(toolsStatus))
+
 	if m.tokenCount > 0 {
 		rightItems = append(rightItems, core.TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.tokenCount)))
 	}

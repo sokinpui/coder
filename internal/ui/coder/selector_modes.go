@@ -11,6 +11,7 @@ import (
 	"github.com/sokinpui/coder/internal/clipboard"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/core"
 )
 
 func (m Model) openGenericSelector(items []SelectorItem, title, placeholder, footer string, showSearch bool, onConfirm func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)) (Model, tea.Cmd) {
@@ -221,7 +222,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	for _, idx := range selectable {
 		msg := messages[idx]
 		badge := fmt.Sprintf("[%02d %s]", idx+1, msg.Type.String())
-		summary := getOneLineSummary(msg.Content)
+		summary := getMessageSummary(msg)
 		items = append(items, SelectorItem{
 			ID:         fmt.Sprintf("%d", idx),
 			Title:      summary,
@@ -514,6 +515,53 @@ func getSelectableIndices(messages []types.Message) []int {
 		}
 	}
 	return indices
+}
+
+func getMessageSummary(msg types.Message) string {
+	if msg.Type == types.ToolCallMessage && len(msg.ToolCalls) > 0 {
+		var calls []string
+		for _, tc := range msg.ToolCalls {
+			name := tc.Name
+			target := ExtractToolTarget(name, tc.Arguments)
+			if target != "" {
+				calls = append(calls, fmt.Sprintf("%s %s", name, target))
+			} else {
+				calls = append(calls, name)
+			}
+		}
+		return strings.Join(calls, ", ")
+	}
+
+	if msg.Type == types.ToolResultMessage {
+		trimmed := strings.TrimSpace(msg.Content)
+		if !strings.HasPrefix(trimmed, "Error:") && !strings.HasPrefix(trimmed, "cannot read") {
+			lines := strings.Split(strings.TrimRight(msg.Content, "\r\n"), "\n")
+			if len(lines) > 1 {
+				return fmt.Sprintf("%d lines read", len(lines))
+			}
+		}
+	}
+
+	return getOneLineSummary(msg.Content)
+}
+
+func ExtractToolTarget(name, arguments string) string {
+	trimmed := strings.TrimSpace(arguments)
+	if trimmed == "" {
+		return ""
+	}
+
+	path := core.ExtractToolJSONField(trimmed, "path")
+	if path != "" {
+		return core.TruncateSingleLine(path, 40)
+	}
+
+	cmd := core.ExtractToolJSONField(trimmed, "command")
+	if cmd != "" {
+		return core.TruncateSingleLine(cmd, 40)
+	}
+
+	return core.SummarizeToolArgs(trimmed)
 }
 
 func getOneLineSummary(content string) string {

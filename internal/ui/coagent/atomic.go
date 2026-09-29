@@ -22,7 +22,7 @@ func (m Model) openAtomicMsgMode() (tea.Model, tea.Cmd) {
 			continue
 		}
 		badge := fmt.Sprintf("[%02d %s]", i+1, msg.Type.String())
-		summary := getOneLineSummary(msg.Content)
+		summary := getMessageSummary(msg)
 		items = append(items, coderui.SelectorItem{
 			ID:         fmt.Sprintf("%d", i),
 			Title:      summary,
@@ -239,6 +239,34 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func getMessageSummary(msg types.Message) string {
+	if msg.Type == types.ToolCallMessage && len(msg.ToolCalls) > 0 {
+		var calls []string
+		for _, tc := range msg.ToolCalls {
+			name := tc.Name
+			target := coderui.ExtractToolTarget(name, tc.Arguments)
+			if target != "" {
+				calls = append(calls, fmt.Sprintf("%s %s", name, target))
+			} else {
+				calls = append(calls, name)
+			}
+		}
+		return strings.Join(calls, ", ")
+	}
+
+	if msg.Type == types.ToolResultMessage {
+		trimmed := strings.TrimSpace(msg.Content)
+		if !strings.HasPrefix(trimmed, "Error:") && !strings.HasPrefix(trimmed, "cannot read") {
+			lines := strings.Split(strings.TrimRight(msg.Content, "\r\n"), "\n")
+			if len(lines) > 1 {
+				return fmt.Sprintf("%d lines read", len(lines))
+			}
+		}
+	}
+
+	return getOneLineSummary(msg.Content)
 }
 
 func getOneLineSummary(content string) string {

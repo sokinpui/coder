@@ -78,6 +78,13 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		}
+
+	case tea.KeyCtrlT:
+		m.toolsExpanded = !m.toolsExpanded
+		m.viewport.ToolsExpanded = m.toolsExpanded
+		m.viewport.ToolExpandedCache = make(map[int][]string)
+		m = m.updateViewportContent()
+		return m, nil
 	}
 
 	switch msg.String() {

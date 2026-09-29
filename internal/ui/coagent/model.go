@@ -69,6 +69,7 @@ type Model struct {
 	displayTitle   string
 	isAIRendering    bool
 	pendingAIRender  bool
+	toolsExpanded    bool
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
