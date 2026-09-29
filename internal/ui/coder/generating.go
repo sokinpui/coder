@@ -39,7 +39,7 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Keymap
+	km := m.Session.GetConfig().Coder.Keymap
 
 	switch msg.Type {
 	case tea.KeyCtrlC:

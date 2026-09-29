@@ -49,7 +49,7 @@ func (s *Session) SaveConversation() error {
 		Messages:         allMsgs,
 		ContextFiles:     s.contextFiles,
 		ContextDocuments: s.contextDocuments,
-		Exclusions:       s.config.Context.Exclusions,
+		Exclusions:       s.config.Coder.Context.Exclusions,
 		WorkingDir:       wd,
 	}
 	return s.historyManager.SaveConversation(data)

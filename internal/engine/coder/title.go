@@ -17,7 +17,8 @@ func (s *Session) IsTitleGenerated() bool {
 
 func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.titleGenerated = true // Set this first to prevent concurrent calls.
-	s.generator.Config = s.config.Generation
+	s.generator.Config = s.config.Coder.ModelConfig()
+	s.generator.TitleModel = s.config.Title.ModelCode
 
 	prompt := strings.Replace(coderprompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
 

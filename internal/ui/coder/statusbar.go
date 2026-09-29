@@ -35,7 +35,7 @@ func (m Model) StatusView() string {
 		leftStatus = statusStyle.Render("-- ATOMIC MSG --")
 	}
 
-	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Generation.ModelCode)
+	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Coder.ModelCode)
 	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", version.Get()))
 
 	modelPart := modelInfoStyle.Render(modelInfo)

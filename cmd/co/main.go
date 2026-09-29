@@ -51,7 +51,7 @@ func main() {
 			}
 
 			if runModel != "" {
-				cfg.Generation.ModelCode = runModel
+				cfg.Agent.ModelCode = runModel
 			}
 
 			if err := coagentui.Start(cfg, prompt, customInstruction); err != nil {

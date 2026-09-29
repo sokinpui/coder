@@ -65,9 +65,9 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	copy(messages, initialMessages)
 
 	cfgCopy := *cfg
-	cfgCopy.Context.Files = append([]string{}, cfg.Context.Files...)
-	cfgCopy.Context.Dirs = append([]string{}, cfg.Context.Dirs...)
-	cfgCopy.Context.Exclusions = append([]string{}, cfg.Context.Exclusions...)
+	cfgCopy.Coder.Context.Files = append([]string{}, cfg.Coder.Context.Files...)
+	cfgCopy.Coder.Context.Dirs = append([]string{}, cfg.Coder.Context.Dirs...)
+	cfgCopy.Coder.Context.Exclusions = append([]string{}, cfg.Coder.Context.Exclusions...)
 
 	gen, err := generation.New(&cfgCopy)
 	if err != nil {
@@ -75,7 +75,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	}
 
 	allExclusions := append([]string{}, source.Exclusions...)
-	allExclusions = append(allExclusions, cfgCopy.Context.Exclusions...)
+	allExclusions = append(allExclusions, cfgCopy.Coder.Context.Exclusions...)
 
 	var resolvedContextFiles []string
 	var resolvedContextDocs []string
@@ -83,7 +83,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	case ModeCoder, "coding":
 		initialPaths := contextFiles
 		if len(initialPaths) == 0 {
-			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Context.Dirs)...), cfgCopy.Context.Files...)
+			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Coder.Context.Dirs)...), cfgCopy.Coder.Context.Files...)
 		}
 		resolvedContextFiles, resolvedContextDocs, _ = source.Add(nil, nil, initialPaths, allExclusions)
 	default:
@@ -144,7 +144,8 @@ func (s *Session) ReloadConfig() error {
 		return err
 	}
 	s.config = cfg
-	s.generator.Config = cfg.Generation
+	s.generator.Config = cfg.Coder.ModelConfig()
+	s.generator.TitleModel = cfg.Title.ModelCode
 	s.generator.BaseURL = cfg.Server.URL
 	s.generator.Protocol = cfg.Server.Protocol
 	s.generator.APIKey = cfg.Server.APIKey
@@ -224,7 +225,7 @@ func (s *Session) GetMode() string {
 }
 
 func (s *Session) SetModel(model string) {
-	s.config.Generation.ModelCode = model
+	s.config.Coder.ModelCode = model
 	s.generator.Config.ModelCode = model
 }
 

@@ -25,7 +25,7 @@ func (s *Server) handleInit(req Request) {
 	}
 
 	if params.Model != "" {
-		s.cfg.Generation.ModelCode = params.Model
+		s.cfg.Coder.ModelCode = params.Model
 	}
 
 	sess, err := engine.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
@@ -43,7 +43,7 @@ func (s *Server) handleInit(req Request) {
 		"mode":             sess.GetMode(),
 		"contextFiles":     sess.GetContextFiles(),
 		"contextDocuments": sess.GetContextDocuments(),
-		"model":            sess.GetConfig().Generation.ModelCode,
+		"model":            sess.GetConfig().Coder.ModelCode,
 		"tokenCount":       tokenCount,
 	})
 }
@@ -427,7 +427,7 @@ func (s *Server) handleModelSet(req Request) {
 	}
 	s.session.SetModel(params.Model)
 	s.sendResult(req.ID, map[string]any{
-		"model": s.session.GetConfig().Generation.ModelCode,
+		"model": s.session.GetConfig().Coder.ModelCode,
 	})
 }
 
@@ -492,7 +492,7 @@ func (s *Server) handleModelsList(req Request) {
 	if len(s.cfg.AvailableModels) > 0 {
 		s.sendResult(req.ID, map[string]any{
 			"models":  s.cfg.AvailableModels,
-			"current": s.cfg.Generation.ModelCode,
+			"current": s.cfg.Coder.ModelCode,
 		})
 		return
 	}
@@ -511,8 +511,8 @@ func (s *Server) handleModelsList(req Request) {
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		s.sendResult(req.ID, map[string]any{
-			"models":  []string{s.cfg.Generation.ModelCode},
-			"current": s.cfg.Generation.ModelCode,
+			"models":  []string{s.cfg.Coder.ModelCode},
+			"current": s.cfg.Coder.ModelCode,
 		})
 		return
 	}
@@ -528,8 +528,8 @@ func (s *Server) handleModelsList(req Request) {
 	var result openAIModelList
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		s.sendResult(req.ID, map[string]any{
-			"models":  []string{s.cfg.Generation.ModelCode},
-			"current": s.cfg.Generation.ModelCode,
+			"models":  []string{s.cfg.Coder.ModelCode},
+			"current": s.cfg.Coder.ModelCode,
 		})
 		return
 	}
@@ -543,7 +543,7 @@ func (s *Server) handleModelsList(req Request) {
 
 	s.sendResult(req.ID, map[string]any{
 		"models":  modelIDs,
-		"current": s.cfg.Generation.ModelCode,
+		"current": s.cfg.Coder.ModelCode,
 	})
 }
 

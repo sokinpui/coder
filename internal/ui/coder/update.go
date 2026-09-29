@@ -23,7 +23,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	isScrollOnly := false
 	if k, ok := msg.(tea.KeyMsg); ok {
 		keyStr := k.String()
-		km := m.Session.GetConfig().Keymap
+		km := m.Session.GetConfig().Coder.Keymap
 		if keyStr == km.ScrollUp ||
 			keyStr == km.ScrollDown ||
 			keyStr == "up" ||

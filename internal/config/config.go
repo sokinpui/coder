@@ -2,19 +2,19 @@ package config
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/project"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 type Context struct {
-	Files      []string `mapstructure:"files"`
-	Dirs       []string `mapstructure:"dirs"`
-	Exclusions []string `mapstructure:"exclusions"`
+	Files      []string `mapstructure:"files" yaml:"files"`
+	Dirs       []string `mapstructure:"dirs" yaml:"dirs"`
+	Exclusions []string `mapstructure:"exclusions" yaml:"exclusions"`
 }
 
 type Clipboard struct {
@@ -28,10 +28,41 @@ type Server struct {
 	APIKey   string `mapstructure:"-" yaml:"-"`
 }
 
-type Generation struct {
-	ModelCode       string `mapstructure:"modelcode"`
-	TitleModelCode  string `mapstructure:"titlemodelcode"`
-	ReasoningEffort string `mapstructure:"reasoningeffort"`
+type Title struct {
+	ModelCode string `mapstructure:"modelcode" yaml:"modelcode"`
+}
+
+type ModelConfig struct {
+	ModelCode       string `mapstructure:"modelcode" yaml:"modelcode"`
+	ReasoningEffort string `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
+}
+
+type Coder struct {
+	ModelCode       string  `mapstructure:"modelcode" yaml:"modelcode"`
+	ReasoningEffort string  `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
+	Context         Context `mapstructure:"context" yaml:"context"`
+	Keymap          Keymap  `mapstructure:"keymap" yaml:"keymap"`
+}
+
+func (c Coder) ModelConfig() ModelConfig {
+	return ModelConfig{
+		ModelCode:       c.ModelCode,
+		ReasoningEffort: c.ReasoningEffort,
+	}
+}
+
+type Agent struct {
+	ModelCode       string `mapstructure:"modelcode" yaml:"modelcode"`
+	ReasoningEffort string `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
+	MaxIterations   int    `mapstructure:"max_iterations" yaml:"max_iterations"`
+	Keymap          Keymap `mapstructure:"keymap" yaml:"keymap"`
+}
+
+func (a Agent) ModelConfig() ModelConfig {
+	return ModelConfig{
+		ModelCode:       a.ModelCode,
+		ReasoningEffort: a.ReasoningEffort,
+	}
 }
 
 type HistoryKeymap struct {
@@ -67,12 +98,43 @@ type Keymap struct {
 }
 
 type Config struct {
-	Server          Server     `mapstructure:"server"`
-	Generation      Generation `mapstructure:"generation"`
-	Context         Context    `mapstructure:"context"`
-	Clipboard       Clipboard  `mapstructure:"clipboard"`
-	Keymap          Keymap     `mapstructure:"keymap"`
-	AvailableModels []string   `yaml:"-"`
+	Server          Server    `mapstructure:"server" yaml:"server"`
+	Title           Title     `mapstructure:"title" yaml:"title"`
+	Coder           Coder     `mapstructure:"coder" yaml:"coder"`
+	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
+	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
+	AvailableModels []string  `mapstructure:"-" yaml:"-"`
+}
+
+func DefaultKeymap() Keymap {
+	return Keymap{
+		Submit:      "ctrl+j",
+		Editor:      "ctrl+e",
+		Paste:       "ctrl+v",
+		History:     "ctrl+h",
+		New:         "ctrl+n",
+		Branch:      "ctrl+b",
+		Finder:      "ctrl+f",
+		AddFile:     "ctrl+t",
+		ContextList: "ctrl+l",
+		ApplyITF:    "ctrl+a",
+		ScrollUp:    "ctrl+u",
+		ScrollDown:  "ctrl+d",
+		Suspend:     "ctrl+z",
+		Msg:         "esc",
+		HistoryView: HistoryKeymap{
+			Up:           "k",
+			Down:         "j",
+			HalfPageUp:   "u",
+			HalfPageDown: "d",
+			Top:          "g",
+			Bottom:       "G",
+			Search:       "/",
+			HistoryTab:   "h",
+			ActiveTab:    "l",
+			Exit:         "q",
+		},
+	}
 }
 
 func DefaultConfig() Config {
@@ -81,47 +143,28 @@ func DefaultConfig() Config {
 			URL:      "http://localhost:9001/v1",
 			Protocol: "responses",
 		},
-		Generation: Generation{
-			ModelCode:       "aisrp/gemini-flash-latest",
-			TitleModelCode:  "aisrp/gemini-flash-lite-latest",
-			ReasoningEffort: "high",
+		Title: Title{
+			ModelCode: "aisrp/gemini-flash-lite-latest",
 		},
-		Context: Context{
-			Dirs:       []string{"."},
-			Files:      []string{},
-			Exclusions: []string{},
+		Coder: Coder{
+			ModelCode:       "aisrp/gemini-flash-latest",
+			ReasoningEffort: "high",
+			Context: Context{
+				Files:      []string{},
+				Dirs:       []string{"."},
+				Exclusions: []string{},
+			},
+			Keymap: DefaultKeymap(),
+		},
+		Agent: Agent{
+			ModelCode:       "aisrp/gemini-flash-lite-latest",
+			ReasoningEffort: "high",
+			MaxIterations:   50,
+			Keymap:          DefaultKeymap(),
 		},
 		Clipboard: Clipboard{
 			CopyCmd:  "",
 			PasteCmd: "",
-		},
-		Keymap: Keymap{
-			Submit:      "ctrl+j",
-			Editor:      "ctrl+e",
-			Paste:       "ctrl+v",
-			History:     "ctrl+h",
-			New:         "ctrl+n",
-			Branch:      "ctrl+b",
-			Finder:      "ctrl+f",
-			AddFile:     "ctrl+t",
-			ContextList: "ctrl+l",
-			ApplyITF:    "ctrl+a",
-			ScrollUp:    "ctrl+u",
-			ScrollDown:  "ctrl+d",
-			Suspend:     "ctrl+z",
-			Msg:         "esc",
-			HistoryView: HistoryKeymap{
-				Up:           "k",
-				Down:         "j",
-				HalfPageUp:   "u",
-				HalfPageDown: "d",
-				Top:          "g",
-				Bottom:       "G",
-				Search:       "/",
-				HistoryTab:   "h",
-				ActiveTab:    "l",
-				Exit:         "q",
-			},
 		},
 	}
 }
@@ -134,6 +177,12 @@ func DefaultTemplate() ([]byte, error) {
 
 	var sb strings.Builder
 	for line := range strings.SplitSeq(strings.TrimRight(string(data), "\n"), "\n") {
+		if strings.HasPrefix(line, "title:") ||
+			strings.HasPrefix(line, "coder:") ||
+			strings.HasPrefix(line, "agent:") ||
+			strings.HasPrefix(line, "clipboard:") {
+			sb.WriteByte('\n')
+		}
 		sb.WriteString("# ")
 		sb.WriteString(line)
 		sb.WriteByte('\n')
@@ -182,6 +231,28 @@ func Load() (*Config, error) {
 	cfg := DefaultConfig()
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	if v.IsSet("generation.modelcode") && !v.IsSet("coder.modelcode") {
+		cfg.Coder.ModelCode = v.GetString("generation.modelcode")
+	}
+	if v.IsSet("generation.titlemodelcode") && !v.IsSet("title.modelcode") {
+		cfg.Title.ModelCode = v.GetString("generation.titlemodelcode")
+	}
+	if v.IsSet("generation.reasoningeffort") && !v.IsSet("coder.reasoningeffort") {
+		cfg.Coder.ReasoningEffort = v.GetString("generation.reasoningeffort")
+	}
+	if v.IsSet("context.files") && !v.IsSet("coder.context.files") {
+		cfg.Coder.Context.Files = v.GetStringSlice("context.files")
+	}
+	if v.IsSet("context.dirs") && !v.IsSet("coder.context.dirs") {
+		cfg.Coder.Context.Dirs = v.GetStringSlice("context.dirs")
+	}
+	if v.IsSet("context.exclusions") && !v.IsSet("coder.context.exclusions") {
+		cfg.Coder.Context.Exclusions = v.GetStringSlice("context.exclusions")
+	}
+	if cfg.Agent.MaxIterations <= 0 {
+		cfg.Agent.MaxIterations = 50
 	}
 	cfg.Server.APIKey = os.Getenv("CODER_API_KEY")
 

@@ -51,12 +51,12 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		// Validation
 		hasError := false
 		var errorStrings []string
-		if !slices.Contains(msg.models, cfg.Generation.ModelCode) {
-			errorStrings = append(errorStrings, fmt.Sprintf("Configured chat model '%s' is not in the available list.", cfg.Generation.ModelCode))
+		if !slices.Contains(msg.models, cfg.Coder.ModelCode) {
+			errorStrings = append(errorStrings, fmt.Sprintf("Configured chat model '%s' is not in the available list.", cfg.Coder.ModelCode))
 			hasError = true
 		}
-		if !slices.Contains(msg.models, cfg.Generation.TitleModelCode) {
-			errorStrings = append(errorStrings, fmt.Sprintf("Configured title model '%s' is not in the available list.", cfg.Generation.TitleModelCode))
+		if !slices.Contains(msg.models, cfg.Title.ModelCode) {
+			errorStrings = append(errorStrings, fmt.Sprintf("Configured title model '%s' is not in the available list.", cfg.Title.ModelCode))
 			hasError = true
 		}
 

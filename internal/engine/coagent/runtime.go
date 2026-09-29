@@ -12,7 +12,7 @@ import (
 )
 
 type AgentRuntime struct {
-	Config            config.Generation
+	Config            config.ModelConfig
 	Generator         *generation.Generator
 	MaxToolIterations int
 	Registry          *Registry
@@ -26,10 +26,14 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 	if err != nil {
 		return nil, err
 	}
+	maxIterations := cfg.Agent.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = 50
+	}
 	return &AgentRuntime{
-		Config:            cfg.Generation,
+		Config:            cfg.Agent.ModelConfig(),
 		Generator:         gen,
-		MaxToolIterations: 20,
+		MaxToolIterations: maxIterations,
 		Registry:          registry,
 	}, nil
 }

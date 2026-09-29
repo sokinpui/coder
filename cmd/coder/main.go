@@ -305,7 +305,7 @@ func runSingleShot(args []string) {
 	}
 
 	if runModel != "" {
-		cfg.Generation.ModelCode = runModel
+		cfg.Coder.ModelCode = runModel
 	}
 
 	gen, err := generation.New(cfg)

@@ -66,7 +66,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	cfg := s.GetConfig()
 	allExclusions := append([]string{}, source.Exclusions...)
-	allExclusions = append(allExclusions, cfg.Context.Exclusions...)
+	allExclusions = append(allExclusions, cfg.Coder.Context.Exclusions...)
 
 	newFiles, newDocs, invalidPaths := source.Add(currentFiles, currentDocs, paths, allExclusions)
 	addedCount := len(newFiles) - len(currentFiles)

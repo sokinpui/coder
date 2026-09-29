@@ -21,7 +21,7 @@ func modelArgumentCompleter(s SessionController, prefix string) []string {
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
-		msg := fmt.Sprintf("Current model: %s", cfg.Generation.ModelCode)
+		msg := fmt.Sprintf("Current model: %s", cfg.Coder.ModelCode)
 		if len(cfg.AvailableModels) > 0 {
 			msg += fmt.Sprintf("\nAvailable models: %s", strings.Join(cfg.AvailableModels, ", "))
 		}

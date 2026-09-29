@@ -57,7 +57,7 @@ func (m Model) statusView() string {
 	}
 
 	var rightItems []string
-	modelInfo := fmt.Sprintf("Model: %s", m.cfg.Generation.ModelCode)
+	modelInfo := fmt.Sprintf("Model: %s", m.cfg.Agent.ModelCode)
 	versionPart := core.ModelInfoStyle.Render(fmt.Sprintf("%s", version.Get()))
 	modelPart := core.ModelInfoStyle.Render(modelInfo)
 

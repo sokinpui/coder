@@ -207,7 +207,7 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Keymap
+	km := m.Session.GetConfig().Coder.Keymap
 
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
@@ -373,7 +373,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return mod.handleEvent(ev)
 		})
 		newModel.Selector.IsLoading = true
-		return newModel, tea.Batch(cmd, scanAddFilesCmd(cfg.Context.Exclusions), m.Chat.Spinner.Tick), true
+		return newModel, tea.Batch(cmd, scanAddFilesCmd(cfg.Coder.Context.Exclusions), m.Chat.Spinner.Tick), true
 
 	case km.ApplyITF:
 		// Equivalent to typing "/itf" and pressing enter.

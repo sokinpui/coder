@@ -102,12 +102,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	km := m.cfg.Agent.Keymap
+
 	switch msg.String() {
-	case "ctrl+e":
+	case km.Editor, "ctrl+e":
 		if m.state == stateInput {
 			return m, editInEditorCmd(m.input.Model.Value())
 		}
-	case "ctrl+j":
+	case km.Submit, "ctrl+j":
 		if m.state == stateInput {
 			text := strings.TrimSpace(m.input.Model.Value())
 			if text == "/msg" || text == "/cards" {
@@ -122,15 +124,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-	case "ctrl+v":
+	case km.Paste, "ctrl+v":
 		if m.state == stateInput {
 			return m, core.HandlePasteCmd(m.cfg)
 		}
-	case "ctrl+h":
+	case km.History, "ctrl+h":
 		if m.state == stateInput {
 			return m.openHistorySelector(0)
 		}
-	case "ctrl+n":
+	case km.New, "ctrl+n":
 		if m.state == stateInput {
 			return m.newSession()
 		}

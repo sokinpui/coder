@@ -18,7 +18,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Keymap
+	km := m.Session.GetConfig().Coder.Keymap
 
 	// Handle global keybindings first
 	switch keyStr {

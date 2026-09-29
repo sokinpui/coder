@@ -112,10 +112,11 @@ const (
 )
 
 type Generator struct {
-	Config   config.Generation
-	BaseURL  string
-	Protocol string
-	APIKey   string
+	Config     config.ModelConfig
+	TitleModel string
+	BaseURL    string
+	Protocol   string
+	APIKey     string
 }
 
 func New(cfg *config.Config) (*Generator, error) {
@@ -124,10 +125,11 @@ func New(cfg *config.Config) (*Generator, error) {
 		protocol = "responses"
 	}
 	return &Generator{
-		Config:   cfg.Generation,
-		BaseURL:  cfg.Server.URL,
-		Protocol: protocol,
-		APIKey:   cfg.Server.APIKey,
+		Config:     cfg.Coder.ModelConfig(),
+		TitleModel: cfg.Title.ModelCode,
+		BaseURL:    cfg.Server.URL,
+		Protocol:   protocol,
+		APIKey:     cfg.Server.APIKey,
 	}, nil
 }
 
@@ -139,7 +141,7 @@ func (g *Generator) getResponsesURL() string {
 	return strings.TrimSuffix(g.BaseURL, "/") + "/responses"
 }
 
-func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, generationConfig *config.Generation) {
+func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, generationConfig *config.ModelConfig) {
 	defer close(streamChan)
 
 	genConfig := g.Config
@@ -153,7 +155,7 @@ func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, 
 	g.generateResponsesTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 }
 
-func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+func (g *Generator) generateChatTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.ModelConfig) {
 	var apiMessages []openAIMessage
 	if systemInstruction != "" {
 		apiMessages = append(apiMessages, openAIMessage{
@@ -390,7 +392,7 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	}
 }
 
-func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.Generation) {
+func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction string, messages []types.ChatMessage, tools []types.ToolDeclaration, streamChan chan<- types.StreamChunk, genConfig *config.ModelConfig) {
 	var inputItems []any
 
 	for _, msg := range messages {
@@ -673,8 +675,12 @@ func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, e
 }
 
 func (g *Generator) generateChatTitle(ctx context.Context, prompt string) (string, error) {
+	titleModel := g.TitleModel
+	if titleModel == "" {
+		titleModel = g.Config.ModelCode
+	}
 	body := map[string]any{
-		"model":  g.Config.TitleModelCode,
+		"model":  titleModel,
 		"stream": false,
 		"messages": []openAIMessage{
 			{Role: "user", Content: prompt},
@@ -721,8 +727,12 @@ func (g *Generator) generateChatTitle(ctx context.Context, prompt string) (strin
 }
 
 func (g *Generator) generateResponsesTitle(ctx context.Context, prompt string) (string, error) {
+	titleModel := g.TitleModel
+	if titleModel == "" {
+		titleModel = g.Config.ModelCode
+	}
 	body := map[string]any{
-		"model":             g.Config.TitleModelCode,
+		"model":             titleModel,
 		"stream":            false,
 		"store":             false,
 		"instructions":      "You are an expert in summarizing conversations. Create a short, concise title (5-10 words) for the prompt. Do not add quotes or prefixes like 'Title:'.",
