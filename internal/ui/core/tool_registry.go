@@ -61,12 +61,25 @@ func (d *DefaultToolRenderer) RenderResult(output string, callID string, viewpor
 		return fmt.Sprintf("↳ %s", ToolMutedStyle.Render("(no output)"))
 	}
 
-	firstLine := strings.Split(trimmed, "\n")[0]
-	summary := TruncateSingleLine(firstLine, 80)
-	if strings.HasPrefix(trimmed, "Error:") || strings.Contains(trimmed, "Command exited with error:") {
-		clean := strings.TrimPrefix(summary, "Error: ")
-		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(clean))
+	lines := strings.Split(trimmed, "\n")
+	firstLine := strings.TrimSpace(lines[0])
+	lastLine := strings.TrimSpace(lines[len(lines)-1])
+
+	isError := strings.HasPrefix(firstLine, "Error:") ||
+		strings.HasPrefix(firstLine, "error:") ||
+		strings.HasPrefix(lastLine, "Command exited with error:")
+
+	if isError {
+		errorSummary := firstLine
+		if strings.HasPrefix(lastLine, "Command exited with error:") {
+			errorSummary = lastLine
+		}
+		clean := strings.TrimPrefix(errorSummary, "Error: ")
+		clean = strings.TrimPrefix(clean, "error: ")
+		summary := TruncateSingleLine(clean, 80)
+		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(summary))
 	}
+	summary := TruncateSingleLine(firstLine, 80)
 	return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(summary))
 }
 
