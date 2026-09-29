@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sokinpui/coder/internal/clipboard"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/source"
-	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
 	"github.com/sokinpui/coder/internal/ui/core/markdown"
@@ -132,7 +130,7 @@ func scanAddFilesCmd(customExclusions []string) tea.Cmd {
 
 func listHistoryCmd(histMgr *history.Manager) tea.Cmd {
 	return func() tea.Msg {
-		items, err := histMgr.ListConversations()
+		items, err := histMgr.ListConversationsByMode("coder")
 		return historyListResultMsg{items: items, err: err}
 	}
 }
@@ -290,65 +288,4 @@ func execTerminalCmd(cmdStr string) tea.Cmd {
 
 func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
 	return core.CalculateVisibleLines(ta, width, maxLines)
-}
-
-func handlePasteCmd(cfg *config.Config) tea.Cmd {
-	return func() tea.Msg {
-		if cfg.Clipboard.PasteCmd != "" {
-			data, contentType, err := clipboard.PasteCustom(cfg.Clipboard.PasteCmd)
-			if err != nil {
-				return pasteResultMsg{err: err}
-			}
-
-			if !strings.HasPrefix(contentType, "image/") {
-				return pasteResultMsg{isImage: false, content: string(data)}
-			}
-
-			ext := ".png"
-			switch contentType {
-			case "image/jpeg":
-				ext = ".jpg"
-			case "image/webp":
-				ext = ".webp"
-			}
-
-			relPath, err := saveImageToRepo(data, ext)
-			if err != nil {
-				return pasteResultMsg{err: err}
-			}
-			return pasteResultMsg{isImage: true, content: relPath}
-		}
-
-		if data, _, err := clipboard.GetImageFromClipboard(); err == nil {
-			if relPath, err := saveImageToRepo(data, ".png"); err == nil {
-				return pasteResultMsg{isImage: true, content: relPath}
-			}
-		}
-
-		content, err := clipboard.PasteText()
-		if err != nil {
-			return pasteResultMsg{err: fmt.Errorf("failed to read clipboard: %w", err)}
-		}
-		return pasteResultMsg{isImage: false, content: content}
-	}
-}
-
-func saveImageToRepo(data []byte, ext string) (string, error) {
-	repoRoot := project.Root()
-	imagesDir := filepath.Join(repoRoot, ".coder", "images")
-	if err := os.MkdirAll(imagesDir, 0755); err != nil {
-		return "", fmt.Errorf("could not create images directory: %w", err)
-	}
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	filePath := filepath.Join(imagesDir, filename)
-
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		return "", fmt.Errorf("failed to save image file: %w", err)
-	}
-
-	relPath, err := filepath.Rel(repoRoot, filePath)
-	if err != nil {
-		return filePath, nil
-	}
-	return filepath.ToSlash(relPath), nil
 }

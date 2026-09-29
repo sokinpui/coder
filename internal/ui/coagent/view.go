@@ -20,6 +20,18 @@ func (m Model) View() string {
 	b.WriteString(m.input.View())
 	b.WriteString("\n")
 	b.WriteString(m.statusView())
+	content := b.String()
+
+	if m.showSelector {
+		modalWidth := min(90, max(50, m.width-4))
+		modalHeight := min(30, max(12, m.height-4))
+		m.selector.Width = modalWidth
+		m.selector.Height = modalHeight
+		m.selector.SearchInput.Width = modalWidth - 20
+		selectorContent := m.selector.View(nil)
+		return core.OverlayCenter(selectorContent, content)
+	}
+
 	return b.String()
 }
 
@@ -28,7 +40,11 @@ func (m Model) statusView() string {
 		return core.StatusStyle.Render("Press Ctrl+C again to quit.\n")
 	}
 
-	title := core.StatusBarTitleStyle.Render("Co Autonomous Agent")
+	titleText := m.session.Title
+	if m.animatingTitle {
+		titleText = m.displayTitle
+	}
+	title := core.StatusBarTitleStyle.Render(titleText)
 	leftStatus := ""
 	var rightItems []string
 	if m.tokenCount > 0 {

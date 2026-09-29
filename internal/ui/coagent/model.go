@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coagent"
-	"github.com/sokinpui/coder/internal/types"
+	coderui "github.com/sokinpui/coder/internal/ui/coder"
 	"github.com/sokinpui/coder/internal/ui/core"
 )
 
@@ -27,27 +27,31 @@ type agentErrorMsg struct{ err error }
 type initPromptMsg string
 
 type Model struct {
-	cfg           *config.Config
-	state         state
-	runtime       *coagent.AgentRuntime
-	cancelFunc    context.CancelFunc
-	input         core.InputBox
-	viewport      core.Viewport
-	spinner       spinner.Model
-	messages      []types.Message
-	chunkChan     chan coagent.AgentStreamChunk
-	initialPrompt string
-	statusText    string
-	stateStart    time.Time
-	width         int
-	height        int
-	ready         bool
-	ctrlCPressed  bool
-	tokenCount    int
+	cfg            *config.Config
+	state          state
+	session        *coagent.Session
+	cancelFunc     context.CancelFunc
+	input          core.InputBox
+	viewport       core.Viewport
+	spinner        spinner.Model
+	chunkChan      chan coagent.AgentStreamChunk
+	initialPrompt  string
+	statusText     string
+	stateStart     time.Time
+	width          int
+	height         int
+	ready          bool
+	ctrlCPressed   bool
+	tokenCount     int
+	selector       coderui.SelectorModel
+	showSelector   bool
+	animatingTitle bool
+	fullTitle      string
+	displayTitle   string
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
-	runtime, err := coagent.NewAgentRuntime(cfg, nil)
+	sess, err := coagent.NewSession(cfg)
 	if err != nil {
 		return Model{}, err
 	}
@@ -63,7 +67,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 	m := Model{
 		cfg:           cfg,
 		state:         stateInput,
-		runtime:       runtime,
+		session:       sess,
 		input:         ib,
 		viewport:      vp,
 		spinner:       sp,
@@ -71,6 +75,7 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		width:         80,
 		height:        24,
 		ready:         true,
+		selector:      coderui.NewSelector(),
 	}
 	return m.updateLayout(), nil
 }

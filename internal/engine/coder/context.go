@@ -114,7 +114,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	var result []types.Message
 
 	switch s.mode {
-	case ModeCoding:
+	case ModeCoder, "coding":
 		instr := s.instruction
 		if instr == "" {
 			instr = coderprompt.Instructions

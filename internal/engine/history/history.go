@@ -37,6 +37,7 @@ type Metadata struct {
 type ConversationInfo struct {
 	ID         string    `json:"id"`
 	Filename   string    `json:"filename"`
+	Mode       string    `json:"mode,omitempty"`
 	Title      string    `json:"title"`
 	CreatedAt  time.Time `json:"createdAt"`
 	ModifiedAt time.Time `json:"modifiedAt"`
@@ -56,6 +57,7 @@ type ConversationData struct {
 
 type IndexEntry struct {
 	Filename   string    `json:"filename"`
+	Mode       string    `json:"mode,omitempty"`
 	Title      string    `json:"title"`
 	CreatedAt  time.Time `json:"createdAt"`
 	ModifiedAt time.Time `json:"modifiedAt"`
@@ -114,6 +116,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	index := m.loadIndex()
 	index[data.Filename] = IndexEntry{
 		Filename:   data.Filename,
+		Mode:       data.Mode,
 		Title:      data.Title,
 		CreatedAt:  data.CreatedAt,
 		ModifiedAt: now,
@@ -404,6 +407,10 @@ func (m *Manager) LoadConversation(filename string) (*Metadata, []types.Message,
 }
 
 func (m *Manager) ListConversations() ([]ConversationInfo, error) {
+	return m.ListConversationsByMode("")
+}
+
+func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -433,7 +440,7 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 	var toScan []os.DirEntry
 	for name, entry := range diskFiles {
 		cached, found := index[name]
-		if !found {
+		if !found || cached.Mode == "" {
 			toScan = append(toScan, entry)
 			continue
 		}
@@ -462,8 +469,18 @@ func (m *Manager) ListConversations() ([]ConversationInfo, error) {
 
 	conversations := make([]ConversationInfo, 0, len(index))
 	for _, entry := range index {
+		if modeFilter != "" {
+			normMode := entry.Mode
+			if normMode == "coding" || normMode == "" {
+				normMode = "coder"
+			}
+			if normMode != modeFilter {
+				continue
+			}
+		}
 		conversations = append(conversations, ConversationInfo{
 			Filename:   entry.Filename,
+			Mode:       entry.Mode,
 			Title:      entry.Title,
 			CreatedAt:  entry.CreatedAt,
 			ModifiedAt: entry.ModifiedAt,
@@ -539,6 +556,7 @@ func (m *Manager) parseEntry(entry os.DirEntry) (IndexEntry, bool) {
 
 	return IndexEntry{
 		Filename:   entry.Name(),
+		Mode:       metadata.Mode,
 		Title:      metadata.Title,
 		CreatedAt:  metadata.CreatedAt,
 		ModifiedAt: metadata.ModifiedAt,

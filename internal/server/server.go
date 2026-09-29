@@ -81,7 +81,7 @@ func (s *Server) ensureSession() error {
 		return nil
 	}
 
-	sess, err := engine.New(s.cfg, coder.ModeCoding, "", nil)
+	sess, err := engine.New(s.cfg, coder.ModeCoder, "", nil)
 	if err != nil {
 		return err
 	}

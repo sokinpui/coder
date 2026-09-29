@@ -150,6 +150,10 @@ func (s *SelectorModel) View(main *Model) string {
 		}
 		header.WriteString("\n")
 	} else if s.ShowSearch {
+		if s.Title != "" {
+			header.WriteString(paletteHeaderStyle.Render(s.Title))
+			header.WriteString("\n")
+		}
 		header.WriteString(s.SearchInput.View())
 		header.WriteString("\n\n")
 	} else if s.Title != "" {

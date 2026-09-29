@@ -7,5 +7,5 @@ func init() {
 }
 
 func newCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.NewSessionStarted, Mode: "coding"}, true
+	return CommandOutput{Type: types.NewSessionStarted, Mode: "coder"}, true
 }

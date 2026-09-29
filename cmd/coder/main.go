@@ -150,7 +150,7 @@ func runCLI(cmd *cobra.Command, args []string) {
 	}
 
 	if printContextFlag {
-		mode := coder.ModeCoding
+		mode := coder.ModeCoder
 		if chatMode {
 			mode = coder.ModeChat
 		}
@@ -169,7 +169,7 @@ func runCLI(cmd *cobra.Command, args []string) {
 	}
 
 	files := collectFiles(args)
-	startApp(coder.ModeCoding, initialPrompt, files, customInstruction)
+	startApp(coder.ModeCoder, initialPrompt, files, customInstruction)
 }
 
 func generateCompletion(cmd *cobra.Command, shell string) {
@@ -290,7 +290,7 @@ func runSingleShot(args []string) {
 		os.Exit(1)
 	}
 
-	sess, err := coder.New(cfg, coder.ModeCoding, customInstruction, files)
+	sess, err := coder.New(cfg, coder.ModeCoder, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)

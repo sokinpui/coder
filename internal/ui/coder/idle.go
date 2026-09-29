@@ -10,6 +10,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/core"
 )
 
 func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
@@ -381,7 +382,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.Paste:
-		return m, handlePasteCmd(m.Session.GetConfig()), true
+		return m, core.HandlePasteCmd(m.Session.GetConfig()), true
 	}
 	return m, nil, false
 }

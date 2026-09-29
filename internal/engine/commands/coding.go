@@ -11,8 +11,8 @@ func init() {
 }
 
 func codingCmd(args string, s SessionController) (CommandOutput, bool) {
-	if err := s.SetMode("coding"); err != nil {
+	if err := s.SetMode("coder"); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Failed to switch mode: %v", err)}, false
 	}
-	return CommandOutput{Type: types.MessagesUpdated, Payload: "Switched mode to: coding"}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Switched mode to: coder"}, true
 }

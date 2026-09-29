@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	ModeCoding = "coding"
-	ModeChat   = "chat"
+	ModeCoder = "coder"
+	ModeChat  = "chat"
 )
 
 type Session struct {
@@ -47,14 +47,14 @@ type Session struct {
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
 	if mode == "" {
-		mode = ModeCoding
+		mode = ModeCoder
 	}
 	return NewWithMessages(cfg, nil, mode, instruction, contextFiles)
 }
 
 func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode string, instruction string, contextFiles []string) (*Session, error) {
 	if mode == "" {
-		mode = ModeCoding
+		mode = ModeCoder
 	}
 	hist, err := history.NewManager()
 	if err != nil {
@@ -80,7 +80,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	var resolvedContextFiles []string
 	var resolvedContextDocs []string
 	switch mode {
-	case ModeCoding:
+	case ModeCoder, "coding":
 		initialPaths := contextFiles
 		if len(initialPaths) == 0 {
 			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Context.Dirs)...), cfgCopy.Context.Files...)
@@ -218,7 +218,7 @@ func (s *Session) SetHasAppliedChanges(applied bool) {
 
 func (s *Session) GetMode() string {
 	if s.mode == "" {
-		return ModeCoding
+		return ModeCoder
 	}
 	return s.mode
 }

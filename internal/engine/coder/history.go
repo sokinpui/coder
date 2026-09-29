@@ -73,7 +73,7 @@ func (s *Session) LoadConversation(filename string) error {
 
 	mode := metadata.Mode
 	if mode == "" {
-		mode = ModeCoding
+		mode = ModeCoder
 	}
 	s.mode = mode
 	s.messages = messages

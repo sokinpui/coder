@@ -4,6 +4,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/core"
 )
 
 type state int
@@ -79,11 +80,7 @@ type (
 	switchActiveSessionMsg struct {
 		sess *coder.Session
 	}
-	pasteResultMsg struct {
-		isImage bool
-		content string
-		err     error
-	}
+	pasteResultMsg  = core.PasteResultMsg
 	termFinishedMsg struct {
 		cmdStr string
 		output string

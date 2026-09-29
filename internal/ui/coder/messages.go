@@ -9,6 +9,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/core"
 	"github.com/sokinpui/coder/internal/ui/core/markdown"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -436,19 +437,19 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.DisplayedTitle = ""
 		return m, animateTitleTick(), true
 
-	case pasteResultMsg:
-		if msg.err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.err)
+	case core.PasteResultMsg:
+		if msg.Err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.Err)
 			return m, clearStatusBarCmd(), true
 		}
 
-		if msg.isImage {
-			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.content})
+		if msg.IsImage {
+			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.Content})
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 			return m, m.updateTokenCountCmd(), true
 		} else {
-			m.Chat.TextArea.InsertString(msg.content)
+			m.Chat.TextArea.InsertString(msg.Content)
 		}
 		return m, nil, false
 

@@ -12,8 +12,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/engine/coagent"
+	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/types"
+	coderui "github.com/sokinpui/coder/internal/ui/coder"
 	"github.com/sokinpui/coder/internal/ui/core"
 )
 
@@ -23,13 +25,23 @@ type editorFinishedMsg struct {
 }
 
 type ctrlCTimeoutMsg struct{}
+type historyLoadedMsg struct{ filename string }
+type historyListResultMsg struct {
+	items []history.ConversationInfo
+	err   error
+}
+type titleGeneratedMsg struct{ title string }
+type animateTitleTickMsg struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if m.showSelector {
+			return m.handleSelectorUpdate(msg)
+		}
+		return m.handleKey(msg)
 	case initPromptMsg:
 		return m.startPrompt(string(msg))
-	case tea.KeyMsg:
-		return m.handleKey(msg)
 	case streamChunkMsg:
 		return m.handleStreamChunk(coagent.AgentStreamChunk(msg))
 	case agentFinishedMsg:
@@ -42,6 +54,52 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.startPrompt(msg.content)
 		}
 		return m, nil
+	case titleGeneratedMsg:
+		m.animatingTitle = true
+		m.fullTitle = msg.title
+		m.displayTitle = ""
+		return m, animateTitleTick()
+	case animateTitleTickMsg:
+		if !m.animatingTitle {
+			return m, nil
+		}
+		runes := []rune(m.fullTitle)
+		dispRunes := []rune(m.displayTitle)
+		if len(dispRunes) < len(runes) {
+			m.displayTitle = string(runes[:len(dispRunes)+1])
+			return m, animateTitleTick()
+		}
+		m.animatingTitle = false
+		return m, nil
+	case historyListResultMsg:
+		if msg.err != nil {
+			m.showSelector = false
+			return m, nil
+		}
+		var items []coderui.SelectorItem
+		for _, it := range msg.items {
+			items = append(items, coderui.SelectorItem{
+				ID:          it.Filename,
+				Title:       it.Title,
+				Description: it.CreatedAt.Format(" (2006-01-02 15:04)"),
+				Data:        it,
+			})
+		}
+		m.selector.SetItems(items)
+		return m, nil
+	case core.PasteResultMsg:
+		if msg.Err != nil {
+			return m, nil
+		}
+		if msg.IsImage {
+			m.session.Messages = append(m.session.Messages, types.Message{
+				Type:    types.ImageMessage,
+				Content: msg.Content,
+			})
+			return m.updateViewportContent(), nil
+		}
+		m.input.Model.InsertString(msg.Content)
+		return m.updateLayout(), nil
 	case ctrlCTimeoutMsg:
 		m.ctrlCPressed = false
 		return m, nil
@@ -78,10 +136,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			m.state = stateInput
 			m.input.Model.Focus()
-			m.messages = append(m.messages, types.Message{
+			m.session.Messages = append(m.session.Messages, types.Message{
 				Type:    types.CommandErrorResultMessage,
 				Content: "[Interrupted by user]",
 			})
+			_ = m.session.SaveConversation()
 			return m.updateViewportContent(), nil
 		}
 		if m.input.Model.Value() != "" {
@@ -139,6 +198,18 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m.startPrompt(text)
 			}
 		}
+	case "ctrl+v":
+		if m.state == stateInput {
+			return m, core.HandlePasteCmd(m.cfg)
+		}
+	case "ctrl+h":
+		if m.state == stateInput {
+			return m.openHistorySelector()
+		}
+	case "ctrl+n":
+		if m.state == stateInput {
+			return m.newSession()
+		}
 	case "ctrl+u":
 		m.viewport.HalfPageUp()
 		return m, nil
@@ -172,34 +243,44 @@ func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
 	m.stateStart = time.Now()
 	m.statusText = "Thinking"
 
-	m.messages = append(m.messages, types.Message{
+	m.session.Messages = append(m.session.Messages, types.Message{
 		Type:    types.UserMessage,
 		Content: prompt,
 	})
 	m = m.updateViewportContent()
 
+	var cmds []tea.Cmd
+	cmds = append(cmds, m.spinner.Tick)
+
+	if !m.session.TitleGenerated {
+		cmds = append(cmds, func() tea.Msg {
+			title := m.session.GenerateTitle(context.Background(), prompt)
+			_ = m.session.SaveConversation()
+			return titleGeneratedMsg{title: title}
+		})
+	}
+
 	m.chunkChan = make(chan coagent.AgentStreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancelFunc = cancel
 
+	preparedMessages := m.session.PrepareMessages()
 	go func() {
-		m.runtime.AgentLoop(ctx, "", m.messages, m.chunkChan)
+		m.session.Runtime.AgentLoop(ctx, "", preparedMessages, m.chunkChan)
 	}()
 
-	return m, tea.Batch(
-		m.spinner.Tick,
-		waitForNextChunk(m.chunkChan),
-	)
+	cmds = append(cmds, waitForNextChunk(m.chunkChan))
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea.Cmd) {
 	if len(chunk.Messages) > 0 {
-		m.messages = chunk.Messages
+		m.session.Messages = chunk.Messages
 	}
 
 	if chunk.ToolCall != nil {
 		m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
-		m.messages = append(m.messages, types.Message{
+		m.session.Messages = append(m.session.Messages, types.Message{
 			Type: types.ToolCallMessage,
 			ToolCalls: []types.ToolCall{
 				{
@@ -212,7 +293,7 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolResult != nil {
-		m.messages = append(m.messages, types.Message{
+		m.session.Messages = append(m.session.Messages, types.Message{
 			Type:       types.ToolResultMessage,
 			Content:    chunk.ToolResult.Output,
 			ToolCallID: chunk.ToolResult.CallID,
@@ -231,10 +312,11 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 			m.stateStart = time.Now()
 		}
 		m.statusText = "Generating"
-		if len(m.messages) > 0 && m.messages[len(m.messages)-1].Type == types.AIMessage {
-			m.messages[len(m.messages)-1].Content += chunk.Content
+		msgs := m.session.Messages
+		if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
+			m.session.Messages[len(msgs)-1].Content += chunk.Content
 		} else {
-			m.messages = append(m.messages, types.Message{
+			m.session.Messages = append(m.session.Messages, types.Message{
 				Type:    types.AIMessage,
 				Content: chunk.Content,
 			})
@@ -249,7 +331,8 @@ func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 	m.state = stateInput
 	m.statusText = ""
 	m.input.Model.Focus()
-	m.tokenCount = token.CountTokens(m.messages)
+	m.tokenCount = token.CountTokens(m.session.Messages)
+	_ = m.session.SaveConversation()
 	return m.updateViewportContent(), nil
 }
 
@@ -257,10 +340,11 @@ func (m Model) handleAgentError(err error) (tea.Model, tea.Cmd) {
 	m.state = stateInput
 	m.statusText = ""
 	m.input.Model.Focus()
-	m.messages = append(m.messages, types.Message{
+	m.session.Messages = append(m.session.Messages, types.Message{
 		Type:    types.CommandErrorResultMessage,
 		Content: fmt.Sprintf("Error: %v", err),
 	})
+	_ = m.session.SaveConversation()
 	return m.updateViewportContent(), nil
 }
 
@@ -274,7 +358,7 @@ func (m Model) updateViewportContent() Model {
 		}
 		trailing = core.RenderThinkingSpinner(text, m.spinner.View())
 	}
-	m.viewport.UpdateContent(m.messages, m.state == stateGenerating, trailing)
+	m.viewport.UpdateContent(m.session.Messages, m.state == stateGenerating, trailing)
 	if wasAtBottom {
 		m.viewport.GotoBottom()
 	}
@@ -328,4 +412,75 @@ func editInEditorCmd(content string) tea.Cmd {
 		data, readErr := os.ReadFile(tmpfile.Name())
 		return editorFinishedMsg{content: strings.TrimSpace(string(data)), err: readErr}
 	})
+}
+
+func animateTitleTick() tea.Cmd {
+	return tea.Tick(50*time.Millisecond, func(t time.Time) tea.Msg {
+		return animateTitleTickMsg{}
+	})
+}
+
+func (m Model) openHistorySelector() (tea.Model, tea.Cmd) {
+	m.showSelector = true
+	m.selector = coderui.NewSelector()
+	m.selector.Title = "── CoAgent History ──"
+	m.selector.ShowSearch = true
+	m.selector.IsSearching = true
+	m.selector.SearchInput.Focus()
+	m.selector.FooterHelp = "── [Esc/Ctrl+C: cancel | Enter: load] ──"
+
+	return m, func() tea.Msg {
+		items, err := m.session.HistoryManager.ListConversationsByMode(coagent.ModeCoAgent)
+		return historyListResultMsg{items: items, err: err}
+	}
+}
+
+func (m Model) newSession() (tea.Model, tea.Cmd) {
+	sess, err := coagent.NewSession(m.cfg)
+	if err != nil {
+		return m, nil
+	}
+	m.session = sess
+	m.tokenCount = 0
+	m.viewport.ClearCache()
+	m.viewport.GotoTop()
+	return m.updateViewportContent(), nil
+}
+
+func (m Model) handleSelectorUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc, tea.KeyCtrlC:
+			m.showSelector = false
+			return m, nil
+		case tea.KeyEnter:
+			item := m.selector.GetPrimaryItem()
+			if item != nil {
+				_ = m.session.LoadConversation(item.ID)
+				m.tokenCount = token.CountTokens(m.session.Messages)
+				m.showSelector = false
+				m.viewport.ClearCache()
+				m.viewport.GotoBottom()
+				return m.updateViewportContent(), nil
+			}
+			m.showSelector = false
+			return m, nil
+		case tea.KeyUp, tea.KeyDown:
+			delta := 1
+			if msg.Type == tea.KeyUp {
+				delta = -1
+			}
+			total := len(m.selector.FilteredItems)
+			if total > 0 {
+				m.selector.Cursor = max(0, min(total-1, m.selector.Cursor+delta))
+			}
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.selector.SearchInput, cmd = m.selector.SearchInput.Update(msg)
+		m.selector.UpdateFilter()
+		return m, cmd
+	}
+	return m, nil
 }
