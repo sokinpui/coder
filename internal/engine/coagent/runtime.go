@@ -91,10 +91,16 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			return
 		}
 
-		if turnText.String() != "" || len(toolCalls) > 0 {
+		if turnText.String() != "" {
 			currentMessages = append(currentMessages, types.Message{
-				Type:      types.AIMessage,
-				Content:   turnText.String(),
+				Type:    types.AIMessage,
+				Content: turnText.String(),
+			})
+		}
+
+		if len(toolCalls) > 0 {
+			currentMessages = append(currentMessages, types.Message{
+				Type:      types.ToolCallMessage,
 				ToolCalls: toolCalls,
 			})
 		}

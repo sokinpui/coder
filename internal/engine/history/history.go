@@ -184,8 +184,14 @@ func processMessageContent(msg *types.Message, rawContent string) {
 			msg.ToolCalls = []types.ToolCall{tc}
 		}
 	}
-	if msg.Type == types.AIMessage && strings.Contains(content, "```tool_call") {
-		var cleanLines []string
+	msg.Content = content
+}
+
+func appendParsedMessage(messages *[]types.Message, current *types.Message, rawContent string) {
+	content := strings.TrimSpace(rawContent)
+	if current.Type == types.AIMessage && strings.Contains(content, "```tool_call") {
+		var textLines []string
+		var toolCalls []types.ToolCall
 		inBlock := false
 		var blockBuf strings.Builder
 		for line := range strings.SplitSeq(content, "\n") {
@@ -200,7 +206,7 @@ func processMessageContent(msg *types.Message, rawContent string) {
 					inBlock = false
 					var tc types.ToolCall
 					if err := json.Unmarshal([]byte(strings.TrimSpace(blockBuf.String())), &tc); err == nil {
-						msg.ToolCalls = append(msg.ToolCalls, tc)
+						toolCalls = append(toolCalls, tc)
 					}
 					continue
 				}
@@ -208,11 +214,28 @@ func processMessageContent(msg *types.Message, rawContent string) {
 				blockBuf.WriteByte('\n')
 				continue
 			}
-			cleanLines = append(cleanLines, line)
+			textLines = append(textLines, line)
 		}
-		content = strings.TrimSpace(strings.Join(cleanLines, "\n"))
+		cleanText := strings.TrimSpace(strings.Join(textLines, "\n"))
+		if cleanText != "" {
+			*messages = append(*messages, types.Message{
+				Type:    types.AIMessage,
+				Content: cleanText,
+			})
+		}
+		if len(toolCalls) > 0 {
+			*messages = append(*messages, types.Message{
+				Type:      types.ToolCallMessage,
+				ToolCalls: toolCalls,
+			})
+		}
+		return
 	}
-	msg.Content = content
+
+	processMessageContent(current, rawContent)
+	if current.Type != types.InstructionMessage && current.Type != types.SourceCodeMessage && !isDocumentImage(current.Content) {
+		*messages = append(*messages, *current)
+	}
 }
 
 func parseStringSlice(value string) []string {
@@ -327,10 +350,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 		for role, msgType := range roleToMessageType {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
-					processMessageContent(currentMessage, contentBuilder.String())
-					if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage && !isDocumentImage(currentMessage.Content) {
-						messages = append(messages, *currentMessage)
-					}
+					appendParsedMessage(&messages, currentMessage, contentBuilder.String())
 				}
 				contentBuilder.Reset()
 				currentMessage = &types.Message{Type: msgType}
@@ -346,10 +366,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	}
 
 	if currentMessage != nil {
-		processMessageContent(currentMessage, contentBuilder.String())
-		if currentMessage.Type != types.InstructionMessage && currentMessage.Type != types.SourceCodeMessage && !isDocumentImage(currentMessage.Content) {
-			messages = append(messages, *currentMessage)
-		}
+		appendParsedMessage(&messages, currentMessage, contentBuilder.String())
 	}
 
 	return metadata, messages, nil
