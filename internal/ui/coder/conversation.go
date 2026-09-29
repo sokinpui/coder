@@ -3,9 +3,9 @@ package coderui
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 )
 
 func (m Model) isLiveAIMessage(idx, total int, msg types.Message) bool {
@@ -96,48 +96,7 @@ func (m Model) warmupRenderCache(messages []types.Message, viewportWidth int) {
 }
 
 func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
-	return renderMessageWithRenderer(msg, viewportWidth, m.GlamourRenderer)
-}
-
-func renderMessageWithRenderer(msg types.Message, viewportWidth int, renderer *markdown.Renderer) string {
-	content := msg.Content
-	switch msg.Type {
-	case types.InitMessage:
-		return initMessageStyle.Width(viewportWidth - initMessageStyle.GetHorizontalFrameSize()).Render(content)
-	case types.DirectoryMessage:
-		return directoryWelcomeStyle.Width(viewportWidth - directoryWelcomeStyle.GetHorizontalFrameSize()).Render(content)
-	case types.UserMessage:
-		return userInputStyle.Width(viewportWidth - userInputStyle.GetHorizontalFrameSize()).Render(content)
-	case types.CommandMessage, types.ShellCmdMessage, types.ContextCmdMessage,
-		types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
-		prefix := ""
-		if msg.Type == types.ShellCmdMessage {
-			prefix = "Shell: "
-		}
-		return commandInputStyle.Width(viewportWidth - commandInputStyle.GetHorizontalFrameSize()).Render(prefix + content)
-	case types.ImageMessage:
-		return imageMessageStyle.Width(viewportWidth - imageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
-	case types.AIMessage:
-		if content == "" {
-			return ""
-		}
-		if renderer == nil {
-			return content
-		}
-		renderedAI, err := renderer.Render(content)
-		if err != nil {
-			return content
-		}
-		return renderedAI
-	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
-		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
-		return commandResultStyle.Width(viewportWidth - commandResultStyle.GetHorizontalFrameSize()).Render(content)
-	case types.CommandErrorResultMessage,
-		types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
-		return commandErrorStyle.Width(viewportWidth - commandErrorStyle.GetHorizontalFrameSize()).Render(content)
-	default:
-		return ""
-	}
+	return core.RenderMessage(msg, viewportWidth, m.GlamourRenderer)
 }
 
 func (m Model) renderThinkingLine() string {
@@ -146,9 +105,7 @@ func (m Model) renderThinkingLine() string {
 	case stateAsking:
 		text = "Asking "
 	}
-	thinkingText := thinkingTextStyle.Render(text)
-	fullMessage := lipgloss.JoinHorizontal(lipgloss.Bottom, thinkingText, m.Chat.Spinner.View())
-	return lipgloss.NewStyle().Padding(0, 2).Render(fullMessage)
+	return core.RenderThinkingSpinner(text, m.Chat.Spinner.View())
 }
 
 func (m *Model) renderConversation() string {

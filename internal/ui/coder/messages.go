@@ -9,7 +9,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"

@@ -1,104 +1,41 @@
 package coderui
 
-import "github.com/charmbracelet/lipgloss"
+import "github.com/sokinpui/coder/internal/ui/core"
 
 var (
 	// Message Styles
-	initMessageStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244")).
-				Italic(true).
-				Padding(0, 1).
-				Bold(true)
-	directoryWelcomeStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("39")).
-				Italic(true).
-				Padding(0, 1).
-				Bold(true)
+	initMessageStyle      = core.InitMessageStyle
+	directoryWelcomeStyle = core.DirectoryWelcomeStyle
+	userInputStyle        = core.UserInputStyle
+	imageMessageStyle     = core.ImageMessageStyle
+	commandInputStyle     = core.CommandInputStyle
+	commandResultStyle    = core.CommandResultStyle
+	commandErrorStyle     = core.CommandErrorStyle
 
 	// Status Bar Styles
-	statusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208")) // Orange
-	modelInfoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))  // Blue
-	tokenCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))  // Green
+	statusStyle           = core.StatusStyle
+	modelInfoStyle        = core.ModelInfoStyle
+	tokenCountStyle       = core.TokenCountStyle
+	statusBarMsgStyle     = core.StatusBarMsgStyle
+	statusBarTitleStyle   = core.StatusBarTitleStyle
+	askingStatusStyle     = core.AskingStatusStyle
+	thinkingStatusStyle   = core.ThinkingStatusStyle
+	generatingStatusStyle = core.GeneratingStatusStyle
+	tabStyle              = core.TabStyle
+	activeTabStyle        = core.ActiveTabStyle
+	thinkingTextStyle     = core.ThinkingTextStyle
 
-	// Palette Styles
-	paletteContainerStyle = lipgloss.NewStyle().
-				Padding(0, 2).
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240"))
-	paletteHeaderStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("240")).
-				Italic(true).
-				MarginBottom(1)
-	paletteItemStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244"))
-	paletteSelectedItemStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("51"))
-	paletteDescriptionStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244"))
+	// Palette & Container Styles
+	paletteContainerStyle    = core.PaletteContainerStyle
+	paletteHeaderStyle       = core.PaletteHeaderStyle
+	paletteItemStyle         = core.PaletteItemStyle
+	paletteSelectedItemStyle = core.PaletteSelectedItemStyle
+	paletteDescriptionStyle  = core.PaletteDescriptionStyle
+	textAreaStyle            = core.TextAreaContainerStyle
+	searchPlaceholderStyle   = core.SearchPlaceholderStyle
 
-	// Input Styles
-	textAreaStyle = lipgloss.NewStyle().
-			Padding(1, 2, 0, 2).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("240"))
-	userInputStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("244")).
-			Padding(0, 1)
-	imageMessageStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				Foreground(lipgloss.Color("244")).
-				BorderForeground(lipgloss.Color("244")).
-				Padding(0, 1)
-	commandInputStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("99")).
-				Padding(0, 1)
-	commandResultStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("99")).
-				Padding(0, 1).
-				BorderTop(false).
-				BorderBottom(false).
-				BorderRight(false)
-	commandErrorStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("9")). // Red
-				Foreground(lipgloss.Color("9")).       // Red
-				Padding(0, 1)
-
-	// UI State Styles
-	askingStatusStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("228")). // Yellow
-				Italic(true)
-	thinkingStatusStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("213")). // Pink/Magenta
-				Italic(true)
-	generatingStatusStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("51")). // Cyan
-				Italic(true)
-	statusBarMsgStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("51")) // Cyan
-	statusBarTitleStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("228")). // Yellow
-				Bold(true)
-	tabStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240")).
-			Padding(0, 1)
-	activeTabStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("228")).
-			Bold(true).
-			Padding(0, 1)
-
-	thinkingTextStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244")).
-				Italic(true)
-
-	// Spinner dot colors
-	lightGreyDotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
-	greyDotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	darkGreyDotStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
-
-	searchPlaceholderStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("240"))
+	// Spinner Dots
+	lightGreyDotStyle = core.LightGreyDotStyle
+	greyDotStyle      = core.GreyDotStyle
+	darkGreyDotStyle  = core.DarkGreyDotStyle
 )

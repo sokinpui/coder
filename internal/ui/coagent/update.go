@@ -2,18 +2,27 @@ package coagentui
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/engine/coagent"
+	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core"
 )
+
+type editorFinishedMsg struct {
+	content string
+	err     error
+}
+
+type ctrlCTimeoutMsg struct{}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -27,16 +36,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAgentFinished()
 	case agentErrorMsg:
 		return m.handleAgentError(msg.err)
+	case editorFinishedMsg:
+		if msg.err == nil && msg.content != "" {
+			m.input.Model.Reset()
+			return m.startPrompt(msg.content)
+		}
+		return m, nil
+	case ctrlCTimeoutMsg:
+		m.ctrlCPressed = false
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
+		m.viewport.Resize(m.width, m.height)
 		m = m.updateLayout()
 		return m.updateViewportContent(), nil
 	case spinner.TickMsg:
-		if m.state == stateRunning {
+		if m.state != stateInput {
 			var cmd tea.Cmd
 			m.spinner, cmd = m.spinner.Update(msg)
+			m = m.updateViewportContent()
 			return m, cmd
 		}
 		return m, nil
@@ -46,30 +66,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.Type != tea.KeyCtrlC {
+		m.ctrlCPressed = false
+	}
+
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		if m.state == stateRunning {
+		if m.state != stateInput {
 			if m.cancelFunc != nil {
 				m.cancelFunc()
 			}
 			m.state = stateInput
-			m.statusText = "Ready"
-			m.input.Focus()
-			m = m.flushPendingText()
-			m.history = append(m.history, historyItem{
-				kind: kindNote,
-				text: "[Interrupted by user]",
+			m.input.Model.Focus()
+			m.messages = append(m.messages, types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: "[Interrupted by user]",
 			})
-			return m.updateViewportContent(), textinput.Blink
+			return m.updateViewportContent(), nil
 		}
-		if m.input.Value() != "" {
-			m.input.Reset()
+		if m.input.Model.Value() != "" {
+			m.input.Model.Reset()
 			return m, nil
 		}
+		if m.ctrlCPressed {
+			return m, tea.Quit
+		}
+		m.ctrlCPressed = true
+		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			return ctrlCTimeoutMsg{}
+		})
 		return m, tea.Quit
 
 	case tea.KeyCtrlD:
-		if m.state == stateInput && m.input.Value() == "" {
+		if m.state == stateInput && m.input.Model.Value() == "" {
 			return m, tea.Quit
 		}
 
@@ -83,30 +112,42 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyEnter:
 		if m.state == stateInput {
-			text := strings.TrimSpace(m.input.Value())
+			text := strings.TrimSpace(m.input.Model.Value())
 			if text == "" {
 				return m, nil
 			}
 			if text == "/exit" || text == "/quit" || text == "exit" || text == "quit" {
 				return m, tea.Quit
 			}
-			m.input.Reset()
+			m.input.Model.Reset()
+			m = m.updateLayout()
 			return m.startPrompt(text)
 		}
 	}
 
 	switch msg.String() {
+	case "ctrl+e":
+		if m.state == stateInput {
+			return m, editInEditorCmd(m.input.Model.Value())
+		}
+	case "ctrl+j":
+		if m.state == stateInput {
+			text := strings.TrimSpace(m.input.Model.Value())
+			if text != "" {
+				m.input.Model.Reset()
+				m = m.updateLayout()
+				return m.startPrompt(text)
+			}
+		}
 	case "ctrl+u":
 		m.viewport.HalfPageUp()
 		return m, nil
 	case "ctrl+d":
-		if m.state == stateRunning || m.input.Value() != "" {
-			m.viewport.HalfPageDown()
-			return m, nil
-		}
+		m.viewport.HalfPageDown()
+		return m, nil
 	}
 
-	if m.state == stateRunning {
+	if m.state != stateInput {
 		switch msg.Type {
 		case tea.KeyUp:
 			m.viewport.LineUp(1)
@@ -118,7 +159,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.state == stateInput {
 		var cmd tea.Cmd
-		m.input, cmd = m.input.Update(msg)
+		m.input.Model, cmd = m.input.Model.Update(msg)
+		m = m.updateLayout()
 		return m, cmd
 	}
 
@@ -126,21 +168,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) startPrompt(prompt string) (tea.Model, tea.Cmd) {
-	m.state = stateRunning
-	m.statusText = "Thinking..."
-	m.reasoningText.Reset()
-	m.assistantText.Reset()
-
-	m.history = append(m.history, historyItem{
-		kind: kindUser,
-		text: prompt,
-	})
-	m = m.updateViewportContent()
+	m.state = stateThinking
+	m.stateStart = time.Now()
+	m.statusText = "Thinking"
 
 	m.messages = append(m.messages, types.Message{
 		Type:    types.UserMessage,
 		Content: prompt,
 	})
+	m = m.updateViewportContent()
 
 	m.chunkChan = make(chan coagent.AgentStreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -162,30 +198,47 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 	}
 
 	if chunk.ToolCall != nil {
-		m = m.flushPendingText()
-		m.statusText = fmt.Sprintf("Running %s...", chunk.ToolCall.Name)
-		m.history = append(m.history, historyItem{
-			kind: kindToolCall,
-			text: formatToolCall(chunk.ToolCall),
+		m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
+		m.messages = append(m.messages, types.Message{
+			Type: types.ToolCallMessage,
+			ToolCalls: []types.ToolCall{
+				{
+					ID:        chunk.ToolCall.CallID,
+					Name:      chunk.ToolCall.Name,
+					Arguments: chunk.ToolCall.Arguments,
+				},
+			},
 		})
 	}
 
 	if chunk.ToolResult != nil {
-		m.history = append(m.history, historyItem{
-			kind: kindToolResult,
-			text: formatToolResult(chunk.ToolResult),
+		m.messages = append(m.messages, types.Message{
+			Type:       types.ToolResultMessage,
+			Content:    chunk.ToolResult.Output,
+			ToolCallID: chunk.ToolResult.CallID,
 		})
-		m.statusText = "Processing..."
+		m.statusText = "Processing"
 	}
 
 	if chunk.ReasoningContent != "" {
-		m.reasoningText.WriteString(chunk.ReasoningContent)
-		m.statusText = "Thinking..."
+		m.state = stateThinking
+		m.statusText = "Thinking"
 	}
 
 	if chunk.Content != "" {
-		m.assistantText.WriteString(chunk.Content)
-		m.statusText = "Responding..."
+		if m.state != stateGenerating {
+			m.state = stateGenerating
+			m.stateStart = time.Now()
+		}
+		m.statusText = "Generating"
+		if len(m.messages) > 0 && m.messages[len(m.messages)-1].Type == types.AIMessage {
+			m.messages[len(m.messages)-1].Content += chunk.Content
+		} else {
+			m.messages = append(m.messages, types.Message{
+				Type:    types.AIMessage,
+				Content: chunk.Content,
+			})
+		}
 	}
 
 	m = m.updateViewportContent()
@@ -194,113 +247,34 @@ func (m Model) handleStreamChunk(chunk coagent.AgentStreamChunk) (tea.Model, tea
 
 func (m Model) handleAgentFinished() (tea.Model, tea.Cmd) {
 	m.state = stateInput
-	m.statusText = "Ready"
-	m.input.Focus()
-
-	m = m.flushPendingText()
-	return m.updateViewportContent(), textinput.Blink
+	m.statusText = ""
+	m.input.Model.Focus()
+	m.tokenCount = token.CountTokens(m.messages)
+	return m.updateViewportContent(), nil
 }
 
 func (m Model) handleAgentError(err error) (tea.Model, tea.Cmd) {
 	m.state = stateInput
-	m.statusText = "Error"
-	m.input.Focus()
-
-	m = m.flushPendingText()
-	m.history = append(m.history, historyItem{
-		kind: kindError,
-		text: fmt.Sprintf("Error: %v", err),
+	m.statusText = ""
+	m.input.Model.Focus()
+	m.messages = append(m.messages, types.Message{
+		Type:    types.CommandErrorResultMessage,
+		Content: fmt.Sprintf("Error: %v", err),
 	})
-	return m.updateViewportContent(), textinput.Blink
-}
-
-func (m Model) flushPendingText() Model {
-	if m.reasoningText != nil && m.reasoningText.Len() > 0 {
-		txt := strings.TrimSpace(m.reasoningText.String())
-		m.reasoningText.Reset()
-		if txt != "" {
-			m.history = append(m.history, historyItem{
-				kind: kindThinking,
-				text: txt,
-			})
-		}
-	}
-
-	if m.assistantText != nil && m.assistantText.Len() > 0 {
-		txt := strings.TrimSpace(m.assistantText.String())
-		m.assistantText.Reset()
-		if txt != "" {
-			m.history = append(m.history, historyItem{
-				kind: kindAssistant,
-				text: txt,
-			})
-		}
-	}
-	return m
-}
-
-func (m Model) renderAllContent() string {
-	var sb strings.Builder
-	w := m.renderWidth()
-
-	for _, item := range m.history {
-		sb.WriteString(m.renderHistoryItem(item, w))
-	}
-
-	if m.reasoningText != nil && m.reasoningText.Len() > 0 {
-		txt := strings.TrimSpace(m.reasoningText.String())
-		if txt != "" {
-			header := thinkingHeaderStyle.Render("✦ Thinking")
-			body := reasoningStyle.Width(w).Render(txt)
-			sb.WriteString(fmt.Sprintf("%s\n%s\n\n", header, body))
-		}
-	}
-
-	if m.assistantText != nil && m.assistantText.Len() > 0 {
-		txt := strings.TrimSpace(m.assistantText.String())
-		if txt != "" {
-			rendered := markdown.Render(txt, w)
-			if rendered == "" {
-				rendered = txt
-			}
-			sb.WriteString(rendered)
-			sb.WriteString("\n\n")
-		}
-	}
-
-	return strings.TrimRight(sb.String(), "\n")
-}
-
-func (m Model) renderHistoryItem(item historyItem, w int) string {
-	switch item.kind {
-	case kindUser:
-		return fmt.Sprintf("%s %s\n\n", userHeaderStyle.Render("❯"), item.text)
-	case kindThinking:
-		header := thinkingHeaderStyle.Render("✦ Thinking")
-		body := reasoningStyle.Width(w).Render(item.text)
-		return fmt.Sprintf("%s\n%s\n\n", header, body)
-	case kindAssistant:
-		rendered := markdown.Render(item.text, w)
-		if rendered == "" {
-			rendered = item.text
-		}
-		return rendered + "\n\n"
-	case kindToolCall:
-		return item.text + "\n"
-	case kindToolResult:
-		return item.text + "\n\n"
-	case kindNote:
-		return systemNoteStyle.Render(item.text) + "\n\n"
-	case kindError:
-		return toolErrorStyle.Render(item.text) + "\n\n"
-	default:
-		return ""
-	}
+	return m.updateViewportContent(), nil
 }
 
 func (m Model) updateViewportContent() Model {
 	wasAtBottom := m.viewport.AtBottom()
-	m.viewport.SetContent(m.renderAllContent())
+	trailing := ""
+	if m.state != stateInput {
+		text := "Thinking "
+		if m.state == stateGenerating {
+			text = "Generating "
+		}
+		trailing = core.RenderThinkingSpinner(text, m.spinner.View())
+	}
+	m.viewport.UpdateContent(m.messages, m.state == stateGenerating, trailing)
 	if wasAtBottom {
 		m.viewport.GotoBottom()
 	}
@@ -312,46 +286,15 @@ func (m Model) updateLayout() Model {
 		return m
 	}
 
-	inputLine := promptPrefixStyle.Render("❯ ") + m.input.View()
-	inputBox := inputContainerStyle.Width(max(10, m.width-2)).Render(inputLine)
-	statusBar := m.statusView()
+	m.input.SetWidth(m.width)
+	m.input.UpdateHeight(m.height)
 
-	inputHeight := lipgloss.Height(inputBox)
-	statusHeight := lipgloss.Height(statusBar)
+	inputHeight := m.input.Model.Height() + core.TextAreaContainerStyle.GetVerticalFrameSize()
+	statusHeight := lipgloss.Height(m.statusView())
 	viewportHeight := max(1, m.height-inputHeight-statusHeight)
 
-	m.viewport.Width = m.width
-	m.viewport.Height = viewportHeight
-	m.input.Width = max(10, m.width-6)
+	m.viewport.Resize(m.width, viewportHeight)
 	return m
-}
-
-func (m Model) statusView() string {
-	if m.state == stateRunning {
-		status := m.statusText
-		if status == "" {
-			status = "Agent working..."
-		}
-		left := fmt.Sprintf("%s %s", m.spinner.View(), spinnerStyle.Render(status))
-		right := toolMutedStyle.Render("(Ctrl+C to interrupt)")
-		spacing := max(1, m.width-lipgloss.Width(left)-lipgloss.Width(right))
-		return lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", spacing), right)
-	}
-
-	left := statusBarStyle.Render("Co Agent")
-	if m.cfg != nil && m.cfg.Generation.ModelCode != "" {
-		left = statusBarStyle.Render(fmt.Sprintf("Co Agent (%s)", m.cfg.Generation.ModelCode))
-	}
-	right := toolMutedStyle.Render("Ctrl+C to quit")
-	spacing := max(1, m.width-lipgloss.Width(left)-lipgloss.Width(right))
-	return lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", spacing), right)
-}
-
-func (m Model) renderWidth() int {
-	if m.width > 0 {
-		return max(20, m.width-4)
-	}
-	return 80
 }
 
 func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
@@ -364,57 +307,25 @@ func waitForNextChunk(ch chan coagent.AgentStreamChunk) tea.Cmd {
 	}
 }
 
-func formatToolCall(call *coagent.ToolCallInfo) string {
-	if call == nil {
-		return ""
+func editInEditorCmd(content string) tea.Cmd {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
 	}
-	summary := summarizeToolArgs(call.Arguments)
-	prefix := toolCallStyle.Render("⚡ " + call.Name)
-	if summary == "" {
-		return prefix + "()"
+	tmpfile, err := os.CreateTemp("", "co-prompt-*.md")
+	if err != nil {
+		return func() tea.Msg { return editorFinishedMsg{err: err} }
 	}
-	return fmt.Sprintf("%s(%s)", prefix, toolMutedStyle.Render(summary))
-}
+	_ = os.WriteFile(tmpfile.Name(), []byte(content), 0644)
+	tmpfile.Close()
 
-func summarizeToolArgs(args string) string {
-	trimmed := strings.TrimSpace(args)
-	if trimmed == "" {
-		return ""
-	}
-	var m map[string]any
-	if err := json.Unmarshal([]byte(trimmed), &m); err == nil {
-		for _, key := range []string{"path", "command", "query"} {
-			if val, ok := m[key]; ok {
-				if s, ok := val.(string); ok && s != "" {
-					return truncateSingleLine(s, 60)
-				}
-			}
+	c := exec.Command(editor, tmpfile.Name())
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		defer os.Remove(tmpfile.Name())
+		if err != nil {
+			return editorFinishedMsg{err: err}
 		}
-	}
-	return truncateSingleLine(trimmed, 60)
-}
-
-func formatToolResult(result *coagent.ToolResultInfo) string {
-	if result == nil {
-		return ""
-	}
-	output := strings.TrimSpace(result.Output)
-	if output == "" || output == "(no output)" {
-		return fmt.Sprintf("↳ %s", toolMutedStyle.Render("(no output)"))
-	}
-	firstLine := strings.Split(output, "\n")[0]
-	summary := truncateSingleLine(firstLine, 80)
-	if strings.HasPrefix(output, "Error:") || strings.Contains(output, "Command exited with error:") {
-		clean := strings.TrimPrefix(summary, "Error: ")
-		return fmt.Sprintf("↳ %s %s", toolErrorStyle.Render("✗"), toolResultStyle.Render(clean))
-	}
-	return fmt.Sprintf("↳ %s %s", toolSuccessStyle.Render("✓"), toolResultStyle.Render(summary))
-}
-
-func truncateSingleLine(s string, maxLen int) string {
-	clean := strings.Join(strings.Fields(s), " ")
-	if len(clean) <= maxLen {
-		return clean
-	}
-	return clean[:maxLen-3] + "..."
+		data, readErr := os.ReadFile(tmpfile.Name())
+		return editorFinishedMsg{content: strings.TrimSpace(string(data)), err: readErr}
+	})
 }

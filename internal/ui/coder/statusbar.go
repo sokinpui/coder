@@ -2,10 +2,10 @@ package coderui
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/coder/internal/ui/core"
 	"github.com/sokinpui/coder/pkg/version"
 )
 
@@ -76,21 +76,5 @@ func (m Model) StatusView() string {
 		rightStatusItems = append(rightStatusItems, spinnerWithText)
 	}
 
-	var filteredStatusItems []string
-	for _, item := range rightStatusItems {
-		if strings.TrimSpace(item) != "" {
-			filteredStatusItems = append(filteredStatusItems, item)
-		}
-	}
-	rightStatus := strings.Join(filteredStatusItems, " | ")
-
-	var statusLine string
-	if leftStatus != "" {
-		spacing := max(m.Width-lipgloss.Width(leftStatus)-lipgloss.Width(rightStatus), 1)
-		statusLine = lipgloss.JoinHorizontal(lipgloss.Top, leftStatus, strings.Repeat(" ", spacing), rightStatus)
-	} else {
-		statusLine = rightStatus
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Left, titlePart, statusLine)
+	return core.RenderStatusBar(m.Width, titlePart, leftStatus, rightStatusItems)
 }

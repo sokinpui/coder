@@ -12,7 +12,8 @@ import (
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 	"github.com/sokinpui/coder/pkg/sf"
 	"log"
 	"net/http"
@@ -24,7 +25,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 const statusBarMessageDuration = 1 * time.Second
@@ -289,25 +289,7 @@ func execTerminalCmd(cmdStr string) tea.Cmd {
 }
 
 func getVisibleLines(ta textarea.Model, width int, maxLines int) int {
-	if width <= 0 {
-		// Avoid division by zero and handle cases where width is not yet set.
-		return 1
-	}
-
-	visibleLineCount := 0
-	for line := range strings.SplitSeq(ta.Value(), "\n") {
-		lineWidth := lipgloss.Width(line)
-		if lineWidth == 0 {
-			visibleLineCount++ // Empty line still takes up one line.
-		} else {
-			// Integer division to calculate wrapped lines.
-			visibleLineCount += (lineWidth-1)/width + 1
-		}
-		if maxLines > 0 && visibleLineCount > maxLines {
-			return visibleLineCount
-		}
-	}
-	return visibleLineCount
+	return core.CalculateVisibleLines(ta, width, maxLines)
 }
 
 func handlePasteCmd(cfg *config.Config) tea.Cmd {

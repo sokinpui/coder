@@ -3,39 +3,23 @@ package coagentui
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coagent"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/core"
 )
 
 type state int
 
 const (
 	stateInput state = iota
-	stateRunning
+	stateThinking
+	stateGenerating
 )
-
-type itemKind int
-
-const (
-	kindUser itemKind = iota
-	kindThinking
-	kindAssistant
-	kindToolCall
-	kindToolResult
-	kindNote
-	kindError
-)
-
-type historyItem struct {
-	kind itemKind
-	text string
-}
 
 type streamChunkMsg coagent.AgentStreamChunk
 type agentFinishedMsg struct{}
@@ -47,20 +31,19 @@ type Model struct {
 	state         state
 	runtime       *coagent.AgentRuntime
 	cancelFunc    context.CancelFunc
-	input         textinput.Model
-	viewport      viewport.Model
+	input         core.InputBox
+	viewport      core.Viewport
 	spinner       spinner.Model
 	messages      []types.Message
 	chunkChan     chan coagent.AgentStreamChunk
 	initialPrompt string
 	statusText    string
+	stateStart    time.Time
 	width         int
 	height        int
 	ready         bool
-	history       []historyItem
-
-	reasoningText *strings.Builder
-	assistantText *strings.Builder
+	ctrlCPressed  bool
+	tokenCount    int
 }
 
 func New(cfg *config.Config, initialPrompt string) (Model, error) {
@@ -69,37 +52,31 @@ func New(cfg *config.Config, initialPrompt string) (Model, error) {
 		return Model{}, err
 	}
 
-	ti := textinput.New()
-	ti.Placeholder = "Ask agent anything (Ctrl+C to quit)..."
-	ti.Prompt = ""
-	ti.Focus()
+	ib := core.NewInputBox("Ask agent anything (Ctrl+C to quit)...")
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	sp.Style = spinnerStyle
+	sp.Style = core.GeneratingStatusStyle
 
-	vp := viewport.New(80, 20)
+	vp := core.NewViewport(80, 20)
 
 	m := Model{
 		cfg:           cfg,
 		state:         stateInput,
 		runtime:       runtime,
-		input:         ti,
+		input:         ib,
 		viewport:      vp,
 		spinner:       sp,
 		initialPrompt: strings.TrimSpace(initialPrompt),
-		statusText:    "Ready",
 		width:         80,
 		height:        24,
 		ready:         true,
-		reasoningText: &strings.Builder{},
-		assistantText: &strings.Builder{},
 	}
 	return m.updateLayout(), nil
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{textinput.Blink}
+	cmds := []tea.Cmd{m.spinner.Tick}
 	if m.initialPrompt != "" {
 		cmds = append(cmds, func() tea.Msg { return initPromptMsg(m.initialPrompt) })
 	}

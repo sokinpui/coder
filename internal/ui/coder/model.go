@@ -8,7 +8,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 	"sort"
 )
 

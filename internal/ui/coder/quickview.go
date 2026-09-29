@@ -2,7 +2,8 @@ package coderui
 
 import (
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/sokinpui/coder/internal/ui/core"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -42,43 +43,10 @@ func (m *QuickViewModel) Update(msg tea.Msg) tea.Cmd {
 func (m *QuickViewModel) renderContent() string {
 	var parts []string
 	for _, msg := range m.messages {
-		var renderedMsg string
-		switch msg.Type {
-		case types.UserMessage:
-			blockWidth := m.Viewport.Width - userInputStyle.GetHorizontalFrameSize()
-			renderedMsg = userInputStyle.Width(blockWidth).Render(msg.Content)
-		case types.AIMessage:
-			if msg.Content == "" {
-				continue
-			}
-			if m.GlamourRenderer == nil {
-				parts = append(parts, msg.Content)
-				continue
-			}
-			renderedAI, err := m.GlamourRenderer.Render(msg.Content)
-			if err != nil {
-				renderedAI = msg.Content
-			}
-			renderedMsg = renderedAI
-		case types.CommandMessage, types.ContextCmdMessage,
-			types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
-			blockWidth := m.Viewport.Width - commandInputStyle.GetHorizontalFrameSize()
-			renderedMsg = commandInputStyle.Width(blockWidth).Render(msg.Content)
-		case types.ImageMessage:
-			blockWidth := m.Viewport.Width - imageMessageStyle.GetHorizontalFrameSize()
-			renderedMsg = imageMessageStyle.Width(blockWidth).Render("Image: " + msg.Content)
-		case types.CommandResultMessage, types.ContextCmdResultMessage,
-			types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
-			blockWidth := m.Viewport.Width - commandResultStyle.GetHorizontalFrameSize()
-			renderedMsg = commandResultStyle.Width(blockWidth).Render(msg.Content)
-		case types.CommandErrorResultMessage,
-			types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
-			blockWidth := m.Viewport.Width - commandErrorStyle.GetHorizontalFrameSize()
-			renderedMsg = commandErrorStyle.Width(blockWidth).Render(msg.Content)
-		default:
-			continue
+		rendered := core.RenderMessage(msg, m.Viewport.Width, m.GlamourRenderer)
+		if rendered != "" {
+			parts = append(parts, rendered)
 		}
-		parts = append(parts, renderedMsg)
 	}
 	return strings.Join(parts, "\n")
 }
