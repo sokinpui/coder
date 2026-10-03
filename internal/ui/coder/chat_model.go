@@ -42,6 +42,7 @@ type ChatModel struct {
 func NewChat(initialInput string) ChatModel {
 	s := spinner.New()
 	s.Spinner = typingSpinner
+	s.Style = generatingStatusStyle
 
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt..."

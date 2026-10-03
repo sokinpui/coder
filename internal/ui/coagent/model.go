@@ -86,7 +86,7 @@ func New(cfg *config.Config, initialPrompt string, instruction ...string) (Model
 	ib := core.NewInputBox("Ask agent anything (Ctrl+C to quit)...")
 
 	sp := spinner.New()
-	sp.Spinner = spinner.Dot
+	sp.Spinner = core.TypingSpinner
 	sp.Style = core.GeneratingStatusStyle
 
 	vp := core.NewViewport(80, 20)

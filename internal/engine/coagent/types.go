@@ -15,6 +15,7 @@ type ToolResultInfo struct {
 }
 
 type AgentStreamChunk struct {
+	State            string
 	Content          string
 	ReasoningContent string
 	ToolCall         *ToolCallInfo

@@ -217,6 +217,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.state != stateInput {
 			var cmd tea.Cmd
 			m.spinner, cmd = m.spinner.Update(msg)
+			if cmd == nil {
+				cmd = m.spinner.Tick
+			}
 			m = m.updateViewportContent()
 			return m, cmd
 		}
@@ -277,9 +280,18 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 		targetSess.Messages = chunk.Messages
 	}
 
+	if chunk.State != "" {
+		if isActive {
+			m.state = stateThinking
+			m.statusText = strings.ToUpper(chunk.State[:1]) + chunk.State[1:]
+			m.stateStart = time.Now()
+		}
+	}
+
 	var precomputeCmd tea.Cmd
 	if chunk.ToolCall != nil {
 		if isActive {
+			m.state = stateThinking
 			m.statusText = fmt.Sprintf("Running %s", chunk.ToolCall.Name)
 		}
 		targetSess.Messages = append(targetSess.Messages, types.Message{
@@ -307,6 +319,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 		resMsg := targetSess.Messages[resIdx]
 		precomputeCmd = func() tea.Msg { return precomputeToolMsg{idx: resIdx, msg: resMsg} }
 		if isActive {
+			m.state = stateThinking
 			m.statusText = "Processing"
 		}
 	}
@@ -352,7 +365,7 @@ func (m Model) handleStreamChunk(sessID string, chunk coagent.AgentStreamChunk) 
 		}
 	}
 
-	if isActive && (chunk.ToolCall != nil || chunk.ToolResult != nil) {
+	if isActive && (chunk.State != "" || chunk.ToolCall != nil || chunk.ToolResult != nil) {
 		m = m.updateViewportContent()
 	}
 	return m, tea.Batch(waitForNextChunk(sessID, m.chunkChan), renderCmd, precomputeCmd)
@@ -403,11 +416,11 @@ func (m Model) updateViewportContent() Model {
 	wasAtBottom := m.viewport.AtBottom()
 	trailing := ""
 	if m.state != stateInput {
-		text := "Thinking "
-		if m.state == stateGenerating {
-			text = "Generating "
+		text := m.statusText
+		if text == "" {
+			text = "Thinking"
 		}
-		trailing = core.RenderThinkingSpinner(text, m.spinner.View())
+		trailing = core.RenderThinkingSpinner(text+" ", m.spinner.View())
 	}
 	isStreaming := m.state == stateGenerating || m.state == stateThinking
 	m.viewport.UpdateContent(m.session.Messages, isStreaming, trailing)

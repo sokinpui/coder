@@ -88,7 +88,11 @@ func (m Model) statusView() string {
 		elapsed := time.Since(m.stateStart).Seconds()
 		timerText := fmt.Sprintf("%s (%.1fs) ", statusText, elapsed)
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(timerText), m.spinner.View())
-		rightItems = append(rightItems, spinnerWithText)
+		if leftStatus == "" {
+			leftStatus = spinnerWithText
+		} else {
+			rightItems = append([]string{spinnerWithText}, rightItems...)
+		}
 	}
 
 	return core.RenderStatusBar(m.width, titlePart, leftStatus, rightItems)

@@ -57,6 +57,12 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			return
 		}
 
+		select {
+		case <-ctx.Done():
+			return
+		case streamChan <- AgentStreamChunk{State: "thinking"}:
+		}
+
 		instruction, chatMsgs := types.AssemblePrompt(currentMessages, instructions)
 		toolDecls := ar.Registry.Declarations()
 
