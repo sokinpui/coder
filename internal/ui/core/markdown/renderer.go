@@ -1,16 +1,29 @@
 package markdown
 
 import (
+	_ "embed"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 )
+
+//go:embed my-dark.json
+var myDarkTheme []byte
+
+//go:embed my-light.json
+var myLightTheme []byte
+
+type poolKey struct {
+	width  int
+	isDark bool
+}
 
 var (
 	poolMu sync.RWMutex
-	pools  = make(map[int]*sync.Pool)
+	pools  = make(map[poolKey]*sync.Pool)
 )
 
 func getRendererPool(width int) *sync.Pool {
@@ -18,8 +31,11 @@ func getRendererPool(width int) *sync.Pool {
 		width = 80
 	}
 
+	isDark := lipgloss.HasDarkBackground()
+	key := poolKey{width: width, isDark: isDark}
+
 	poolMu.RLock()
-	p, ok := pools[width]
+	p, ok := pools[key]
 	poolMu.RUnlock()
 	if ok {
 		return p
@@ -27,14 +43,19 @@ func getRendererPool(width int) *sync.Pool {
 
 	poolMu.Lock()
 	defer poolMu.Unlock()
-	if p, ok := pools[width]; ok {
+	if p, ok := pools[key]; ok {
 		return p
+	}
+
+	themeBytes := myDarkTheme
+	if !isDark {
+		themeBytes = myLightTheme
 	}
 
 	p = &sync.Pool{
 		New: func() any {
 			tr, err := glamour.NewTermRenderer(
-				glamour.WithStandardStyle("dark"),
+				glamour.WithStylesFromJSONBytes(themeBytes),
 				glamour.WithWordWrap(width),
 			)
 			if err != nil {
@@ -43,7 +64,7 @@ func getRendererPool(width int) *sync.Pool {
 			return tr
 		},
 	}
-	pools[width] = p
+	pools[key] = p
 	return p
 }
 
