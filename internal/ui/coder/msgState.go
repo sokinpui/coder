@@ -5,6 +5,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
+	"github.com/sokinpui/coder/internal/ui/core/markdown"
 )
 
 type state int
@@ -43,6 +44,11 @@ type (
 		msgIdx  int
 		content string
 		lines   []string
+		width   int
+	}
+	markdownBatchRenderedMsg struct {
+		sessID  string
+		results []markdown.RenderResult
 		width   int
 	}
 	errorMsg struct {

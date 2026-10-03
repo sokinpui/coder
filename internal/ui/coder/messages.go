@@ -83,8 +83,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if spinnerCmd == nil {
 			spinnerCmd = m.Chat.Spinner.Tick
 		}
-
-		// We need to update the viewport's content to reflect the spinner's animation.
 		switch m.State {
 		case stateAsking, stateThinking:
 			wasAtBottom := m.Chat.Viewport.AtBottom()
@@ -165,6 +163,26 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
+	case markdownBatchRenderedMsg:
+		if m.Session == nil || m.Session.ID != msg.sessID || msg.width != m.Chat.Viewport.Width {
+			return m, nil, true
+		}
+
+		for _, res := range msg.results {
+			m.Chat.RenderCache[res.Index] = markdown.CachedRender{
+				Lines:   res.Lines,
+				Content: res.Content,
+				Width:   res.Width,
+			}
+		}
+
+		wasAtBottom := m.Chat.Viewport.AtBottom()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		if wasAtBottom {
+			m.Chat.Viewport.GotoBottom()
+		}
+		return m, nil, true
+
 	case streamFinishedMsg:
 		targetSess := m.getSessionByID(msg.sessID)
 		if targetSess == nil || !targetSess.IsStreaming() {
@@ -193,7 +211,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m = m.updateLayout()
 
 		var cmds []tea.Cmd
-		cmds = append(cmds, saveConversationCmd(targetSess), m.Chat.Spinner.Tick)
+		cmds = append(cmds, saveConversationCmd(targetSess), m.Chat.Spinner.Tick, m.renderUncachedCmd())
 		if !m.Chat.LastInteractionFailed {
 			cmds = append(cmds, m.updateTokenCountCmd())
 		}
@@ -243,7 +261,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 
 			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
-			return m, tea.Batch(cmd, m.updateTokenCountCmd()), true
+			return m, tea.Batch(cmd, m.updateTokenCountCmd(), m.renderUncachedCmd()), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
@@ -386,7 +404,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		var cmds []tea.Cmd
-		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd())
+		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd(), m.renderUncachedCmd())
 		if oldSess != nil && oldSess.ID != msg.sess.ID {
 			cmds = append(cmds, saveConversationCmd(oldSess))
 		}
@@ -425,7 +443,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		var cmds []tea.Cmd
-		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd())
+		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd(), m.renderUncachedCmd())
 		if oldSess != nil && oldSess.ID != msg.sess.ID {
 			cmds = append(cmds, saveConversationCmd(oldSess))
 		}
@@ -492,7 +510,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return model, cmd, true
 		}
 
-		return m, m.updateTokenCountCmd(), true
+		return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd()), true
 
 	case termFinishedMsg:
 		if msg.cmdStr != "" {
@@ -560,20 +578,24 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case tea.WindowSizeMsg:
+		widthChanged := m.Width != msg.Width
 		m.Height = msg.Height
 		m.Width = msg.Width
 		m.Chat.TextArea.SetWidth(msg.Width - textAreaStyle.GetHorizontalFrameSize())
 		m.Chat.Viewport.Width = msg.Width
 		m = m.updateLayout()
 		m.Chat.TextArea.CursorEnd()
-		m.ClearCache()
 
 		m.Chat.CtrlCPressed = false
 
-		renderer, err := markdown.NewRenderer(m.Chat.Viewport.Width)
-		if err == nil {
-			m.GlamourRenderer = renderer
+		if widthChanged {
+			m.ClearCache()
+			renderer, err := markdown.NewRenderer(m.Chat.Viewport.Width)
+			if err == nil {
+				m.GlamourRenderer = renderer
+			}
 			m.Chat.Viewport.SetContent(m.renderConversation())
+			return m, m.renderUncachedCmd(), false
 		}
 		return m, nil, false
 	}

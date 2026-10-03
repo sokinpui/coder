@@ -111,11 +111,19 @@ func New(cfg *config.Config, initialPrompt string, instruction ...string) (Model
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.spinner.Tick}
+	cmds := []tea.Cmd{m.spinner.Tick, m.renderUncachedCmd()}
 	if m.initialPrompt != "" {
 		cmds = append(cmds, func() tea.Msg { return initPromptMsg(m.initialPrompt) })
 	}
 	return tea.Batch(cmds...)
+}
+
+func (m Model) renderUncachedCmd() tea.Cmd {
+	if m.session == nil {
+		return nil
+	}
+	isStreaming := m.state == stateGenerating || m.state == stateThinking
+	return m.viewport.RenderUncachedCmd(m.session.ID, m.session.Messages, isStreaming)
 }
 
 func (m *Model) addActiveSession(sess *coagent.Session) {

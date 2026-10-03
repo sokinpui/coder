@@ -6,7 +6,7 @@ import (
 )
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.Session), fetchModelsCmd(m.Session.GetConfig()), m.Chat.Spinner.Tick, m.updateTokenCountCmd())
+	return tea.Batch(textarea.Blink, loadInitialContextCmd(m.Session), fetchModelsCmd(m.Session.GetConfig()), m.Chat.Spinner.Tick, m.updateTokenCountCmd(), m.renderUncachedCmd())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -32,6 +32,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			k.Type == tea.KeyPgDown {
 			isScrollOnly = true
 		}
+	}
+	if _, ok := msg.(tea.MouseMsg); ok {
+		isScrollOnly = true
 	}
 
 	// Handle state-specific messages and key presses.

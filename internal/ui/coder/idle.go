@@ -22,7 +22,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m = m.updateLayout()
-		return m, m.updateTokenCountCmd()
+		return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd())
 
 	case types.NewSessionStarted:
 		return m.newSession(event.Mode)
@@ -72,7 +72,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
 
-	return m, tea.Batch(loadInitialContextCmd(m.Session), saveConversationCmd(oldSess))
+	return m, tea.Batch(loadInitialContextCmd(m.Session), saveConversationCmd(oldSess), m.renderUncachedCmd())
 }
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {

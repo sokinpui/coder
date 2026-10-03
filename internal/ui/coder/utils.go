@@ -56,7 +56,7 @@ func renderAIMessageCmd(sessID string, msgIdx int, content string, width int) te
 			}
 		}
 
-		lines, err := markdown.RenderLines(content, width)
+		lines, err := markdown.RenderStreamMarkdown(content, width)
 		if err != nil {
 			lines = strings.Split(content, "\n")
 		}
@@ -65,6 +65,37 @@ func renderAIMessageCmd(sessID string, msgIdx int, content string, width int) te
 			msgIdx:  msgIdx,
 			content: content,
 			lines:   lines,
+			width:   width,
+		}
+	}
+}
+
+func renderUncachedMessagesCmd(sessID string, messages []types.Message, cache map[int]markdown.CachedRender, width int, isStreaming bool) tea.Cmd {
+	var items []markdown.RenderItem
+	total := len(messages)
+
+	for i, msg := range messages {
+		if msg.Type != types.AIMessage || msg.Content == "" {
+			continue
+		}
+		if isStreaming && i == total-1 {
+			continue
+		}
+		if c, ok := cache[i]; ok && c.Content == msg.Content && c.Width == width {
+			continue
+		}
+		items = append(items, markdown.RenderItem{Index: i, Content: msg.Content})
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	return func() tea.Msg {
+		results := markdown.BatchRender(items, width)
+		return markdownBatchRenderedMsg{
+			sessID:  sessID,
+			results: results,
 			width:   width,
 		}
 	}

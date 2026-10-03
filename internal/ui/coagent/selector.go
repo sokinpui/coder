@@ -62,7 +62,7 @@ func (m Model) newSession() (tea.Model, tea.Cmd) {
 	m.pendingAIRender = false
 	m.viewport.ClearCache()
 	m.viewport.GotoTop()
-	return m.updateViewportContent(), nil
+	return m.updateViewportContent(), m.renderUncachedCmd()
 }
 
 func (m Model) handleSelectorUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -248,10 +248,10 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd) {
 			m.isAIRendering = false
 			m.pendingAIRender = false
 			m.input.Model.Focus()
-			m.viewport.ClearCache()
-			m.viewport.GotoBottom()
-			return m.updateViewportContent(), nil
-		}
+	m.viewport.ClearCache()
+	m.viewport.GotoBottom()
+	return m.updateViewportContent(), m.renderUncachedCmd()
+}
 	}
 	for _, s := range m.activeSessions {
 		if s.HistoryFilename == item.ID {

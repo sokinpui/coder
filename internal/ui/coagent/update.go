@@ -53,6 +53,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleSelectorUpdate(msg)
 		}
 		return m.handleKey(msg)
+	case tea.MouseMsg:
+		var cmd tea.Cmd
+		m.viewport.Model, cmd = m.viewport.Model.Update(msg)
+		return m, cmd
 	case initPromptMsg:
 		return m.startPrompt(string(msg))
 	case streamChunkMsg:
@@ -87,6 +91,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return newModel, cmd
 		}
 		return m, nil
+	case core.BatchRenderedMsg:
+		if m.session == nil || m.session.ID != msg.SessID || msg.Width != m.viewport.Width {
+			return m, nil
+		}
+		for _, res := range msg.Results {
+			m.viewport.RenderCache[res.Index] = markdown.CachedRender{
+				Lines:   res.Lines,
+				Content: res.Content,
+				Width:   res.Width,
+			}
+		}
+		return m.updateViewportContent(), nil
 	case agentFinishedMsg:
 		return m.handleAgentFinished(msg.sessID)
 	case agentErrorMsg:
@@ -176,13 +192,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ctrlCPressed = false
 		return m.updateViewportContent(), nil
 	case tea.WindowSizeMsg:
+		widthChanged := m.width != msg.Width
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
 		m.ctrlCPressed = false
 		m = m.updateLayout()
-		m.viewport.ClearCache()
 
+		if widthChanged {
+			m.viewport.ClearCache()
+		}
 		if m.session != nil && len(m.session.Messages) > 0 {
 			lastIdx := len(m.session.Messages) - 1
 			lastMsg := m.session.Messages[lastIdx]
@@ -190,10 +209,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isAIRendering = true
 				m.pendingAIRender = false
 				viewportWidth := max(10, m.viewport.Width)
-				return m.updateViewportContent(), renderAIMessageCmd(m.session.ID, lastIdx, lastMsg.Content, viewportWidth)
+				return m.updateViewportContent(), tea.Batch(renderAIMessageCmd(m.session.ID, lastIdx, lastMsg.Content, viewportWidth), m.renderUncachedCmd())
 			}
 		}
-		return m.updateViewportContent(), nil
+		return m.updateViewportContent(), m.renderUncachedCmd()
 	case spinner.TickMsg:
 		if m.state != stateInput {
 			var cmd tea.Cmd
@@ -351,7 +370,10 @@ func (m Model) handleAgentFinished(sessID string) (tea.Model, tea.Cmd) {
 		m.input.Model.Focus()
 		m.tokenCount = token.CountTokens(m.session.GetPrompt())
 		newModel, renderCmd := m.finalizeAIMessageRender(sessID)
-		return newModel, renderCmd
+		if renderCmd != nil {
+			return newModel, tea.Batch(renderCmd, m.renderUncachedCmd())
+		}
+		return newModel, m.renderUncachedCmd()
 	}
 	return m, nil
 }
@@ -409,8 +431,9 @@ func (m Model) updateLayout() Model {
 	viewportWidth := max(10, m.width)
 
 	if m.viewport.Height != viewportHeight || m.viewport.Width != viewportWidth {
+		widthChanged := m.viewport.Width != viewportWidth
 		m.viewport.Resize(viewportWidth, viewportHeight)
-		if m.session != nil {
+		if m.session != nil && widthChanged {
 			m = m.updateViewportContent()
 		}
 	}
@@ -445,7 +468,7 @@ func renderAIMessageCmd(sessID string, msgIdx int, content string, width int) te
 			}
 		}
 
-		lines, err := markdown.RenderLines(content, width)
+		lines, err := markdown.RenderStreamMarkdown(content, width)
 		if err != nil {
 			lines = strings.Split(content, "\n")
 		}

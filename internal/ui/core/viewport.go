@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core/markdown"
@@ -39,6 +40,7 @@ func (v *Viewport) ClearCache() {
 }
 
 func (v *Viewport) Resize(width, height int) {
+	widthChanged := v.Width != width
 	v.Width = width
 	v.Height = height
 	if v.Renderer == nil || v.Renderer.Width() != width {
@@ -47,41 +49,8 @@ func (v *Viewport) Resize(width, height int) {
 			v.Renderer = renderer
 		}
 	}
-	v.ClearCache()
-}
-
-func (v *Viewport) WarmupCache(messages []types.Message, isStreaming bool) {
-	total := len(messages)
-	viewportWidth := v.Width
-	var items []markdown.RenderItem
-
-	for i, msg := range messages {
-		if isStreaming && i == total-1 && msg.Type == types.AIMessage {
-			continue
-		}
-		if msg.Content == "" {
-			continue
-		}
-		cache, ok := v.RenderCache[i]
-		if ok && cache.Content == msg.Content && cache.Width == viewportWidth {
-			continue
-		}
-		if msg.Type == types.AIMessage {
-			items = append(items, markdown.RenderItem{Index: i, Content: msg.Content})
-		}
-	}
-
-	if len(items) <= 1 {
-		return
-	}
-
-	results := markdown.BatchRender(items, viewportWidth)
-	for _, res := range results {
-		v.RenderCache[res.Index] = markdown.CachedRender{
-			Lines:   res.Lines,
-			Content: res.Content,
-			Width:   viewportWidth,
-		}
+	if widthChanged {
+		v.ClearCache()
 	}
 }
 
@@ -136,7 +105,7 @@ func (v *Viewport) GetMessageLines(msg types.Message, idx, total int, isStreamin
 			return lines
 		}
 		renderedCalls := RenderToolCallMessage(msg, true, viewportWidth)
-		renderedAI := RenderMessage(types.Message{Type: types.AIMessage, Content: msg.Content}, viewportWidth, v.Renderer)
+		renderedAI := RenderMessage(types.Message{Type: types.AIMessage, Content: msg.Content}, viewportWidth, nil)
 		combined := strings.TrimSpace(renderedCalls + "\n" + renderedAI)
 		lines := strings.Split(combined, "\n")
 		v.ToolExpandedCache[idx] = lines
@@ -156,7 +125,21 @@ func (v *Viewport) GetMessageLines(msg types.Message, idx, total int, isStreamin
 		return cache.Lines
 	}
 
-	rendered := RenderMessage(msg, viewportWidth, v.Renderer)
+	if msg.Type == types.AIMessage {
+		if len(msg.ToolCalls) > 0 {
+			tcPart := RenderToolCallMessage(msg, false, viewportWidth)
+			if tcPart != "" {
+				lines := strings.Split(tcPart, "\n")
+				if msg.Content != "" {
+					lines = append(lines, strings.Split(msg.Content, "\n")...)
+				}
+				return lines
+			}
+		}
+		return strings.Split(msg.Content, "\n")
+	}
+
+	rendered := RenderMessage(msg, viewportWidth, nil)
 	if rendered == "" && msg.Type != types.AIMessage {
 		return nil
 	}
@@ -194,10 +177,8 @@ func (v *Viewport) PrecomputeToolExpanded(idx int, msg types.Message) {
 	v.ToolExpandedCache[idx] = strings.Split(rendered, "\n")
 }
 
-func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, trailingLine string) string {
+func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, trailingLine ...string) string {
 	v.syncToolCallIDs(messages)
-	v.WarmupCache(messages, isStreaming)
-
 	offsets := make(map[int]int, len(messages))
 	currentLine := 0
 	var allLines []string
@@ -210,8 +191,8 @@ func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, tr
 		currentLine += len(lines)
 	}
 
-	if trailingLine != "" {
-		allLines = append(allLines, strings.Split(trailingLine, "\n")...)
+	if len(trailingLine) > 0 && trailingLine[0] != "" {
+		allLines = append(allLines, strings.Split(trailingLine[0], "\n")...)
 	}
 
 	v.MessageLineOffsets = offsets
@@ -230,8 +211,8 @@ func (v *Viewport) syncToolCallIDs(messages []types.Message) {
 	}
 }
 
-func (v *Viewport) UpdateContent(messages []types.Message, isStreaming bool, trailingLine string) {
-	content := v.RenderMessages(messages, isStreaming, trailingLine)
+func (v *Viewport) UpdateContent(messages []types.Message, isStreaming bool, trailingLine ...string) {
+	content := v.RenderMessages(messages, isStreaming, trailingLine...)
 	v.SetContent(content)
 }
 
@@ -239,6 +220,44 @@ func (v *Viewport) SyncToMessage(msgIdx int) {
 	if line, ok := v.MessageLineOffsets[msgIdx]; ok {
 		targetY := max(line-(v.Height/3), 0)
 		v.SetYOffset(targetY)
+	}
+}
+
+type BatchRenderedMsg struct {
+	SessID  string
+	Results []markdown.RenderResult
+	Width   int
+}
+
+func (v *Viewport) RenderUncachedCmd(sessID string, messages []types.Message, isStreaming bool) tea.Cmd {
+	var items []markdown.RenderItem
+	total := len(messages)
+	viewportWidth := v.Width
+
+	for i, msg := range messages {
+		if msg.Type != types.AIMessage || msg.Content == "" {
+			continue
+		}
+		if isStreaming && i == total-1 {
+			continue
+		}
+		if c, ok := v.RenderCache[i]; ok && c.Content == msg.Content && c.Width == viewportWidth {
+			continue
+		}
+		items = append(items, markdown.RenderItem{Index: i, Content: msg.Content})
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	return func() tea.Msg {
+		results := markdown.BatchRender(items, viewportWidth)
+		return BatchRenderedMsg{
+			SessID:  sessID,
+			Results: results,
+			Width:   viewportWidth,
+		}
 	}
 }
 

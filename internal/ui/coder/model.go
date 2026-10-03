@@ -78,6 +78,19 @@ func (m *Model) ClearCache() {
 	m.Chat.RenderCache = make(map[int]markdown.CachedRender)
 }
 
+func (m Model) renderUncachedCmd() tea.Cmd {
+	if m.Session == nil {
+		return nil
+	}
+	return renderUncachedMessagesCmd(
+		m.Session.ID,
+		m.Session.GetMessages(),
+		m.Chat.RenderCache,
+		m.Chat.Viewport.Width,
+		m.Chat.IsStreaming,
+	)
+}
+
 func (m Model) updateTokenCountCmd() tea.Cmd {
 	if m.Session == nil {
 		return nil

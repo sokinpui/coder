@@ -1,35 +1,85 @@
 package markdown
 
 import (
+	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/glamour"
 )
 
+var (
+	poolMu sync.RWMutex
+	pools  = make(map[int]*sync.Pool)
+)
+
+func getRendererPool(width int) *sync.Pool {
+	if width <= 0 {
+		width = 80
+	}
+
+	poolMu.RLock()
+	p, ok := pools[width]
+	poolMu.RUnlock()
+	if ok {
+		return p
+	}
+
+	poolMu.Lock()
+	defer poolMu.Unlock()
+	if p, ok := pools[width]; ok {
+		return p
+	}
+
+	p = &sync.Pool{
+		New: func() any {
+			tr, err := glamour.NewTermRenderer(
+				glamour.WithStandardStyle("dark"),
+				glamour.WithWordWrap(width),
+			)
+			if err != nil {
+				return nil
+			}
+			return tr
+		},
+	}
+	pools[width] = p
+	return p
+}
+
 type Renderer struct {
 	width int
-	term  *glamour.TermRenderer
 }
 
 func NewRenderer(width int) (*Renderer, error) {
 	if width <= 0 {
 		width = 80
 	}
-	term, err := glamour.NewTermRenderer(
-		glamour.WithStylesFromJSONBytes(StyleJSON()),
-		glamour.WithWordWrap(width),
-	)
-	if err != nil {
-		return nil, err
+	p := getRendererPool(width)
+	tr := p.Get()
+	if tr == nil {
+		return nil, fmt.Errorf("failed to create glamour renderer")
 	}
-	return &Renderer{width: width, term: term}, nil
+	p.Put(tr)
+	return &Renderer{width: width}, nil
 }
 
 func (r *Renderer) Render(content string) (string, error) {
-	if r == nil || r.term == nil || content == "" {
-		return content, nil
+	if content == "" {
+		return "", nil
 	}
-	return r.term.Render(content)
+	width := 80
+	if r != nil && r.width > 0 {
+		width = r.width
+	}
+	p := getRendererPool(width)
+	v := p.Get()
+	if v == nil {
+		return content, fmt.Errorf("failed to acquire renderer from pool")
+	}
+	tr := v.(*glamour.TermRenderer)
+	defer p.Put(tr)
+	return tr.Render(content)
 }
 
 func (r *Renderer) RenderLines(content string) ([]string, error) {
@@ -51,11 +101,11 @@ func Render(content string, width int) string {
 	if strings.TrimSpace(content) == "" {
 		return content
 	}
-	renderer, err := NewRenderer(width)
+	r, err := NewRenderer(width)
 	if err != nil {
 		return content
 	}
-	rendered, err := renderer.Render(content)
+	rendered, err := r.Render(content)
 	if err != nil {
 		return content
 	}
@@ -63,9 +113,20 @@ func Render(content string, width int) string {
 }
 
 func RenderLines(content string, width int) ([]string, error) {
-	renderer, err := NewRenderer(width)
+	r, err := NewRenderer(width)
 	if err != nil {
 		return strings.Split(content, "\n"), err
 	}
-	return renderer.RenderLines(content)
+	return r.RenderLines(content)
+}
+
+func RenderStreamMarkdown(content string, width int) ([]string, error) {
+	if content == "" {
+		return nil, nil
+	}
+	r, err := NewRenderer(width)
+	if err != nil {
+		return strings.Split(content, "\n"), err
+	}
+	return r.RenderLines(content)
 }
