@@ -1,8 +1,9 @@
-package coderui
+package app
 
 import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/engine"
 )
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -18,7 +19,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Coder.Keymap
+	km := m.Keymap()
 
 	// Handle global keybindings first
 	switch keyStr {
@@ -32,6 +33,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 	case km.ScrollDown:
 		m.Chat.Viewport.HalfPageDown()
+		return m, nil, true
+	}
+
+	if keyStr == "ctrl+t" && m.Session.Capabilities().Has(engine.CapToolToggle) {
+		m.ToolsExpanded = !m.ToolsExpanded
+		m.ClearCache()
+		m.Chat.Viewport.SetContent(m.renderConversation())
 		return m, nil, true
 	}
 

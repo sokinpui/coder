@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/clipboard"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
@@ -145,7 +146,7 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 		mod.Selector.Cursor = 0
 		mod.Selector.SearchInput.Reset()
 		if newTab == 0 {
-			return mod, listHistoryCmd(mod.Session.GetHistoryManager())
+			return mod, listHistoryCmd(mod.Session.GetHistoryManager(), mod.Session.GetMode())
 		}
 		mod = mod.refreshHistorySelectorItems()
 		return mod, nil
@@ -166,7 +167,7 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 
 		for _, sess := range mod.ActiveSessions {
 			if sess.GetHistoryFilename() == primary.ID {
-				return mod, mod.switchSessionByID(sess.ID)
+				return mod, mod.switchSessionByID(sess.GetID())
 			}
 		}
 
@@ -189,7 +190,7 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 		return m, nil
 	}
 
-	return m, listHistoryCmd(m.Session.GetHistoryManager())
+	return m, listHistoryCmd(m.Session.GetHistoryManager(), m.Session.GetMode())
 }
 
 func (m Model) refreshHistorySelectorItems() Model {
@@ -200,11 +201,11 @@ func (m Model) refreshHistorySelectorItems() Model {
 	for i := len(m.ActiveSessions) - 1; i >= 0; i-- {
 		sess := m.ActiveSessions[i]
 		marker := ""
-		if sess.ID == m.Session.ID {
+		if sess.GetID() == m.Session.GetID() {
 			marker = "*"
 		}
 		items = append(items, SelectorItem{
-			ID:          sess.ID,
+			ID:          sess.GetID(),
 			Title:       sess.GetTitle(),
 			Description: marker,
 			Data:        sess,
@@ -310,6 +311,14 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case "a":
+		if !m.Session.Capabilities().Has(engine.CapITF) {
+			m.StatusBarMessage = "ITF code application is not supported in this session."
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		}
 		m.Selector.IsSelecting = false
 		targetMsg := messages[currIdx]
 		var aiResponseToApply string
@@ -412,7 +421,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case "r":
 		m.Selector.IsSelecting = false
 		targetMsg := messages[currIdx]
-		if !targetMsg.Type.IsRegeneratable() {
+		if !targetMsg.Type.IsRegeneratable() || !m.Session.Capabilities().Has(engine.CapRegenerate) {
 			m.StatusBarMessage = "Selected message cannot be regenerated."
 			m.ActiveOverlay = overlayNone
 			if m.State == stateIdle {
@@ -422,16 +431,20 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if m.Chat.IsStreaming {
-			m.Session.CancelGeneration()
+			m.Session.Cancel()
 			m.Chat.IsStreaming = false
-			m.Chat.StreamSub = nil
+			m.Chat.EventSub = nil
 		}
 
 		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Focus()
 		m.ClearCache()
-		event := m.Session.RegenerateFrom(currIdx)
-		model, cmd := m.startGeneration(event)
+		eventChan, err := m.Session.Regenerate(currIdx)
+		if err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Error regenerating: %v", err)
+			return m, clearStatusBarCmd(), true
+		}
+		model, cmd := m.startGenerationEvents(eventChan)
 		return model, cmd, true
 
 	case "d":
@@ -442,9 +455,9 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		if m.Chat.IsStreaming {
 			if slices.Contains(targetIndices, len(m.Session.GetMessages())-1) {
-				m.Session.CancelGeneration()
+				m.Session.Cancel()
 				m.Chat.IsStreaming = false
-				m.Chat.StreamSub = nil
+				m.Chat.EventSub = nil
 			}
 		}
 
@@ -465,11 +478,19 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd()), true
 
 	case "b":
+		if !m.Session.Capabilities().Has(engine.CapBranch) {
+			m.StatusBarMessage = "Branching is not supported in this session."
+			m.ActiveOverlay = overlayNone
+			if m.State == stateIdle {
+				m.Chat.TextArea.Focus()
+			}
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+		}
 		m.Selector.IsSelecting = false
 		if m.Chat.IsStreaming {
-			m.Session.CancelGeneration()
+			m.Session.Cancel()
 			m.Chat.IsStreaming = false
-			m.Chat.StreamSub = nil
+			m.Chat.EventSub = nil
 		}
 
 		oldSess := m.Session

@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"

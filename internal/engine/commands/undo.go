@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/pkg/itf"
 	"strings"
@@ -11,6 +12,10 @@ func init() {
 }
 
 func undoCmd(args string, s SessionController) (CommandOutput, bool) {
+	if !s.Capabilities().Has(engine.CapITF) {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "ITF undo is not supported in this session."}, false
+	}
+
 	if !s.HasAppliedChanges() {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No changes have been applied in this session to undo."}, false
 	}

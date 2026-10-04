@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/pkg/itf"
 	"strings"
@@ -70,6 +71,10 @@ func ExecuteItf(content string, args string) ItfResult {
 }
 
 func itfCmd(args string, s SessionController) (CommandOutput, bool) {
+	if !s.Capabilities().Has(engine.CapITF) {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "ITF code application is not supported in this session."}, false
+	}
+
 	messages := s.GetMessages()
 	var lastAIResponse string
 	found := false

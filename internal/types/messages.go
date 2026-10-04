@@ -71,6 +71,7 @@ type StreamChunk struct {
 	Content          string
 	ReasoningContent string
 	ToolCall         *ToolCall
+	Error            error
 }
 
 func (t MessageType) String() string {

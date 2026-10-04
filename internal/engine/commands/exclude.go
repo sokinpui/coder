@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
@@ -19,6 +20,10 @@ func excludeArgumentCompleter(s SessionController, prefix string) []string {
 }
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
+	if !s.Capabilities().Has(engine.CapContextFiles) {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context files are not supported in this session."}, false
+	}
+
 	paths := strings.Fields(args)
 
 	if len(paths) == 0 {

@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
@@ -51,8 +52,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		// Validation
 		hasError := false
 		var errorStrings []string
-		if !slices.Contains(msg.models, cfg.Coder.ModelCode) {
-			errorStrings = append(errorStrings, fmt.Sprintf("Configured chat model '%s' is not in the available list.", cfg.Coder.ModelCode))
+		targetModel := cfg.Coder.ModelCode
+		modelTypeLabel := "chat"
+		if m.Session.Capabilities().Has(engine.CapToolLoop) {
+			targetModel = cfg.Agent.ModelCode
+			modelTypeLabel = "agent"
+		}
+		if !slices.Contains(msg.models, targetModel) {
+			errorStrings = append(errorStrings, fmt.Sprintf("Configured %s model '%s' is not in the available list.", modelTypeLabel, targetModel))
 			hasError = true
 		}
 		if !slices.Contains(msg.models, cfg.Title.ModelCode) {
@@ -93,38 +100,72 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, spinnerCmd, true
 
-	case streamResultMsg:
+	case sessionEventMsg:
 		targetSess := m.getSessionByID(msg.sessID)
-		if targetSess == nil || !targetSess.IsStreaming() {
+		if targetSess == nil {
 			return m, nil, true
 		}
 
-		isActive := m.Session != nil && targetSess.ID == m.Session.ID
-		if msg.chunk.ReasoningContent != "" && isActive && m.State != stateGenerating {
+		isActive := m.Session != nil && targetSess.GetID() == m.Session.GetID()
+		if isActive && (!m.Chat.IsStreaming || m.Chat.EventSub != msg.sub) {
+			return m, listenForEvents(msg.sessID, msg.sub), true
+		}
+
+		if msg.event.Kind == types.EventError {
+			m.Chat.IsStreaming = false
+			m.Chat.IsAIRendering = false
+			m.Chat.PendingAIRender = false
+			m.Chat.LastInteractionFailed = true
+			m.State = stateIdle
+			m.StatusText = ""
+			if isActive {
+				wasAtBottom := m.Chat.Viewport.AtBottom()
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				if wasAtBottom {
+					m.Chat.Viewport.GotoBottom()
+				}
+				m.Chat.EventSub = nil
+				m.Chat.TextArea.Reset()
+				m.Chat.TextArea.Focus()
+			}
+			return m, saveConversationCmd(targetSess), true
+		}
+
+		if msg.event.Kind == types.EventThinking && isActive {
+			if m.State != stateGenerating {
+				m.State = stateThinking
+			}
+			if msg.event.Content != "" {
+				m.StatusText = msg.event.Content
+			}
+		}
+
+		if (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult) && isActive {
 			m.State = stateThinking
+			m.StatusText = "Processing"
+			if msg.event.Kind == types.EventToolCall && msg.event.ToolName != "" {
+				m.StatusText = fmt.Sprintf("Running %s", msg.event.ToolName)
+			}
 		}
 
 		var renderCmd tea.Cmd
-		if msg.chunk.Content != "" {
+		if msg.event.Kind == types.EventChunk && msg.event.Content != "" {
 			if isActive && m.State != stateGenerating {
 				m.State = stateGenerating
 				m.Chat.StateStartTime = time.Now()
+				m.StatusText = "Generating"
 			}
-			messages := targetSess.GetMessages()
-			aiIdx := len(messages) - 1
-			if len(messages) > 0 && messages[aiIdx].Type == types.AIMessage {
-				messages[aiIdx].Content += msg.chunk.Content
-			} else {
-				targetSess.AddMessages(types.Message{Type: types.AIMessage, Content: msg.chunk.Content})
-				aiIdx = len(targetSess.GetMessages()) - 1
-			}
-
 			if isActive {
 				if !m.Chat.IsAIRendering {
 					m.Chat.IsAIRendering = true
 					m.Chat.PendingAIRender = false
 					viewportWidth := max(10, m.Chat.Viewport.Width)
-					latestContent := messages[aiIdx].Content
+					msgs := targetSess.GetMessages()
+					aiIdx := len(msgs) - 1
+					latestContent := ""
+					if aiIdx >= 0 {
+						latestContent = msgs[aiIdx].Content
+					}
 					renderCmd = renderAIMessageCmd(msg.sessID, aiIdx, latestContent, viewportWidth)
 				} else {
 					m.Chat.PendingAIRender = true
@@ -132,10 +173,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		return m, tea.Batch(listenForStream(msg.sessID, msg.sub), renderCmd), true
+		if isActive && (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult || msg.event.Kind == types.EventThinking) {
+			m.Chat.Viewport.SetContent(m.renderConversation())
+		}
+
+		return m, tea.Batch(listenForEvents(msg.sessID, msg.sub), renderCmd), true
 
 	case aiRenderedMsg:
-		if m.Session == nil || m.Session.ID != msg.sessID {
+		if m.Session == nil || m.Session.GetID() != msg.sessID {
 			return m, nil, true
 		}
 		m.Chat.IsAIRendering = false
@@ -164,7 +209,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, true
 
 	case markdownBatchRenderedMsg:
-		if m.Session == nil || m.Session.ID != msg.sessID || msg.width != m.Chat.Viewport.Width {
+		if m.Session == nil || m.Session.GetID() != msg.sessID || msg.width != m.Chat.Viewport.Width {
 			return m, nil, true
 		}
 
@@ -183,20 +228,20 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case streamFinishedMsg:
+	case sessionFinishedMsg:
 		targetSess := m.getSessionByID(msg.sessID)
-		if targetSess == nil || !targetSess.IsStreaming() {
+		if targetSess == nil {
 			return m, nil, true
 		}
-		targetSess.SetStreaming(false)
+		targetSess.Cancel()
 
 		messages := targetSess.GetMessages()
 		if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
 			targetSess.DeleteMessages([]int{len(messages) - 1})
 		}
 
-		isActive := m.Session != nil && targetSess.ID == m.Session.ID
-		if !isActive {
+		isActive := m.Session != nil && targetSess.GetID() == m.Session.GetID()
+		if !isActive || !m.Chat.IsStreaming {
 			return m, saveConversationCmd(targetSess), true
 		}
 
@@ -206,8 +251,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.TextArea.Focus()
 		}
 
-		m.Chat.StreamSub = nil
+		m.Chat.EventSub = nil
 		m.Chat.TextArea.Reset()
+		m.StatusText = ""
 		m = m.updateLayout()
 
 		var cmds []tea.Cmd
@@ -405,7 +451,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.GotoBottom()
 		var cmds []tea.Cmd
 		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd(), m.renderUncachedCmd())
-		if oldSess != nil && oldSess.ID != msg.sess.ID {
+		if oldSess != nil && oldSess.GetID() != msg.sess.GetID() {
 			cmds = append(cmds, saveConversationCmd(oldSess))
 		}
 		return m, tea.Batch(cmds...), true
@@ -444,7 +490,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.GotoBottom()
 		var cmds []tea.Cmd
 		cmds = append(cmds, textarea.Blink, m.updateTokenCountCmd(), m.renderUncachedCmd())
-		if oldSess != nil && oldSess.ID != msg.sess.ID {
+		if oldSess != nil && oldSess.GetID() != msg.sess.GetID() {
 			cmds = append(cmds, saveConversationCmd(oldSess))
 		}
 		return m, tea.Batch(cmds...), true
@@ -536,10 +582,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case errorMsg:
 		targetSess := m.getSessionByID(msg.sessID)
-		if targetSess == nil || !targetSess.IsStreaming() {
+		if targetSess == nil {
 			return m, nil, true
 		}
-		targetSess.SetStreaming(false)
+		targetSess.Cancel()
 
 		errorContent := fmt.Sprintf("\n**Error:**\n```\n%v\n```\n", msg.error)
 		messages := targetSess.GetMessages()
@@ -554,7 +600,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		if targetSess.ID == m.Session.ID {
+		if m.Session != nil && targetSess.GetID() == m.Session.GetID() {
 			m.Chat.IsStreaming = false
 			m.Chat.IsAIRendering = false
 			m.Chat.PendingAIRender = false
@@ -565,14 +611,14 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			if wasAtBottom {
 				m.Chat.Viewport.GotoBottom()
 			}
-			m.Chat.StreamSub = nil
+			m.Chat.EventSub = nil
 			m.Chat.TextArea.Reset()
 			m.Chat.TextArea.Focus()
 		}
 		return m, saveConversationCmd(targetSess), true
 
 	case tokenCountResultMsg:
-		if m.Session != nil && m.Session.ID == msg.sessID {
+		if m.Session != nil && m.Session.GetID() == msg.sessID {
 			m.TokenCount = msg.count
 		}
 		return m, nil, true

@@ -1,12 +1,11 @@
-package coderui
+package app
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/engine/coder"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
@@ -27,18 +26,15 @@ import (
 
 const statusBarMessageDuration = 1 * time.Second
 
-func listenForStream(sessID string, sub chan types.StreamChunk) tea.Cmd {
+func listenForEvents(sessID string, sub <-chan types.SessionEvent) tea.Cmd {
 	return func() tea.Msg {
-		chunk, ok := <-sub
+		ev, ok := <-sub
 		if !ok {
-			return streamFinishedMsg{sessID: sessID}
+			return sessionFinishedMsg{sessID: sessID}
 		}
-		if errMsg, result := strings.CutPrefix(chunk.Content, "Error:"); result {
-			return errorMsg{sessID: sessID, error: errors.New(strings.TrimSpace(errMsg))}
-		}
-		return streamResultMsg{
+		return sessionEventMsg{
 			sessID: sessID,
-			chunk:  chunk,
+			event:  ev,
 			sub:    sub,
 		}
 	}
@@ -136,7 +132,7 @@ func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	}
 }
 
-func loadInitialContextCmd(sess *coder.Session) tea.Cmd {
+func loadInitialContextCmd(sess engine.EngineSession) tea.Cmd {
 	return func() tea.Msg {
 		err := sess.LoadContext()
 		return initialContextLoadedMsg{err: err}
@@ -159,16 +155,16 @@ func scanAddFilesCmd(customExclusions []string) tea.Cmd {
 	}
 }
 
-func listHistoryCmd(histMgr *history.Manager) tea.Cmd {
+func listHistoryCmd(histMgr *history.Manager, mode string) tea.Cmd {
 	return func() tea.Msg {
-		items, err := histMgr.ListConversationsByMode("coder")
+		items, err := histMgr.ListConversationsByMode(mode)
 		return historyListResultMsg{items: items, err: err}
 	}
 }
 
-func loadConversationCmd(sess *coder.Session, filename string) tea.Cmd {
+func loadConversationCmd(sess engine.EngineSession, filename string) tea.Cmd {
 	return func() tea.Msg {
-		newSess, err := coder.New(sess.GetConfig(), "chat", sess.GetInstruction(), nil)
+		newSess, err := sess.CreateNew("")
 		if err != nil {
 			return conversationLoadedMsg{err: err}
 		}
@@ -178,14 +174,14 @@ func loadConversationCmd(sess *coder.Session, filename string) tea.Cmd {
 	}
 }
 
-func saveConversationCmd(sess *coder.Session) tea.Cmd {
+func saveConversationCmd(sess engine.EngineSession) tea.Cmd {
 	if sess == nil {
 		return nil
 	}
 	return func() tea.Msg {
 		if err := sess.SaveConversation(); err != nil {
 			log.Printf("Error saving conversation: %v", err)
-			return errorMsg{sessID: sess.ID, error: err}
+			return errorMsg{sessID: sess.GetID(), error: err}
 		}
 		return nil
 	}
@@ -209,7 +205,7 @@ func clearStatusBarCmd() tea.Cmd {
 	})
 }
 
-func generateTitleCmd(sess *coder.Session, userPrompt string) tea.Cmd {
+func generateTitleCmd(sess engine.EngineSession, userPrompt string) tea.Cmd {
 	return func() tea.Msg {
 		// This runs in a goroutine managed by Bubble Tea.
 		title := sess.GenerateTitle(context.Background(), userPrompt)

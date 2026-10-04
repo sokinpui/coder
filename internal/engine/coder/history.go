@@ -2,6 +2,7 @@ package coder
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
 	"log"
@@ -87,7 +88,7 @@ func (s *Session) LoadConversation(filename string) error {
 	return s.LoadContext()
 }
 
-func (s *Session) Branch(endMessageIndex int) (*Session, error) {
+func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {
 	if endMessageIndex < 0 || endMessageIndex >= len(s.messages) {
 		return nil, fmt.Errorf("invalid index for branching: %d", endMessageIndex)
 	}

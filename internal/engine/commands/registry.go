@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 )
@@ -29,12 +30,46 @@ func GetCommandArgumentSuggestions(cmdName string, s SessionController, prefix s
 	return nil
 }
 
+func GetCommandsForSession(s engine.EngineSession) []string {
+	caps := engine.Capability(0)
+	if s != nil {
+		caps = s.Capabilities()
+	}
+	commandNames := make([]string, 0, len(commands))
+	for name := range commands {
+		if !isCommandAllowed(name, caps) {
+			continue
+		}
+		commandNames = append(commandNames, name)
+	}
+	return commandNames
+}
+
 func GetCommands() []string {
 	commandNames := make([]string, 0, len(commands))
 	for name := range commands {
 		commandNames = append(commandNames, name)
 	}
 	return commandNames
+}
+
+func isCommandAllowed(cmdName string, caps engine.Capability) bool {
+	switch cmdName {
+	case "file", "exclude", "list", "chat", "coding":
+		return caps.Has(engine.CapContextFiles)
+	case "itf", "undo":
+		return caps.Has(engine.CapITF)
+	case "model":
+		return caps.Has(engine.CapModelSwitch)
+	case "term":
+		return caps.Has(engine.CapTerminal)
+	case "branch":
+		return caps.Has(engine.CapBranch)
+	case "gen":
+		return caps.Has(engine.CapRegenerate)
+	default:
+		return true
+	}
 }
 
 func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {

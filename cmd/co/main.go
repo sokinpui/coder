@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
-	coagentui "github.com/sokinpui/coder/internal/ui/coagent"
+	"github.com/sokinpui/coder/internal/engine/coagent"
+	"github.com/sokinpui/coder/internal/ui/app"
 	"github.com/sokinpui/coder/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			if runProtocol != "" {
+			if cmd.Flags().Changed("protocol") && runProtocol != "" {
 				cfg.Server.Protocol = runProtocol
 			}
 
@@ -54,7 +55,16 @@ func main() {
 				cfg.Agent.ModelCode = runModel
 			}
 
-			if err := coagentui.Start(cfg, prompt, customInstruction); err != nil {
+			sess, err := coagent.NewSession(cfg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating agent session: %v\n", err)
+				os.Exit(1)
+			}
+			if customInstruction != "" {
+				sess.Instruction = customInstruction
+			}
+
+			if err := app.Start(sess, prompt); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}

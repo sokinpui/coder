@@ -1,7 +1,7 @@
-package coderui
+package app
 
 import (
-	"github.com/sokinpui/coder/internal/engine/coder"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
@@ -31,12 +31,12 @@ type modelsFetchedMsg struct {
 }
 
 type (
-	streamResultMsg struct {
+	sessionEventMsg struct {
 		sessID string
-		chunk  types.StreamChunk
-		sub    chan types.StreamChunk
+		event  types.SessionEvent
+		sub    <-chan types.SessionEvent
 	}
-	streamFinishedMsg struct {
+	sessionFinishedMsg struct {
 		sessID string
 	}
 	aiRenderedMsg struct {
@@ -80,11 +80,11 @@ type (
 		items []string
 	}
 	conversationLoadedMsg struct {
-		sess *coder.Session
+		sess engine.EngineSession
 		err  error
 	}
 	switchActiveSessionMsg struct {
-		sess *coder.Session
+		sess engine.EngineSession
 	}
 	pasteResultMsg  = core.PasteResultMsg
 	termFinishedMsg struct {

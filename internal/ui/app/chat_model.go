@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"time"
@@ -15,7 +15,7 @@ type ChatModel struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
 	Spinner                  spinner.Model
-	StreamSub                chan types.StreamChunk
+	EventSub                 <-chan types.SessionEvent
 	IsStreaming              bool
 	IsAIRendering            bool
 	PendingAIRender          bool

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -9,6 +10,10 @@ func init() {
 }
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
+	if !s.Capabilities().Has(engine.CapContextFiles) {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context files are not supported in this session."}, false
+	}
+
 	allFiles := s.GetContextFiles()
 	allDocs := s.GetContextDocuments()
 

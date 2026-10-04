@@ -18,7 +18,7 @@ import (
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
-	coderui "github.com/sokinpui/coder/internal/ui/coder"
+	"github.com/sokinpui/coder/internal/ui/app"
 	"github.com/sokinpui/coder/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -323,8 +323,8 @@ func runSingleShot(args []string) {
 
 	hasError := false
 	for chunk := range streamChan {
-		if strings.HasPrefix(chunk.Content, "Error:") {
-			fmt.Fprintf(os.Stderr, "\n%s\n", chunk.Content)
+		if chunk.Error != nil {
+			fmt.Fprintf(os.Stderr, "\nError: %v\n", chunk.Error)
 			hasError = true
 			continue
 		}
@@ -356,7 +356,17 @@ func runEditor(path string) {
 }
 
 func startApp(mode string, prompt string, contextFiles []string, instruction string) {
-	coderui.Start(mode, prompt, contextFiles, instruction)
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		os.Exit(1)
+	}
+	sess, err := coder.New(cfg, mode, instruction, contextFiles)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
+		os.Exit(1)
+	}
+	_ = app.Start(sess, prompt)
 }
 
 func applyChanges(args []string) {

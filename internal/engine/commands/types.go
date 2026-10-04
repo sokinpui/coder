@@ -1,25 +1,13 @@
 package commands
 
 import (
-	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/engine"
 )
 
-type CommandOutput struct {
-	Type            types.EventType
-	Payload         string
-	Mode            string
-	IsShell         bool
-	IsContext       bool
-	IsFileApply     bool
-	IsFileApplyUndo bool
-}
+type CommandOutput = engine.CommandOutput
 
 type SessionController interface {
-	GetMessages() []types.Message
-	AddMessages(msg ...types.Message)
-	GetConfig() *config.Config
-	SetTitle(title string)
+	engine.EngineSession
 	ReloadConfig() error
 	LoadContext() error
 	GetLastModifiedFiles() []string
@@ -35,7 +23,6 @@ type SessionController interface {
 	ClearAllDocumentMessages()
 	GetMode() string
 	SetMode(mode string) error
-	SetModel(model string)
 	HasChatHistory() bool
 }
 

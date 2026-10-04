@@ -11,6 +11,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -29,7 +30,11 @@ type Session struct {
 	HistoryFilename string
 	CreatedAt       time.Time
 	Instruction     string
+	isStreaming     bool
+	cancelFunc      context.CancelFunc
 }
+
+var _ commands.SessionController = (*Session)(nil)
 
 func NewSession(cfg *config.Config) (*Session, error) {
 	hist, err := history.NewManager()
@@ -50,6 +55,62 @@ func NewSession(cfg *config.Config) (*Session, error) {
 		Title:          "New Agent Session",
 		CreatedAt:      time.Now(),
 	}, nil
+}
+
+func (s *Session) GetID() string {
+	return s.ID
+}
+
+func (s *Session) GetTitle() string {
+	return s.Title
+}
+
+func (s *Session) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+func (s *Session) GetHistoryFilename() string {
+	return s.HistoryFilename
+}
+
+func (s *Session) GetConfig() *config.Config {
+	return s.Config
+}
+
+func (s *Session) SetModel(model string) {
+	s.Config.Agent.ModelCode = model
+	s.Runtime.Config.ModelCode = model
+}
+
+func (s *Session) AddMessages(msg ...types.Message) {
+	s.Messages = append(s.Messages, msg...)
+}
+
+func (s *Session) PrependMessages(msg ...types.Message) {
+	s.Messages = append(msg, s.Messages...)
+}
+
+func (s *Session) ReplaceLastMessage(msg types.Message) {
+	if len(s.Messages) > 0 {
+		s.Messages[len(s.Messages)-1] = msg
+	}
+}
+
+func (s *Session) LoadContext() error                      { return nil }
+func (s *Session) GetLastModifiedFiles() []string          { return nil }
+func (s *Session) SetLastModifiedFiles(files []string)     {}
+func (s *Session) HasAppliedChanges() bool                 { return false }
+func (s *Session) SetHasAppliedChanges(applied bool)       {}
+func (s *Session) GetContextFiles() []string               { return nil }
+func (s *Session) SetContextFiles(files []string)          {}
+func (s *Session) GetContextDocuments() []string           { return nil }
+func (s *Session) SetContextDocuments(docs []string)       {}
+func (s *Session) GetDocumentPageCount(doc string) int     { return 0 }
+func (s *Session) PurgeDocumentMessages(docPaths []string) {}
+func (s *Session) ClearAllDocumentMessages()               {}
+func (s *Session) SetMode(mode string) error               { return nil }
+func (s *Session) HasChatHistory() bool {
+	return len(s.Messages) > 0 || s.HistoryFilename != ""
 }
 
 func (s *Session) GetPrompt() []types.Message {

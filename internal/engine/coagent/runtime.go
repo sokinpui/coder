@@ -74,8 +74,14 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		var hasError bool
 
 		for chunk := range genChan {
-			if strings.HasPrefix(chunk.Content, "Error:") {
+			if chunk.Error != nil {
 				hasError = true
+				select {
+				case <-ctx.Done():
+					return
+				case streamChan <- AgentStreamChunk{Content: fmt.Sprintf("Error: %v", chunk.Error)}:
+				}
+				continue
 			}
 			if chunk.Content != "" {
 				turnText.WriteString(chunk.Content)

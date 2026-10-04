@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -270,7 +271,7 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	jsonBody, _ := json.Marshal(body)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getChatURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("failed to create request: %w", err)}
 		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -284,14 +285,14 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 		if ctx.Err() == context.Canceled {
 			return
 		}
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("failed to connect to server: %w", err)}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errMsg, _ := io.ReadAll(resp.Body)
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned %d: %s", resp.StatusCode, string(errMsg))}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("server returned %d: %s", resp.StatusCode, string(errMsg))}
 		return
 	}
 
@@ -367,7 +368,7 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	}
 
 	if err := scanner.Err(); err != nil && ctx.Err() == nil {
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("stream interrupted: %w", err)}
 	}
 
 	for _, tc := range toolCalls {
@@ -474,7 +475,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", g.getResponsesURL(), bytes.NewBuffer(jsonBody))
 	if err != nil {
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to create request: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("failed to create request: %w", err)}
 		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -488,14 +489,14 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 		if ctx.Err() == context.Canceled {
 			return
 		}
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Failed to connect to server: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("failed to connect to server: %w", err)}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		errBytes, _ := io.ReadAll(resp.Body)
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Server returned status %d: %s", resp.StatusCode, string(errBytes))}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(errBytes))}
 		return
 	}
 
@@ -620,14 +621,14 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				if ev.Error != nil && ev.Error.Message != "" {
 					errMsg = ev.Error.Message
 				}
-				streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: %s", errMsg)}
+				streamChan <- types.StreamChunk{Error: errors.New(errMsg)}
 				return
 			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil && ctx.Err() == nil {
-		streamChan <- types.StreamChunk{Content: fmt.Sprintf("Error: Stream interrupted: %v", err)}
+		streamChan <- types.StreamChunk{Error: fmt.Errorf("stream interrupted: %w", err)}
 	}
 
 	if len(toolCalls) == 0 && currentToolCall != nil {

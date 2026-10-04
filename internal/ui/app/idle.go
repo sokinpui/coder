@@ -1,13 +1,12 @@
-package coderui
+package app
 
 import (
+	"context"
 	"log"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/engine/coder"
-	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
@@ -28,7 +27,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 		return m.newSession(event.Mode)
 
 	case types.GenerationStarted:
-		return m.startGeneration(event)
+		return m, nil
 
 	case types.TermExecutionStarted:
 		cmdStr, _ := event.Data.(string)
@@ -46,11 +45,7 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	oldSess := m.Session
 
-	if mode == "" {
-		mode = "coding"
-	}
-
-	newSess, err := coder.New(m.Session.GetConfig(), mode, m.Session.GetInstruction(), m.Session.GetContextFiles())
+	newSess, err := m.Session.CreateNew(mode)
 	if err != nil {
 		log.Printf("Error creating new session: %v", err)
 		return m, nil
@@ -60,8 +55,9 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.ClearCache()
 	m.addActiveSession(newSess)
 	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
-	dirMsg := project.DirInfo()
-	m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
+	if dirMsg := project.DirInfo(); dirMsg != "" {
+		m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
+	}
 
 	m.State = stateIdle
 	m.Chat.IsStreaming = false
@@ -84,7 +80,6 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	if !strings.HasPrefix(input, "/") {
-		m.Session.AddMessages(types.Message{Type: types.UserMessage, Content: input})
 		m.Chat.ShowPalette = false
 
 		var cmds []tea.Cmd
@@ -93,21 +88,18 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, m.updateTokenCountCmd())
 
-		event := m.Session.StartGeneration()
-		switch event.Type {
-		case types.GenerationStarted:
-			newModel, genCmd := m.startGeneration(event)
-			cmds = append(cmds, genCmd)
-			return newModel, tea.Batch(cmds...)
-		case types.MessagesUpdated:
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			m.State = stateIdle
-			m.Chat.TextArea.Focus()
-			cmds = append(cmds, textarea.Blink)
+		eventChan, err := m.Session.Submit(context.Background(), input)
+		if err != nil {
+			m.Session.AddMessages(types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: err.Error(),
+			})
 			return m, tea.Batch(cmds...)
 		}
-		return m, tea.Batch(cmds...)
+
+		newModel, genCmd := m.startGenerationEvents(eventChan)
+		cmds = append(cmds, genCmd)
+		return newModel, tea.Batch(cmds...)
 	}
 
 	m.Chat.ShowPalette = false
@@ -116,25 +108,33 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return model, cmd
 	}
 
-	event := m.Session.HandleInput(input)
+	cmdOut, _ := m.Session.ExecuteCommand(input)
 
 	shouldPreserve := m.Chat.PreserveInputOnSubmit
 	m.Chat.PreserveInputOnSubmit = false
 
-	model, cmd := m.handleEvent(event)
-	if newModel, ok := model.(Model); ok {
-		isCommand := strings.HasPrefix(input, "/")
-		if event.Type == types.MessagesUpdated ||
-			event.Type == types.NewSessionStarted ||
-			(isCommand && event.Type != types.NoOp) {
-			if !shouldPreserve {
-				newModel.Chat.TextArea.Reset()
-			}
-		}
-		return newModel, cmd
+	switch cmdOut.Type {
+	case types.Quit:
+		m.Quitting = true
+		return m, tea.Quit
+	case types.NewSessionStarted:
+		return m.newSession(cmdOut.Mode)
+	case types.TermExecutionStarted:
+		m.ActiveOverlay = overlayNone
+		m.Chat.TextArea.Blur()
+		return m, execTerminalCmd(cmdOut.Payload)
+	case types.NoOp:
+		return m, nil
 	}
 
-	return model, cmd
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.Chat.Viewport.GotoBottom()
+	m = m.updateLayout()
+	if !shouldPreserve {
+		m.Chat.TextArea.Reset()
+	}
+
+	return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd())
 }
 
 func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
@@ -172,6 +172,9 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 
 	case "exclude":
+		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
+			return m, nil, false
+		}
 		if strings.TrimSpace(args) == "" {
 			m.Chat.TextArea.Reset()
 			files := m.Session.GetContextFiles()
@@ -181,8 +184,8 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 			}
 			newModel, cmd := m.openFileListSelector("── Exclude Files ──", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 				cmdStr := "/exclude " + strings.Join(selected, " ")
-				ev := mod.Session.HandleInput(cmdStr)
-				return mod.handleEvent(ev)
+				cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
+				return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
 			})
 			return newModel, cmd, true
 		}
@@ -207,7 +210,7 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Coder.Keymap
+	km := m.Keymap()
 
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
@@ -346,8 +349,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.New:
-		event := m.Session.HandleShortcut("/new")
-		model, cmd := m.handleEvent(event)
+		model, cmd := m.newSession("")
 		return model, cmd, true
 
 	case km.Branch:
@@ -355,6 +357,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return newModel, cmd, true
 
 	case km.Finder:
+		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
+			return m, nil, false
+		}
 		files := m.Session.GetContextFiles()
 		if len(files) == 0 {
 			m.StatusBarMessage = "No project source files in context."
@@ -366,19 +371,24 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return newModel, cmd, true
 
 	case km.AddFile:
+		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
+			return m, nil, false
+		}
 		cfg := m.Session.GetConfig()
 		newModel, cmd := m.openFileListSelector("── Add Files to Context ──", "Search files/directories to add...", nil, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			cmdStr := "/file " + strings.Join(selected, " ")
-			ev := mod.Session.HandleInput(cmdStr)
-			return mod.handleEvent(ev)
+			cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
+			return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
 		})
 		newModel.Selector.IsLoading = true
 		return newModel, tea.Batch(cmd, scanAddFilesCmd(cfg.Coder.Context.Exclusions), m.Chat.Spinner.Tick), true
 
 	case km.ApplyITF:
-		// Equivalent to typing "/itf" and pressing enter.
-		event := m.Session.HandleInput("/itf")
-		model, cmd := m.handleEvent(event)
+		if !m.Session.Capabilities().Has(engine.CapITF) {
+			return m, nil, false
+		}
+		cmdOut, _ := m.Session.ExecuteCommand("/itf")
+		model, cmd := m.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
 		return model, cmd, true
 
 	case km.Paste:
@@ -388,7 +398,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 }
 
 func (m Model) showQuickView(cmdName string) (tea.Model, tea.Cmd) {
-	res, _, _ := commands.ProcessCommand(cmdName, m.Session)
+	res, _ := m.Session.ExecuteCommand(cmdName)
 	m.QuickView.SetMessages([]types.Message{
 		{Type: types.CommandMessage, Content: cmdName},
 		{Type: types.CommandResultMessage, Content: res.Payload},

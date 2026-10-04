@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/pkg/version"
 )
@@ -81,7 +80,7 @@ func (s *Server) ensureSession() error {
 		return nil
 	}
 
-	sess, err := engine.New(s.cfg, coder.ModeCoder, "", nil)
+	sess, err := coder.New(s.cfg, coder.ModeCoder, "", nil)
 	if err != nil {
 		return err
 	}

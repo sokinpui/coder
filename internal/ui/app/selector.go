@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"fmt"

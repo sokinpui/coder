@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
 )
@@ -13,6 +14,7 @@ func init() {
 type helpEntry struct {
 	key  string
 	desc string
+	cap  engine.Capability
 }
 
 type helpGroup []helpEntry
@@ -23,31 +25,31 @@ type helpSection struct {
 }
 
 var behaviorGroup = helpGroup{
-	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `/file` let AI read them."},
+	{key: "Code Read by AI", desc: "Markdown files are not read by AI by default, you would need `/file` let AI read them.", cap: engine.CapContextFiles},
 }
 
 var commandGroup = helpGroup{
 	{key: "active", desc: "View active chat sessions."},
-	{key: "branch", desc: "Enter branch mode to branch from a message."},
-	{key: "chat", desc: "Switch conversation mode to chat."},
-	{key: "coding", desc: "Switch conversation mode to coding."},
+	{key: "branch", desc: "Enter branch mode to branch from a message.", cap: engine.CapBranch},
+	{key: "chat", desc: "Switch conversation mode to chat.", cap: engine.CapContextFiles},
+	{key: "coding", desc: "Switch conversation mode to coding.", cap: engine.CapContextFiles},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
-	{key: "exclude", desc: "Exclude a file/directory from the project source."},
-	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all."},
-	{key: "gen", desc: "Enter generate mode to re-generate a response."},
+	{key: "exclude", desc: "Exclude a file/directory from the project source.", cap: engine.CapContextFiles},
+	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all.", cap: engine.CapContextFiles},
+	{key: "gen", desc: "Enter generate mode to re-generate a response.", cap: engine.CapRegenerate},
 	{key: "help", desc: "Show this help message."},
 	{key: "history", desc: "View conversation history."},
-	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes."},
-	{key: "list", desc: "List the current project source files/directories."},
-	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro)."},
+	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes.", cap: engine.CapITF},
+	{key: "list", desc: "List the current project source files/directories.", cap: engine.CapContextFiles},
+	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro).", cap: engine.CapModelSwitch},
 	{key: "msg", desc: "Open atomic messages overlay."},
 	{key: "new", desc: "Start a new chat session."},
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
-	{key: "term", desc: "Run interactive terminal command or open subshell."},
-	{key: "undo", desc: "Undo the last file changes applied by itf."},
+	{key: "term", desc: "Run interactive terminal command or open subshell.", cap: engine.CapTerminal},
+	{key: "undo", desc: "Undo the last file changes applied by itf.", cap: engine.CapITF},
 }
 
 var globalGroup = helpGroup{
@@ -56,11 +58,12 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+V", desc: "Paste from clipboard (supports images)."},
 	{key: "Ctrl+H", desc: "View conversation history."},
 	{key: "Ctrl+N", desc: "Start a new chat session."},
-	{key: "Ctrl+B", desc: "Enter branch mode."},
-	{key: "Ctrl+T", desc: "Search files/dirs and add to context (/file)."},
-	{key: "Ctrl+F", desc: "Search context files and open in editor."},
-	{key: "Ctrl+L", desc: "Quick view of project context (/list)."},
-	{key: "Ctrl+A", desc: "Apply last AI response with `itf`."},
+	{key: "Ctrl+B", desc: "Enter branch mode.", cap: engine.CapBranch},
+	{key: "Ctrl+T", desc: "Toggle tool expansion (compact/expanded).", cap: engine.CapToolToggle},
+	{key: "Ctrl+T", desc: "Search files/dirs and add to context (/file).", cap: engine.CapContextFiles},
+	{key: "Ctrl+F", desc: "Search context files and open in editor.", cap: engine.CapContextFiles},
+	{key: "Ctrl+L", desc: "Quick view of project context (/list).", cap: engine.CapContextFiles},
+	{key: "Ctrl+A", desc: "Apply last AI response with `itf`.", cap: engine.CapITF},
 	{key: "Ctrl+U / D", desc: "Scroll conversation view up / down."},
 	{key: "Ctrl+Z", desc: "Suspend the application."},
 	{key: "Tab", desc: "Autocomplete commands and arguments."},
@@ -75,10 +78,10 @@ var atomicMsgGroup = helpGroup{
 	{key: "o / O", desc: "Swap cursor and anchor in multi-selection."},
 	{key: "y", desc: "Yank (copy) selected message(s) to clipboard."},
 	{key: "d", desc: "Delete selected message(s)."},
-	{key: "a", desc: "Apply code changes from AI response with itf."},
+	{key: "a", desc: "Apply code changes from AI response with itf.", cap: engine.CapITF},
 	{key: "e", desc: "Edit selected user message in external editor."},
-	{key: "r", desc: "Regenerate conversation starting from message."},
-	{key: "b", desc: "Branch conversation into a new session."},
+	{key: "r", desc: "Regenerate conversation starting from message.", cap: engine.CapRegenerate},
+	{key: "b", desc: "Branch conversation into a new session.", cap: engine.CapBranch},
 	{key: "Esc / Ctrl+C", desc: "Exit atomic messages overlay."},
 }
 
@@ -108,9 +111,22 @@ func helpCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	fmt.Fprintln(&b, "Shortcuts:")
 
+	caps := s.Capabilities()
 	for _, section := range helpPageDesc {
-		fmt.Fprintf(&b, "\n%s:\n", section.name)
+		var filtered helpGroup
 		for _, item := range section.group {
+			if item.cap != 0 && !caps.Has(item.cap) {
+				continue
+			}
+			filtered = append(filtered, item)
+		}
+
+		if len(filtered) == 0 {
+			continue
+		}
+
+		fmt.Fprintf(&b, "\n%s:\n", section.name)
+		for _, item := range filtered {
 			if section.name == "Command" {
 				fmt.Fprintf(&b, "  /%-11s %s\n", item.key, item.desc)
 			} else {

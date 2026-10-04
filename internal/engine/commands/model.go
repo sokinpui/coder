@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -21,7 +22,11 @@ func modelArgumentCompleter(s SessionController, prefix string) []string {
 func modelCmd(args string, s SessionController) (CommandOutput, bool) {
 	cfg := s.GetConfig()
 	if args == "" {
-		msg := fmt.Sprintf("Current model: %s", cfg.Coder.ModelCode)
+		currentModel := cfg.Coder.ModelCode
+		if s.Capabilities().Has(engine.CapToolLoop) {
+			currentModel = cfg.Agent.ModelCode
+		}
+		msg := fmt.Sprintf("Current model: %s", currentModel)
 		if len(cfg.AvailableModels) > 0 {
 			msg += fmt.Sprintf("\nAvailable models: %s", strings.Join(cfg.AvailableModels, ", "))
 		}

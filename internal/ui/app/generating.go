@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"strings"
@@ -10,16 +10,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
-	if event.Type != types.GenerationStarted {
-		return m, nil // Should not happen
-	}
+func (m Model) startGenerationEvents(eventChan <-chan types.SessionEvent) (Model, tea.Cmd) {
 	m.State = stateAsking
 	m.Chat.StateStartTime = time.Now()
 	m.Chat.IsStreaming = true
 	m.Chat.IsAIRendering = false
 	m.Chat.PendingAIRender = false
-	m.Chat.StreamSub = event.Data.(chan types.StreamChunk)
+	m.Chat.EventSub = eventChan
 	m.Chat.TextArea.Blur()
 	m.Chat.TextArea.Reset()
 	m = m.updateLayout()
@@ -34,21 +31,22 @@ func (m Model) startGeneration(event types.Event) (Model, tea.Cmd) {
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 
-	return m, tea.Batch(listenForStream(m.Session.ID, m.Chat.StreamSub), m.Chat.Spinner.Tick, m.renderUncachedCmd())
+	return m, tea.Batch(listenForEvents(m.Session.GetID(), m.Chat.EventSub), m.Chat.Spinner.Tick, m.renderUncachedCmd())
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	keyStr := msg.String()
-	km := m.Session.GetConfig().Coder.Keymap
+	km := m.Keymap()
 
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		m.Session.CancelGeneration()
+		m.Session.Cancel()
 		m.Chat.IsStreaming = false
 		m.Chat.IsAIRendering = false
 		m.Chat.PendingAIRender = false
-		m.Chat.StreamSub = nil
+		m.Chat.EventSub = nil
 		m.Chat.LastInteractionFailed = true
+		m.StatusText = ""
 		m.State = stateIdle
 
 		messages := m.Session.GetMessages()
@@ -71,11 +69,7 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 		m = m.updateLayout()
 		return m, textarea.Blink, true
 	case tea.KeyCtrlN:
-		event := m.Session.HandleInput("/new")
-		if event.Type != types.NewSessionStarted {
-			return m, nil, true
-		}
-		newModel, cmd := m.newSession(event.Mode)
+		newModel, cmd := m.newSession("")
 		newModel.State = stateIdle
 		return newModel, cmd, true
 	case tea.KeyEscape:
@@ -90,14 +84,9 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 
 	switch keyStr {
 	case km.New:
-		event := m.Session.HandleInput("/new")
-		switch event.Type {
-		case types.NewSessionStarted:
-			newModel, cmd := m.newSession(event.Mode)
-			newModel.State = stateIdle
-			return newModel, cmd, true
-		}
-		return m, nil, true
+		newModel, cmd := m.newSession("")
+		newModel.State = stateIdle
+		return newModel, cmd, true
 	case km.Branch:
 		model, cmd := m.openAtomicMsgMode()
 		return model, cmd, true

@@ -1,10 +1,9 @@
-package coderui
+package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/engine/coder"
-	"github.com/sokinpui/coder/internal/engine/commands"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -30,8 +29,8 @@ type Model struct {
 	Selector  SelectorModel
 	QuickView *QuickViewModel
 
-	ActiveSessions      []*coder.Session
-	Session             *coder.Session
+	ActiveSessions      []engine.EngineSession
+	Session             engine.EngineSession
 	State               state
 	ActiveOverlay       overlayMode
 	Quitting            bool
@@ -40,27 +39,28 @@ type Model struct {
 	GlamourRenderer     *markdown.Renderer
 	AvailableCommands   []string
 	CommandDescriptions map[string]string
+	StatusText          string
 	StatusBarMessage    string
 	TokenCount          int
+	ToolsExpanded       bool
 }
 
-func NewModel(cfg *config.Config, mode string, initialInput string, contextFiles []string, instruction string) (Model, error) {
-	sess, err := coder.New(cfg, mode, instruction, contextFiles)
-	if err != nil {
-		return Model{}, err
-	}
+func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 	renderer, _ := markdown.NewRenderer(80)
 
-	sess.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
+	if len(sess.GetMessages()) == 0 {
+		sess.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 
-	dirMsg := project.DirInfo()
-	sess.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
-	availableCommands := commands.GetCommands()
-	commandDescriptions := commands.GetCommandDescriptions()
+		if dirMsg := project.DirInfo(); dirMsg != "" {
+			sess.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})
+		}
+	}
+	availableCommands := sess.GetSupportedCommands()
+	commandDescriptions := sess.GetCommandDescriptions()
 	sort.Strings(availableCommands)
 
 	m := Model{
-		ActiveSessions:      []*coder.Session{sess},
+		ActiveSessions:      []engine.EngineSession{sess},
 		Chat:                NewChat(initialInput),
 		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
@@ -110,7 +110,7 @@ func (m Model) renderUncachedCmd() tea.Cmd {
 		return nil
 	}
 	return renderUncachedMessagesCmd(
-		m.Session.ID,
+		m.Session.GetID(),
 		m.Session.GetMessages(),
 		m.Chat.RenderCache,
 		m.Chat.Viewport.Width,
@@ -122,7 +122,7 @@ func (m Model) updateTokenCountCmd() tea.Cmd {
 	if m.Session == nil {
 		return nil
 	}
-	sessID := m.Session.ID
+	sessID := m.Session.GetID()
 	promptMsgs := m.Session.GetPrompt()
 	return func() tea.Msg {
 		count := token.CountTokens(promptMsgs)
@@ -130,9 +130,9 @@ func (m Model) updateTokenCountCmd() tea.Cmd {
 	}
 }
 
-func (m *Model) addActiveSession(sess *coder.Session) {
+func (m *Model) addActiveSession(sess engine.EngineSession) {
 	for i, s := range m.ActiveSessions {
-		if s.ID == sess.ID {
+		if s.GetID() == sess.GetID() {
 			m.ActiveSessions[i] = sess
 			return
 		}
@@ -147,26 +147,36 @@ func (m *Model) addActiveSession(sess *coder.Session) {
 
 func (m Model) switchSessionByID(id string) tea.Cmd {
 	for _, sess := range m.ActiveSessions {
-		if sess.ID == id {
+		if sess.GetID() == id {
 			return func() tea.Msg { return switchActiveSessionMsg{sess: sess} }
 		}
 	}
 	return nil
 }
 
-func (m Model) getSessionByID(id string) *coder.Session {
+func (m Model) getSessionByID(id string) engine.EngineSession {
 	if id == "" {
 		return m.Session
 	}
-	if m.Session != nil && m.Session.ID == id {
+	if m.Session != nil && m.Session.GetID() == id {
 		return m.Session
 	}
 	for _, s := range m.ActiveSessions {
-		if s.ID == id {
+		if s.GetID() == id {
 			return s
 		}
 	}
 	return nil
+}
+
+func (m Model) Keymap() config.Keymap {
+	if m.Session != nil && m.Session.Capabilities().Has(engine.CapToolLoop) {
+		return m.Session.GetConfig().Agent.Keymap
+	}
+	if m.Session != nil {
+		return m.Session.GetConfig().Coder.Keymap
+	}
+	return config.DefaultKeymap()
 }
 
 func (m Model) needsSpinner() bool {

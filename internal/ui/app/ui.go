@@ -1,27 +1,20 @@
-package coderui
+package app
 
 import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine"
 )
 
-func Start(mode string, prompt string, contextFiles []string, instruction string) {
+func Start(sess engine.EngineSession, prompt string) error {
 	log.SetOutput(io.Discard)
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("Error loading configuration: %v\n", err)
-		os.Exit(1)
-	}
 
-	mainModel, err := NewModel(cfg, mode, prompt, contextFiles, instruction)
+	mainModel, err := NewModel(sess, prompt)
 	if err != nil {
-		fmt.Printf("Error creating model: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error creating model: %w", err)
 	}
 
 	manager := NewManager(&mainModel)
@@ -38,8 +31,7 @@ func Start(mode string, prompt string, contextFiles []string, instruction string
 
 	finalModel, err := p.Run()
 	if err != nil {
-		fmt.Printf("Error starting program: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error starting program: %w", err)
 	}
 
 	// Save conversation on exit
@@ -50,4 +42,5 @@ func Start(mode string, prompt string, contextFiles []string, instruction string
 			}
 		}
 	}
+	return nil
 }

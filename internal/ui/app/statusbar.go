@@ -1,10 +1,11 @@
-package coderui
+package app
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/ui/core"
 	"github.com/sokinpui/coder/pkg/version"
 )
@@ -35,7 +36,11 @@ func (m Model) StatusView() string {
 		leftStatus = statusStyle.Render("-- ATOMIC MSG --")
 	}
 
-	modelInfo := fmt.Sprintf("Model: %s", m.Session.GetConfig().Coder.ModelCode)
+	modelCode := m.Session.GetConfig().Coder.ModelCode
+	if m.Session.Capabilities().Has(engine.CapToolLoop) {
+		modelCode = m.Session.GetConfig().Agent.ModelCode
+	}
+	modelInfo := fmt.Sprintf("Model: %s", modelCode)
 	versionPart := modelInfoStyle.Render(fmt.Sprintf("%s", version.Get()))
 
 	modelPart := modelInfoStyle.Render(modelInfo)
@@ -46,6 +51,14 @@ func (m Model) StatusView() string {
 			rightStatusItems = append(rightStatusItems, tokenPart)
 		}
 		rightStatusItems = append(rightStatusItems, versionPart, modelPart)
+	}
+
+	if m.Session.Capabilities().Has(engine.CapToolToggle) {
+		toolsStatus := "Tools: [Compact] (Ctrl+T)"
+		if m.ToolsExpanded {
+			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
+		}
+		rightStatusItems = append(rightStatusItems, core.ToolMutedStyle.Render(toolsStatus))
 	}
 
 	switch m.State {
@@ -60,6 +73,9 @@ func (m Model) StatusView() string {
 			statusStyle = askingStatusStyle
 		case stateThinking:
 			statusText = "Thinking"
+			if m.StatusText != "" {
+				statusText = m.StatusText
+			}
 			statusStyle = thinkingStatusStyle
 		case stateGenerating:
 			statusText = "Generating"

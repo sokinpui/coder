@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"github.com/sokinpui/coder/internal/types"

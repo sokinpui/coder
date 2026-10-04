@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
@@ -28,7 +28,7 @@ func (s *Server) handleInit(req Request) {
 		s.cfg.Coder.ModelCode = params.Model
 	}
 
-	sess, err := engine.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
+	sess, err := coder.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to initialize session: %v", err))
 		return
@@ -124,6 +124,13 @@ func (s *Server) handlePrompt(req Request) {
 
 func (s *Server) streamToClient(streamChan chan types.StreamChunk) {
 	for chunk := range streamChan {
+		if chunk.Error != nil {
+			s.sendNotification("session/chunk", StreamChunkNotification{
+				Error: chunk.Error.Error(),
+				Done:  true,
+			})
+			return
+		}
 		if chunk.Content != "" {
 			msgs := s.session.GetMessages()
 			if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
@@ -266,12 +273,13 @@ func (s *Server) handleBranch(req Request) {
 	}
 
 	_ = s.session.SaveConversation()
-	newSess, err := s.session.Branch(idx)
+	newSessEngine, err := s.session.Branch(idx)
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to branch session: %v", err))
 		return
 	}
 
+	newSess := newSessEngine.(*coder.Session)
 	s.session = newSess
 	_ = s.session.SaveConversation()
 	s.hydrateSessionImages()

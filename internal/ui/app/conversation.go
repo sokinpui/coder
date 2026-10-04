@@ -1,4 +1,4 @@
-package coderui
+package app
 
 import (
 	"strings"
@@ -28,7 +28,7 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 
 	if msg.Type == types.AIMessage {
 		if len(msg.ToolCalls) > 0 {
-			tcPart := core.RenderToolCallMessage(msg, false, viewportWidth)
+			tcPart := core.RenderToolCallMessage(msg, m.ToolsExpanded, viewportWidth)
 			if tcPart != "" {
 				lines := strings.Split(tcPart, "\n")
 				if msg.Content != "" {
@@ -81,12 +81,37 @@ func (m Model) renderThinkingLine() string {
 	switch m.State {
 	case stateAsking:
 		text = "Asking "
+	case stateThinking:
+		if m.StatusText != "" {
+			text = m.StatusText + " "
+		}
 	}
 	return core.RenderThinkingSpinner(text, m.Chat.Spinner.View())
 }
 
 func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
+	if msg.Type == types.ToolCallMessage {
+		return core.RenderToolCallMessage(msg, m.ToolsExpanded, viewportWidth)
+	}
+	if msg.Type == types.ToolResultMessage {
+		toolName := m.getToolNameForCallID(msg.ToolCallID)
+		return core.RenderToolResultMessage(msg, toolName, m.ToolsExpanded, viewportWidth)
+	}
 	return core.RenderMessage(msg, viewportWidth, nil)
+}
+
+func (m Model) getToolNameForCallID(callID string) string {
+	if callID == "" {
+		return ""
+	}
+	for _, msg := range m.Session.GetMessages() {
+		for _, tc := range msg.ToolCalls {
+			if tc.ID == callID {
+				return tc.Name
+			}
+		}
+	}
+	return ""
 }
 
 func (m *Model) renderConversation() string {
