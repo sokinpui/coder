@@ -164,8 +164,12 @@ func (a *App) applyChanges(plan *ExecutionPlan) (Summary, error) {
 		progress()
 	}
 
-	if len(deleted) > 0 {
-		cleanEmptyDirectories(deleted, a.stateManager.ProjectRoot)
+	if len(deleted) > 0 || len(renamedSuccess) > 0 || len(plan.DirsToDelete) > 0 {
+		var toClean []string
+		toClean = append(toClean, deleted...)
+		toClean = append(toClean, renamedSuccess...)
+		toClean = append(toClean, plan.DirsToDelete...)
+		cleanEmptyDirectories(toClean, a.stateManager.ProjectRoot)
 	}
 
 	a.recordHistory(created, modified, deleted, renamedSuccess, renamedMap, plan, oldHashes)
@@ -262,10 +266,14 @@ func (a *App) redoLastOperation() (Summary, error) {
 	return s, nil
 }
 
-func cleanEmptyDirectories(deletedPaths []string, root string) {
+func cleanEmptyDirectories(paths []string, root string) {
 	dirSet := make(map[string]struct{})
-	for _, p := range deletedPaths {
-		dir := filepath.Dir(p)
+	for _, p := range paths {
+		dir := p
+		info, err := os.Stat(p)
+		if err != nil || !info.IsDir() {
+			dir = filepath.Dir(p)
+		}
 		for dir != "." && dir != "/" && dir != root {
 			dirSet[dir] = struct{}{}
 			parent := filepath.Dir(dir)
@@ -291,9 +299,11 @@ func cleanEmptyDirectories(deletedPaths []string, root string) {
 	}
 
 	for _, d := range dirs {
-		if entries, err := os.ReadDir(d); err == nil && len(entries) == 0 {
-			_ = os.Remove(d)
+		entries, err := os.ReadDir(d)
+		if err != nil || len(entries) > 0 {
+			continue
 		}
+		_ = os.Remove(d)
 	}
 }
 

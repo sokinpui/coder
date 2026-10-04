@@ -13,6 +13,7 @@ type ExecutionPlan struct {
 	Actions      []PlannedAction
 	FileActions  map[string]string
 	DirsToCreate map[string]struct{}
+	DirsToDelete []string
 	Failed       []string
 }
 
@@ -29,10 +30,25 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 
 	var actions []PlannedAction
 	var failed []string
+	var dirsToDelete []string
 
-	// Track renames as we go to resolve diff sources correctly
 	renameDestSet := make(map[string]struct{})
 	renameDestToSource := make(map[string]string)
+	renameSourceSet := make(map[string]struct{})
+
+	for _, b := range allBlocks {
+		if b.Lang != "rename" {
+			continue
+		}
+		parsed := parseRenameBlock(b, resolver, allowedFiles)
+		for _, r := range parsed {
+			renameDestSet[r.NewPath] = struct{}{}
+			renameDestToSource[r.NewPath] = r.OldPath
+			renameSourceSet[r.OldPath] = struct{}{}
+		}
+	}
+
+	seenDelete := make(map[string]struct{})
 
 	for _, b := range allBlocks {
 		switch b.Lang {
@@ -40,12 +56,15 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 			parsed := parseRenameBlock(b, resolver, allowedFiles)
 			for _, r := range parsed {
 				actions = append(actions, PlannedAction{Type: "rename", Rename: &r})
-				renameDestSet[r.NewPath] = struct{}{}
-				renameDestToSource[r.NewPath] = r.OldPath
 			}
 		case "delete":
-			paths := parseDeleteBlock(b, resolver, allowedFiles)
+			paths, dirs := parseDeleteBlock(b, resolver, allowedFiles, renameSourceSet)
+			dirsToDelete = append(dirsToDelete, dirs...)
 			for _, p := range paths {
+				if _, seen := seenDelete[p]; seen {
+					continue
+				}
+				seenDelete[p] = struct{}{}
 				actions = append(actions, PlannedAction{Type: "delete", Path: p})
 			}
 		case "diff":
@@ -109,6 +128,7 @@ func CreatePlan(content string, resolver *PathResolver, extensions []string, fil
 		Actions:      actions,
 		FileActions:  fileActions,
 		DirsToCreate: dirs,
+		DirsToDelete: dirsToDelete,
 		Failed:       failed,
 	}, nil
 }
@@ -160,8 +180,9 @@ func HasAllowedExtension(path string, extensions []string) bool {
 	return slices.Contains(extensions, filepath.Ext(path))
 }
 
-func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]struct{}) []string {
+func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]struct{}, renameSources map[string]struct{}) ([]string, []string) {
 	var paths []string
+	var dirs []string
 	for line := range strings.SplitSeq(b.Content, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
@@ -173,19 +194,32 @@ func parseDeleteBlock(b CodeBlock, resolver *PathResolver, allowed map[string]st
 		}
 
 		info, err := os.Stat(abs)
-		if err == nil && info.IsDir() {
+		isDir := (err == nil && info.IsDir()) || strings.HasSuffix(trimmed, "/")
+		if isDir {
+			dirs = append(dirs, abs)
+			if err != nil || !info.IsDir() {
+				continue
+			}
 			_ = filepath.WalkDir(abs, func(p string, d fs.DirEntry, walkErr error) error {
-				if walkErr == nil && !d.IsDir() && isAllowed(p, allowed) {
-					paths = append(paths, p)
+				if walkErr != nil || d.IsDir() || !isAllowed(p, allowed) {
+					return nil
 				}
+				if _, renamed := renameSources[p]; renamed {
+					return nil
+				}
+				paths = append(paths, p)
 				return nil
 			})
 			continue
 		}
 
+		if _, renamed := renameSources[abs]; renamed {
+			continue
+		}
+
 		paths = append(paths, abs)
 	}
-	return paths
+	return paths, dirs
 }
 
 func parseRenameBlock(b CodeBlock, resolver *PathResolver, allowed map[string]struct{}) []FileRename {
