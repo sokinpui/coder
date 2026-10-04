@@ -404,16 +404,18 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 }
 
 func (m Model) showQuickView(cmdName string) (tea.Model, tea.Cmd) {
-	res, _ := m.Session.ExecuteCommand(cmdName)
+	ctrl, ok := m.Session.(commands.SessionController)
+	if !ok {
+		return m, nil
+	}
+
+	res, _, _ := commands.ProcessCommand(cmdName, ctrl)
 	m.QuickView.SetMessages([]types.Message{
-		{Type: types.CommandMessage, Content: cmdName},
 		{Type: types.CommandResultMessage, Content: res.Payload},
 	})
-	m.Chat.Viewport.SetContent(m.renderConversation())
-	m.Chat.Viewport.GotoBottom()
 	m.ActiveOverlay = overlayQuickView
 	m.Chat.TextArea.Blur()
-	return m, m.updateTokenCountCmd()
+	return m, nil
 }
 
 func (m Model) applyPaletteSelection() Model {
