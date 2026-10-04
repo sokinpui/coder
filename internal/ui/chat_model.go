@@ -1,0 +1,70 @@
+package ui
+
+import (
+	"time"
+
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/ui/markdown"
+)
+
+type ChatModel struct {
+	TextArea                 textarea.Model
+	Viewport                 viewport.Model
+	Spinner                  spinner.Model
+	EventSub                 <-chan types.SessionEvent
+	IsStreaming              bool
+	IsAIRendering            bool
+	PendingAIRender          bool
+	CtrlCPressed             bool
+	LastInteractionFailed    bool
+	ShowPalette              bool
+	PaletteFilteredCommands  []string
+	PaletteFilteredArguments []string
+	PaletteCursor            int
+	PaletteOffset            int
+	IsCyclingCompletions     bool
+	IsFetchingModels         bool
+	AnimatingTitle           bool
+	FullGeneratedTitle       string
+	DisplayedTitle           string
+	EditingMessageIndex      int
+	MessageLineOffsets       map[int]int
+	PreserveInputOnSubmit    bool
+	RenderCache              map[int]markdown.CachedRender
+	StateStartTime           time.Time
+	AutoSubmitPending        bool
+}
+
+func NewChat(initialInput string) ChatModel {
+	s := spinner.New()
+	s.Spinner = TypingSpinner
+	s.Style = GeneratingStatusStyle
+
+	ta := textarea.New()
+	ta.Placeholder = "Enter your prompt..."
+	ta.Focus()
+	ta.SetValue(initialInput)
+	ta.CursorEnd()
+	ta.SetHeight(1)
+	ta.Prompt = ""
+	ta.ShowLineNumbers = false
+	ta.CharLimit = 0
+	ta.MaxHeight = 0
+	ta.MaxWidth = 0
+	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+
+	return ChatModel{
+		TextArea:            ta,
+		Viewport:            viewport.New(80, 20),
+		Spinner:             s,
+		IsFetchingModels:    true,
+		MessageLineOffsets:  make(map[int]int),
+		EditingMessageIndex: -1,
+		RenderCache:         make(map[int]markdown.CachedRender),
+		AutoSubmitPending:   initialInput != "",
+	}
+}

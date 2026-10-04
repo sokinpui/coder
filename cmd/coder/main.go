@@ -18,7 +18,7 @@ import (
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
-	"github.com/sokinpui/coder/internal/ui/app"
+	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -366,7 +366,7 @@ func startApp(mode string, prompt string, contextFiles []string, instruction str
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)
 	}
-	_ = app.Start(sess, prompt)
+	_ = ui.Start(sess, prompt)
 }
 
 func applyChanges(args []string) {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coagent"
-	"github.com/sokinpui/coder/internal/ui/app"
+	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -64,7 +64,7 @@ func main() {
 				sess.Instruction = customInstruction
 			}
 
-			if err := app.Start(sess, prompt); err != nil {
+			if err := ui.Start(sess, prompt); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
