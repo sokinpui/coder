@@ -25,6 +25,9 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		}
 		return CommandInputStyle.Width(viewportWidth - CommandInputStyle.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
+		if msg.IsDocumentImage() {
+			return ""
+		}
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
 	case types.AIMessage:
 		var parts []string

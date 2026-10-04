@@ -187,7 +187,7 @@ func processMessageContent(msg *types.Message, rawContent string) {
 	msg.Content = content
 }
 
-func appendParsedMessage(messages *[]types.Message, current *types.Message, rawContent string) {
+func appendParsedMessage(messages *[]types.Message, current *types.Message, rawContent string, isCoagent bool) {
 	content := strings.TrimSpace(rawContent)
 	if current.Type == types.AIMessage && strings.Contains(content, "```tool_call") {
 		var textLines []string
@@ -233,8 +233,10 @@ func appendParsedMessage(messages *[]types.Message, current *types.Message, rawC
 	}
 
 	processMessageContent(current, rawContent)
-	if current.Type != types.InstructionMessage && current.Type != types.SourceCodeMessage && !isDocumentImage(current.Content) {
-		*messages = append(*messages, *current)
+	if current.Type != types.InstructionMessage && current.Type != types.SourceCodeMessage {
+		if !current.IsDocumentImage() || isCoagent {
+			*messages = append(*messages, *current)
+		}
 	}
 }
 
@@ -342,6 +344,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	var messages []types.Message
 	var currentMessage *types.Message
 	var contentBuilder strings.Builder
+	isCoagent := metadata != nil && metadata.Mode == "coagent"
 
 	convScanner := bufio.NewScanner(bytes.NewReader(conversationContentBytes))
 	for convScanner.Scan() {
@@ -350,7 +353,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 		for role, msgType := range roleToMessageType {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
-					appendParsedMessage(&messages, currentMessage, contentBuilder.String())
+					appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isCoagent)
 				}
 				contentBuilder.Reset()
 				currentMessage = &types.Message{Type: msgType}
@@ -366,7 +369,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	}
 
 	if currentMessage != nil {
-		appendParsedMessage(&messages, currentMessage, contentBuilder.String())
+		appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isCoagent)
 	}
 
 	return metadata, messages, nil

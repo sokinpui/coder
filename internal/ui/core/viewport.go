@@ -79,6 +79,10 @@ func (v *Viewport) Resize(width, height int) {
 }
 
 func (v *Viewport) GetMessageLines(msg types.Message, idx, total int, isStreaming bool) []string {
+	if msg.IsDocumentImage() {
+		return nil
+	}
+
 	viewportWidth := v.Width
 	isLiveAI := isStreaming && idx == total-1 && msg.Type == types.AIMessage
 
@@ -209,6 +213,9 @@ func (v *Viewport) RenderMessages(messages []types.Message, isStreaming bool, tr
 
 	total := len(messages)
 	for i, msg := range messages {
+		if msg.IsDocumentImage() {
+			continue
+		}
 		offsets[i] = currentLine
 		lines := v.GetMessageLines(msg, i, total, isStreaming)
 		allLines = append(allLines, lines...)

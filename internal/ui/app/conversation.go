@@ -13,6 +13,10 @@ func (m Model) isLiveAIMessage(idx, total int, msg types.Message) bool {
 }
 
 func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int) []string {
+	if msg.IsDocumentImage() {
+		return nil
+	}
+
 	cache, isCached := m.Chat.RenderCache[idx]
 
 	if m.isLiveAIMessage(idx, total, msg) {
@@ -90,6 +94,9 @@ func (m Model) renderThinkingLine() string {
 }
 
 func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
+	if msg.IsDocumentImage() {
+		return ""
+	}
 	if msg.Type == types.ToolCallMessage {
 		return core.RenderToolCallMessage(msg, m.ToolsExpanded, viewportWidth)
 	}

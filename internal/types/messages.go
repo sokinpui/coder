@@ -135,6 +135,20 @@ func (t MessageType) IsEditable() bool {
 	}
 }
 
+func (m Message) IsDocumentImage() bool {
+	if m.Type != ImageMessage {
+		return false
+	}
+	slashed := strings.ReplaceAll(m.Content, "\\", "/")
+	parts := strings.Split(slashed, "/")
+	for i, part := range parts {
+		if part == "images" && i+2 < len(parts) {
+			return true
+		}
+	}
+	return false
+}
+
 // IsSelectable returns true if the message can be focused/selected in Atomic Messages overlay.
 func (t MessageType) IsSelectable() bool {
 	switch t {

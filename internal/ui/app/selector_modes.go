@@ -534,6 +534,9 @@ func (m Model) syncViewportToMessage(msgIdx int) Model {
 func getSelectableIndices(messages []types.Message) []int {
 	var indices []int
 	for i, msg := range messages {
+		if msg.IsDocumentImage() {
+			continue
+		}
 		if msg.Type.IsSelectable() {
 			indices = append(indices, i)
 		}
