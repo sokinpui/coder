@@ -32,11 +32,11 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	switch cmdOutput.Type {
 	case types.NewSessionStarted, types.Quit:
 		return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
-	case types.TermExecutionStarted:
+	case types.ShellExecutionStarted:
 		if !silent {
 			s.messages = append(s.messages, types.Message{Type: types.ShellCmdMessage, Content: input})
 		}
-		return types.Event{Type: types.TermExecutionStarted, Data: cmdOutput.Payload}
+		return types.Event{Type: types.ShellExecutionStarted, Data: cmdOutput.Payload}
 	case types.NoOp:
 		return types.Event{Type: types.NoOp}
 	}

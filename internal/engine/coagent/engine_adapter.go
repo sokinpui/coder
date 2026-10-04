@@ -32,7 +32,8 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapToolLoop |
 		engine.CapModelSwitch |
 		engine.CapBranch |
-		engine.CapRegenerate
+		engine.CapRegenerate |
+		engine.CapShell
 }
 
 func (s *Session) GetMessages() []types.Message {
@@ -99,6 +100,10 @@ func (s *Session) GetCommandSuggestions(cmdName, prefix string) []string {
 func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 	out, _, success := commands.ProcessCommand(input, s)
 	if out.Type == types.NewSessionStarted || out.Type == types.Quit || out.Type == types.NoOp {
+		return out, success
+	}
+	if out.Type == types.ShellExecutionStarted {
+		s.Messages = append(s.Messages, types.Message{Type: types.ShellCmdMessage, Content: input})
 		return out, success
 	}
 	msgType := types.CommandMessage

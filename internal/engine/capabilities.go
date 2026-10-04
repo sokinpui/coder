@@ -9,7 +9,7 @@ const (
 	CapModelSwitch
 	CapBranch
 	CapRegenerate
-	CapTerminal
+	CapShell
 	CapDocumentContext
 	CapToolLoop
 )

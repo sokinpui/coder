@@ -48,7 +48,7 @@ var commandGroup = helpGroup{
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
-	{key: "term", desc: "Run interactive terminal command or open subshell.", cap: engine.CapTerminal},
+	{key: "shell", desc: "Run interactive terminal command or open subshell.", cap: engine.CapShell},
 	{key: "undo", desc: "Undo the last file changes applied by itf.", cap: engine.CapITF},
 }
 

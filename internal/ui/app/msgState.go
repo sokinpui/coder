@@ -87,7 +87,7 @@ type (
 		sess engine.EngineSession
 	}
 	pasteResultMsg  = core.PasteResultMsg
-	termFinishedMsg struct {
+	shellFinishedMsg struct {
 		cmdStr string
 		output string
 		err    error

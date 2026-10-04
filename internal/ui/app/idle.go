@@ -29,11 +29,11 @@ func (m Model) handleEvent(event types.Event) (tea.Model, tea.Cmd) {
 	case types.GenerationStarted:
 		return m, nil
 
-	case types.TermExecutionStarted:
+	case types.ShellExecutionStarted:
 		cmdStr, _ := event.Data.(string)
 		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Blur()
-		return m, execTerminalCmd(cmdStr)
+		return m, execShellCmd(cmdStr)
 
 	case types.Quit:
 		m.Quitting = true
@@ -119,10 +119,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case types.NewSessionStarted:
 		return m.newSession(cmdOut.Mode)
-	case types.TermExecutionStarted:
+	case types.ShellExecutionStarted:
 		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Blur()
-		return m, execTerminalCmd(cmdOut.Payload)
+		return m, execShellCmd(cmdOut.Payload)
 	case types.NoOp:
 		return m, nil
 	}

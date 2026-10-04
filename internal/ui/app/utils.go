@@ -283,21 +283,21 @@ func getUserShell() string {
 	return shell
 }
 
-func execTerminalCmd(cmdStr string) tea.Cmd {
+func execShellCmd(cmdStr string) tea.Cmd {
 	shell := getUserShell()
 	trimmed := strings.TrimSpace(cmdStr)
 	if trimmed == "" {
 		c := exec.Command(shell)
 		return tea.ExecProcess(c, func(err error) tea.Msg {
-			return termFinishedMsg{cmdStr: "", err: err}
+			return shellFinishedMsg{cmdStr: "", err: err}
 		})
 	}
 
-	tmpFile, err := os.CreateTemp("", "coder-term-*.log")
+	tmpFile, err := os.CreateTemp("", "coder-shell-*.log")
 	if err != nil {
 		c := exec.Command(shell, "-c", trimmed)
 		return tea.ExecProcess(c, func(err error) tea.Msg {
-			return termFinishedMsg{cmdStr: trimmed, err: err}
+			return shellFinishedMsg{cmdStr: trimmed, err: err}
 		})
 	}
 	tmpPath := tmpFile.Name()
@@ -309,7 +309,7 @@ func execTerminalCmd(cmdStr string) tea.Cmd {
 		defer os.Remove(tmpPath)
 		data, _ := os.ReadFile(tmpPath)
 		output := strings.TrimSpace(string(data))
-		return termFinishedMsg{cmdStr: trimmed, output: output, err: runErr}
+		return shellFinishedMsg{cmdStr: trimmed, output: output, err: runErr}
 	})
 }
 

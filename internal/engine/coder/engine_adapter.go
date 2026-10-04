@@ -22,7 +22,7 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapModelSwitch |
 		engine.CapBranch |
 		engine.CapRegenerate |
-		engine.CapTerminal |
+		engine.CapShell |
 		engine.CapDocumentContext
 }
 
@@ -49,6 +49,10 @@ func (s *Session) GetCommandSuggestions(cmdName, prefix string) []string {
 func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 	out, _, success := commands.ProcessCommand(input, s)
 	if out.Type == types.NewSessionStarted || out.Type == types.Quit || out.Type == types.NoOp {
+		return out, success
+	}
+	if out.Type == types.ShellExecutionStarted {
+		s.messages = append(s.messages, types.Message{Type: types.ShellCmdMessage, Content: input})
 		return out, success
 	}
 

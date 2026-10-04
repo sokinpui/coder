@@ -7,7 +7,7 @@ const (
 	MessagesUpdated
 	GenerationStarted
 	NewSessionStarted
-	TermExecutionStarted
+	ShellExecutionStarted
 	Quit
 )
 

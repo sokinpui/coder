@@ -7,13 +7,13 @@ import (
 )
 
 func init() {
-	registerCommand("term", termCmd, "run interactive terminal command or open subshell", PathArgumentCompleter)
+	registerCommand("shell", shellCmd, "run interactive terminal command or open subshell", PathArgumentCompleter)
 }
 
-func termCmd(args string, s SessionController) (CommandOutput, bool) {
+func shellCmd(args string, s SessionController) (CommandOutput, bool) {
 	trimmed := strings.TrimSpace(args)
 	return CommandOutput{
-		Type:    types.TermExecutionStarted,
+		Type:    types.ShellExecutionStarted,
 		Payload: trimmed,
 		IsShell: true,
 	}, true

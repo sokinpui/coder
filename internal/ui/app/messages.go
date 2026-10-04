@@ -558,7 +558,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd()), true
 
-	case termFinishedMsg:
+	case shellFinishedMsg:
 		if msg.cmdStr != "" {
 			resType := types.ShellCmdResultMessage
 			content := msg.output
