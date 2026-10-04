@@ -86,8 +86,13 @@ func ProcessCommand(input string, s SessionController) (result CommandOutput, is
 	cmdName := parts[0]
 	args := strings.Join(parts[1:], " ")
 
+	caps := engine.Capability(0)
+	if s != nil {
+		caps = s.Capabilities()
+	}
+
 	cmd, exists := commands[cmdName]
-	if exists {
+	if exists && isCommandAllowed(cmdName, caps) {
 		result, success = cmd(args, s)
 		return result, true, success
 	}

@@ -11,7 +11,7 @@ func init() {
 
 func listCmd(args string, s SessionController) (CommandOutput, bool) {
 	if !s.Capabilities().Has(engine.CapContextFiles) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context files are not supported in this session."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: list"}, false
 	}
 
 	allFiles := s.GetContextFiles()

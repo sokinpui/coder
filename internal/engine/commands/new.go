@@ -7,5 +7,9 @@ func init() {
 }
 
 func newCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.NewSessionStarted, Mode: "coder"}, true
+	mode := "coder"
+	if s != nil && s.GetMode() != "" {
+		mode = s.GetMode()
+	}
+	return CommandOutput{Type: types.NewSessionStarted, Mode: mode}, true
 }

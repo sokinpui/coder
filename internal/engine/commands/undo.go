@@ -13,7 +13,7 @@ func init() {
 
 func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 	if !s.Capabilities().Has(engine.CapITF) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "ITF undo is not supported in this session."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: undo"}, false
 	}
 
 	if !s.HasAppliedChanges() {

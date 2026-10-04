@@ -24,6 +24,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	// Handle global keybindings first
 	switch keyStr {
 	case km.ContextList:
+		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
+			return m, nil, false
+		}
 		newModel, cmd := m.showQuickView("/list")
 		return newModel, cmd, true
 	case km.Suspend:

@@ -72,7 +72,7 @@ func ExecuteItf(content string, args string) ItfResult {
 
 func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	if !s.Capabilities().Has(engine.CapITF) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "ITF code application is not supported in this session."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: itf"}, false
 	}
 
 	messages := s.GetMessages()

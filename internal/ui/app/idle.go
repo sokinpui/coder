@@ -191,7 +191,15 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, false
 
-	case "help", "list":
+	case "list":
+		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
+			return m, nil, false
+		}
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.showQuickView("/list")
+		return newModel, cmd, true
+
+	case "help":
 		m.Chat.TextArea.Reset()
 		newModel, cmd := m.showQuickView("/" + cmdName)
 		return newModel, cmd, true

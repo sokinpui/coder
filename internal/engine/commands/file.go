@@ -50,7 +50,7 @@ func PathArgumentCompleter(s SessionController, prefix string) []string {
 
 func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	if !s.Capabilities().Has(engine.CapContextFiles) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context files are not supported in this session."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: file"}, false
 	}
 
 	paths := strings.Fields(args)

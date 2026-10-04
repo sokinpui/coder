@@ -237,7 +237,19 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	m.Chat.TextArea.Blur()
 
 	m.Selector = NewSelector()
-	m.Selector.Title = "── Atomic Messages [Esc/C-c: exit | v: select | o: swap | y/d: copy/del | a/e/r/b] ──"
+	var actions []string
+	if m.Session.Capabilities().Has(engine.CapITF) {
+		actions = append(actions, "a")
+	}
+	actions = append(actions, "e")
+	if m.Session.Capabilities().Has(engine.CapRegenerate) {
+		actions = append(actions, "r")
+	}
+	if m.Session.Capabilities().Has(engine.CapBranch) {
+		actions = append(actions, "b")
+	}
+	actionList := strings.Join(actions, "/")
+	m.Selector.Title = fmt.Sprintf("── Atomic Messages [Esc/C-c: exit | v: select | o: swap | y/d: copy/del | %s] ──", actionList)
 	m.Selector.ShowSearch = false
 	m.Selector.IsSearching = false
 	m.Selector.FooterHelp = ""
@@ -312,12 +324,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case "a":
 		if !m.Session.Capabilities().Has(engine.CapITF) {
-			m.StatusBarMessage = "ITF code application is not supported in this session."
-			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
-				m.Chat.TextArea.Focus()
-			}
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+			return m, nil, false
 		}
 		m.Selector.IsSelecting = false
 		targetMsg := messages[currIdx]
@@ -479,12 +486,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case "b":
 		if !m.Session.Capabilities().Has(engine.CapBranch) {
-			m.StatusBarMessage = "Branching is not supported in this session."
-			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
-				m.Chat.TextArea.Focus()
-			}
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
+			return m, nil, false
 		}
 		m.Selector.IsSelecting = false
 		if m.Chat.IsStreaming {

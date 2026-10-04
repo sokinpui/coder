@@ -21,7 +21,7 @@ func excludeArgumentCompleter(s SessionController, prefix string) []string {
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 	if !s.Capabilities().Has(engine.CapContextFiles) {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context files are not supported in this session."}, false
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: exclude"}, false
 	}
 
 	paths := strings.Fields(args)
