@@ -75,18 +75,11 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 
 	switch msg.Type {
 	case types.UserMessage, types.ImageMessage, types.CommandMessage, types.ShellCmdMessage,
-		types.ContextCmdMessage, types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
+		types.ContextCmdMessage, types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage,
+		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
 		colStart := 2
-		prefix := ""
-		if msg.Type == types.ShellCmdMessage {
-			prefix = "Shell: "
-		} else if msg.Type == types.ImageMessage {
-			prefix = "Image: "
-		}
-
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
-			lineWidth := ansi.StringWidth(line)
 			if i == 0 || i == len(renderedLines)-1 {
 				metas[i] = LineMeta{
 					MsgIndex:     msgIdx,
@@ -94,19 +87,9 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				}
 				continue
 			}
-
-			contentEnd := max(colStart, lineWidth-1)
-			rawText := plain
-			if len(rawText) > colStart {
-				rawText = rawText[colStart:]
-			}
-			if len(rawText) > 0 && strings.HasSuffix(rawText, "│") {
-				rawText = strings.TrimSuffix(rawText, "│")
-			}
-			rawText = strings.TrimRight(rawText, " ")
-			if i == 1 && prefix != "" && strings.HasPrefix(rawText, prefix) {
-				rawText = strings.TrimPrefix(rawText, prefix)
-			}
+			contentTrimmed := strings.TrimRight(strings.TrimSuffix(plain, "│"), " ")
+			contentEnd := max(colStart, ansi.StringWidth(contentTrimmed))
+			rawText := ansi.Cut(plain, colStart, contentEnd)
 
 			metas[i] = LineMeta{
 				MsgIndex:        msgIdx,
@@ -118,21 +101,17 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		}
 
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
-		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage,
-		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
+		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		colStart := 2
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
-			lineWidth := ansi.StringWidth(line)
-			rawText := plain
-			if len(rawText) > colStart {
-				rawText = rawText[colStart:]
-			}
-			rawText = strings.TrimRight(rawText, " ")
+			contentTrimmed := strings.TrimRight(plain, " ")
+			contentEnd := max(colStart, ansi.StringWidth(contentTrimmed))
+			rawText := ansi.Cut(plain, colStart, contentEnd)
 			metas[i] = LineMeta{
 				MsgIndex:        msgIdx,
 				ContentColStart: colStart,
-				ContentColEnd:   lineWidth,
+				ContentColEnd:   contentEnd,
 				Text:            rawText,
 				IsContinuation:  false,
 			}
@@ -141,12 +120,13 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 	default:
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
-			lineWidth := ansi.StringWidth(line)
+			contentTrimmed := strings.TrimRight(plain, " \r\n")
+			contentEnd := ansi.StringWidth(contentTrimmed)
 			metas[i] = LineMeta{
 				MsgIndex:        msgIdx,
 				ContentColStart: 0,
-				ContentColEnd:   lineWidth,
-				Text:            strings.TrimRight(plain, " \r\n"),
+				ContentColEnd:   contentEnd,
+				Text:            contentTrimmed,
 				IsContinuation:  false,
 			}
 		}
@@ -170,6 +150,12 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 		lines := m.getMessageLines(msg, i, total, viewportWidth)
 		if len(lines) == 0 {
 			continue
+		}
+
+		for j, l := range lines {
+			if strings.Contains(l, "\t") {
+				lines[j] = markdown.ExpandTabs(l, 4)
+			}
 		}
 
 		metas := buildLineMetasForMessage(msg, i, lines)

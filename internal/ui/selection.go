@@ -67,7 +67,7 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if len(m.Chat.RenderedLines) == 0 {
-		_ = m.renderConversation()
+		_ = (&m).renderConversation()
 	}
 
 	switch msg.Action {
@@ -122,6 +122,11 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		clampedY := max(0, min(msg.Y, m.Chat.Viewport.Height-1))
+		absRow := m.Chat.Viewport.YOffset + clampedY
+		col := max(0, msg.X)
+		m.Chat.Selection.End = SelectionPoint{Row: absRow, Col: col}
+
 		m.Chat.Selection.Dragging = false
 		if m.Chat.Selection.IsEmpty() {
 			m.Chat.Selection.Active = false
@@ -168,17 +173,18 @@ func (m Model) applySelectionToLines(lines []string) string {
 			continue
 		}
 
-		sc := 0
-		ec := lineWidth
-		if meta.ContentColEnd > 0 {
-			sc = meta.ContentColStart
-			ec = meta.ContentColEnd
+		sc := meta.ContentColStart
+		ec := meta.ContentColEnd
+		if ec <= 0 {
+			plain := ansi.Strip(line)
+			ec = ansi.StringWidth(strings.TrimRight(plain, " \r\n"))
 		}
+
 		if r == start.Row {
-			sc = max(0, start.Col)
+			sc = max(sc, start.Col)
 		}
 		if r == end.Row {
-			ec = min(lineWidth, end.Col)
+			ec = min(ec, end.Col)
 		}
 
 		if sc >= ec {
@@ -221,9 +227,18 @@ func (m Model) extractSelectedText() string {
 	lastRow := min(len(m.Chat.RenderedLines)-1, end.Row)
 
 	var extracted []string
-	var currentLine strings.Builder
 
 	for r := firstRow; r <= lastRow; r++ {
+		line := m.Chat.RenderedLines[r]
+		plain := ansi.Strip(line)
+		trimmed := strings.TrimRight(plain, " \r\n")
+		if len(trimmed) == 0 {
+			if r > firstRow && r < lastRow {
+				extracted = append(extracted, "")
+			}
+			continue
+		}
+
 		var meta LineMeta
 		if r < len(m.Chat.LineMetas) {
 			meta = m.Chat.LineMetas[r]
@@ -232,26 +247,24 @@ func (m Model) extractSelectedText() string {
 			continue
 		}
 
-		text := meta.Text
-		if text == "" {
-			text = strings.TrimRight(ansi.Strip(m.Chat.RenderedLines[r]), " \t\r")
+		sc := meta.ContentColStart
+		ec := meta.ContentColEnd
+		if ec <= 0 {
+			ec = ansi.StringWidth(trimmed)
 		}
-
-		if meta.IsContinuation && currentLine.Len() > 0 {
-			currentLine.WriteString(" ")
-			currentLine.WriteString(text)
+		if r == start.Row {
+			sc = max(sc, start.Col)
+		}
+		if r == end.Row {
+			ec = min(ec, end.Col)
+		}
+		if sc >= ec {
 			continue
 		}
 
-		if currentLine.Len() > 0 {
-			extracted = append(extracted, strings.TrimRight(currentLine.String(), " \t\r"))
-			currentLine.Reset()
-		}
-		currentLine.WriteString(text)
-	}
-	if currentLine.Len() > 0 {
-		plain := strings.TrimRight(currentLine.String(), " \t\r")
-		extracted = append(extracted, plain)
+		selectedPart := ansi.Cut(plain, sc, ec)
+		selectedPart = strings.TrimRight(selectedPart, "\r\n")
+		extracted = append(extracted, selectedPart)
 	}
 
 	return strings.Join(extracted, "\n")
@@ -261,6 +274,7 @@ func (m Model) copySelectedText() (Model, tea.Cmd) {
 	text := m.extractSelectedText()
 	if strings.TrimSpace(text) == "" {
 		m.Chat.Selection.Active = false
+		m.Chat.Viewport.SetContent(m.renderConversation())
 		return m, nil
 	}
 
