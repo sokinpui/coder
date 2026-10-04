@@ -91,9 +91,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		switch m.State {
 		case stateAsking, stateThinking:
-			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())
-			if wasAtBottom {
+			if m.Chat.AutoScroll {
 				m.Chat.Viewport.GotoBottom()
 			}
 		}
@@ -118,9 +117,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.State = stateIdle
 			m.StatusText = ""
 			if isActive {
-				wasAtBottom := m.Chat.Viewport.AtBottom()
 				m.Chat.Viewport.SetContent(m.renderConversation())
-				if wasAtBottom {
+				if m.Chat.AutoScroll {
 					m.Chat.Viewport.GotoBottom()
 				}
 				m.Chat.EventSub = nil
@@ -174,6 +172,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if isActive && (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult || msg.event.Kind == types.EventThinking) {
 			m.Chat.Viewport.SetContent(m.renderConversation())
+			if m.Chat.AutoScroll {
+				m.Chat.Viewport.GotoBottom()
+			}
 		}
 
 		return m, tea.Batch(listenForEvents(msg.sessID, msg.sub), renderCmd), true
@@ -197,9 +198,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			Width:   msg.width,
 		}
 
-		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
-		if wasAtBottom {
+		if m.Chat.AutoScroll {
 			m.Chat.Viewport.GotoBottom()
 		}
 		if m.Chat.PendingAIRender || messages[msg.msgIdx].Content != msg.content || msg.width != m.Chat.Viewport.Width {
@@ -220,9 +220,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
-		if wasAtBottom {
+		if m.Chat.AutoScroll {
 			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
@@ -605,9 +604,8 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.PendingAIRender = false
 			m.Chat.LastInteractionFailed = true
 			m.State = stateIdle
-			wasAtBottom := m.Chat.Viewport.AtBottom()
 			m.Chat.Viewport.SetContent(m.renderConversation())
-			if wasAtBottom {
+			if m.Chat.AutoScroll {
 				m.Chat.Viewport.GotoBottom()
 			}
 			m.Chat.EventSub = nil
@@ -669,9 +667,8 @@ func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
 	messages := m.Session.GetMessages()
 	lastIdx := len(messages) - 1
 	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
-		wasAtBottom := m.Chat.Viewport.AtBottom()
 		m.Chat.Viewport.SetContent(m.renderConversation())
-		if wasAtBottom {
+		if m.Chat.AutoScroll {
 			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil
@@ -686,9 +683,8 @@ func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
 		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth)
 	}
 
-	wasAtBottom := m.Chat.Viewport.AtBottom()
 	m.Chat.Viewport.SetContent(m.renderConversation())
-	if wasAtBottom {
+	if m.Chat.AutoScroll {
 		m.Chat.Viewport.GotoBottom()
 	}
 	return m, nil

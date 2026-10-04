@@ -47,6 +47,7 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.Button == tea.MouseButtonWheelUp {
+		m.Chat.AutoScroll = false
 		m.Chat.Viewport.LineUp(2)
 		if m.Chat.Selection.Active {
 			m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
@@ -56,6 +57,9 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	if msg.Button == tea.MouseButtonWheelDown {
 		m.Chat.Viewport.LineDown(2)
+		if m.Chat.Viewport.AtBottom() {
+			m.Chat.AutoScroll = true
+		}
 		if m.Chat.Selection.Active {
 			m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
 		}
@@ -82,6 +86,7 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, textarea.Blink
 		}
 
+		m.Chat.AutoScroll = false
 		absRow := m.Chat.Viewport.YOffset + msg.Y
 		col := max(0, msg.X)
 		m.Chat.Selection = TextSelection{

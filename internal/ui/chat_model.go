@@ -49,6 +49,7 @@ type ChatModel struct {
 	RenderedLines            []string
 	LineMetas                []LineMeta
 	Selection                TextSelection
+	AutoScroll               bool
 }
 
 func NewChat(initialInput string) ChatModel {
@@ -78,5 +79,6 @@ func NewChat(initialInput string) ChatModel {
 		EditingMessageIndex: -1,
 		RenderCache:         make(map[int]markdown.CachedRender),
 		AutoSubmitPending:   initialInput != "",
+		AutoScroll:          true,
 	}
 }

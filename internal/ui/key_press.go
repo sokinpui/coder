@@ -39,10 +39,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	case km.Suspend:
 		return m, tea.Sequence(tea.Suspend, tea.EnableMouseCellMotion), true
 	case km.ScrollUp:
+		m.Chat.AutoScroll = false
 		m.Chat.Viewport.HalfPageUp()
 		return m, nil, true
 	case km.ScrollDown:
 		m.Chat.Viewport.HalfPageDown()
+		if m.Chat.Viewport.AtBottom() {
+			m.Chat.AutoScroll = true
+		}
 		return m, nil, true
 	}
 

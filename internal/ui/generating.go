@@ -17,6 +17,7 @@ func (m Model) startGenerationEvents(eventChan <-chan types.SessionEvent) (Model
 	m.Chat.IsAIRendering = false
 	m.Chat.PendingAIRender = false
 	m.Chat.EventSub = eventChan
+	m.Chat.AutoScroll = true
 	m.Chat.TextArea.Blur()
 	m.Chat.TextArea.Reset()
 	m = m.updateLayout()

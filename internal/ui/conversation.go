@@ -9,10 +9,6 @@ import (
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
-func (m Model) isLiveAIMessage(idx, total int, msg types.Message) bool {
-	return (m.Chat.IsStreaming || m.Chat.IsAIRendering) && idx == total-1 && msg.Type == types.AIMessage
-}
-
 func (m Model) getAIMessageLines(msg types.Message, idx, total, viewportWidth int) []string {
 	var lines []string
 	if len(msg.ToolCalls) > 0 {
@@ -27,12 +23,8 @@ func (m Model) getAIMessageLines(msg types.Message, idx, total, viewportWidth in
 	}
 
 	cache, isCached := m.Chat.RenderCache[idx]
-	if isCached && cache.Content == msg.Content && cache.Width == viewportWidth {
+	if isCached && cache.Width == viewportWidth {
 		return append(lines, cache.Lines...)
-	}
-
-	if m.isLiveAIMessage(idx, total, msg) {
-		return lines
 	}
 
 	return append(lines, strings.Split(msg.Content, "\n")...)
