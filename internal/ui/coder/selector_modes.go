@@ -448,8 +448,9 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
+		oldTotal := len(m.Session.GetMessages())
 		m.Session.DeleteMessages(targetIndices)
-		m.ClearCache()
+		m.RemapCacheOnDelete(targetIndices, oldTotal)
 		if len(targetIndices) > 1 {
 			m.StatusBarMessage = fmt.Sprintf("Deleted %d messages.", len(targetIndices))
 		} else {

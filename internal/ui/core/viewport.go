@@ -39,6 +39,30 @@ func (v *Viewport) ClearCache() {
 	v.callIDToName = make(map[string]string)
 }
 
+func (v *Viewport) RemapCacheOnDelete(deletedIndices []int, totalOld int) {
+	toDelete := make(map[int]struct{}, len(deletedIndices))
+	for _, idx := range deletedIndices {
+		toDelete[idx] = struct{}{}
+	}
+
+	newRenderCache := make(map[int]markdown.CachedRender)
+	newToolCache := make(map[int][]string)
+	newIdx := 0
+	for oldIdx := range totalOld {
+		if _, deleted := toDelete[oldIdx]; !deleted {
+			if cached, ok := v.RenderCache[oldIdx]; ok {
+				newRenderCache[newIdx] = cached
+			}
+			if cached, ok := v.ToolExpandedCache[oldIdx]; ok {
+				newToolCache[newIdx] = cached
+			}
+			newIdx++
+		}
+	}
+	v.RenderCache = newRenderCache
+	v.ToolExpandedCache = newToolCache
+}
+
 func (v *Viewport) Resize(width, height int) {
 	widthChanged := v.Width != width
 	v.Width = width

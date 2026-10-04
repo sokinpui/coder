@@ -148,6 +148,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				remaining = append(remaining, msgItem)
 			}
 		}
+		oldTotal := len(m.session.Messages)
 		m.session.Messages = remaining
 		_ = m.session.SaveConversation()
 		m.tokenCount = token.CountTokens(m.session.GetPrompt())
@@ -159,8 +160,8 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.showSelector = false
 		m.activeOverlay = overlayNone
 		m.input.Model.Focus()
-		m.viewport.ClearCache()
-		return m.updateViewportContent(), clearStatusBarCmd()
+		m.viewport.RemapCacheOnDelete(targetIndices, oldTotal)
+		return m.updateViewportContent(), tea.Batch(clearStatusBarCmd(), m.renderUncachedCmd())
 
 	case "e":
 		m.selector.IsSelecting = false

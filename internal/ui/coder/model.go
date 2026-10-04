@@ -78,6 +78,33 @@ func (m *Model) ClearCache() {
 	m.Chat.RenderCache = make(map[int]markdown.CachedRender)
 }
 
+func (m *Model) PruneCacheAfter(idx int) {
+	for k := range m.Chat.RenderCache {
+		if k > idx {
+			delete(m.Chat.RenderCache, k)
+		}
+	}
+}
+
+func (m *Model) RemapCacheOnDelete(deletedIndices []int, totalOld int) {
+	toDelete := make(map[int]struct{}, len(deletedIndices))
+	for _, idx := range deletedIndices {
+		toDelete[idx] = struct{}{}
+	}
+
+	newRenderCache := make(map[int]markdown.CachedRender)
+	newIdx := 0
+	for oldIdx := range totalOld {
+		if _, deleted := toDelete[oldIdx]; !deleted {
+			if cached, ok := m.Chat.RenderCache[oldIdx]; ok {
+				newRenderCache[newIdx] = cached
+			}
+			newIdx++
+		}
+	}
+	m.Chat.RenderCache = newRenderCache
+}
+
 func (m Model) renderUncachedCmd() tea.Cmd {
 	if m.Session == nil {
 		return nil
