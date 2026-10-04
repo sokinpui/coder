@@ -41,7 +41,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		return types.Event{Type: types.NoOp}
 	}
 
-	s.generator.Config = s.config.Coder.ModelConfig()
+	s.Runtime.Config = s.config.Coder.ModelConfig()
 	if !silent {
 		msgType := types.CommandMessage
 		if cmdOutput.IsFileApply {

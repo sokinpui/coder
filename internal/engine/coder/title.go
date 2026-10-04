@@ -17,12 +17,12 @@ func (s *Session) IsTitleGenerated() bool {
 
 func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	s.titleGenerated = true // Set this first to prevent concurrent calls.
-	s.generator.Config = s.config.Coder.ModelConfig()
-	s.generator.TitleModel = s.config.Title.ModelCode
+	s.Runtime.Config = s.config.Coder.ModelConfig()
+	s.Runtime.Generator.TitleModel = s.config.Title.ModelCode
 
 	prompt := strings.Replace(coderprompt.TitleGenerationPrompt, "{{PROMPT}}", userPrompt, 1)
 
-	title, err := s.generator.GenerateTitle(ctx, prompt)
+	title, err := s.Runtime.GenerateTitle(ctx, prompt)
 	if err != nil {
 		log.Printf("Error generating title, falling back to first few words: %v", err)
 		words := strings.Fields(userPrompt)

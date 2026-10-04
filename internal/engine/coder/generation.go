@@ -56,9 +56,8 @@ func (s *Session) StartGeneration() types.Event {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.SetCancelGeneration(cancel)
 	s.isStreaming = true
-	s.generator.Config = s.config.Coder.ModelConfig()
-	coderModelCfg := s.config.Coder.ModelConfig()
-	go s.generator.GenerateTask(ctx, instruction, chatMsgs, nil, streamChan, &coderModelCfg)
+	s.Runtime.Config = s.config.Coder.ModelConfig()
+	go s.Runtime.Execute(ctx, instruction, chatMsgs, streamChan)
 
 	s.AddMessages(types.Message{Type: types.AIMessage, Content: ""})
 

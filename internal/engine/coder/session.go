@@ -24,7 +24,7 @@ const (
 type Session struct {
 	ID                 string
 	config             *config.Config
-	generator          *generation.Generator
+	Runtime            *Runtime
 	historyManager     *history.Manager
 	messages           []types.Message
 	cancelGeneration   context.CancelFunc
@@ -70,7 +70,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	cfgCopy.Coder.Context.Dirs = append([]string{}, cfg.Coder.Context.Dirs...)
 	cfgCopy.Coder.Context.Exclusions = append([]string{}, cfg.Coder.Context.Exclusions...)
 
-	gen, err := generation.New(&cfgCopy)
+	rt, err := NewRuntime(&cfgCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	s := &Session{
 		ID:                fmt.Sprintf("%d", time.Now().UnixNano()),
 		config:            &cfgCopy,
-		generator:         gen,
+		Runtime:           rt,
 		historyManager:    hist,
 		messages:          messages,
 		title:             "New Chat",
@@ -145,16 +145,20 @@ func (s *Session) ReloadConfig() error {
 		return err
 	}
 	s.config = cfg
-	s.generator.Config = cfg.Coder.ModelConfig()
-	s.generator.TitleModel = cfg.Title.ModelCode
-	s.generator.BaseURL = cfg.Server.URL
-	s.generator.Protocol = cfg.Server.Protocol
-	s.generator.APIKey = cfg.Server.APIKey
+	s.Runtime.Config = cfg.Coder.ModelConfig()
+	s.Runtime.Generator.Config = cfg.Coder.ModelConfig()
+	s.Runtime.Generator.TitleModel = cfg.Title.ModelCode
+	s.Runtime.Generator.BaseURL = cfg.Server.URL
+	s.Runtime.Generator.Protocol = cfg.Server.Protocol
+	s.Runtime.Generator.APIKey = cfg.Server.APIKey
 	return nil
 }
 
 func (s *Session) GetGenerator() *generation.Generator {
-	return s.generator
+	if s.Runtime == nil {
+		return nil
+	}
+	return s.Runtime.Generator
 }
 
 func (s *Session) GetHistoryManager() *history.Manager {
@@ -227,7 +231,12 @@ func (s *Session) GetMode() string {
 
 func (s *Session) SetModel(model string) {
 	s.config.Coder.ModelCode = model
-	s.generator.Config.ModelCode = model
+	if s.Runtime != nil {
+		s.Runtime.Config.ModelCode = model
+		if s.Runtime.Generator != nil {
+			s.Runtime.Generator.Config.ModelCode = model
+		}
+	}
 }
 
 func (s *Session) HasChatHistory() bool {
