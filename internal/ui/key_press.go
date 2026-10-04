@@ -11,6 +11,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.CtrlCPressed = false
 	}
 
+	if m.Chat.Selection.Active && (msg.Type == tea.KeyEsc || msg.String() == "esc") {
+		m.Chat.Selection.Active = false
+		m.Chat.Selection.Dragging = false
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	}
+
 	switch m.ActiveOverlay {
 	case overlayQuickView:
 		return m.handleKeyPressQuickView(msg)
@@ -30,7 +37,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		newModel, cmd := m.showQuickView("/list")
 		return newModel, cmd, true
 	case km.Suspend:
-		return m, tea.Suspend, true
+		return m, tea.Sequence(tea.Suspend, tea.EnableMouseCellMotion), true
 	case km.ScrollUp:
 		m.Chat.Viewport.HalfPageUp()
 		return m, nil, true

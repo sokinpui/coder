@@ -10,14 +10,6 @@ import (
 )
 
 func (m Model) StatusView() string {
-	if m.StatusBarMessage != "" {
-		return StatusBarMsgStyle.Render(m.StatusBarMessage)
-	}
-
-	if m.Chat.CtrlCPressed && m.State == stateIdle {
-		return StatusStyle.Render("Press Ctrl+C again to quit.\n")
-	}
-
 	// Line 1: Title
 	var title string
 	if m.Chat.AnimatingTitle {
@@ -31,9 +23,15 @@ func (m Model) StatusView() string {
 	var rightStatusItems []string
 	var leftStatus string
 
-	if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
+	if m.StatusBarMessage != "" {
+		leftStatus = StatusBarMsgStyle.Render(m.StatusBarMessage)
+	} else if m.Chat.CtrlCPressed && m.State == stateIdle {
+		leftStatus = StatusStyle.Render("Press Ctrl+C again to quit.")
+	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
 		leftStatus = StatusStyle.Render("-- ATOMIC MSG --")
 	}
+
+	hideRightInfo := leftStatus != ""
 
 	modelCode := m.Session.GetConfig().Coder.ModelCode
 	if m.Session.Capabilities().Has(engine.CapToolLoop) {
@@ -44,7 +42,7 @@ func (m Model) StatusView() string {
 
 	modelPart := ModelInfoStyle.Render(modelInfo)
 
-	if m.ActiveOverlay != overlaySelector || m.Selector.ShowSearch {
+	if !hideRightInfo {
 		if m.TokenCount > 0 {
 			tokenPart := TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
 			rightStatusItems = append(rightStatusItems, tokenPart)
@@ -52,7 +50,7 @@ func (m Model) StatusView() string {
 		rightStatusItems = append(rightStatusItems, versionPart, modelPart)
 	}
 
-	if m.Session.Capabilities().Has(engine.CapToolToggle) {
+	if !hideRightInfo && m.Session.Capabilities().Has(engine.CapToolToggle) {
 		toolsStatus := "Tools: [Compact] (Ctrl+T)"
 		if m.ToolsExpanded {
 			toolsStatus = "Tools: [Expanded] (Ctrl+T)"

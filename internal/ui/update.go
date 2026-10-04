@@ -15,6 +15,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	if mouseMsg, ok := msg.(tea.MouseMsg); ok {
+		return m.handleMouseMsg(mouseMsg)
+	}
+
 	// Reset cycling flag on any key press that is not Tab.
 	if key, ok := msg.(tea.KeyMsg); ok && key.Type != tea.KeyTab && key.Type != tea.KeyShiftTab {
 		m.Chat.IsCyclingCompletions = false

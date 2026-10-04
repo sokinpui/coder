@@ -14,6 +14,10 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	if _, isMouse := msg.(tea.MouseMsg); isMouse {
+		return m, nil
+	}
+
 	isRuneKey := false
 	isViewportNavKey := false
 	if key, ok := msg.(tea.KeyMsg); ok {

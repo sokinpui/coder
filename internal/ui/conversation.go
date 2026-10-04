@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
@@ -50,7 +52,8 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 		if rendered == "" {
 			return nil
 		}
-		return strings.Split(rendered, "\n")
+		normalized := strings.ReplaceAll(rendered, "\r\n", "\n")
+		return strings.Split(normalized, "\n")
 	}
 
 	if cache, ok := m.Chat.RenderCache[idx]; ok && cache.Content == msg.Content && cache.Width == viewportWidth {
@@ -61,7 +64,8 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 	if rendered == "" {
 		return nil
 	}
-	lines := strings.Split(rendered, "\n")
+	normalized := strings.ReplaceAll(rendered, "\r\n", "\n")
+	lines := strings.Split(normalized, "\n")
 	m.Chat.RenderCache[idx] = markdown.CachedRender{
 		Lines:   lines,
 		Content: msg.Content,
@@ -70,27 +74,143 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 	return lines
 }
 
-func (m Model) renderConversationWithOffsets() (string, map[int]int) {
+func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []string) []LineMeta {
+	if len(renderedLines) == 0 {
+		return nil
+	}
+
+	metas := make([]LineMeta, len(renderedLines))
+
+	switch msg.Type {
+	case types.UserMessage, types.ImageMessage, types.CommandMessage, types.ShellCmdMessage,
+		types.ContextCmdMessage, types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage:
+		colStart := 2
+		prefix := ""
+		if msg.Type == types.ShellCmdMessage {
+			prefix = "Shell: "
+		} else if msg.Type == types.ImageMessage {
+			prefix = "Image: "
+		}
+
+		for i, line := range renderedLines {
+			plain := ansi.Strip(line)
+			lineWidth := ansi.StringWidth(line)
+			if i == 0 || i == len(renderedLines)-1 {
+				metas[i] = LineMeta{
+					MsgIndex:     msgIdx,
+					IsDecoration: true,
+				}
+				continue
+			}
+
+			contentEnd := max(colStart, lineWidth-1)
+			rawText := plain
+			if len(rawText) > colStart {
+				rawText = rawText[colStart:]
+			}
+			if len(rawText) > 0 && strings.HasSuffix(rawText, "│") {
+				rawText = strings.TrimSuffix(rawText, "│")
+			}
+			rawText = strings.TrimRight(rawText, " ")
+			if i == 1 && prefix != "" && strings.HasPrefix(rawText, prefix) {
+				rawText = strings.TrimPrefix(rawText, prefix)
+			}
+
+			metas[i] = LineMeta{
+				MsgIndex:        msgIdx,
+				ContentColStart: colStart,
+				ContentColEnd:   contentEnd,
+				Text:            rawText,
+				IsContinuation:  i > 1,
+			}
+		}
+
+	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
+		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage,
+		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
+		colStart := 2
+		for i, line := range renderedLines {
+			plain := ansi.Strip(line)
+			lineWidth := ansi.StringWidth(line)
+			rawText := plain
+			if len(rawText) > colStart {
+				rawText = rawText[colStart:]
+			}
+			rawText = strings.TrimRight(rawText, " ")
+			metas[i] = LineMeta{
+				MsgIndex:        msgIdx,
+				ContentColStart: colStart,
+				ContentColEnd:   lineWidth,
+				Text:            rawText,
+				IsContinuation:  false,
+			}
+		}
+
+	default:
+		for i, line := range renderedLines {
+			plain := ansi.Strip(line)
+			lineWidth := ansi.StringWidth(line)
+			metas[i] = LineMeta{
+				MsgIndex:        msgIdx,
+				ContentColStart: 0,
+				ContentColEnd:   lineWidth,
+				Text:            strings.TrimRight(plain, " \r\n"),
+				IsContinuation:  false,
+			}
+		}
+	}
+
+	return metas
+}
+
+func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, []LineMeta) {
 	messages := m.Session.GetMessages()
 	viewportWidth := m.Chat.Viewport.Width
 
 	messageLineOffsets := make(map[int]int, len(messages))
 	currentLine := 0
 	var allLines []string
+	var allMetas []LineMeta
 
 	total := len(messages)
 	for i, msg := range messages {
 		messageLineOffsets[i] = currentLine
 		lines := m.getMessageLines(msg, i, total, viewportWidth)
+		if len(lines) == 0 {
+			continue
+		}
+
+		metas := buildLineMetasForMessage(msg, i, lines)
 
 		allLines = append(allLines, lines...)
+		allMetas = append(allMetas, metas...)
 		currentLine += len(lines)
 	}
 	if m.State == stateAsking || m.State == stateThinking {
 		thinkingLine := m.renderThinkingLine()
-		allLines = append(allLines, strings.Split(thinkingLine, "\n")...)
+		tLines := strings.Split(thinkingLine, "\n")
+		allLines = append(allLines, tLines...)
+		for _, tl := range tLines {
+			allMetas = append(allMetas, LineMeta{
+				MsgIndex:        -1,
+				ContentColStart: 0,
+				ContentColEnd:   lipgloss.Width(tl),
+				Text:            ansi.Strip(tl),
+				IsDecoration:    true,
+			})
+		}
 	}
-	return strings.Join(allLines, "\n"), messageLineOffsets
+
+	if len(allMetas) < len(allLines) {
+		for i := len(allMetas); i < len(allLines); i++ {
+			allMetas = append(allMetas, LineMeta{
+				MsgIndex:      -1,
+				ContentColEnd: ansi.StringWidth(allLines[i]),
+				Text:          ansi.Strip(allLines[i]),
+			})
+		}
+	}
+	return strings.Join(allLines, "\n"), messageLineOffsets, allLines, allMetas
 }
 
 func (m Model) renderThinkingLine() string {
@@ -135,7 +255,12 @@ func (m Model) getToolNameForCallID(callID string) string {
 }
 
 func (m *Model) renderConversation() string {
-	content, offsets := m.renderConversationWithOffsets()
+	content, offsets, lines, metas := m.renderConversationWithOffsets()
 	m.Chat.MessageLineOffsets = offsets
+	m.Chat.RenderedLines = lines
+	m.Chat.LineMetas = metas
+	if m.Chat.Selection.Active && !m.Chat.Selection.IsEmpty() {
+		return m.applySelectionToLines(lines)
+	}
 	return content
 }

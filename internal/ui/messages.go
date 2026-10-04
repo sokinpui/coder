@@ -274,7 +274,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 			m.Chat.EditingMessageIndex = -1 // Also reset here
-			return m, nil, true
+			return m, tea.EnableMouseCellMotion, true
 		}
 
 		if m.Chat.EditingMessageIndex != -1 {
@@ -306,7 +306,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 
 			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
-			return m, tea.Batch(cmd, m.updateTokenCountCmd(), m.renderUncachedCmd()), true
+			return m, tea.Batch(cmd, tea.EnableMouseCellMotion, m.updateTokenCountCmd(), m.renderUncachedCmd()), true
 		}
 
 		// This is for Ctrl+E on the text area. If content changed, submit.
@@ -314,13 +314,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.TextArea.SetValue(msg.content)
 			m.Chat.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
-			return model, cmd, true
+			return model, tea.Batch(cmd, tea.EnableMouseCellMotion), true
 		}
 
 		// Content is unchanged, just update textarea and focus.
 		m.Chat.TextArea.SetValue(msg.originalContent)
 		m.Chat.TextArea.Focus()
-		return m, textarea.Blink, true
+		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
 
 	case fileEditorFinishedMsg:
 		if msg.err != nil {
@@ -328,11 +328,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
-			return m, nil, true
+			return m, tea.EnableMouseCellMotion, true
 		}
 		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
+			return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
 		}
 		return m, nil, true
 
@@ -577,7 +577,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
 		m.Chat.TextArea.Reset()
-		return m, tea.Batch(textarea.Blink, m.updateTokenCountCmd()), true
+		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion, m.updateTokenCountCmd()), true
 
 	case errorMsg:
 		targetSess := m.getSessionByID(msg.sessID)

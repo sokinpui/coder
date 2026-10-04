@@ -11,6 +11,15 @@ import (
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
+type LineMeta struct {
+	MsgIndex        int
+	ContentColStart int
+	ContentColEnd   int
+	Text            string
+	IsContinuation  bool
+	IsDecoration    bool
+}
+
 type ChatModel struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
@@ -37,6 +46,9 @@ type ChatModel struct {
 	RenderCache              map[int]markdown.CachedRender
 	StateStartTime           time.Time
 	AutoSubmitPending        bool
+	RenderedLines            []string
+	LineMetas                []LineMeta
+	Selection                TextSelection
 }
 
 func NewChat(initialInput string) ChatModel {

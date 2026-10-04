@@ -27,6 +27,8 @@ func Start(sess engine.EngineSession, prompt string) error {
 	p := tea.NewProgram(
 		manager,
 		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+		tea.WithFilter(newSGRSequenceFilter()),
 	)
 
 	finalModel, err := p.Run()
