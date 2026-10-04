@@ -9,6 +9,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"os"
 	"path/filepath"
 	"strings"
@@ -243,6 +244,10 @@ func (s *Session) HasChatHistory() bool {
 		}
 	}
 	return false
+}
+
+func (s *Session) ReadAgentFiles(input string, paths []string) (commands.CommandOutput, bool) {
+	return commands.CommandOutput{}, false
 }
 
 func (s *Session) SetMode(mode string) error {

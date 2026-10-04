@@ -19,7 +19,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		return types.Event{Type: types.NoOp}
 	}
 
-	if !strings.HasPrefix(input, "/") {
+	if !commands.IsCommand(input) {
 		// Prompts are never silent
 		// This is a new user prompt.
 		s.messages = append(s.messages, types.Message{Type: types.UserMessage, Content: input})

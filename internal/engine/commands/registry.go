@@ -55,13 +55,15 @@ func GetCommands() []string {
 
 func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 	switch cmdName {
-	case "file", "exclude", "list", "chat", "coding":
+	case "file", "@":
+		return caps.Has(engine.CapContextFiles) || caps.Has(engine.CapToolLoop)
+	case "exclude", "list", "chat", "coding", "clear_context":
 		return caps.Has(engine.CapContextFiles)
 	case "itf", "undo":
 		return caps.Has(engine.CapITF)
 	case "model":
 		return caps.Has(engine.CapModelSwitch)
-	case "shell":
+	case "shell", "!":
 		return caps.Has(engine.CapShell)
 	case "branch":
 		return caps.Has(engine.CapBranch)
@@ -72,19 +74,58 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 	}
 }
 
-func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
-	if !strings.HasPrefix(input, "/") {
-		return CommandOutput{}, false, false // Not a command
+func IsCommand(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" || trimmed == "@" || trimmed == "/@" {
+		return false
 	}
-	trimmedInput := strings.TrimPrefix(input, "/")
+	return strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "!")
+}
 
-	parts := strings.Fields(trimmedInput)
+func ParseCommand(input string) (cmdName string, args string, isCmd bool) {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" || trimmed == "@" || trimmed == "/@" {
+		return "", "", false
+	}
+
+	if strings.HasPrefix(trimmed, "/@") {
+		return "@", strings.TrimSpace(trimmed[2:]), true
+	}
+	if strings.HasPrefix(trimmed, "/!") {
+		return "shell", strings.TrimSpace(trimmed[2:]), true
+	}
+	if strings.HasPrefix(trimmed, "@") {
+		return "@", strings.TrimSpace(trimmed[1:]), true
+	}
+	if strings.HasPrefix(trimmed, "!") {
+		return "shell", strings.TrimSpace(trimmed[1:]), true
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		return "", "", false
+	}
+
+	trimmedCmd := strings.TrimPrefix(trimmed, "/")
+	parts := strings.Fields(trimmedCmd)
 	if len(parts) == 0 {
+		return "", "", true
+	}
+
+	cmdName = parts[0]
+	args = strings.TrimSpace(trimmedCmd[len(cmdName):])
+	if cmdName == "!" {
+		cmdName = "shell"
+	}
+	return cmdName, args, true
+}
+
+func ProcessCommand(input string, s SessionController) (result CommandOutput, isCmd bool, success bool) {
+	cmdName, args, isCommand := ParseCommand(input)
+	if !isCommand {
+		return CommandOutput{}, false, false
+	}
+	if cmdName == "" {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Invalid command syntax. Use /<command> [args]"}, true, false
 	}
-
-	cmdName := parts[0]
-	args := strings.Join(parts[1:], " ")
 
 	caps := engine.Capability(0)
 	if s != nil {

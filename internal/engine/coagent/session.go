@@ -109,6 +109,60 @@ func (s *Session) GetDocumentPageCount(doc string) int     { return 0 }
 func (s *Session) PurgeDocumentMessages(docPaths []string) {}
 func (s *Session) ClearAllDocumentMessages()               {}
 func (s *Session) SetMode(mode string) error               { return nil }
+
+func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.CommandOutput, bool) {
+	expanded, invalid := commands.ExpandPaths(rawPaths)
+	allPaths := append(expanded, invalid...)
+	if len(allPaths) == 0 {
+		return commands.CommandOutput{
+			Type:    types.MessagesUpdated,
+			Payload: "No files specified.",
+		}, false
+	}
+
+	rf := &ReadFileTool{}
+	var toolCalls []types.ToolCall
+	var toolResults []types.Message
+
+	for i, p := range allPaths {
+		callID := fmt.Sprintf("call_%d_%d", time.Now().UnixNano(), i)
+		toolCalls = append(toolCalls, types.ToolCall{
+			ID:        callID,
+			Name:      "read",
+			Arguments: fmt.Sprintf(`{"path":%q}`, p),
+		})
+
+		out, imgs, err := rf.ExecuteWithImages(context.Background(), p)
+		resultContent := out
+		if err != nil {
+			resultContent = fmt.Sprintf("Error: %v", err)
+		}
+		toolResults = append(toolResults, types.Message{
+			Type:       types.ToolResultMessage,
+			Content:    resultContent,
+			ToolCallID: callID,
+		})
+		if len(imgs) > 0 {
+			toolResults = append(toolResults, imgs...)
+		}
+	}
+
+	s.Messages = append(s.Messages, types.Message{
+		Type:    types.UserMessage,
+		Content: input,
+	})
+	s.Messages = append(s.Messages, types.Message{
+		Type:      types.ToolCallMessage,
+		ToolCalls: toolCalls,
+	})
+	s.Messages = append(s.Messages, toolResults...)
+
+	return commands.CommandOutput{
+		Type:            types.MessagesUpdated,
+		Payload:         fmt.Sprintf("Read %d file(s)", len(allPaths)),
+		IsAgentFileRead: true,
+	}, true
+}
 func (s *Session) HasChatHistory() bool {
 	return len(s.Messages) > 0 || s.HistoryFilename != ""
 }

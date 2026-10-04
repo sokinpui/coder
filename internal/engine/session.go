@@ -17,6 +17,7 @@ type CommandOutput struct {
 	IsContext       bool
 	IsFileApply     bool
 	IsFileApplyUndo bool
+	IsAgentFileRead bool
 }
 
 type EngineSession interface {

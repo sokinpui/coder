@@ -106,6 +106,9 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 		s.Messages = append(s.Messages, types.Message{Type: types.ShellCmdMessage, Content: input})
 		return out, success
 	}
+	if out.IsAgentFileRead {
+		return out, success
+	}
 	msgType := types.CommandMessage
 	s.Messages = append(s.Messages, types.Message{Type: msgType, Content: input})
 	if success {

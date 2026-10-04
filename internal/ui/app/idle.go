@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/core"
@@ -79,7 +80,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if !strings.HasPrefix(input, "/") {
+	if !commands.IsCommand(input) {
 		m.Chat.ShowPalette = false
 
 		var cmds []tea.Cmd
@@ -138,14 +139,10 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
-	trimmed := strings.TrimSpace(strings.TrimPrefix(input, "/"))
-	parts := strings.Fields(trimmed)
-	if len(parts) == 0 {
+	cmdName, args, isCmd := commands.ParseCommand(input)
+	if !isCmd || cmdName == "" {
 		return m, nil, false
 	}
-
-	cmdName := parts[0]
-	args := strings.Join(parts[1:], " ")
 
 	switch cmdName {
 	case "msg", "cards", "gen", "edit", "branch":
@@ -222,11 +219,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	switch msg.Type {
 	case tea.KeyUp, tea.KeyDown:
-		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
 		numCommands := len(m.Chat.PaletteFilteredCommands)
 		numArgs := len(m.Chat.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
-		isPaletteActive := isCommand && m.Chat.ShowPalette && totalItems > 0
+		isPaletteActive := m.Chat.ShowPalette && totalItems > 0
 
 		if isPaletteActive {
 			if msg.Type == tea.KeyUp {
@@ -261,11 +257,10 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, ctrlCTimeout(), true
 
 	case tea.KeyTab, tea.KeyShiftTab:
-		isCommand := strings.HasPrefix(m.Chat.TextArea.Value(), "/")
 		numCommands := len(m.Chat.PaletteFilteredCommands)
 		numArgs := len(m.Chat.PaletteFilteredArguments)
 		totalItems := numCommands + numArgs
-		isPaletteActive := isCommand && m.Chat.ShowPalette && totalItems > 0
+		isPaletteActive := m.Chat.ShowPalette && totalItems > 0
 
 		switch {
 		case isPaletteActive:
@@ -309,6 +304,9 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				var prefixParts []string
 				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
 					prefixParts = parts[:len(parts)-1]
+					if len(prefixParts) == 0 {
+						prefixParts = determinePrefix(parts[0])
+					}
 				} else {
 					prefixParts = parts
 				}
@@ -324,7 +322,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		// Smart enter: submit if it's a command.
-		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
+		if commands.IsCommand(m.Chat.TextArea.Value()) {
 			model, cmd := m.handleSubmit()
 			return model, cmd, true
 		}
@@ -335,7 +333,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	switch keyStr {
 	case km.Msg, "esc":
-		if strings.HasPrefix(m.Chat.TextArea.Value(), "/") {
+		if commands.IsCommand(m.Chat.TextArea.Value()) {
 			m.Chat.TextArea.Reset()
 			m.Chat.CtrlCPressed = false
 			return m, nil, false
@@ -444,6 +442,9 @@ func (m Model) applyPaletteSelection() Model {
 		var prefixParts []string
 		if len(parts) > 0 && !strings.HasSuffix(val, " ") {
 			prefixParts = parts[:len(parts)-1]
+			if len(prefixParts) == 0 {
+				prefixParts = determinePrefix(parts[0])
+			}
 		} else {
 			prefixParts = parts
 		}
@@ -455,4 +456,20 @@ func (m Model) applyPaletteSelection() Model {
 	m = m.updateLayout()
 	m.Chat.TextArea.CursorEnd()
 	return m
+}
+
+func determinePrefix(part string) []string {
+	if strings.HasPrefix(part, "/@") {
+		return []string{"/@"}
+	}
+	if strings.HasPrefix(part, "/!") {
+		return []string{"/!"}
+	}
+	if strings.HasPrefix(part, "@") {
+		return []string{"@"}
+	}
+	if strings.HasPrefix(part, "!") {
+		return []string{"!"}
+	}
+	return nil
 }

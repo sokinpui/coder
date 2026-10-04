@@ -24,6 +24,7 @@ type SessionController interface {
 	GetMode() string
 	SetMode(mode string) error
 	HasChatHistory() bool
+	ReadAgentFiles(input string, paths []string) (CommandOutput, bool)
 }
 
 type commandFunc func(args string, s SessionController) (CommandOutput, bool)

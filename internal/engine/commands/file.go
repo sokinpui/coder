@@ -13,6 +13,7 @@ import (
 
 func init() {
 	registerCommand("file", fileCmd, "add path to context", PathArgumentCompleter)
+	registerCommand("@", atCmd, "add path to context (alias for /file)", PathArgumentCompleter)
 }
 
 func PathArgumentCompleter(s SessionController, prefix string) []string {
@@ -48,22 +49,39 @@ func PathArgumentCompleter(s SessionController, prefix string) []string {
 	return results
 }
 
+func atCmd(args string, s SessionController) (CommandOutput, bool) {
+	if !s.Capabilities().Has(engine.CapContextFiles) && !s.Capabilities().Has(engine.CapToolLoop) {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: @"}, false
+	}
+	if s.Capabilities().Has(engine.CapToolLoop) {
+		paths := strings.Fields(args)
+		if len(paths) == 0 {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: @ <paths...>"}, false
+		}
+		return s.ReadAgentFiles("@ "+args, paths)
+	}
+	return addFileToContext(args, "@", s)
+}
+
 func fileCmd(args string, s SessionController) (CommandOutput, bool) {
-	if !s.Capabilities().Has(engine.CapContextFiles) {
+	if !s.Capabilities().Has(engine.CapContextFiles) && !s.Capabilities().Has(engine.CapToolLoop) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: file"}, false
 	}
 
-	paths := strings.Fields(args)
-
-	if len(paths) == 0 {
-		s.SetContextFiles([]string{})
-		s.SetContextDocuments([]string{})
-		s.ClearAllDocumentMessages()
-		if err := s.LoadContext(); err != nil {
-			msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
-			return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
+	if s.Capabilities().Has(engine.CapToolLoop) {
+		paths := strings.Fields(args)
+		if len(paths) == 0 {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /file <paths...>"}, false
 		}
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "Project context cleared.", IsContext: true}, true
+		return s.ReadAgentFiles("/file "+args, paths)
+	}
+	return addFileToContext(args, "/file", s)
+}
+
+func addFileToContext(args string, cmdPrefix string, s SessionController) (CommandOutput, bool) {
+	paths := strings.Fields(args)
+	if len(paths) == 0 {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Usage: %s <paths...>", cmdPrefix)}, false
 	}
 
 	currentFiles := s.GetContextFiles()

@@ -8,6 +8,7 @@ import (
 
 func init() {
 	registerCommand("shell", shellCmd, "run interactive terminal command or open subshell", PathArgumentCompleter)
+	registerCommand("!", shellCmd, "run interactive terminal command or open subshell (alias for /shell)", PathArgumentCompleter)
 }
 
 func shellCmd(args string, s SessionController) (CommandOutput, bool) {

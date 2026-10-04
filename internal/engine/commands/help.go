@@ -32,11 +32,12 @@ var commandGroup = helpGroup{
 	{key: "active", desc: "View active chat sessions."},
 	{key: "branch", desc: "Enter branch mode to branch from a message.", cap: engine.CapBranch},
 	{key: "chat", desc: "Switch conversation mode to chat.", cap: engine.CapContextFiles},
+	{key: "clear_context", desc: "Clear all context files and documents.", cap: engine.CapContextFiles},
 	{key: "coding", desc: "Switch conversation mode to coding.", cap: engine.CapContextFiles},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source.", cap: engine.CapContextFiles},
-	{key: "file", desc: "Set project source files/directories. If no arguments, then clears all.", cap: engine.CapContextFiles},
+	{key: "file", desc: "Add file(s) to context (alias: @)."},
 	{key: "gen", desc: "Enter generate mode to re-generate a response.", cap: engine.CapRegenerate},
 	{key: "help", desc: "Show this help message."},
 	{key: "history", desc: "View conversation history."},
@@ -48,7 +49,7 @@ var commandGroup = helpGroup{
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
 	{key: "rename", desc: "Rename the current session title."},
-	{key: "shell", desc: "Run interactive terminal command or open subshell.", cap: engine.CapShell},
+	{key: "shell", desc: "Run interactive terminal command or open subshell (alias: !).", cap: engine.CapShell},
 	{key: "undo", desc: "Undo the last file changes applied by itf.", cap: engine.CapITF},
 }
 
