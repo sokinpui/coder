@@ -69,7 +69,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+Z", desc: "Suspend the application."},
 	{key: "Tab", desc: "Autocomplete commands and arguments."},
 	{key: "Esc", desc: "Open atomic messages overlay."},
-	{key: "Ctrl+C", desc: "Clear input, or double press on empty line to quit."},
+	{key: "Ctrl+C", desc: "Press twice to quit."},
 }
 
 var atomicMsgGroup = helpGroup{

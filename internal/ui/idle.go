@@ -243,11 +243,6 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 	case tea.KeyCtrlC:
-		if m.Chat.TextArea.Value() != "" {
-			m.Chat.TextArea.Reset()
-			m.Chat.CtrlCPressed = false
-			return m, nil, false // Allow layout recalculation in the same update cycle
-		}
 		if m.Chat.CtrlCPressed {
 			m.Quitting = true
 			return m, tea.Quit, true
