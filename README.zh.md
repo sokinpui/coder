@@ -61,6 +61,7 @@ cd coder
 - **自主工具执行**：自主读取文件、执行精确字符串替换、创建文件以及运行 Shell 命令。
 - **编辑前必读守卫（Read-before-edit Guard）**：严禁模型在未通过 `read` 查看文件的情况下进行盲目文本替换。
 - **视觉与 PDF 多模态上下文**：原生支持本地图片与 PDF 文档的多模态视觉输入。
+- **可配置工具权限守卫**：提供粒度可控的工具执行策略（`allow`、`ask`、`deny`）。
 
 ## Starting Coder and Co
 
@@ -108,6 +109,11 @@ agent:
   modelcode: aisrp/gemini-flash-lite-latest
   reasoningeffort: high
   max_iterations: 50
+  permission:
+    bash: ask
+    write:
+      ".env*": deny
+      "*": ask
 ```
 
 ## Coder Suite

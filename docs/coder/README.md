@@ -28,23 +28,23 @@ coder --ws --port 9005    # Run headless WebSocket/HTTP server
 
 ## Shortcuts
 
-| Shortcut       | Action                                                          |
-| :------------- | :-------------------------------------------------------------- |
-| `Ctrl+J`       | Send message / Submit command                                   |
-| `Ctrl+E`       | Edit prompt in external editor (`$EDITOR`)                      |
-| `Ctrl+V`       | Paste from clipboard (supports plain text and images)           |
-| `Ctrl+A`       | Apply code changes from the last AI response (via `itf`)        |
-| `Ctrl+H`       | Open conversation history selector                             |
-| `Ctrl+N`       | Start a new chat session                                        |
-| `Ctrl+B`       | Open Atomic Messages overlay for branching                     |
-| `Ctrl+F`       | Search context files and open in external editor                |
-| `Ctrl+T`       | Search project files and directories to add to context (`/file`)|
-| `Ctrl+L`       | Quick view of current project context (`/list`)                 |
-| `Ctrl+U` / `D` | Scroll conversation half-page up / down                         |
-| `Ctrl+Z`       | Suspend application                                             |
-| `Esc`          | Open **Atomic Messages** overlay                                |
-| `Ctrl+C`       | Clear prompt line (press twice on empty prompt to quit)         |
-| `Tab`          | Autocomplete commands and path arguments                        |
+| Shortcut       | Action                                                           |
+| :------------- | :--------------------------------------------------------------- |
+| `Ctrl+J`       | Send message / Submit command                                    |
+| `Ctrl+E`       | Edit prompt in external editor (`$EDITOR`)                       |
+| `Ctrl+V`       | Paste from clipboard (supports plain text and images)            |
+| `Ctrl+A`       | Apply code changes from the last AI response (via `itf`)         |
+| `Ctrl+H`       | Open conversation history selector                               |
+| `Ctrl+N`       | Start a new chat session                                         |
+| `Ctrl+B`       | Open Atomic Messages overlay for branching                       |
+| `Ctrl+F`       | Search context files and open in external editor                 |
+| `Ctrl+T`       | Search project files and directories to add to context (`/file`) |
+| `Ctrl+L`       | Quick view of current project context (`/list`)                  |
+| `Ctrl+U` / `D` | Scroll conversation half-page up / down                          |
+| `Ctrl+Z`       | Suspend application                                              |
+| `Esc`          | Open **Atomic Messages** overlay                                 |
+| `Ctrl+C`       | Clear prompt line (press twice on empty prompt to quit)          |
+| `Tab`          | Autocomplete commands and path arguments                         |
 
 ## Commands
 

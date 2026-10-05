@@ -61,6 +61,7 @@ cd coder
 - **Autonomous Tool Execution**: Self-directed file reading, string replacements, file creation, and shell command execution.
 - **Read-before-edit Guard**: Rejects text replacements on files the agent has not yet inspected.
 - **Visual & PDF Context**: Native multi-modal support for images and PDF documents.
+- **Configurable Permissions**: Fine-grained security policies (`allow`, `ask`, `deny`) on tool and command execution.
 
 ## Starting Coder and Co
 
@@ -108,6 +109,11 @@ agent:
   modelcode: aisrp/gemini-flash-lite-latest
   reasoningeffort: high
   max_iterations: 50
+  permission:
+    bash: ask
+    write:
+      ".env*": deny
+      "*": ask
 ```
 
 ## Coder Suite

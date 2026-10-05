@@ -32,6 +32,7 @@ sf [path] [flags]
 ```
 
 ### Flags
+
 - `-t, --type <file|dir>`: Filter results by type.
 - `-E, --exclude <pattern>`: Exclude entries matching the glob pattern (can be used multiple times).
 - `-H, --hidden`: Include hidden files and directories in the search.
@@ -40,21 +41,25 @@ sf [path] [flags]
 ### Examples
 
 Search for all files and directories in the current directory (respects `.gitignore`):
+
 ```bash
 sf
 ```
 
 Search for directories only in a specific path:
+
 ```bash
 sf /path/to/search -t dir
 ```
 
 Exclude specific patterns:
+
 ```bash
 sf . -E "*.log" -E "node_modules/*"
 ```
 
 Show hidden files:
+
 ```bash
 sf . -H
 ```
