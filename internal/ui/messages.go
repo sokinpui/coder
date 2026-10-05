@@ -526,7 +526,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.GlamourRenderer = renderer
 			}
 			m.Chat.Viewport.SetContent(m.renderConversation())
+			if m.Chat.AutoScroll || m.Chat.Viewport.PastBottom() {
+				m.Chat.Viewport.GotoBottom()
+			}
 			return m, m.renderUncachedCmd(), false
+		}
+		if m.Chat.AutoScroll || m.Chat.Viewport.PastBottom() {
+			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, false
 	}

@@ -54,8 +54,35 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	}
 
 	if keyStr == "ctrl+t" && m.Session.Capabilities().Has(engine.CapToolToggle) {
+		wasAtBottom := m.Chat.Viewport.AtBottom() || m.Chat.AutoScroll
+		oldY := m.Chat.Viewport.YOffset
+		messages := m.Session.GetMessages()
+		anchorMsgIdx := -1
+		offsetInMsg := 0
+		for i := len(messages) - 1; i >= 0; i-- {
+			if offset, ok := m.Chat.MessageLineOffsets[i]; ok && offset <= oldY {
+				anchorMsgIdx = i
+				offsetInMsg = oldY - offset
+				break
+			}
+		}
+
 		m.ToolsExpanded = !m.ToolsExpanded
 		m.Chat.Viewport.SetContent(m.renderConversation())
+
+		totalLines := len(m.Chat.RenderedLines)
+		maxOffset := max(0, totalLines-m.Chat.Viewport.Height)
+		if wasAtBottom {
+			m.Chat.Viewport.GotoBottom()
+			m.Chat.AutoScroll = true
+			return m, m.renderUncachedCmd(), true
+		}
+
+		targetY := min(oldY, maxOffset)
+		if anchorMsgIdx != -1 && m.Chat.MessageLineOffsets[anchorMsgIdx] >= 0 {
+			targetY = min(m.Chat.MessageLineOffsets[anchorMsgIdx]+offsetInMsg, maxOffset)
+		}
+		m.Chat.Viewport.SetYOffset(max(0, targetY))
 		return m, m.renderUncachedCmd(), true
 	}
 
@@ -70,7 +97,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 func (m Model) handleKeyPressQuickView(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 	switch msg.Type {
-	case tea.KeyEsc, tea.KeyCtrlC, tea.KeyCtrlQ, tea.KeyEnter:
+	case tea.KeyEsc, tea.KeyCtrlC, tea.KeyEnter:
 		m.ActiveOverlay = overlayNone
 		if m.State == stateIdle {
 			m.Chat.TextArea.Focus()
