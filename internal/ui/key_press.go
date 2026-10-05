@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -23,6 +24,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressQuickView(msg)
 	case overlaySelector:
 		return m.handleKeyPressSelector(msg)
+	case overlayConfirm:
+		return m.handleKeyPressConfirm(msg)
 	}
 
 	keyStr := msg.String()
@@ -325,5 +328,68 @@ func (m Model) toggleSelectorItem(dir int) (tea.Model, tea.Cmd, bool) {
 		m.Selector.Selected[item.ID] = struct{}{}
 	}
 	m.moveSelectorCursor(dir)
+	return m, nil, true
+}
+
+func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	if m.ConfirmRequest == nil {
+		m.ActiveOverlay = overlayNone
+		return m, nil, true
+	}
+
+	callID := m.ConfirmRequest.CallID
+	switch msg.Type {
+	case tea.KeyCtrlC:
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Session.Cancel()
+		m.Chat.IsStreaming = false
+		m.Chat.IsAIRendering = false
+		m.Chat.PendingAIRender = false
+		m.Chat.EventSub = nil
+		m.Chat.LastInteractionFailed = true
+		m.StatusText = ""
+		m.State = stateIdle
+		m.Chat.TextArea.Focus()
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		m.Chat.Viewport.GotoBottom()
+		m = m.updateLayout()
+		return m, textarea.Blink, true
+	case tea.KeyEsc:
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	case tea.KeyEnter:
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	}
+
+	switch msg.String() {
+	case "y", "Y":
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	case "n", "N":
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	case "a", "A":
+		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true, AlwaysAllow: true})
+		m.ConfirmRequest = nil
+		m.ActiveOverlay = overlayNone
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		return m, nil, true
+	}
+
 	return m, nil, true
 }

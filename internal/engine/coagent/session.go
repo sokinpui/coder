@@ -163,6 +163,14 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		IsAgentFileRead: true,
 	}, true
 }
+
+func (s *Session) RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error {
+	if s.Runtime == nil {
+		return fmt.Errorf("runtime not initialized")
+	}
+	return s.Runtime.RespondConfirmation(callID, response)
+}
+
 func (s *Session) HasChatHistory() bool {
 	return len(s.Messages) > 0 || s.HistoryFilename != ""
 }

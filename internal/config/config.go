@@ -52,10 +52,11 @@ func (c Coder) ModelConfig() ModelConfig {
 }
 
 type Agent struct {
-	ModelCode       string `mapstructure:"modelcode" yaml:"modelcode"`
-	ReasoningEffort string `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
-	MaxIterations   int    `mapstructure:"max_iterations" yaml:"max_iterations"`
-	Keymap          Keymap `mapstructure:"keymap" yaml:"keymap"`
+	ModelCode       string         `mapstructure:"modelcode" yaml:"modelcode"`
+	ReasoningEffort string         `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
+	MaxIterations   int            `mapstructure:"max_iterations" yaml:"max_iterations"`
+	Keymap          Keymap         `mapstructure:"keymap" yaml:"keymap"`
+	Permission      map[string]any `mapstructure:"permission" yaml:"permission,omitempty"`
 }
 
 func (a Agent) ModelConfig() ModelConfig {
@@ -191,7 +192,7 @@ func DefaultTemplate() ([]byte, error) {
 }
 
 func Load() (*Config, error) {
-	v := viper.New()
+	v := viper.NewWithOptions(viper.KeyDelimiter("::"))
 
 	// Global config in ~/.config/coder/
 	home, err := os.UserHomeDir()
@@ -212,7 +213,7 @@ func Load() (*Config, error) {
 	// Local config in repo root .coder/
 	repoRoot, err := project.FindRepoRoot()
 	if err == nil {
-		localViper := viper.New()
+		localViper := viper.NewWithOptions(viper.KeyDelimiter("::"))
 		localViper.AddConfigPath(filepath.Join(repoRoot, ".coder"))
 		localViper.SetConfigName("config")
 		localViper.SetConfigType("yaml")

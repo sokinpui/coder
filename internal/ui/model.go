@@ -34,6 +34,7 @@ type Model struct {
 	State               state
 	ActiveOverlay       overlayMode
 	Quitting            bool
+	ConfirmRequest      *types.ToolConfirmRequest
 	Height              int
 	Width               int
 	GlamourRenderer     *markdown.Renderer

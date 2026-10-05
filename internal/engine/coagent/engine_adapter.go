@@ -221,6 +221,12 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						ToolArguments: chunk.ToolCall.Arguments,
 					}
 				}
+				if chunk.ToolConfirm != nil {
+					eventChan <- types.SessionEvent{
+						Kind:    types.EventToolConfirm,
+						Confirm: chunk.ToolConfirm,
+					}
+				}
 				if chunk.ToolResult != nil {
 					s.Messages = append(s.Messages, types.Message{
 						Type:       types.ToolResultMessage,
@@ -272,5 +278,8 @@ func (s *Session) ReloadConfig() error {
 	s.Runtime.Generator.BaseURL = cfg.Server.URL
 	s.Runtime.Generator.Protocol = cfg.Server.Protocol
 	s.Runtime.Generator.APIKey = cfg.Server.APIKey
+	if s.Runtime.Permissions != nil {
+		s.Runtime.Permissions.SetConfig(cfg.Agent.Permission)
+	}
 	return nil
 }

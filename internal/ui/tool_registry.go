@@ -14,6 +14,7 @@ type ToolViewRenderer interface {
 	RenderResult(output string, callID string, viewportWidth int) string
 	RenderExpandedCall(call types.ToolCall, viewportWidth int) string
 	RenderExpandedResult(output string, callID string, viewportWidth int) string
+	RenderConfirmPrompt(arguments string, width int) string
 }
 
 type ToolRendererRegistry struct {
@@ -63,6 +64,10 @@ func (d *DefaultToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWi
 
 func (d *DefaultToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
 	return d.RenderResult(output, callID, viewportWidth)
+}
+
+func (d *DefaultToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
+	return ToolResultStyle.Render(TruncateSingleLine(arguments, width))
 }
 
 func (d *DefaultToolRenderer) RenderResult(output string, callID string, viewportWidth int) string {

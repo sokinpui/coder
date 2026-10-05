@@ -20,5 +20,6 @@ type AgentStreamChunk struct {
 	ReasoningContent string
 	ToolCall         *ToolCallInfo
 	ToolResult       *ToolResultInfo
+	ToolConfirm      *types.ToolConfirmRequest
 	Messages         []types.Message
 }

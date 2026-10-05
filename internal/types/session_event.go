@@ -20,7 +20,19 @@ const (
 	EventToolResult
 	EventComplete
 	EventError
+	EventToolConfirm
 )
+
+type ToolConfirmResponse struct {
+	Approved    bool
+	AlwaysAllow bool
+}
+
+type ToolConfirmRequest struct {
+	CallID    string `json:"callId"`
+	ToolName  string `json:"toolName"`
+	Arguments string `json:"arguments"`
+}
 
 type SessionEvent struct {
 	Kind             SessionEventKind
@@ -32,6 +44,7 @@ type SessionEvent struct {
 	ToolOutput       string
 	Error            error
 	Messages         []Message
+	Confirm          *ToolConfirmRequest
 }
 
 // Event is returned by session methods to inform the UI about what happened.

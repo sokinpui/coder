@@ -49,6 +49,23 @@ func (w *WriteToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidt
 	return fmt.Sprintf("%s\n%s", header, renderedCode)
 }
 
+func (w *WriteToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
+	path := ExtractToolJSONField(arguments, "path")
+	content := ExtractToolJSONField(arguments, "content")
+
+	header := fmt.Sprintf("%s (%d bytes)", ToolMutedStyle.Render("Write to file: ")+path, len(content))
+	if len(content) == 0 {
+		return header
+	}
+
+	lines := strings.Split(content, "\n")
+	preview := content
+	if len(lines) > 10 {
+		preview = strings.Join(lines[:10], "\n") + "\n... [truncated]"
+	}
+	return fmt.Sprintf("%s\n\n%s", header, ToolResultStyle.Render(preview))
+}
+
 func (w *WriteToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
 	trimmed := strings.TrimSpace(output)
 	if strings.HasPrefix(trimmed, "Error:") {

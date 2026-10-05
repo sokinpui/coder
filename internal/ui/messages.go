@@ -115,6 +115,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.LastInteractionFailed = true
 			m.State = stateIdle
 			m.StatusText = ""
+			if m.ActiveOverlay == overlayConfirm {
+				m.ActiveOverlay = overlayNone
+			}
+			m.ConfirmRequest = nil
 			if isActive {
 				m.Chat.Viewport.SetContent(m.renderConversation())
 				if m.Chat.AutoScroll {
@@ -127,6 +131,16 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			return m, saveConversationCmd(targetSess), true
 		}
 
+		if msg.event.Kind == types.EventToolConfirm && isActive {
+			m.ConfirmRequest = msg.event.Confirm
+			m.ActiveOverlay = overlayConfirm
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if m.Chat.AutoScroll {
+				m.Chat.Viewport.GotoBottom()
+			}
+			return m, listenForEvents(msg.sessID, msg.sub), true
+		}
+
 		if msg.event.Kind == types.EventThinking && isActive {
 			if m.State != stateGenerating {
 				m.State = stateThinking
@@ -136,17 +150,23 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		if (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult) && isActive {
+		if msg.event.Kind == types.EventToolCall && isActive {
+			m.State = stateThinking
+			if msg.event.ToolName != "" {
+				m.StatusText = fmt.Sprintf("Running %s", msg.event.ToolName)
+			} else {
+				m.StatusText = "Running tool"
+			}
+		}
+
+		if msg.event.Kind == types.EventToolResult && isActive {
 			m.State = stateThinking
 			m.StatusText = "Processing"
-			if msg.event.Kind == types.EventToolCall && msg.event.ToolName != "" {
-				m.StatusText = fmt.Sprintf("Running %s", msg.event.ToolName)
-			}
 		}
 
 		var renderCmd tea.Cmd
 		if msg.event.Kind == types.EventChunk && msg.event.Content != "" {
-			if isActive && m.State != stateGenerating {
+			if isActive {
 				m.State = stateGenerating
 				m.Chat.StateStartTime = time.Now()
 				m.StatusText = "Generating"
@@ -244,6 +264,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		m.Chat.IsStreaming = false
 		m.State = stateIdle
+		if m.ActiveOverlay == overlayConfirm {
+			m.ActiveOverlay = overlayNone
+		}
+		m.ConfirmRequest = nil
 		if m.ActiveOverlay == overlayNone {
 			m.Chat.TextArea.Focus()
 		}

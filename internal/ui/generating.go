@@ -41,6 +41,11 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 
 	switch msg.Type {
 	case tea.KeyCtrlC:
+		if m.ConfirmRequest != nil {
+			_ = m.Session.RespondToolConfirmation(m.ConfirmRequest.CallID, types.ToolConfirmResponse{Approved: false})
+			m.ConfirmRequest = nil
+		}
+		m.ActiveOverlay = overlayNone
 		m.Session.Cancel()
 		m.Chat.IsStreaming = false
 		m.Chat.IsAIRendering = false

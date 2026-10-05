@@ -15,6 +15,7 @@ func Start(sess engine.EngineSession, prompt string) error {
 
 	manager := NewManager(&mainModel)
 	manager.Overlays = []Overlay{
+		&ConfirmOverlay{},
 		&QuickViewOverlay{},
 		&SelectorOverlay{},
 		&PaletteOverlay{},

@@ -29,6 +29,8 @@ func (m Model) StatusView() string {
 		leftStatus = StatusStyle.Render("Press Ctrl+C again to quit.")
 	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
 		leftStatus = StatusStyle.Render("-- ATOMIC MSG --")
+	} else if m.ActiveOverlay == overlayConfirm {
+		leftStatus = StatusStyle.Render("-- CONFIRM TOOL --")
 	}
 
 	hideRightInfo := leftStatus != ""

@@ -48,6 +48,28 @@ func (e *EditToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth
 	return fmt.Sprintf("%s\n%s", header, renderedDiff)
 }
 
+func (e *EditToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
+	path := ExtractToolJSONField(arguments, "path")
+	oldStr := ExtractToolJSONField(arguments, "old_string")
+	newStr := ExtractToolJSONField(arguments, "new_string")
+
+	header := ToolMutedStyle.Render("Target file: ") + path
+	if oldStr == "" && newStr == "" {
+		return header
+	}
+
+	var diff strings.Builder
+	diff.WriteString("```diff\n")
+	for line := range strings.SplitSeq(oldStr, "\n") {
+		diff.WriteString("-" + line + "\n")
+	}
+	for line := range strings.SplitSeq(newStr, "\n") {
+		diff.WriteString("+" + line + "\n")
+	}
+	diff.WriteString("```")
+	return fmt.Sprintf("%s\n\n%s", header, markdown.Render(diff.String(), width))
+}
+
 func (e *EditToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
 	if strings.HasPrefix(strings.TrimSpace(output), "Error:") {
 		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(strings.TrimSpace(output)))

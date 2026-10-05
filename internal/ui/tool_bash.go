@@ -36,6 +36,17 @@ func (b *BashToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth
 	return fmt.Sprintf("%s $ %s", prefix, ToolMutedStyle.Render(cmd))
 }
 
+func (b *BashToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
+	cmd := ExtractToolJSONField(arguments, "command")
+	if cmd == "" && !strings.HasPrefix(strings.TrimSpace(arguments), "{") {
+		cmd = strings.TrimSpace(arguments)
+	}
+	return fmt.Sprintf("%s\n%s",
+		ToolMutedStyle.Render("Command to execute:"),
+		CommandInputStyle.Width(width).Render("$ "+cmd),
+	)
+}
+
 func (b *BashToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
 	trimmed := strings.TrimSpace(output)
 	if trimmed == "" || trimmed == "(no output)" {

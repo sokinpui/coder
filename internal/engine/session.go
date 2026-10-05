@@ -51,6 +51,7 @@ type EngineSession interface {
 	GetSupportedCommands() []string
 	GetCommandDescriptions() map[string]string
 	GetCommandSuggestions(cmdName, prefix string) []string
+	RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error
 	ExecuteCommand(input string) (CommandOutput, bool)
 
 	CreateNew(mode string) (EngineSession, error)

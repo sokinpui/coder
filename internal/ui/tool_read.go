@@ -37,6 +37,14 @@ func (r *ReadToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(path))
 }
 
+func (r *ReadToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
+	path := ExtractToolJSONField(arguments, "path")
+	if path == "" && !strings.HasPrefix(strings.TrimSpace(arguments), "{") {
+		path = strings.TrimSpace(arguments)
+	}
+	return ToolMutedStyle.Render("Read file: ") + path
+}
+
 func (r *ReadToolRenderer) RenderResult(output string, callID string, viewportWidth int) string {
 	trimmed := strings.TrimSpace(output)
 	if strings.HasPrefix(trimmed, "Error:") || strings.HasPrefix(trimmed, "cannot read") {

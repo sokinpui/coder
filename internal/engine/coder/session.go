@@ -259,6 +259,10 @@ func (s *Session) ReadAgentFiles(input string, paths []string) (commands.Command
 	return commands.CommandOutput{}, false
 }
 
+func (s *Session) RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error {
+	return fmt.Errorf("tool confirmation not supported in coder session")
+}
+
 func (s *Session) SetMode(mode string) error {
 	s.mode = mode
 	return s.LoadContext()

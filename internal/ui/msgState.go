@@ -22,6 +22,7 @@ const (
 	overlayNone overlayMode = iota
 	overlaySelector
 	overlayQuickView
+	overlayConfirm
 )
 
 type modelsFetchedMsg struct {

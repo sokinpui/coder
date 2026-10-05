@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
@@ -16,6 +17,10 @@ type AgentRuntime struct {
 	Generator         *generation.Generator
 	MaxToolIterations int
 	Registry          *Registry
+	Permissions       *PermissionManager
+
+	pendingMu sync.Mutex
+	pending   map[string]chan types.ToolConfirmResponse
 }
 
 func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, error) {
@@ -30,12 +35,47 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 	if maxIterations <= 0 {
 		maxIterations = 50
 	}
+	var permMap map[string]any
+	if cfg != nil && cfg.Agent.Permission != nil {
+		permMap = cfg.Agent.Permission
+	}
 	return &AgentRuntime{
 		Config:            cfg.Agent.ModelConfig(),
 		Generator:         gen,
 		MaxToolIterations: maxIterations,
 		Registry:          registry,
+		Permissions:       NewPermissionManager(permMap),
+		pending:           make(map[string]chan types.ToolConfirmResponse),
 	}, nil
+}
+
+func (ar *AgentRuntime) registerConfirmation(callID string, ch chan types.ToolConfirmResponse) {
+	ar.pendingMu.Lock()
+	defer ar.pendingMu.Unlock()
+	ar.pending[callID] = ch
+}
+
+func (ar *AgentRuntime) unregisterConfirmation(callID string) {
+	ar.pendingMu.Lock()
+	defer ar.pendingMu.Unlock()
+	delete(ar.pending, callID)
+}
+
+func (ar *AgentRuntime) RespondConfirmation(callID string, resp types.ToolConfirmResponse) error {
+	ar.pendingMu.Lock()
+	ch, ok := ar.pending[callID]
+	ar.pendingMu.Unlock()
+
+	if !ok {
+		return fmt.Errorf("no pending confirmation for call ID: %s", callID)
+	}
+
+	select {
+	case ch <- resp:
+		return nil
+	default:
+		return fmt.Errorf("confirmation already sent for call ID: %s", callID)
+	}
 }
 
 func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string, messages []types.Message, streamChan chan<- AgentStreamChunk) {
@@ -140,6 +180,67 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				Arguments: tc.Arguments,
 			}
 			streamChan <- AgentStreamChunk{ToolCall: &callInfo}
+
+			action := ActionAllow
+			if ar.Permissions != nil {
+				action = ar.Permissions.Check(tc.Name, tc.Arguments)
+			}
+
+			if action == ActionDeny {
+				output := fmt.Sprintf("Permission denied: execution of %s is denied by configuration", tc.Name)
+				resInfo := ToolResultInfo{
+					CallID: tc.ID,
+					Name:   tc.Name,
+					Output: output,
+				}
+				streamChan <- AgentStreamChunk{ToolResult: &resInfo}
+				currentMessages = append(currentMessages, types.Message{
+					Type:       types.ToolResultMessage,
+					Content:    output,
+					ToolCallID: tc.ID,
+				})
+				continue
+			}
+
+			if action == ActionAsk {
+				replyChan := make(chan types.ToolConfirmResponse, 1)
+				ar.registerConfirmation(tc.ID, replyChan)
+				confirmReq := &types.ToolConfirmRequest{
+					CallID:    tc.ID,
+					ToolName:  tc.Name,
+					Arguments: tc.Arguments,
+				}
+				streamChan <- AgentStreamChunk{ToolConfirm: confirmReq}
+
+				var resp types.ToolConfirmResponse
+				select {
+				case <-ctx.Done():
+					ar.unregisterConfirmation(tc.ID)
+					return
+				case resp = <-replyChan:
+					ar.unregisterConfirmation(tc.ID)
+				}
+
+				if resp.AlwaysAllow && ar.Permissions != nil {
+					ar.Permissions.AlwaysAllow(tc.Name)
+				}
+
+				if !resp.Approved {
+					output := fmt.Sprintf("Tool execution rejected by user: permission denied for %s", tc.Name)
+					resInfo := ToolResultInfo{
+						CallID: tc.ID,
+						Name:   tc.Name,
+						Output: output,
+					}
+					streamChan <- AgentStreamChunk{ToolResult: &resInfo}
+					currentMessages = append(currentMessages, types.Message{
+						Type:       types.ToolResultMessage,
+						Content:    output,
+						ToolCallID: tc.ID,
+					})
+					continue
+				}
+			}
 
 			output, images, err := ar.Registry.Execute(ctx, tc.Name, tc.Arguments)
 			if err != nil {
