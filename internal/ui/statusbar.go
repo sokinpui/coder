@@ -2,15 +2,16 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/pkg/version"
 )
 
 func (m Model) StatusView() string {
-	// Line 1: Title
 	var title string
 	if m.Chat.AnimatingTitle {
 		title = m.Chat.DisplayedTitle
@@ -19,45 +20,16 @@ func (m Model) StatusView() string {
 	}
 	titlePart := StatusBarTitleStyle.MaxWidth(m.Width).Render(title)
 
-	// Line 2: Status
-	var rightStatusItems []string
-	var leftStatus string
+	var items []string
 
 	if m.StatusBarMessage != "" {
-		leftStatus = StatusBarMsgStyle.Render(m.StatusBarMessage)
+		items = append(items, StatusBarMsgStyle.Render(m.StatusBarMessage))
 	} else if m.Chat.CtrlCPressed && m.State == stateIdle {
-		leftStatus = StatusStyle.Render("Press Ctrl+C again to quit.")
-	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
-		leftStatus = StatusStyle.Render("-- ATOMIC MSG --")
+		items = append(items, StatusStyle.Render("Press Ctrl+C again to quit."))
 	} else if m.ActiveOverlay == overlayConfirm {
-		leftStatus = StatusStyle.Render("-- CONFIRM TOOL --")
-	}
-
-	hideRightInfo := leftStatus != ""
-
-	modelCode := m.Session.GetConfig().Coder.ModelCode
-	if m.Session.Capabilities().Has(engine.CapToolLoop) {
-		modelCode = m.Session.GetConfig().Agent.ModelCode
-	}
-	modelInfo := fmt.Sprintf("Model: %s", modelCode)
-	versionPart := ModelInfoStyle.Render(fmt.Sprintf("%s", version.Get()))
-
-	modelPart := ModelInfoStyle.Render(modelInfo)
-
-	if !hideRightInfo {
-		if m.TokenCount > 0 {
-			tokenPart := TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount))
-			rightStatusItems = append(rightStatusItems, tokenPart)
-		}
-		rightStatusItems = append(rightStatusItems, versionPart, modelPart)
-	}
-
-	if !hideRightInfo && m.Session.Capabilities().Has(engine.CapToolToggle) {
-		toolsStatus := "Tools: [Compact] (Ctrl+T)"
-		if m.ToolsExpanded {
-			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
-		}
-		rightStatusItems = append(rightStatusItems, ToolMutedStyle.Render(toolsStatus))
+		items = append(items, StatusStyle.Render("-- CONFIRM TOOL --"))
+	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
+		items = append(items, StatusStyle.Render("-- ATOMIC MSG --"))
 	}
 
 	switch m.State {
@@ -84,12 +56,55 @@ func (m Model) StatusView() string {
 		elapsed := time.Since(m.Chat.StateStartTime).Seconds()
 		timerText := fmt.Sprintf("%s (%.1fs) ", statusText, elapsed)
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, statusStyle.Render(timerText), m.Chat.Spinner.View())
-		rightStatusItems = append(rightStatusItems, spinnerWithText)
-	}
-	if m.Chat.IsFetchingModels {
-		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, StatusStyle.Render("Fetching models "), m.Chat.Spinner.View())
-		rightStatusItems = append(rightStatusItems, spinnerWithText)
+		items = append(items, spinnerWithText)
 	}
 
-	return RenderStatusBar(m.Width, titlePart, leftStatus, rightStatusItems)
+	if m.Chat.IsFetchingModels {
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, StatusStyle.Render("Fetching models "), m.Chat.Spinner.View())
+		items = append(items, spinnerWithText)
+	}
+
+	items = append(items, ModelInfoStyle.Render(version.Get()))
+
+	if m.TokenCount > 0 {
+		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))
+	}
+
+	modelCode := m.Session.GetConfig().Coder.ModelCode
+	if m.Session.Capabilities().Has(engine.CapToolLoop) {
+		modelCode = m.Session.GetConfig().Agent.ModelCode
+	}
+	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Model: %s", modelCode)))
+
+	if m.Session.Capabilities().Has(engine.CapToolToggle) {
+		toolsStatus := "Tools: [Compact] (Ctrl+T)"
+		if m.ToolsExpanded {
+			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
+		}
+		items = append(items, ToolMutedStyle.Render(toolsStatus))
+	}
+
+	return RenderStatusBar(m.Width, titlePart, items)
+}
+
+func RenderStatusBar(width int, titleLine string, items []string) string {
+	var filtered []string
+	for _, item := range items {
+		if strings.TrimSpace(item) != "" {
+			filtered = append(filtered, item)
+		}
+	}
+	statusLine := strings.Join(filtered, " | ")
+
+	if width > 0 {
+		if titleLine != "" {
+			titleLine = ansi.Truncate(titleLine, width, "")
+		}
+		statusLine = ansi.Truncate(statusLine, width, "")
+	}
+
+	if titleLine == "" {
+		return statusLine
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, titleLine, statusLine)
 }
