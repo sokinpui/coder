@@ -13,7 +13,6 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine/coder"
-	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
@@ -33,7 +32,6 @@ var (
 	configFlag        bool
 	globalConfig      bool
 	execMode          bool
-	applyFlag         bool
 	completionShell   string
 	headlessMode      bool
 	serverPort        int
@@ -71,7 +69,6 @@ func main() {
 	rootCmd.Flags().BoolVarP(&printContextFlag, "context", "C", false, "Print instructions and project context, then exit")
 	rootCmd.Flags().BoolVar(&configFlag, "config", false, "Edit configuration file")
 	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Use with --config to edit global configuration")
-	rootCmd.Flags().BoolVarP(&applyFlag, "apply", "a", false, "Apply code changes using itf format from args or stdin")
 	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
 	rootCmd.Flags().BoolVar(&headlessMode, "headless", false, "Run as headless JSON-RPC server over stdio")
 	rootCmd.Flags().IntVar(&serverPort, "port", 0, "Run headless server listening on TCP port")
@@ -141,11 +138,6 @@ func runCLI(cmd *cobra.Command, args []string) {
 
 	if configFlag {
 		editConfig()
-		return
-	}
-
-	if applyFlag {
-		applyChanges(args)
 		return
 	}
 
@@ -367,24 +359,6 @@ func startApp(mode string, prompt string, contextFiles []string, instruction str
 		os.Exit(1)
 	}
 	_ = ui.Start(sess, prompt)
-}
-
-func applyChanges(args []string) {
-	content := strings.Join(args, " ")
-	if content == "" {
-		content = readPipedInput()
-	}
-
-	if content == "" {
-		fmt.Fprintln(os.Stderr, "Error: No content provided via arguments or stdin.")
-		os.Exit(1)
-	}
-
-	res := commands.ExecuteItf(content, "")
-	fmt.Println(res.Summary)
-	if !res.Success {
-		os.Exit(1)
-	}
 }
 
 func collectFiles(args []string) []string {
