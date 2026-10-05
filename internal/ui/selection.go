@@ -54,6 +54,22 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.QuickView.Viewport.LineDown(2)
 			return m, nil
 		}
+		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
+			quickViewWidth := m.Width * 3 / 4
+			quickViewHeight := m.Height * 3 / 4
+			xStart := (m.Width - quickViewWidth) / 2
+			xEnd := xStart + quickViewWidth
+			yStart := (m.Height - quickViewHeight) / 2
+			yEnd := yStart + quickViewHeight
+			if msg.X < xStart || msg.X >= xEnd || msg.Y < yStart || msg.Y >= yEnd {
+				m.ActiveOverlay = overlayNone
+				if m.State == stateIdle {
+					m.Chat.TextArea.Focus()
+					return m, textarea.Blink
+				}
+				return m, nil
+			}
+		}
 		return m, nil
 	}
 

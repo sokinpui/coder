@@ -86,6 +86,9 @@ func canScrollMouse(tm tea.Model, msg tea.MouseMsg) bool {
 		if main.QuickView == nil {
 			return false
 		}
+		if main.QuickView.needsRender {
+			return true
+		}
 		if msg.Button == tea.MouseButtonWheelUp {
 			return main.QuickView.Viewport.YOffset > 0
 		}

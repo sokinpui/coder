@@ -402,9 +402,17 @@ func (m Model) showQuickView(cmdName string) (tea.Model, tea.Cmd) {
 	}
 
 	res, _, _ := commands.ProcessCommand(cmdName, ctrl)
+	quickViewWidth := m.Width * 3 / 4
+	quickViewHeight := m.Height * 3 / 4
+	m.QuickView.Viewport.Width = quickViewWidth - PaletteContainerStyle.GetHorizontalFrameSize()
+	m.QuickView.Viewport.Height = quickViewHeight - PaletteContainerStyle.GetVerticalFrameSize()
+	m.QuickView.GlamourRenderer = m.GlamourRenderer
 	m.QuickView.SetMessages([]types.Message{
 		{Type: types.CommandResultMessage, Content: res.Payload},
 	})
+	m.QuickView.Viewport.SetContent(m.QuickView.renderContent())
+	m.QuickView.Viewport.GotoTop()
+	m.QuickView.needsRender = false
 	m.ActiveOverlay = overlayQuickView
 	m.Chat.TextArea.Blur()
 	return m, nil
