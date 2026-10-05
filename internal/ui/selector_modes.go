@@ -14,35 +14,69 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-func (m Model) openGenericSelector(items []SelectorItem, title, placeholder, footer string, showSearch bool, onConfirm func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)) (Model, tea.Cmd) {
+type SelectorConfig struct {
+	Title          string
+	Placeholder    string
+	Footer         string
+	Items          []SelectorItem
+	ShowSearch     bool
+	IsSearching    bool
+	MultiSelect    bool
+	Tabs           []string
+	ActiveTab      int
+	InitialCursor  int
+	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
+	OnCancel       func(m Model) (tea.Model, tea.Cmd)
+	OnTabChange    func(m Model, newTab int) (tea.Model, tea.Cmd)
+	OnCursorChange func(m Model, current *SelectorItem) Model
+	KeyHandler     func(m Model, key tea.KeyMsg) (tea.Model, tea.Cmd, bool)
+}
+
+func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.ActiveOverlay = overlaySelector
 	m.Chat.TextArea.Blur()
 
 	m.Selector = NewSelector()
-	m.Selector.Title = title
-	m.Selector.ShowSearch = showSearch
-	m.Selector.IsSearching = showSearch
-	m.Selector.FooterHelp = footer
-	m.Selector.OnConfirm = onConfirm
-	m.Selector.OnCancel = func(mod Model) (tea.Model, tea.Cmd) {
-		mod.ActiveOverlay = overlayNone
-		if mod.State == stateIdle {
-			mod.Chat.TextArea.Focus()
-			return mod, textarea.Blink
-		}
-		return mod, nil
-	}
+	m.Selector.Title = cfg.Title
+	m.Selector.MultiSelect = cfg.MultiSelect
+	m.Selector.ShowSearch = cfg.ShowSearch
+	m.Selector.IsSearching = cfg.IsSearching
+	m.Selector.FooterHelp = cfg.Footer
+	m.Selector.Tabs = cfg.Tabs
+	m.Selector.ActiveTab = cfg.ActiveTab
+	m.Selector.OnTabChange = cfg.OnTabChange
+	m.Selector.OnCursorChange = cfg.OnCursorChange
+	m.Selector.KeyHandler = cfg.KeyHandler
+	m.Selector.OnConfirm = cfg.OnConfirm
 
-	if placeholder != "" {
-		m.Selector.SearchInput.Placeholder = placeholder
+	onCancel := cfg.OnCancel
+	if onCancel == nil {
+		onCancel = func(mod Model) (tea.Model, tea.Cmd) {
+			mod.ActiveOverlay = overlayNone
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+				return mod, textarea.Blink
+			}
+			return mod, nil
+		}
 	}
-	if showSearch {
+	m.Selector.OnCancel = onCancel
+
+	if cfg.Placeholder != "" {
+		m.Selector.SearchInput.Placeholder = cfg.Placeholder
+	}
+	if cfg.ShowSearch {
 		m.Selector.SearchInput.Focus()
 	}
 
-	m.Selector.SetItems(items)
+	m.Selector.SetItems(cfg.Items)
 
-	if showSearch {
+	if cfg.InitialCursor > 0 && cfg.InitialCursor < len(m.Selector.FilteredItems) {
+		m.Selector.Cursor = cfg.InitialCursor
+		m.Selector.Anchor = cfg.InitialCursor
+	}
+
+	if cfg.IsSearching {
 		return m, textinput.Blink
 	}
 	return m, nil
@@ -58,13 +92,15 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 		})
 	}
 
-	newModel, cmd := m.openGenericSelector(
-		items,
-		"── Switch Model ──",
-		"Filter models...",
-		"── [Esc/Ctrl+C: cancel | Enter: select] ──",
-		true,
-		func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+	newModel, cmd := m.openGenericSelector(SelectorConfig{
+		Title:       "── Switch Model ──",
+		Placeholder: "Filter models...",
+		Footer:      "── [Esc/Ctrl+C: cancel | Enter: select] ──",
+		Items:       items,
+		ShowSearch:  true,
+		IsSearching: true,
+		MultiSelect: false,
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			if primary == nil {
 				mod.ActiveOverlay = overlayNone
 				if mod.State == stateIdle {
@@ -87,7 +123,7 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 			}
 			return mod, textarea.Blink
 		},
-	)
+	})
 
 	if initialQuery != "" {
 		newModel.Selector.SearchInput.SetValue(initialQuery)
@@ -105,13 +141,15 @@ func (m Model) openFileListSelector(title, placeholder string, paths []string, o
 		})
 	}
 
-	return m.openGenericSelector(
-		items,
-		title,
-		placeholder,
-		"── [Esc/Ctrl+C: cancel | Tab: toggle select | Enter: apply] ──",
-		true,
-		func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+	return m.openGenericSelector(SelectorConfig{
+		Title:       title,
+		Placeholder: placeholder,
+		Footer:      "── [Esc/Ctrl+C: cancel | Tab: toggle select | Enter: apply] ──",
+		Items:       items,
+		ShowSearch:  true,
+		IsSearching: true,
+		MultiSelect: true,
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			var picked []string
 			for _, item := range selected {
 				picked = append(picked, item.ID)
@@ -125,71 +163,66 @@ func (m Model) openFileListSelector(title, placeholder string, paths []string, o
 			}
 			return onApply(mod, picked)
 		},
-	)
+	})
 }
 
 func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
-	m.ActiveOverlay = overlaySelector
-	m.Chat.TextArea.Blur()
-
-	m.Selector = NewSelector()
-	m.Selector.Tabs = []string{"History", "Active"}
-	m.Selector.ActiveTab = initialTab
-	m.Selector.ShowSearch = true
-	m.Selector.IsSearching = false
-	m.Selector.FooterHelp = "── [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load] ──"
-
-	m.Selector.OnTabChange = func(mod Model, newTab int) (tea.Model, tea.Cmd) {
-		mod.Selector.ActiveTab = newTab
-		mod.Selector.Selected = make(map[string]struct{})
-		mod.Selector.Cursor = 0
-		mod.Selector.SearchInput.Reset()
-		if newTab == 0 {
-			return mod, listHistoryCmd(mod.Session.GetHistoryManager(), mod.Session.GetMode())
-		}
-		mod = mod.refreshHistorySelectorItems()
-		return mod, nil
-	}
-
-	m.Selector.OnConfirm = func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
-		if primary == nil {
-			return mod, nil
-		}
-
-		mod.ActiveOverlay = overlayNone
-		mod.Selector.IsSearching = false
-		mod.Selector.SearchInput.Blur()
-
-		if mod.Selector.ActiveTab == 1 { // Active tab
-			return mod, mod.switchSessionByID(primary.ID)
-		}
-
-		for _, sess := range mod.ActiveSessions {
-			if sess.GetHistoryFilename() == primary.ID {
-				return mod, mod.switchSessionByID(sess.GetID())
+	newModel, cmd := m.openGenericSelector(SelectorConfig{
+		Tabs:        []string{"History", "Active"},
+		ActiveTab:   initialTab,
+		ShowSearch:  true,
+		IsSearching: false,
+		Footer:      "── [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load] ──",
+		OnTabChange: func(mod Model, newTab int) (tea.Model, tea.Cmd) {
+			mod.Selector.ActiveTab = newTab
+			mod.Selector.Selected = make(map[string]struct{})
+			mod.Selector.Cursor = 0
+			mod.Selector.SearchInput.Reset()
+			if newTab == 0 {
+				return mod, listHistoryCmd(mod.Session.GetHistoryManager(), mod.Session.GetMode())
 			}
-		}
+			mod = mod.refreshHistorySelectorItems()
+			return mod, nil
+		},
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			if primary == nil {
+				return mod, nil
+			}
 
-		return mod, loadConversationCmd(mod.Session, primary.ID)
-	}
+			mod.ActiveOverlay = overlayNone
+			mod.Selector.IsSearching = false
+			mod.Selector.SearchInput.Blur()
 
-	m.Selector.OnCancel = func(mod Model) (tea.Model, tea.Cmd) {
-		mod.ActiveOverlay = overlayNone
-		mod.Selector.IsSearching = false
-		mod.Selector.SearchInput.Blur()
-		if mod.State == stateIdle {
-			mod.Chat.TextArea.Focus()
-			return mod, textarea.Blink
-		}
-		return mod, nil
-	}
+			if mod.Selector.ActiveTab == 1 {
+				return mod, mod.switchSessionByID(primary.ID)
+			}
+
+			for _, sess := range mod.ActiveSessions {
+				if sess.GetHistoryFilename() == primary.ID {
+					return mod, mod.switchSessionByID(sess.GetID())
+				}
+			}
+
+			return mod, loadConversationCmd(mod.Session, primary.ID)
+		},
+		OnCancel: func(mod Model) (tea.Model, tea.Cmd) {
+			mod.ActiveOverlay = overlayNone
+			mod.Selector.IsSearching = false
+			mod.Selector.SearchInput.Blur()
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+				return mod, textarea.Blink
+			}
+			return mod, nil
+		},
+	})
 
 	if initialTab == 1 {
-		m = m.refreshHistorySelectorItems()
-		return m, nil
+		newModel = newModel.refreshHistorySelectorItems()
+		return newModel, cmd
 	}
 
-	return m, listHistoryCmd(m.Session.GetHistoryManager(), m.Session.GetMode())
+	return newModel, listHistoryCmd(newModel.Session.GetHistoryManager(), newModel.Session.GetMode())
 }
 
 func (m Model) refreshHistorySelectorItems() Model {
@@ -232,10 +265,6 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 		})
 	}
 
-	m.ActiveOverlay = overlaySelector
-	m.Chat.TextArea.Blur()
-
-	m.Selector = NewSelector()
 	var actions []string
 	if m.Session.Capabilities().Has(engine.CapITF) {
 		actions = append(actions, "a")
@@ -248,42 +277,40 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 		actions = append(actions, "b")
 	}
 	actionList := strings.Join(actions, "/")
-	m.Selector.Title = fmt.Sprintf("── Atomic Messages [Esc/C-c: exit | v: select | o: swap | y/d: copy/del | %s] ──", actionList)
-	m.Selector.ShowSearch = false
-	m.Selector.IsSearching = false
-	m.Selector.FooterHelp = ""
-	m.Selector.SetItems(items)
 
+	initialCursor := 0
 	if len(items) > 0 {
-		m.Selector.Cursor = len(items) - 1
-		m.Selector.Anchor = m.Selector.Cursor
+		initialCursor = len(items) - 1
 	}
 
-	m.Selector.OnCursorChange = func(mod Model, current *SelectorItem) Model {
-		if current != nil {
-			if idx, ok := current.Data.(int); ok {
-				return mod.syncViewportToMessage(idx)
+	newModel, cmd := m.openGenericSelector(SelectorConfig{
+		Title:         fmt.Sprintf("── Atomic Messages [Esc/C-c: exit | v: select | o: swap | y/d: copy/del | %s] ──", actionList),
+		Items:         items,
+		InitialCursor: initialCursor,
+		OnCursorChange: func(mod Model, current *SelectorItem) Model {
+			if current != nil {
+				if idx, ok := current.Data.(int); ok {
+					return mod.syncViewportToMessage(idx)
+				}
 			}
-		}
-		return mod
-	}
+			return mod
+		},
+		OnCancel: func(mod Model) (tea.Model, tea.Cmd) {
+			mod.ActiveOverlay = overlayNone
+			mod.Selector.IsSelecting = false
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+				return mod, textarea.Blink
+			}
+			return mod, nil
+		},
+		KeyHandler: func(mod Model, keyMsg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+			return mod.handleAtomicMsgKey(keyMsg)
+		},
+	})
 
-	m.Selector.OnCancel = func(mod Model) (tea.Model, tea.Cmd) {
-		mod.ActiveOverlay = overlayNone
-		mod.Selector.IsSelecting = false
-		if mod.State == stateIdle {
-			mod.Chat.TextArea.Focus()
-			return mod, textarea.Blink
-		}
-		return mod, nil
-	}
-
-	m.Selector.KeyHandler = func(mod Model, keyMsg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-		return mod.handleAtomicMsgKey(keyMsg)
-	}
-
-	m = m.updateLayout()
-	return m, nil
+	newModel = newModel.updateLayout()
+	return newModel, cmd
 }
 
 func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {

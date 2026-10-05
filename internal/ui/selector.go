@@ -38,6 +38,7 @@ type SelectorModel struct {
 	Height        int
 	FooterHelp    string
 	IsLoading     bool
+	MultiSelect   bool
 
 	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
 	OnCancel       func(m Model) (tea.Model, tea.Cmd)
@@ -107,7 +108,7 @@ func (s *SelectorModel) GetSelectedItems() []SelectorItem {
 		return s.FilteredItems[start : end+1]
 	}
 
-	if len(s.Selected) > 0 {
+	if s.MultiSelect && len(s.Selected) > 0 {
 		var res []SelectorItem
 		for _, it := range s.Items {
 			if _, ok := s.Selected[it.ID]; ok {
@@ -183,7 +184,7 @@ func (s *SelectorModel) View(main *Model) string {
 			for _, item := range s.GetSelectedItems() {
 				selectedSet[item.ID] = struct{}{}
 			}
-		} else {
+		} else if s.MultiSelect {
 			selectedSet = s.Selected
 		}
 
@@ -199,7 +200,7 @@ func (s *SelectorModel) View(main *Model) string {
 			}
 
 			checkPrefix := ""
-			if s.IsSelecting || len(s.Selected) > 0 {
+			if s.IsSelecting || (s.MultiSelect && len(s.Selected) > 0) {
 				if isSelected {
 					checkPrefix = "[✓] "
 				} else {

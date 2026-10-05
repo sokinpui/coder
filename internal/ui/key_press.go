@@ -127,12 +127,12 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 			}
 			return m.cancelSelector()
 		case tea.KeyTab:
-			if m.Selector.IsLoading {
+			if m.Selector.IsLoading || !m.Selector.MultiSelect {
 				return m, nil, true
 			}
 			return m.toggleSelectorItem(1)
 		case tea.KeyShiftTab:
-			if m.Selector.IsLoading {
+			if m.Selector.IsLoading || !m.Selector.MultiSelect {
 				return m, nil, true
 			}
 			return m.toggleSelectorItem(-1)
@@ -160,6 +160,9 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 				return newMod, cmd, true
 			}
 			m.Selector.ActiveTab = nextTab
+			return m, nil, true
+		}
+		if !m.Selector.MultiSelect {
 			return m, nil, true
 		}
 		dir := 1
@@ -309,6 +312,9 @@ func (m Model) notifySelectorCursorChange() Model {
 }
 
 func (m Model) toggleSelectorItem(dir int) (tea.Model, tea.Cmd, bool) {
+	if !m.Selector.MultiSelect {
+		return m, nil, true
+	}
 	if len(m.Selector.FilteredItems) == 0 || m.Selector.Cursor >= len(m.Selector.FilteredItems) {
 		return m, nil, true
 	}

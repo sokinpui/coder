@@ -3,9 +3,9 @@ package ui
 import (
 	"strings"
 
-	"github.com/sokinpui/coder/internal/types"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
