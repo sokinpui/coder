@@ -50,7 +50,7 @@ func CountTokens(messages []types.Message) int {
 			continue
 		}
 		if msg.Type == types.ImageMessage {
-			counts[i] = 1500
+			counts[i] = 1200
 			continue
 		}
 		if msg.Content == "" {
@@ -100,7 +100,7 @@ func countSingleMessage(msg types.Message, encoder tokenizer.Codec) int {
 		return 0
 	}
 	if msg.Type == types.ImageMessage {
-		return 1500
+		return 1200
 	}
 	if msg.Content == "" {
 		return 0
