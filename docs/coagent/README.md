@@ -1,5 +1,7 @@
 # Co - Autonomous Coding Agent
 
+[简体中文](README.zh.md)
+
 `co` is an autonomous terminal coding agent powered by an iterative LLM tool-calling loop. Unlike `coder`, which relies on human-guided diff applications, `co` autonomously explores the workspace, reads files, runs commands, and edits source code in real time.
 
 ## CLI Usage
@@ -69,7 +71,3 @@ agent:
     submit: ctrl+j
     editor: ctrl+e
 ```
-
----
-
-[简体中文](README.zh.md)

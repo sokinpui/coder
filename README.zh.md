@@ -13,6 +13,10 @@
   <a href="https://github.com/sokinpui/coder.flutter"><b>coder.flutter</b></a> (跨平台 GUI 客户端)
 </p>
 
+<p align="center">
+  <a href="README.md">English</a>
+</p>
+
 ## Quick Install
 
 一键安装 `coder` 与 `co`：
@@ -114,7 +118,3 @@ agent:
 - **[sf](./pkg/sf/README.md)**：Search Fast — 遵循 `.gitignore` 的高并发并行目录检索器。
 - **[pti](./pkg/pti/README.md)**：PDF To Image — 将 PDF 文档按需渲染为高质量图片供视觉模型理解。
 - **[pcat](./pkg/pcat/README.md)**：Prompt Cat — 将文件拼接并格式化为带语法高亮的 Markdown 代码块。
-
----
-
-[English](README.md)

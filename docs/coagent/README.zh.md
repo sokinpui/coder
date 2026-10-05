@@ -1,5 +1,7 @@
 # Co - 自主编程智能体
 
+[English](README.md)
+
 `co` 是一款基于大语言模型自主工具调用循环的终端智能体。与依赖人工审查 Unified Diff 的 `coder` 不同，`co` 能够自主探索项目工作区、读取文件、执行终端命令，并在推理过程中自主编辑源代码。
 
 ## CLI 用法
@@ -69,7 +71,3 @@ agent:
     submit: ctrl+j
     editor: ctrl+e
 ```
-
----
-
-[English](README.md)

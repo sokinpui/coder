@@ -1,5 +1,7 @@
 # Coder - User Manual
 
+[简体中文](README.zh.md)
+
 Coder is an interactive TUI-based, human-in-the-loop AI code editor designed for terminal workflows. It operates on a deterministic, one-step edit model: you provide exact file context, the AI suggests unified diffs and file lifecycle operations, and you inspect and apply them with one keystroke via `itf`.
 
 ## CLI Usage
@@ -96,7 +98,3 @@ coder:
     editor: ctrl+e
     applyitf: ctrl+a
 ```
-
----
-
-[简体中文](README.zh.md)

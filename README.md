@@ -13,6 +13,10 @@
   <a href="https://github.com/sokinpui/coder.flutter"><b>coder.flutter</b></a> (Cross-Platform GUI)
 </p>
 
+<p align="center">
+  <a href="README.zh.md">简体中文</a>
+</p>
+
 ## Quick Install
 
 Installs `coder` and `co`:
@@ -114,7 +118,3 @@ agent:
 - **[sf](./pkg/sf/README.md)**: Search Fast — parallel directory walker respecting `.gitignore`.
 - **[pti](./pkg/pti/README.md)**: PDF To Image — renders PDF documents into images for vision models.
 - **[pcat](./pkg/pcat/README.md)**: Prompt Cat — concatenates and formats files into syntax-highlighted markdown code blocks.
-
----
-
-[简体中文](README.zh.md)

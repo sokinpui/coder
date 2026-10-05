@@ -1,5 +1,7 @@
 # Coder - 用户手册
 
+[English](README.md)
+
 Coder 是一款面向终端工作流、以人为主导的交互式 TUI AI 代码编辑器。它基于确定性的单步编辑模式：由你提供精确的文件上下文，AI 给出标准 Unified Diff 及文件生命周期变更建议，并通过 `itf` 工具实现一键审查与打补丁。
 
 ## CLI 用法
@@ -96,7 +98,3 @@ coder:
     editor: ctrl+e
     applyitf: ctrl+a
 ```
-
----
-
-[English](README.md)
