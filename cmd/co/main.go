@@ -17,6 +17,7 @@ var (
 	customInstruction string
 	runModel          string
 	runProtocol       string
+	completionShell   string
 )
 
 func main() {
@@ -30,7 +31,15 @@ func main() {
   co -p "Refactor generator to use interface"
   co -m gpt-4o`,
 		Args: cobra.ArbitraryArgs,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
 		Run: func(cmd *cobra.Command, args []string) {
+			if completionShell != "" {
+				generateCompletion(cmd, completionShell)
+				return
+			}
+
 			prompt := initialPrompt
 			if len(args) > 0 {
 				posPrompt := strings.Join(args, " ")
@@ -75,10 +84,39 @@ func main() {
 	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instructions for the agent")
 	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model code to use for agent generation")
 	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "responses", "Protocol to use: chat or responses")
+	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
+
+	_ = rootCmd.RegisterFlagCompletionFunc("completion", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"bash", "zsh", "fish", "powershell"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	_ = rootCmd.RegisterFlagCompletionFunc("protocol", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"chat", "responses"}, cobra.ShellCompDirectiveNoFileComp
+	})
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func generateCompletion(cmd *cobra.Command, shell string) {
+	var err error
+	switch shell {
+	case "bash":
+		err = cmd.Root().GenBashCompletion(os.Stdout)
+	case "zsh":
+		err = cmd.Root().GenZshCompletion(os.Stdout)
+	case "fish":
+		err = cmd.Root().GenFishCompletion(os.Stdout, true)
+	case "powershell":
+		err = cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+	default:
+		fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", shell)
+		os.Exit(1)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error generating completion: %v\n", err)
 		os.Exit(1)
 	}
 }
