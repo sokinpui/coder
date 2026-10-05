@@ -2,7 +2,7 @@
   <img src="assets/icon.svg" alt="Coder Logo" width="128" height="128" />
 </p>
 
-<h1 align="center">Coder Suite</h1>
+<h1 align="center">Coder</h1>
 
 <p align="center">
   终端优先的 AI 开发套件：单步 Diff 编辑器与自主编程智能体。

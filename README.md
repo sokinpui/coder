@@ -2,7 +2,7 @@
   <img src="assets/icon.svg" alt="Coder Logo" width="128" height="128" />
 </p>
 
-<h1 align="center">Coder Suite</h1>
+<h1 align="center">Coder</h1>
 
 <p align="center">
   Terminal-centric AI development suite: one-step diff editor and autonomous coding agent.
