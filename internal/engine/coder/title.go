@@ -3,7 +3,6 @@ package coder
 import (
 	"context"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
-	"log"
 	"strings"
 )
 
@@ -24,7 +23,6 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 
 	title, err := s.Runtime.GenerateTitle(ctx, prompt)
 	if err != nil {
-		log.Printf("Error generating title, falling back to first few words: %v", err)
 		words := strings.Fields(userPrompt)
 		numWords := min(len(words), 5)
 		fallbackTitle := strings.Join(words[:numWords], " ")
@@ -36,7 +34,6 @@ func (s *Session) GenerateTitle(ctx context.Context, userPrompt string) string {
 	}
 
 	s.title = strings.Trim(title, "\"") // Models sometimes add quotes
-	log.Printf("Generated title: %s", s.title)
 	return s.title
 }
 

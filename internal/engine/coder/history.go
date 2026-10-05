@@ -5,7 +5,6 @@ import (
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
-	"log"
 	"maps"
 	"os"
 	"strings"
@@ -34,7 +33,6 @@ func (s *Session) SaveConversation() error {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Printf("could not get working directory when saving session: %v", err)
 		wd = ""
 	}
 
@@ -62,9 +60,7 @@ func (s *Session) GetHistoryFilename() string {
 
 func (s *Session) LoadConversation(filename string) error {
 	if len(s.messages) > 0 {
-		if err := s.SaveConversation(); err != nil {
-			log.Printf("Error saving current conversation before loading another: %v", err)
-		}
+		_ = s.SaveConversation()
 	}
 
 	metadata, messages, err := s.historyManager.LoadConversation(filename)

@@ -2,16 +2,12 @@ package ui
 
 import (
 	"fmt"
-	"io"
-	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
 )
 
 func Start(sess engine.EngineSession, prompt string) error {
-	log.SetOutput(io.Discard)
-
 	mainModel, err := NewModel(sess, prompt)
 	if err != nil {
 		return fmt.Errorf("error creating model: %w", err)
@@ -39,9 +35,7 @@ func Start(sess engine.EngineSession, prompt string) error {
 	// Save conversation on exit
 	if m, ok := finalModel.(*Manager); ok {
 		if m.Main != nil && m.Main.Session != nil {
-			if err := m.Main.Session.SaveConversation(); err != nil {
-				log.Printf("Error saving conversation history: %v", err)
-			}
+			_ = m.Main.Session.SaveConversation()
 		}
 	}
 	return nil

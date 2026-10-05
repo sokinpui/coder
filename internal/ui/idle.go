@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -47,7 +46,6 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 
 	newSess, err := m.Session.CreateNew(mode)
 	if err != nil {
-		log.Printf("Error creating new session: %v", err)
 		return m, nil
 	}
 

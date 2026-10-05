@@ -11,7 +11,6 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 	"github.com/sokinpui/coder/pkg/sf"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -179,7 +178,6 @@ func saveConversationCmd(sess engine.EngineSession) tea.Cmd {
 	}
 	return func() tea.Msg {
 		if err := sess.SaveConversation(); err != nil {
-			log.Printf("Error saving conversation: %v", err)
 			return errorMsg{sessID: sess.GetID(), error: err}
 		}
 		return nil

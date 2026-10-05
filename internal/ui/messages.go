@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 	"time"
@@ -478,11 +477,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.LastInteractionFailed = false
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
-
-		// Reload context to be safe
-		if err := m.Session.LoadContext(); err != nil {
-			log.Printf("Error reloading context for switched session: %v", err)
-		}
+		_ = m.Session.LoadContext()
 
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()

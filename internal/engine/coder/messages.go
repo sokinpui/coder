@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,14 +45,9 @@ func (s *Session) DeleteMessages(indices []int) {
 		if msg.Type == types.ImageMessage && repoRoot != "" {
 			imagePath := filepath.Join(repoRoot, msg.Content)
 			if !strings.HasPrefix(imagePath, filepath.Join(repoRoot, ".coder", "images")) {
-				log.Printf("Skipping deletion of potential path traversal: %s", msg.Content)
 				continue
 			}
-
-			err := os.Remove(imagePath)
-			if err != nil && !os.IsNotExist(err) {
-				log.Printf("Failed to delete image file %s: %v", imagePath, err)
-			}
+			_ = os.Remove(imagePath)
 		}
 	}
 

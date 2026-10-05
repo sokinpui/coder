@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -27,7 +26,6 @@ func (s *Session) GetPrompt() []types.Message {
 
 func (s *Session) StartGeneration() types.Event {
 	if err := s.LoadContext(); err != nil {
-		log.Printf("Error reloading context for generation: %v", err)
 		s.AddMessages(types.Message{
 			Type:    types.CommandErrorResultMessage,
 			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
@@ -43,7 +41,6 @@ func (s *Session) StartGeneration() types.Event {
 			absPath := filepath.Join(repoRoot, messages[i].Content)
 			data, err := os.ReadFile(absPath)
 			if err != nil {
-				log.Printf("Error reading image file %s: %v", absPath, err)
 				continue
 			}
 			messages[i].Data = data
