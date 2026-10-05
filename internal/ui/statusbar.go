@@ -30,6 +30,26 @@ func (m Model) StatusView() string {
 		items = append(items, StatusBarMsgStyle.Render(m.StatusBarMessage))
 	}
 
+	items = append(items, ModelInfoStyle.Render(version.Get()))
+
+	if m.TokenCount > 0 {
+		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))
+	}
+
+	modelCode := m.Session.GetConfig().Coder.ModelCode
+	if m.Session.Capabilities().Has(engine.CapToolLoop) {
+		modelCode = m.Session.GetConfig().Agent.ModelCode
+	}
+	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Model: %s", modelCode)))
+
+	if m.Session.Capabilities().Has(engine.CapToolToggle) {
+		toolsStatus := "Tools: [Compact] (Ctrl+T)"
+		if m.ToolsExpanded {
+			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
+		}
+		items = append(items, ToolMutedStyle.Render(toolsStatus))
+	}
+
 	switch m.State {
 	case stateAsking, stateThinking, stateGenerating:
 		var (
@@ -60,26 +80,6 @@ func (m Model) StatusView() string {
 	if m.Chat.IsFetchingModels {
 		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, StatusStyle.Render("Fetching models "), m.Chat.Spinner.View())
 		items = append(items, spinnerWithText)
-	}
-
-	items = append(items, ModelInfoStyle.Render(version.Get()))
-
-	if m.TokenCount > 0 {
-		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))
-	}
-
-	modelCode := m.Session.GetConfig().Coder.ModelCode
-	if m.Session.Capabilities().Has(engine.CapToolLoop) {
-		modelCode = m.Session.GetConfig().Agent.ModelCode
-	}
-	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Model: %s", modelCode)))
-
-	if m.Session.Capabilities().Has(engine.CapToolToggle) {
-		toolsStatus := "Tools: [Compact] (Ctrl+T)"
-		if m.ToolsExpanded {
-			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
-		}
-		items = append(items, ToolMutedStyle.Render(toolsStatus))
 	}
 
 	if m.ActiveOverlay == overlayConfirm {
