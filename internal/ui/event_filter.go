@@ -15,7 +15,14 @@ type sgrSequenceFilter struct {
 
 func newSGRSequenceFilter() func(tea.Model, tea.Msg) tea.Msg {
 	filter := &sgrSequenceFilter{}
-	return func(_ tea.Model, msg tea.Msg) tea.Msg {
+	return func(tm tea.Model, msg tea.Msg) tea.Msg {
+		if mouseMsg, ok := msg.(tea.MouseMsg); ok {
+			if !canScrollMouse(tm, mouseMsg) {
+				return nil
+			}
+			return mouseMsg
+		}
+
 		keyMsg, ok := msg.(tea.KeyMsg)
 		if !ok {
 			return msg
@@ -56,4 +63,47 @@ func newSGRSequenceFilter() func(tea.Model, tea.Msg) tea.Msg {
 			Runes: []rune(cleaned),
 		}
 	}
+}
+
+func canScrollMouse(tm tea.Model, msg tea.MouseMsg) bool {
+	if msg.Button != tea.MouseButtonWheelUp && msg.Button != tea.MouseButtonWheelDown {
+		return true
+	}
+
+	main := extractMainModel(tm)
+	if main == nil {
+		return true
+	}
+
+	switch main.ActiveOverlay {
+	case overlayNone:
+		if msg.Button == tea.MouseButtonWheelUp {
+			return main.Chat.Viewport.YOffset > 0
+		}
+		return !main.Chat.Viewport.AtBottom()
+
+	case overlayQuickView:
+		if main.QuickView == nil {
+			return false
+		}
+		if msg.Button == tea.MouseButtonWheelUp {
+			return main.QuickView.Viewport.YOffset > 0
+		}
+		return !main.QuickView.Viewport.AtBottom()
+
+	default:
+		return false
+	}
+}
+
+func extractMainModel(tm tea.Model) *Model {
+	switch m := tm.(type) {
+	case *Manager:
+		if m != nil {
+			return m.Main
+		}
+	case *Model:
+		return m
+	}
+	return nil
 }
