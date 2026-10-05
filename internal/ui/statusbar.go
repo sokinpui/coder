@@ -20,16 +20,14 @@ func (m Model) StatusView() string {
 	}
 	titlePart := StatusBarTitleStyle.MaxWidth(m.Width).Render(title)
 
+	if m.Chat.CtrlCPressed && m.State == stateIdle {
+		return RenderStatusBar(m.Width, titlePart, []string{StatusStyle.Render("Press Ctrl+C again to quit.")})
+	}
+
 	var items []string
 
 	if m.StatusBarMessage != "" {
 		items = append(items, StatusBarMsgStyle.Render(m.StatusBarMessage))
-	} else if m.Chat.CtrlCPressed && m.State == stateIdle {
-		items = append(items, StatusStyle.Render("Press Ctrl+C again to quit."))
-	} else if m.ActiveOverlay == overlayConfirm {
-		items = append(items, StatusStyle.Render("-- CONFIRM TOOL --"))
-	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
-		items = append(items, StatusStyle.Render("-- ATOMIC MSG --"))
 	}
 
 	switch m.State {
@@ -84,6 +82,12 @@ func (m Model) StatusView() string {
 		items = append(items, ToolMutedStyle.Render(toolsStatus))
 	}
 
+	if m.ActiveOverlay == overlayConfirm {
+		items = append(items, StatusStyle.Render("-- CONFIRM TOOL --"))
+	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
+		items = append(items, StatusStyle.Render("-- ATOMIC MSG --"))
+	}
+
 	return RenderStatusBar(m.Width, titlePart, items)
 }
 
@@ -95,6 +99,13 @@ func RenderStatusBar(width int, titleLine string, items []string) string {
 		}
 	}
 	statusLine := strings.Join(filtered, " | ")
+
+	if titleLine != "" {
+		titleLine = " " + titleLine
+	}
+	if statusLine != "" {
+		statusLine = " " + statusLine
+	}
 
 	if width > 0 {
 		if titleLine != "" {
