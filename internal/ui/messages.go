@@ -17,6 +17,13 @@ import (
 )
 
 func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	if newModel, cmd, handled := m.handleRenderMessage(msg); handled {
+		return newModel, cmd, true
+	}
+	if newModel, cmd, handled := m.handleProcessMessage(msg); handled {
+		return newModel, cmd, true
+	}
+
 	switch msg := msg.(type) {
 	case modelsFetchedMsg:
 		m.Chat.IsFetchingModels = false
@@ -198,53 +205,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(listenForEvents(msg.sessID, msg.sub), renderCmd), true
 
-	case aiRenderedMsg:
-		if m.Session == nil || m.Session.GetID() != msg.sessID {
-			return m, nil, true
-		}
-		m.Chat.IsAIRendering = false
-		messages := m.Session.GetMessages()
-		if msg.msgIdx < 0 || msg.msgIdx >= len(messages) {
-			return m, nil, true
-		}
-		if messages[msg.msgIdx].Type != types.AIMessage {
-			return m, nil, true
-		}
-
-		m.Chat.RenderCache[msg.msgIdx] = markdown.CachedRender{
-			Lines:   msg.lines,
-			Content: msg.content,
-			Width:   msg.width,
-		}
-
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.Chat.AutoScroll {
-			m.Chat.Viewport.GotoBottom()
-		}
-		if m.Chat.PendingAIRender || messages[msg.msgIdx].Content != msg.content || msg.width != m.Chat.Viewport.Width {
-			return m.renderLastAIMessage(msg.sessID)
-		}
-		return m, nil, true
-
-	case markdownBatchRenderedMsg:
-		if m.Session == nil || m.Session.GetID() != msg.sessID || msg.width != m.Chat.Viewport.Width {
-			return m, nil, true
-		}
-
-		for _, res := range msg.results {
-			m.Chat.RenderCache[res.Index] = markdown.CachedRender{
-				Lines:   res.Lines,
-				Content: res.Content,
-				Width:   res.Width,
-			}
-		}
-
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.Chat.AutoScroll {
-			m.Chat.Viewport.GotoBottom()
-		}
-		return m, nil, true
-
 	case sessionFinishedMsg:
 		targetSess := m.getSessionByID(msg.sessID)
 		if targetSess == nil {
@@ -288,75 +248,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			cmds = append(cmds, renderCmd)
 		}
 		return newModel, tea.Batch(cmds...), true
-
-	case editorFinishedMsg:
-		if msg.err != nil {
-			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			m.Chat.EditingMessageIndex = -1 // Also reset here
-			return m, tea.EnableMouseCellMotion, true
-		}
-
-		if m.Chat.EditingMessageIndex != -1 {
-			// This block handles the return from editing a previous message in the history.
-			// It updates the message in place and does not trigger a new generation.
-			if msg.content != msg.originalContent {
-				if err := m.Session.EditMessage(m.Chat.EditingMessageIndex, msg.content); err != nil {
-					// This should ideally not happen if the logic for selecting an editable message is correct.
-					errorContent := fmt.Sprintf("\n**Editor Error:**\n```\nFailed to apply edit: %v\n```\n", err)
-					m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-				}
-			}
-
-			var cmd tea.Cmd
-			if m.Chat.IsStreaming {
-				messages := m.Session.GetMessages()
-				if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content == "" {
-					m.State = stateAsking
-				} else {
-					m.State = stateGenerating
-				}
-				cmd = m.Chat.Spinner.Tick
-			} else {
-				m.State = stateIdle
-				cmd = textarea.Blink
-			}
-
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-
-			m.Chat.EditingMessageIndex = -1 // Reset on success or failure
-			return m, tea.Batch(cmd, tea.EnableMouseCellMotion, m.updateTokenCountCmd(), m.renderUncachedCmd()), true
-		}
-
-		// This is for Ctrl+E on the text area. If content changed, submit.
-		if msg.content != msg.originalContent {
-			m.Chat.TextArea.SetValue(msg.content)
-			m.Chat.TextArea.CursorEnd()
-			model, cmd := m.handleSubmit()
-			return model, tea.Batch(cmd, tea.EnableMouseCellMotion), true
-		}
-
-		// Content is unchanged, just update textarea and focus.
-		m.Chat.TextArea.SetValue(msg.originalContent)
-		m.Chat.TextArea.Focus()
-		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
-
-	case fileEditorFinishedMsg:
-		if msg.err != nil {
-			errorContent := fmt.Sprintf("\n**Editor Error:**\n```\n%v\n```\n", msg.err)
-			m.Session.AddMessages(types.Message{Type: types.CommandErrorResultMessage, Content: errorContent})
-			m.Chat.Viewport.SetContent(m.renderConversation())
-			m.Chat.Viewport.GotoBottom()
-			return m, tea.EnableMouseCellMotion, true
-		}
-		if m.State == stateIdle {
-			m.Chat.TextArea.Focus()
-			return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
-		}
-		return m, nil, true
 
 	case historyListResultMsg:
 		if msg.err != nil {
@@ -575,28 +466,6 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd()), true
 
-	case shellFinishedMsg:
-		if msg.cmdStr != "" {
-			resType := types.ShellCmdResultMessage
-			content := msg.output
-			if msg.err != nil && content == "" {
-				resType = types.CommandErrorResultMessage
-				content = fmt.Sprintf("Command failed: %v", msg.err)
-			} else if content == "" {
-				content = "Command completed with no output."
-			}
-			m.Session.AddMessages(types.Message{
-				Type:    resType,
-				Content: content,
-			})
-		}
-		m.State = stateIdle
-		m.Chat.TextArea.Focus()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m.Chat.TextArea.Reset()
-		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion, m.updateTokenCountCmd()), true
-
 	case errorMsg:
 		targetSess := m.getSessionByID(msg.sessID)
 		if targetSess == nil {
@@ -662,49 +531,4 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 	return m, nil, false
-}
-
-func (m Model) renderLastAIMessage(sessID string) (tea.Model, tea.Cmd, bool) {
-	messages := m.Session.GetMessages()
-	lastIdx := len(messages) - 1
-	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
-		return m, nil, true
-	}
-
-	m.Chat.PendingAIRender = false
-	m.Chat.IsAIRendering = true
-	viewportWidth := max(10, m.Chat.Viewport.Width)
-	return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth), true
-}
-
-func (m Model) finalizeAIMessageRender(sessID string) (Model, tea.Cmd) {
-	if m.Chat.IsAIRendering {
-		m.Chat.PendingAIRender = true
-		return m, nil
-	}
-
-	messages := m.Session.GetMessages()
-	lastIdx := len(messages) - 1
-	if lastIdx < 0 || messages[lastIdx].Type != types.AIMessage {
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.Chat.AutoScroll {
-			m.Chat.Viewport.GotoBottom()
-		}
-		return m, nil
-	}
-
-	cache, ok := m.Chat.RenderCache[lastIdx]
-	isStale := !ok || cache.Content != messages[lastIdx].Content || cache.Width != m.Chat.Viewport.Width
-	if isStale {
-		m.Chat.IsAIRendering = true
-		m.Chat.PendingAIRender = false
-		viewportWidth := max(10, m.Chat.Viewport.Width)
-		return m, renderAIMessageCmd(sessID, lastIdx, messages[lastIdx].Content, viewportWidth)
-	}
-
-	m.Chat.Viewport.SetContent(m.renderConversation())
-	if m.Chat.AutoScroll {
-		m.Chat.Viewport.GotoBottom()
-	}
-	return m, nil
 }

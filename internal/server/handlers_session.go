@@ -5,14 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/sokinpui/coder/internal/engine/coder"
-	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
@@ -325,102 +323,6 @@ func (s *Server) handleMessageEdit(req Request) {
 	})
 }
 
-func (s *Server) handleTokens(req Request) {
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-	s.sendResult(req.ID, map[string]any{"tokenCount": token.CountTokens(s.session.GetPrompt())})
-}
-
-func (s *Server) handlePDFAdd(req Request) {
-	var params AddPDFParams
-	if err := json.Unmarshal(req.Params, &params); err != nil || params.Path == "" {
-		s.sendError(req.ID, -32602, "Path is required")
-		return
-	}
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	docEntry := filepath.ToSlash(params.Path)
-	s.session.SetContextDocuments(commands.AppendUnique(s.session.GetContextDocuments(), []string{docEntry}))
-	if err := s.session.LoadContext(); err != nil {
-		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to load PDF document: %v", err))
-		return
-	}
-	_ = s.session.SaveConversation()
-	s.sendResult(req.ID, map[string]any{
-		"success":    true,
-		"pagesAdded": s.session.GetDocumentPageCount(docEntry),
-		"tokenCount": token.CountTokens(s.session.GetPrompt()),
-	})
-}
-
-func (s *Server) handleCancel(req Request) {
-	if s.session != nil {
-		s.session.CancelGeneration()
-	}
-	s.sendResult(req.ID, map[string]any{"cancelled": true})
-}
-
-func (s *Server) handleContextAdd(req Request) {
-	var params ContextModifyParams
-	if err := json.Unmarshal(req.Params, &params); err != nil {
-		s.sendError(req.ID, -32602, "Invalid params")
-		return
-	}
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	res, _, _ := commands.ProcessCommand("/file "+joinArgs(params.Paths), s.session)
-	s.sendResult(req.ID, map[string]any{
-		"message":      res.Payload,
-		"contextFiles": s.session.GetContextFiles(),
-	})
-}
-
-func (s *Server) handleContextExclude(req Request) {
-	var params ContextModifyParams
-	if err := json.Unmarshal(req.Params, &params); err != nil {
-		s.sendError(req.ID, -32602, "Invalid params")
-		return
-	}
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	res, _, _ := commands.ProcessCommand("/exclude "+joinArgs(params.Paths), s.session)
-	s.sendResult(req.ID, map[string]any{
-		"message":      res.Payload,
-		"contextFiles": s.session.GetContextFiles(),
-	})
-}
-
-func (s *Server) handleContextGet(req Request) {
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	promptMsgs := s.session.GetPrompt()
-	tokenCount := token.CountTokens(promptMsgs)
-
-	s.hydrateSessionImages()
-	s.sendResult(req.ID, map[string]any{
-		"mode":             s.session.GetMode(),
-		"title":            s.session.GetTitle(),
-		"contextFiles":     s.session.GetContextFiles(),
-		"contextDocuments": s.session.GetContextDocuments(),
-		"tokenCount":       tokenCount,
-		"messages":         s.session.GetMessages(),
-	})
-}
-
 func (s *Server) handleModelSet(req Request) {
 	var params struct {
 		Model string `json:"model"`
@@ -457,146 +359,11 @@ func (s *Server) handleSessionRename(req Request) {
 	})
 }
 
-func (s *Server) handleItfApply(req Request) {
-	var params ApplyItfParams
-	if len(req.Params) > 0 {
-		_ = json.Unmarshal(req.Params, &params)
+func (s *Server) handleCancel(req Request) {
+	if s.session != nil {
+		s.session.CancelGeneration()
 	}
-
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	if params.Content == "" {
-		cmdOut, _, _ := commands.ProcessCommand("/itf "+params.Args, s.session)
-		s.sendResult(req.ID, map[string]any{"summary": cmdOut.Payload})
-		return
-	}
-
-	res := commands.ExecuteItf(params.Content, params.Args)
-	s.sendResult(req.ID, map[string]any{
-		"success":       res.Success,
-		"summary":       res.Summary,
-		"affectedFiles": res.AffectedFiles,
-		"raw":           res.Raw,
-	})
-}
-
-func (s *Server) handleItfUndo(req Request) {
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	cmdOut, _, success := commands.ProcessCommand("/undo", s.session)
-	s.sendResult(req.ID, map[string]any{
-		"success": success,
-		"summary": cmdOut.Payload,
-	})
-}
-
-func (s *Server) handleModelsList(req Request) {
-	if len(s.cfg.AvailableModels) > 0 {
-		s.sendResult(req.ID, map[string]any{
-			"models":  s.cfg.AvailableModels,
-			"current": s.cfg.Coder.ModelCode,
-		})
-		return
-	}
-
-	endpoint := strings.TrimSuffix(s.cfg.Server.URL, "/") + "/models"
-	httpReq, err := http.NewRequestWithContext(context.Background(), "GET", endpoint, nil)
-	if err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-	apiKey := s.cfg.Server.APIKey
-	if apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-	}
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		s.sendResult(req.ID, map[string]any{
-			"models":  []string{s.cfg.Coder.ModelCode},
-			"current": s.cfg.Coder.ModelCode,
-		})
-		return
-	}
-	defer resp.Body.Close()
-
-	type openAIModel struct {
-		ID string `json:"id"`
-	}
-	type openAIModelList struct {
-		Data []openAIModel `json:"data"`
-	}
-
-	var result openAIModelList
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		s.sendResult(req.ID, map[string]any{
-			"models":  []string{s.cfg.Coder.ModelCode},
-			"current": s.cfg.Coder.ModelCode,
-		})
-		return
-	}
-
-	modelIDs := make([]string, len(result.Data))
-	for i, m := range result.Data {
-		modelIDs[i] = m.ID
-	}
-
-	s.cfg.AvailableModels = modelIDs
-
-	s.sendResult(req.ID, map[string]any{
-		"models":  modelIDs,
-		"current": s.cfg.Coder.ModelCode,
-	})
-}
-
-func (s *Server) handleHistoryList(req Request) {
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	items, err := s.session.GetHistoryManager().ListConversationsByMode("coder")
-	if err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-	s.sendResult(req.ID, items)
-}
-
-func (s *Server) handleHistoryLoad(req Request) {
-	var params struct {
-		Filename string `json:"filename"`
-	}
-	if err := json.Unmarshal(req.Params, &params); err != nil || params.Filename == "" {
-		s.sendError(req.ID, -32602, "Filename is required")
-		return
-	}
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	if err := s.session.LoadConversation(params.Filename); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	s.hydrateSessionImages()
-	tokenCount := token.CountTokens(s.session.GetPrompt())
-	s.sendResult(req.ID, map[string]any{
-		"loaded":           true,
-		"title":            s.session.GetTitle(),
-		"contextFiles":     s.session.GetContextFiles(),
-		"contextDocuments": s.session.GetContextDocuments(),
-		"messages":         s.session.GetMessages(),
-		"tokenCount":       tokenCount,
-	})
+	s.sendResult(req.ID, map[string]any{"cancelled": true})
 }
 
 func (s *Server) hydrateSessionImages() {
@@ -614,30 +381,4 @@ func (s *Server) hydrateSessionImages() {
 			msgs[i].Data = data
 		}
 	}
-}
-
-func (s *Server) handleConfigReload(req Request) {
-	if err := s.ensureSession(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-
-	if err := s.session.ReloadConfig(); err != nil {
-		s.sendError(req.ID, -32603, err.Error())
-		return
-	}
-	newCfg := s.session.GetConfig()
-	s.cfg = newCfg
-	s.sendResult(req.ID, map[string]any{"reloaded": true, "config": newCfg})
-}
-
-func joinArgs(args []string) string {
-	var res string
-	for _, a := range args {
-		if res != "" {
-			res += " "
-		}
-		res += a
-	}
-	return res
 }
