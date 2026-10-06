@@ -9,15 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sokinpui/coder.nvim"><b>coder.nvim</b></a> (Neovim 插件) &nbsp;•&nbsp;
-  <a href="https://github.com/sokinpui/coder.flutter"><b>coder.flutter</b></a> (跨平台 GUI 客户端)
-</p>
-
-<p align="center">
   <a href="README.md">English</a>
 </p>
 
-## Quick Install
+## 快速安装
 
 一键安装 `coder` 与 `co`：
 
@@ -31,14 +26,14 @@ curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash -s -- --all
 ```
 
-## Install with Go
+## 通过 Go 安装
 
 ```bash
 go install github.com/sokinpui/coder/cmd/coder@latest
 go install github.com/sokinpui/coder/cmd/co@latest
 ```
 
-## Local Build
+## 本地编译安装
 
 ```bash
 git clone https://github.com/sokinpui/coder.git
@@ -46,7 +41,7 @@ cd coder
 ./install.sh
 ```
 
-## Positioning: Coder
+## Coder
 
 **`coder`** 是一个**单步 AI 代码编辑器**，专为希望对项目上下文和代码改动拥有绝对控制权的开发者设计。
 
@@ -54,7 +49,7 @@ cd coder
 - **统一 Diff 应用**：模型输出标准 Unified Diff 与文件生命周期操作，通过 `itf` 一键安全打补丁。
 - **安全可逆**：每一次修改均可审查，并可通过 `/undo` 随时回滚撤销。
 
-## Positioning: Co
+## Co
 
 **`co`** 是一个**自主编程智能体（Autonomous Coding Agent）**。它在交互式工具调用循环中运作，能够自主解决复杂工程任务。
 
@@ -63,7 +58,7 @@ cd coder
 - **视觉与 PDF 多模态上下文**：原生支持本地图片与 PDF 文档的多模态视觉输入。
 - **可配置工具权限守卫**：提供粒度可控的工具执行策略（`allow`、`ask`、`deny`）。
 
-## Starting Coder and Co
+## 使用方式
 
 启动单步编辑器：
 
@@ -81,7 +76,7 @@ co [prompt]
 
 > 详细智能体手册、工具架构与工作流：[**docs/coagent/README.zh.md**](docs/coagent/README.zh.md)
 
-## Endpoint Configuration
+## 端点配置
 
 Coder 支持连接任何兼容 OpenAI 协议的 API 端点。可通过环境变量设置 API 密钥：
 
@@ -116,7 +111,7 @@ agent:
       "*": ask
 ```
 
-## Coder Suite
+## Coder 工具生态
 
 - **[coder.nvim](https://github.com/sokinpui/coder.nvim)**：直接集成到 Neovim 编辑器缓冲区的插件。
 - **[coder.flutter](https://github.com/sokinpui/coder.flutter)**：跨平台 GUI 客户端（桌面端、移动端、Web），通过 WebSocket 连接（`coder --ws`）。

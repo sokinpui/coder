@@ -9,11 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sokinpui/coder.nvim"><b>coder.nvim</b></a> (Neovim Plugin) &nbsp;•&nbsp;
-  <a href="https://github.com/sokinpui/coder.flutter"><b>coder.flutter</b></a> (Cross-Platform GUI)
-</p>
-
-<p align="center">
   <a href="README.zh.md">简体中文</a>
 </p>
 
@@ -46,7 +41,7 @@ cd coder
 ./install.sh
 ```
 
-## Positioning: Coder
+## Coder
 
 **`coder`** is a **one-step AI code editor**. It is designed for developers who prefer full control over their project context and changes.
 
@@ -54,7 +49,7 @@ cd coder
 - **Unified Diff Application**: The model returns standardized diffs and file lifecycle operations applied via `itf`.
 - **Safe & Reversible**: Every applied modification can be reviewed and undone with `/undo`.
 
-## Positioning: Co
+## Co
 
 **`co`** is an **autonomous coding agent**. It operates in an iterative tool-calling loop to solve complex tasks independently.
 
@@ -63,7 +58,7 @@ cd coder
 - **Visual & PDF Context**: Native multi-modal support for images and PDF documents.
 - **Configurable Permissions**: Fine-grained security policies (`allow`, `ask`, `deny`) on tool and command execution.
 
-## Starting Coder and Co
+## Usage
 
 Launch the one-step editor:
 
