@@ -50,19 +50,18 @@ func (pm *PermissionManager) IsToolEnabled(toolName string) bool {
 	if pm == nil {
 		return true
 	}
-	pm.mu.RLock()
-	toolsCfg := pm.toolsConfig
-	permCfg := pm.config
-	pm.mu.RUnlock()
 
-	if len(toolsCfg) > 0 {
-		if rule, exists := toolsCfg[toolName]; exists {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	if len(pm.toolsConfig) > 0 {
+		if rule, exists := pm.toolsConfig[toolName]; exists {
 			enabled, _, specified := parseToolOption(rule)
 			if specified {
 				return enabled
 			}
 		}
-		if rule, exists := toolsCfg["*"]; exists {
+		if rule, exists := pm.toolsConfig["*"]; exists {
 			enabled, _, specified := parseToolOption(rule)
 			if specified {
 				return enabled
@@ -70,7 +69,7 @@ func (pm *PermissionManager) IsToolEnabled(toolName string) bool {
 		}
 	}
 
-	if rule, exists := permCfg[toolName]; exists {
+	if rule, exists := pm.config[toolName]; exists {
 		enabled, _, specified := parseToolOption(rule)
 		return !specified || enabled
 	}
@@ -85,43 +84,45 @@ func (pm *PermissionManager) AlwaysAllow(toolName string) {
 }
 
 func (pm *PermissionManager) Check(toolName, arguments string) PermissionAction {
-	pm.mu.RLock()
-	if pm.alwaysAllowed[toolName] {
-		pm.mu.RUnlock()
+	if pm == nil {
 		return ActionAllow
 	}
-	toolsCfg := pm.toolsConfig
-	cfg := pm.config
-	pm.mu.RUnlock()
 
-	if len(toolsCfg) > 0 {
-		if rule, exists := toolsCfg[toolName]; exists {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	if pm.alwaysAllowed[toolName] {
+		return ActionAllow
+	}
+
+	if len(pm.toolsConfig) > 0 {
+		if rule, exists := pm.toolsConfig[toolName]; exists {
 			if _, action, specified := parseToolOption(rule); specified {
 				return action
 			}
 		}
 	}
 
-	if len(cfg) == 0 && len(toolsCfg) == 0 {
+	if len(pm.config) == 0 && len(pm.toolsConfig) == 0 {
 		return ActionAllow
 	}
 
 	target := extractTarget(toolName, arguments)
 
-	if toolRule, exists := cfg[toolName]; exists {
+	if toolRule, exists := pm.config[toolName]; exists {
 		if action, matched := pm.evaluateRule(toolRule, target); matched {
 			return action
 		}
 	}
 
-	if globalRule, exists := cfg["*"]; exists {
+	if globalRule, exists := pm.config["*"]; exists {
 		if action, matched := pm.evaluateRule(globalRule, target); matched {
 			return action
 		}
 	}
 
-	if len(toolsCfg) > 0 {
-		if rule, exists := toolsCfg["*"]; exists {
+	if len(pm.toolsConfig) > 0 {
+		if rule, exists := pm.toolsConfig["*"]; exists {
 			if _, action, specified := parseToolOption(rule); specified {
 				return action
 			}
