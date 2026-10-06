@@ -24,11 +24,11 @@ func (m Model) StatusView() string {
 		return RenderStatusBar(m.Width, titlePart, []string{StatusStyle.Render("Press Ctrl+C again to quit.")})
 	}
 
-	var items []string
-
 	if m.StatusBarMessage != "" {
-		items = append(items, StatusBarMsgStyle.Render(m.StatusBarMessage))
+		return RenderStatusBar(m.Width, titlePart, []string{StatusBarMsgStyle.Render(m.StatusBarMessage)})
 	}
+
+	var items []string
 
 	items = append(items, ModelInfoStyle.Render(version.Get()))
 
