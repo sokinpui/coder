@@ -57,6 +57,7 @@ type Agent struct {
 	MaxIterations   int            `mapstructure:"max_iterations" yaml:"max_iterations"`
 	Keymap          Keymap         `mapstructure:"keymap" yaml:"keymap"`
 	Permission      map[string]any `mapstructure:"permission" yaml:"permission,omitempty"`
+	Tools           map[string]any `mapstructure:"tools" yaml:"tools,omitempty"`
 }
 
 func (a Agent) ModelConfig() ModelConfig {
@@ -104,6 +105,7 @@ type Config struct {
 	Coder           Coder     `mapstructure:"coder" yaml:"coder"`
 	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
 	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
+	Tools           map[string]any `mapstructure:"tools" yaml:"tools,omitempty"`
 	AvailableModels []string  `mapstructure:"-" yaml:"-"`
 }
 
@@ -162,6 +164,7 @@ func DefaultConfig() Config {
 			ReasoningEffort: "high",
 			MaxIterations:   50,
 			Keymap:          DefaultKeymap(),
+			Tools:           map[string]any{},
 		},
 		Clipboard: Clipboard{
 			CopyCmd:  "",
@@ -252,6 +255,13 @@ func Load() (*Config, error) {
 	if v.IsSet("context.exclusions") && !v.IsSet("coder.context.exclusions") {
 		cfg.Coder.Context.Exclusions = v.GetStringSlice("context.exclusions")
 	}
+	if v.IsSet("tools") && !v.IsSet("agent.tools") {
+		cfg.Agent.Tools = v.GetStringMap("tools")
+	}
+	if len(cfg.Agent.Tools) == 0 && len(cfg.Tools) > 0 {
+		cfg.Agent.Tools = cfg.Tools
+	}
+
 	if cfg.Agent.MaxIterations <= 0 {
 		cfg.Agent.MaxIterations = 50
 	}

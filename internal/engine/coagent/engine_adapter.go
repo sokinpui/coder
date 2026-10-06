@@ -280,6 +280,7 @@ func (s *Session) ReloadConfig() error {
 	s.Runtime.Generator.APIKey = cfg.Server.APIKey
 	if s.Runtime.Permissions != nil {
 		s.Runtime.Permissions.SetConfig(cfg.Agent.Permission)
+		s.Runtime.Permissions.SetToolsConfig(cfg.Agent.Tools)
 	}
 	return nil
 }

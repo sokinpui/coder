@@ -39,12 +39,16 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 	if cfg != nil && cfg.Agent.Permission != nil {
 		permMap = cfg.Agent.Permission
 	}
+	var toolsMap map[string]any
+	if cfg != nil && cfg.Agent.Tools != nil {
+		toolsMap = cfg.Agent.Tools
+	}
 	return &AgentRuntime{
 		Config:            cfg.Agent.ModelConfig(),
 		Generator:         gen,
 		MaxToolIterations: maxIterations,
 		Registry:          registry,
-		Permissions:       NewPermissionManager(permMap),
+		Permissions:       NewPermissionManager(permMap, toolsMap),
 		pending:           make(map[string]chan types.ToolConfirmResponse),
 	}, nil
 }
@@ -106,8 +110,15 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		instruction, chatMsgs := types.AssemblePrompt(currentMessages, instructions)
 		toolDecls := ar.Registry.Declarations()
 
+		var activeDecls []types.ToolDeclaration
+		for _, decl := range toolDecls {
+			if ar.Permissions == nil || ar.Permissions.IsToolEnabled(decl.Name) {
+				activeDecls = append(activeDecls, decl)
+			}
+		}
+
 		genChan := make(chan types.StreamChunk, 100)
-		go ar.Generator.GenerateTask(ctx, instruction, chatMsgs, toolDecls, genChan, &ar.Config)
+		go ar.Generator.GenerateTask(ctx, instruction, chatMsgs, activeDecls, genChan, &ar.Config)
 
 		var turnText strings.Builder
 		var toolCalls []types.ToolCall
@@ -180,6 +191,22 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				Arguments: tc.Arguments,
 			}
 			streamChan <- AgentStreamChunk{ToolCall: &callInfo}
+
+			if ar.Permissions != nil && !ar.Permissions.IsToolEnabled(tc.Name) {
+				output := fmt.Sprintf("Permission denied: tool %s is disabled", tc.Name)
+				resInfo := ToolResultInfo{
+					CallID: tc.ID,
+					Name:   tc.Name,
+					Output: output,
+				}
+				streamChan <- AgentStreamChunk{ToolResult: &resInfo}
+				currentMessages = append(currentMessages, types.Message{
+					Type:       types.ToolResultMessage,
+					Content:    output,
+					ToolCallID: tc.ID,
+				})
+				continue
+			}
 
 			action := ActionAllow
 			if ar.Permissions != nil {

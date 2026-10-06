@@ -18,11 +18,17 @@ const (
 type PermissionManager struct {
 	mu            sync.RWMutex
 	config        map[string]any
+	toolsConfig   map[string]any
 	alwaysAllowed map[string]bool
 }
 
-func NewPermissionManager(config map[string]any) *PermissionManager {
+func NewPermissionManager(config map[string]any, toolsConfig ...map[string]any) *PermissionManager {
+	var tc map[string]any
+	if len(toolsConfig) > 0 {
+		tc = toolsConfig[0]
+	}
 	return &PermissionManager{
+		toolsConfig:   tc,
 		config:        config,
 		alwaysAllowed: make(map[string]bool),
 	}
@@ -32,6 +38,44 @@ func (pm *PermissionManager) SetConfig(config map[string]any) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 	pm.config = config
+}
+
+func (pm *PermissionManager) SetToolsConfig(toolsConfig map[string]any) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	pm.toolsConfig = toolsConfig
+}
+
+func (pm *PermissionManager) IsToolEnabled(toolName string) bool {
+	if pm == nil {
+		return true
+	}
+	pm.mu.RLock()
+	toolsCfg := pm.toolsConfig
+	permCfg := pm.config
+	pm.mu.RUnlock()
+
+	if len(toolsCfg) > 0 {
+		if rule, exists := toolsCfg[toolName]; exists {
+			enabled, _, specified := parseToolOption(rule)
+			if specified {
+				return enabled
+			}
+		}
+		if rule, exists := toolsCfg["*"]; exists {
+			enabled, _, specified := parseToolOption(rule)
+			if specified {
+				return enabled
+			}
+		}
+	}
+
+	if rule, exists := permCfg[toolName]; exists {
+		enabled, _, specified := parseToolOption(rule)
+		return !specified || enabled
+	}
+
+	return true
 }
 
 func (pm *PermissionManager) AlwaysAllow(toolName string) {
@@ -46,10 +90,19 @@ func (pm *PermissionManager) Check(toolName, arguments string) PermissionAction 
 		pm.mu.RUnlock()
 		return ActionAllow
 	}
+	toolsCfg := pm.toolsConfig
 	cfg := pm.config
 	pm.mu.RUnlock()
 
-	if len(cfg) == 0 {
+	if len(toolsCfg) > 0 {
+		if rule, exists := toolsCfg[toolName]; exists {
+			if _, action, specified := parseToolOption(rule); specified {
+				return action
+			}
+		}
+	}
+
+	if len(cfg) == 0 && len(toolsCfg) == 0 {
 		return ActionAllow
 	}
 
@@ -67,11 +120,43 @@ func (pm *PermissionManager) Check(toolName, arguments string) PermissionAction 
 		}
 	}
 
+	if len(toolsCfg) > 0 {
+		if rule, exists := toolsCfg["*"]; exists {
+			if _, action, specified := parseToolOption(rule); specified {
+				return action
+			}
+		}
+	}
+
 	return ActionAllow
+}
+
+func parseToolOption(val any) (bool, PermissionAction, bool) {
+	if val == nil {
+		return false, ActionAllow, false
+	}
+	switch v := val.(type) {
+	case bool:
+		return v, parseBoolAction(v), true
+	case string:
+		switch strings.ToLower(strings.TrimSpace(v)) {
+		case "false", "off", "disabled", "disable":
+			return false, ActionDeny, true
+		case "deny":
+			return true, ActionDeny, true
+		case "ask":
+			return true, ActionAsk, true
+		case "allow", "true", "on", "enabled", "enable":
+			return true, ActionAllow, true
+		}
+	}
+	return false, ActionAllow, false
 }
 
 func (pm *PermissionManager) evaluateRule(rule any, target string) (PermissionAction, bool) {
 	switch v := rule.(type) {
+	case bool:
+		return parseBoolAction(v), true
 	case string:
 		return parseAction(v), true
 	case map[string]any:
@@ -124,11 +209,18 @@ func (pm *PermissionManager) evaluateMap(rules map[string]any, target string) (P
 	return ActionAllow, false
 }
 
+func parseBoolAction(val bool) PermissionAction {
+	if !val {
+		return ActionDeny
+	}
+	return ActionAllow
+}
+
 func parseAction(val string) PermissionAction {
 	switch strings.ToLower(strings.TrimSpace(val)) {
 	case "ask":
 		return ActionAsk
-	case "deny":
+	case "deny", "false", "off", "disabled":
 		return ActionDeny
 	case "allow":
 		return ActionAllow
