@@ -121,12 +121,30 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
 			contentTrimmed := strings.TrimRight(plain, " \r\n")
+			if len(contentTrimmed) == 0 {
+				metas[i] = LineMeta{
+					MsgIndex:        msgIdx,
+					ContentColStart: 0,
+					ContentColEnd:   0,
+					Text:            "",
+					IsContinuation:  false,
+				}
+				continue
+			}
+
+			leadingSpaces := len(plain) - len(strings.TrimLeft(plain, " "))
+			colStart := leadingSpaces
+			if leadingSpaces >= 4 {
+				colStart = 4
+			}
+
 			contentEnd := ansi.StringWidth(contentTrimmed)
+			rawText := ansi.Cut(plain, colStart, contentEnd)
 			metas[i] = LineMeta{
 				MsgIndex:        msgIdx,
-				ContentColStart: 0,
+				ContentColStart: colStart,
 				ContentColEnd:   contentEnd,
-				Text:            contentTrimmed,
+				Text:            rawText,
 				IsContinuation:  false,
 			}
 		}
@@ -181,10 +199,23 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 
 	if len(allMetas) < len(allLines) {
 		for i := len(allMetas); i < len(allLines); i++ {
+			plain := ansi.Strip(allLines[i])
+			contentTrimmed := strings.TrimRight(plain, " \r\n")
+			colStart := 0
+			if len(contentTrimmed) > 0 {
+				leading := len(plain) - len(strings.TrimLeft(plain, " "))
+				if leading >= 4 {
+					colStart = 4
+				} else {
+					colStart = leading
+				}
+			}
+			contentEnd := ansi.StringWidth(contentTrimmed)
 			allMetas = append(allMetas, LineMeta{
-				MsgIndex:      -1,
-				ContentColEnd: ansi.StringWidth(allLines[i]),
-				Text:          ansi.Strip(allLines[i]),
+				MsgIndex:        -1,
+				ContentColStart: colStart,
+				ContentColEnd:   contentEnd,
+				Text:            ansi.Cut(plain, colStart, contentEnd),
 			})
 		}
 	}
