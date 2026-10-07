@@ -20,7 +20,8 @@ func (w *WebFetchToolRenderer) RenderCall(call types.ToolCall, viewportWidth int
 		return prefix + "()"
 	}
 	lineRange := formatLineRange(startLine, endLine)
-	return fmt.Sprintf("%s %s%s", prefix, ToolMutedStyle.Render(TruncateSingleLine(url, 60)), lineRange)
+	target := TruncateSingleLine(url, 60) + lineRange
+	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(target))
 }
 
 func (w *WebFetchToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
@@ -33,13 +34,17 @@ func (w *WebFetchToolRenderer) RenderExpandedCall(call types.ToolCall, viewportW
 		return prefix + "()"
 	}
 	lineRange := formatLineRange(startLine, endLine)
+	target := url + lineRange
 	if prompt == "" {
-		return fmt.Sprintf("%s %s%s", prefix, ToolMutedStyle.Render(url), lineRange)
+		return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(target))
 	}
-	return fmt.Sprintf("%s %s%s\n    %s", prefix, ToolMutedStyle.Render(url), lineRange, ToolMutedStyle.Render("Prompt: "+prompt))
+	return fmt.Sprintf("%s %s\n    %s", prefix, ToolMutedStyle.Render(target), ToolMutedStyle.Render("Prompt: "+prompt))
 }
 
 func formatLineRange(startLine, endLine string) string {
+	startLine = strings.TrimSpace(startLine)
+	endLine = strings.TrimSpace(endLine)
+
 	if startLine == "" && endLine == "" {
 		return ""
 	}

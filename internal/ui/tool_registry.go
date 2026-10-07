@@ -118,6 +118,9 @@ func ExtractToolJSONField(arguments string, field string) string {
 	if !ok {
 		return ""
 	}
+	if num, ok := val.(float64); ok {
+		return fmt.Sprintf("%.0f", num)
+	}
 	if nestedMap, ok := val.(map[string]any); ok {
 		if b, err := json.Marshal(nestedMap); err == nil {
 			return string(b)
