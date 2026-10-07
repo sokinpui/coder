@@ -1,4 +1,4 @@
-package coagent
+package tools
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultFetchTimeout = 30 * time.Second
-	maxFetchSizeBytes   = 1 * 1024 * 1024 // 1MB
+	maxFetchSizeBytes   = 1 * 1024 * 1024
 	defaultMaxLines     = 1000
 )
 

@@ -1,4 +1,4 @@
-package coagent
+package tools
 
 import (
 	"path/filepath"

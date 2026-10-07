@@ -1,4 +1,4 @@
-package coagent
+package tools
 
 import (
 	"context"
@@ -237,7 +237,7 @@ func findFirstElement(n *html.Node, tagName string) *html.Node {
 func hasClass(n *html.Node, className string) bool {
 	for _, attr := range n.Attr {
 		if strings.EqualFold(attr.Key, "class") {
-			for _, c := range strings.Fields(attr.Val) {
+			for c := range strings.FieldsSeq(attr.Val) {
 				if strings.EqualFold(c, className) {
 					return true
 				}

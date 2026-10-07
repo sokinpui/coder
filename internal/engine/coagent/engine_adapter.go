@@ -6,6 +6,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/token"
@@ -284,7 +285,7 @@ func (s *Session) ReloadConfig() error {
 		s.Runtime.Permissions.SetToolsConfig(cfg.Agent.Tools)
 	}
 	if s.Runtime.Registry != nil {
-		s.Runtime.Registry.Register(NewWebFetchTool(s.Runtime.Generator, &s.Runtime.SecondaryConfig))
+		s.Runtime.Registry.Register(tools.NewWebFetchTool(s.Runtime.Generator, &s.Runtime.SecondaryConfig))
 	}
 	return nil
 }

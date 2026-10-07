@@ -10,6 +10,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
@@ -123,7 +124,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		}, false
 	}
 
-	rf := &ReadFileTool{}
+	rf := &tools.ReadFileTool{}
 	var toolCalls []types.ToolCall
 	var toolResults []types.Message
 

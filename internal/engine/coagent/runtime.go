@@ -8,6 +8,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -17,16 +18,16 @@ type AgentRuntime struct {
 	SecondaryConfig   config.ModelConfig
 	Generator         *generation.Generator
 	MaxToolIterations int
-	Registry          *Registry
+	Registry          *tools.Registry
 	Permissions       *PermissionManager
 
 	pendingMu sync.Mutex
 	pending   map[string]chan types.ToolConfirmResponse
 }
 
-func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, error) {
+func NewAgentRuntime(cfg *config.Config, registry *tools.Registry) (*AgentRuntime, error) {
 	if registry == nil {
-		registry = DefaultRegistry
+		registry = tools.DefaultRegistry
 	}
 	gen, err := generation.New(cfg)
 	if err != nil {
@@ -54,7 +55,7 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 		pending:           make(map[string]chan types.ToolConfirmResponse),
 	}
 
-	ar.Registry.Register(NewWebFetchTool(gen, &ar.SecondaryConfig))
+	ar.Registry.Register(tools.NewWebFetchTool(gen, &ar.SecondaryConfig))
 
 	return ar, nil
 }
