@@ -19,6 +19,7 @@ import (
 const (
 	defaultFetchTimeout = 30 * time.Second
 	maxFetchSizeBytes   = 2 * 1024 * 1024 // 2MB
+	defaultMaxLines     = 1000
 )
 
 type WebFetchTool struct {
@@ -55,6 +56,14 @@ func (t *WebFetchTool) Declaration() ToolDeclaration {
 					"type":        "string",
 					"description": "The question, instruction, or topic to extract from the webpage",
 				},
+				"start_line": map[string]any{
+					"type":        "integer",
+					"description": "Optional starting line number (1-based, inclusive). Defaults to 1.",
+				},
+				"end_line": map[string]any{
+					"type":        "integer",
+					"description": "Optional ending line number (1-based, inclusive). Defaults to start_line + 999.",
+				},
 			},
 			"required": []string{"url", "prompt"},
 		},
@@ -67,8 +76,10 @@ func (t *WebFetchTool) Execute(ctx context.Context, arguments string) (string, e
 	}
 
 	var params struct {
-		URL    string `json:"url"`
-		Prompt string `json:"prompt"`
+		URL       string `json:"url"`
+		Prompt    string `json:"prompt"`
+		StartLine *int   `json:"start_line"`
+		EndLine   *int   `json:"end_line"`
 	}
 
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
@@ -98,11 +109,52 @@ func (t *WebFetchTool) Execute(ctx context.Context, arguments string) (string, e
 		return "Failed to extract readable content from URL.", nil
 	}
 
-	if t.generator == nil {
-		return markdownContent, nil
+	lines := strings.Split(markdownContent, "\n")
+	totalLines := len(lines)
+
+	start := 1
+	if params.StartLine != nil && *params.StartLine > 0 {
+		start = *params.StartLine
 	}
 
-	return t.extract(ctx, params.Prompt, markdownContent)
+	end := start + defaultMaxLines - 1
+	if params.EndLine != nil && *params.EndLine > 0 {
+		end = *params.EndLine
+	}
+
+	if start > totalLines {
+		return fmt.Sprintf("[webfetch: total_lines=%d, requested lines %d-%d out of range]", totalLines, start, end), nil
+	}
+
+	if end > totalLines {
+		end = totalLines
+	}
+
+	if end < start {
+		end = start
+	}
+
+	slicedLines := lines[start-1 : end]
+	boundedContent := strings.Join(slicedLines, "\n")
+
+	metaLine := fmt.Sprintf("[webfetch: total_lines=%d, showing lines %d-%d]\n", totalLines, start, end)
+	notice := ""
+	if end < totalLines {
+		notice = fmt.Sprintf("[Note: Content has %d lines. Showing lines %d-%d. Use start_line and end_line parameters to read further.]\n\n", totalLines, start, end)
+	}
+
+	if t.generator == nil {
+		return metaLine + notice + boundedContent, nil
+	}
+
+	extracted, err := t.extract(ctx, params.Prompt, boundedContent)
+	if err != nil {
+		return "", err
+	}
+	if notice != "" {
+		return metaLine + notice + extracted, nil
+	}
+	return metaLine + extracted, nil
 }
 
 func (t *WebFetchTool) extract(ctx context.Context, userPrompt, content string) (string, error) {

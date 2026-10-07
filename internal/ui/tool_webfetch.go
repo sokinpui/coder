@@ -13,24 +13,43 @@ type WebFetchToolRenderer struct {
 
 func (w *WebFetchToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) string {
 	url := ExtractToolJSONField(call.Arguments, "url")
+	startLine := ExtractToolJSONField(call.Arguments, "start_line")
+	endLine := ExtractToolJSONField(call.Arguments, "end_line")
 	prefix := ToolCallStyle.Render("⚡ webfetch")
 	if url == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(url, 60)))
+	lineRange := formatLineRange(startLine, endLine)
+	return fmt.Sprintf("%s %s%s", prefix, ToolMutedStyle.Render(TruncateSingleLine(url, 60)), lineRange)
 }
 
 func (w *WebFetchToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
 	url := ExtractToolJSONField(call.Arguments, "url")
 	prompt := ExtractToolJSONField(call.Arguments, "prompt")
+	startLine := ExtractToolJSONField(call.Arguments, "start_line")
+	endLine := ExtractToolJSONField(call.Arguments, "end_line")
 	prefix := ToolCallStyle.Render("⚡ webfetch")
 	if url == "" {
 		return prefix + "()"
 	}
+	lineRange := formatLineRange(startLine, endLine)
 	if prompt == "" {
-		return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(url))
+		return fmt.Sprintf("%s %s%s", prefix, ToolMutedStyle.Render(url), lineRange)
 	}
-	return fmt.Sprintf("%s %s\n    %s", prefix, ToolMutedStyle.Render(url), ToolMutedStyle.Render("Prompt: "+prompt))
+	return fmt.Sprintf("%s %s%s\n    %s", prefix, ToolMutedStyle.Render(url), lineRange, ToolMutedStyle.Render("Prompt: "+prompt))
+}
+
+func formatLineRange(startLine, endLine string) string {
+	if startLine == "" && endLine == "" {
+		return ""
+	}
+	if startLine != "" && endLine != "" {
+		return fmt.Sprintf(" [L%s-L%s]", startLine, endLine)
+	}
+	if startLine != "" {
+		return fmt.Sprintf(" [L%s+]", startLine)
+	}
+	return fmt.Sprintf(" [1-L%s]", endLine)
 }
 
 func (w *WebFetchToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
