@@ -31,6 +31,7 @@ func (m Model) StatusView() string {
 	var items []string
 
 	items = append(items, ModelInfoStyle.Render(version.Get()))
+	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Mode: %s", m.Session.GetMode())))
 
 	if m.TokenCount > 0 {
 		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))

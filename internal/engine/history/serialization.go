@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -79,7 +78,7 @@ func processMessageContent(msg *types.Message, rawContent string) {
 	msg.Content = content
 }
 
-func appendParsedMessage(messages *[]types.Message, current *types.Message, rawContent string, isCoagent bool) {
+func appendParsedMessage(messages *[]types.Message, current *types.Message, rawContent string, isAgent bool) {
 	content := strings.TrimSpace(rawContent)
 	if current.Type == types.AIMessage && strings.Contains(content, "```tool_call") {
 		var textLines []string
@@ -126,7 +125,7 @@ func appendParsedMessage(messages *[]types.Message, current *types.Message, rawC
 
 	processMessageContent(current, rawContent)
 	if current.Type != types.InstructionMessage && current.Type != types.SourceCodeMessage {
-		if !current.IsDocumentImage() || isCoagent {
+		if !current.IsDocumentImage() || isAgent {
 			*messages = append(*messages, *current)
 		}
 	}
@@ -138,16 +137,6 @@ func parseStringSlice(value string) []string {
 		return nil
 	}
 	return s
-}
-
-func isDocumentImage(content string) bool {
-	parts := strings.Split(filepath.ToSlash(content), "/")
-	for i, part := range parts {
-		if part == "images" && i+2 < len(parts) {
-			return true
-		}
-	}
-	return false
 }
 
 func parseFrontmatter(scanner *bufio.Scanner) (*Metadata, bool) {
@@ -234,7 +223,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	var messages []types.Message
 	var currentMessage *types.Message
 	var contentBuilder strings.Builder
-	isCoagent := metadata != nil && metadata.Mode == "coagent"
+	isAgent := metadata != nil && normalizeMode(metadata.Mode) == "agent"
 
 	convScanner := bufio.NewScanner(bytes.NewReader(conversationContentBytes))
 	for convScanner.Scan() {
@@ -243,7 +232,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 		for role, msgType := range roleToMessageType {
 			if strings.HasPrefix(line, role) {
 				if currentMessage != nil {
-					appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isCoagent)
+					appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isAgent)
 				}
 				contentBuilder.Reset()
 				currentMessage = &types.Message{Type: msgType}
@@ -259,7 +248,7 @@ func ParseConversation(content []byte) (*Metadata, []types.Message, error) {
 	}
 
 	if currentMessage != nil {
-		appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isCoagent)
+		appendParsedMessage(&messages, currentMessage, contentBuilder.String(), isAgent)
 	}
 
 	return metadata, messages, nil

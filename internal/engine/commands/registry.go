@@ -57,7 +57,7 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 	switch cmdName {
 	case "file", "@":
 		return caps.Has(engine.CapContextFiles) || caps.Has(engine.CapToolLoop)
-	case "exclude", "list", "chat", "coding", "clear_context":
+	case "exclude", "list", "clear_context":
 		return caps.Has(engine.CapContextFiles)
 	case "itf", "undo":
 		return caps.Has(engine.CapITF)

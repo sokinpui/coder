@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,6 +53,9 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Session = newSess
 	m.ClearCache()
 	m.addActiveSession(newSess)
+	m.AvailableCommands = newSess.GetSupportedCommands()
+	m.CommandDescriptions = newSess.GetCommandDescriptions()
+	sort.Strings(m.AvailableCommands)
 	m.Session.AddMessages(types.Message{Type: types.InitMessage, Content: welcomeMessage})
 	if dirMsg := project.DirInfo(); dirMsg != "" {
 		m.Session.AddMessages(types.Message{Type: types.DirectoryMessage, Content: dirMsg})

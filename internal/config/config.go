@@ -116,7 +116,6 @@ type Config struct {
 	Coder           Coder          `mapstructure:"coder" yaml:"coder"`
 	Agent           Agent          `mapstructure:"agent" yaml:"agent"`
 	Clipboard       Clipboard      `mapstructure:"clipboard" yaml:"clipboard"`
-	Tools           map[string]any `mapstructure:"tools" yaml:"tools,omitempty"`
 	AvailableModels []string       `mapstructure:"-" yaml:"-"`
 }
 
@@ -246,34 +245,6 @@ func Load() (*Config, error) {
 	cfg := DefaultConfig()
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-
-	if v.IsSet("generation.modelcode") && !v.IsSet("coder.modelcode") {
-		cfg.Coder.ModelCode = v.GetString("generation.modelcode")
-	}
-	if v.IsSet("generation.titlemodelcode") && !v.IsSet("title.modelcode") {
-		cfg.Title.ModelCode = v.GetString("generation.titlemodelcode")
-	}
-	if v.IsSet("generation.reasoningeffort") && !v.IsSet("coder.reasoningeffort") {
-		cfg.Coder.ReasoningEffort = v.GetString("generation.reasoningeffort")
-	}
-	if v.IsSet("agent.secondary_model") && !v.IsSet("agent.secondarymodel") {
-		cfg.Agent.SecondaryModel = v.GetString("agent.secondary_model")
-	}
-	if v.IsSet("context.files") && !v.IsSet("coder.context.files") {
-		cfg.Coder.Context.Files = v.GetStringSlice("context.files")
-	}
-	if v.IsSet("context.dirs") && !v.IsSet("coder.context.dirs") {
-		cfg.Coder.Context.Dirs = v.GetStringSlice("context.dirs")
-	}
-	if v.IsSet("context.exclusions") && !v.IsSet("coder.context.exclusions") {
-		cfg.Coder.Context.Exclusions = v.GetStringSlice("context.exclusions")
-	}
-	if v.IsSet("tools") && !v.IsSet("agent.tools") {
-		cfg.Agent.Tools = v.GetStringMap("tools")
-	}
-	if len(cfg.Agent.Tools) == 0 && len(cfg.Tools) > 0 {
-		cfg.Agent.Tools = cfg.Tools
 	}
 
 	if cfg.Agent.MaxIterations <= 0 {

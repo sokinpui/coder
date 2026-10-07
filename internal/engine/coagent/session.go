@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
 	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
@@ -17,8 +18,6 @@ import (
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
-
-const ModeCoAgent = "coagent"
 
 type Session struct {
 	ID              string
@@ -70,6 +69,10 @@ func (s *Session) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
+func (s *Session) GetInstruction() string {
+	return s.Instruction
+}
+
 func (s *Session) GetHistoryFilename() string {
 	return s.HistoryFilename
 }
@@ -112,7 +115,13 @@ func (s *Session) SetContextDocuments(docs []string)       {}
 func (s *Session) GetDocumentPageCount(doc string) int     { return 0 }
 func (s *Session) PurgeDocumentMessages(docPaths []string) {}
 func (s *Session) ClearAllDocumentMessages()               {}
-func (s *Session) SetMode(mode string) error               { return nil }
+func (s *Session) SetMode(mode string) error {
+	norm := engine.NormalizeMode(mode)
+	if s.HasChatHistory() && norm != engine.ModeAgent {
+		return fmt.Errorf("cannot switch mode in a non-empty session")
+	}
+	return nil
+}
 
 func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.CommandOutput, bool) {
 	expanded, invalid := commands.ExpandPaths(rawPaths)
@@ -176,7 +185,19 @@ func (s *Session) RespondToolConfirmation(callID string, response types.ToolConf
 }
 
 func (s *Session) HasChatHistory() bool {
-	return len(s.Messages) > 0 || s.HistoryFilename != ""
+	if s.HistoryFilename != "" {
+		return true
+	}
+	for _, msg := range s.Messages {
+		switch msg.Type {
+		case types.UserMessage, types.AIMessage, types.ImageMessage, types.ToolCallMessage, types.ToolResultMessage:
+			if msg.Type == types.AIMessage && strings.TrimSpace(msg.Content) == "" {
+				continue
+			}
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Session) GetPrompt() []types.Message {
@@ -223,7 +244,7 @@ func (s *Session) SaveConversation() error {
 	data := &history.ConversationData{
 		Filename:   s.HistoryFilename,
 		Title:      s.Title,
-		Mode:       ModeCoAgent,
+		Mode:       engine.ModeAgent,
 		CreatedAt:  s.CreatedAt,
 		Messages:   s.Messages,
 		WorkingDir: wd,

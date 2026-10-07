@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"slices"
 	"strings"
 	"time"
@@ -58,10 +59,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		hasError := false
 		var errorStrings []string
 		targetModel := cfg.Coder.ModelCode
-		modelTypeLabel := "chat"
+		modelTypeLabel := m.Session.GetMode()
 		if m.Session.Capabilities().Has(engine.CapToolLoop) {
 			targetModel = cfg.Agent.ModelCode
-			modelTypeLabel = "agent"
 		}
 		if !slices.Contains(msg.models, targetModel) {
 			errorStrings = append(errorStrings, fmt.Sprintf("Configured %s model '%s' is not in the available list.", modelTypeLabel, targetModel))
@@ -334,6 +334,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Session = msg.sess
 		m.ClearCache()
 		m.addActiveSession(msg.sess)
+		m.AvailableCommands = msg.sess.GetSupportedCommands()
+		m.CommandDescriptions = msg.sess.GetCommandDescriptions()
+		sort.Strings(m.AvailableCommands)
 
 		welcome := types.Message{Type: types.InitMessage, Content: welcomeMessage}
 		dirInfo := types.Message{Type: types.DirectoryMessage, Content: project.DirInfo()}
@@ -373,6 +376,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
+		m.AvailableCommands = msg.sess.GetSupportedCommands()
+		m.CommandDescriptions = msg.sess.GetCommandDescriptions()
+		sort.Strings(m.AvailableCommands)
 		if m.Session.IsStreaming() {
 			messages := m.Session.GetMessages()
 			if len(messages) > 0 && messages[len(messages)-1].Type == types.AIMessage && messages[len(messages)-1].Content != "" {

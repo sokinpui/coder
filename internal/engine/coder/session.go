@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/engine/history"
@@ -14,11 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-)
-
-const (
-	ModeCoder = "coder"
-	ModeChat  = "chat"
 )
 
 type Session struct {
@@ -48,14 +44,14 @@ type Session struct {
 
 func New(cfg *config.Config, mode string, instruction string, contextFiles []string) (*Session, error) {
 	if mode == "" {
-		mode = ModeCoder
+		mode = engine.ModeCoder
 	}
 	return NewWithMessages(cfg, nil, mode, instruction, contextFiles)
 }
 
 func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode string, instruction string, contextFiles []string) (*Session, error) {
 	if mode == "" {
-		mode = ModeCoder
+		mode = engine.ModeCoder
 	}
 	hist, err := history.NewManager()
 	if err != nil {
@@ -81,7 +77,7 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	var resolvedContextFiles []string
 	var resolvedContextDocs []string
 	switch mode {
-	case ModeCoder, "coding":
+	case engine.ModeCoder:
 		initialPaths := contextFiles
 		if len(initialPaths) == 0 {
 			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Coder.Context.Dirs)...), cfgCopy.Coder.Context.Files...)
@@ -224,7 +220,7 @@ func (s *Session) SetHasAppliedChanges(applied bool) {
 
 func (s *Session) GetMode() string {
 	if s.mode == "" {
-		return ModeCoder
+		return engine.ModeCoder
 	}
 	return s.mode
 }
@@ -245,7 +241,7 @@ func (s *Session) HasChatHistory() bool {
 	}
 	for _, msg := range s.messages {
 		switch msg.Type {
-		case types.UserMessage, types.AIMessage, types.ImageMessage:
+		case types.UserMessage, types.AIMessage, types.ImageMessage, types.ToolCallMessage, types.ToolResultMessage:
 			if msg.Type == types.AIMessage && strings.TrimSpace(msg.Content) == "" {
 				continue
 			}
@@ -264,7 +260,11 @@ func (s *Session) RespondToolConfirmation(callID string, response types.ToolConf
 }
 
 func (s *Session) SetMode(mode string) error {
-	s.mode = mode
+	norm := engine.NormalizeMode(mode)
+	if s.HasChatHistory() && s.mode != norm {
+		return fmt.Errorf("cannot switch mode in a non-empty session")
+	}
+	s.mode = norm
 	return s.LoadContext()
 }
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sokinpui/coder/internal/engine"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/engine/source"
@@ -114,7 +115,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	var result []types.Message
 
 	switch s.mode {
-	case ModeCoder, "coding":
+	case engine.ModeCoder:
 		instr := s.instruction
 		if instr == "" {
 			instr = coderprompt.Instructions
@@ -130,7 +131,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 			}
 		}
 		result = append(result, s.documentMessages...)
-	case ModeChat:
+	case engine.ModeChat:
 		instr := s.instruction
 		if instr == "" {
 			instr = coderprompt.ChatInstructions

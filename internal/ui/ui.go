@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
+	_ "github.com/sokinpui/coder/internal/engine/factory"
 )
 
 func Start(sess engine.EngineSession, prompt string) error {

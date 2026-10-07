@@ -12,8 +12,7 @@ import (
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
-	"github.com/sokinpui/coder/internal/engine/coder"
-	"github.com/sokinpui/coder/internal/engine/generation"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
@@ -27,8 +26,10 @@ var (
 	initialPrompt     string
 	customInstruction string
 	runModel          string
+	runProtocol       string
 	chatMode          bool
-	printContextFlag  bool
+	agentMode         bool
+	coderMode         bool
 	configFlag        bool
 	globalConfig      bool
 	execMode          bool
@@ -41,15 +42,16 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:     "coder [flags] [files...]",
-		Short:   "Coder is a TUI-based AI code editor",
-		Long:    "Coder is a TUI-based AI code editor that supports OpenAI-compatible services.",
+		Use:     "coder [flags] [files... or prompt]",
+		Short:   "Coder is a terminal AI coding agent and code editor",
+		Long:    "Coder is a TUI-based AI code editor and autonomous terminal coding agent.",
 		Version: version.Get(),
 		Example: `  coder main.go
   coder -p "refactor this" main.go
   coder -e -p "explain this file" main.go
   coder --chat
-  coder --context .
+  coder --agent "Fix the failing test in pkg/itf"
+  coder -a -m gpt-4o
   coder --config -g
   coder --headless`,
 		Args: cobra.ArbitraryArgs,
@@ -64,9 +66,11 @@ func main() {
 	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt to start session with or execute in non-interactive mode")
 	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model to use for generation")
+	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "responses", "Protocol to use: chat or responses")
 	rootCmd.Flags().BoolVarP(&chatMode, "chat", "c", false, "Start Coder in chat mode (no project context)")
+	rootCmd.Flags().BoolVarP(&agentMode, "agent", "a", false, "Start Coder in agent mode (autonomous AI tool-calling agent)")
+	rootCmd.Flags().BoolVar(&coderMode, "coder", false, "Start Coder in coder mode (default)")
 	rootCmd.Flags().BoolVarP(&execMode, "exec", "e", false, "Execute a single AI request non-interactively and output to stdout")
-	rootCmd.Flags().BoolVarP(&printContextFlag, "context", "C", false, "Print instructions and project context, then exit")
 	rootCmd.Flags().BoolVar(&configFlag, "config", false, "Edit configuration file")
 	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Use with --config to edit global configuration")
 	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
@@ -75,6 +79,13 @@ func main() {
 	rootCmd.Flags().StringVar(&serverSocket, "socket", "", "Run headless server listening on Unix socket path")
 	rootCmd.Flags().BoolVar(&wsMode, "ws", false, "Run headless server with WebSocket/HTTP support")
 
+	_ = rootCmd.RegisterFlagCompletionFunc("completion", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"bash", "zsh", "fish", "powershell"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	_ = rootCmd.RegisterFlagCompletionFunc("protocol", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"chat", "responses"}, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
@@ -82,11 +93,19 @@ func main() {
 	}
 }
 
-func runServer() {
+func runServer(cmd *cobra.Command) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
 		os.Exit(1)
+	}
+
+	if cmd.Flags().Changed("protocol") && runProtocol != "" {
+		cfg.Server.Protocol = runProtocol
+	}
+	if runModel != "" {
+		cfg.Coder.ModelCode = runModel
+		cfg.Agent.ModelCode = runModel
 	}
 
 	srv := server.New(cfg)
@@ -127,7 +146,7 @@ func runServer() {
 
 func runCLI(cmd *cobra.Command, args []string) {
 	if headlessMode || serverPort > 0 || serverSocket != "" || wsMode {
-		runServer()
+		runServer(cmd)
 		return
 	}
 
@@ -141,27 +160,35 @@ func runCLI(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if printContextFlag {
-		mode := coder.ModeCoder
-		if chatMode {
-			mode = coder.ModeChat
+	mode := engine.ModeCoder
+	if agentMode {
+		mode = engine.ModeAgent
+	} else if chatMode {
+		mode = engine.ModeChat
+	}
+
+	prompt := initialPrompt
+	if mode == engine.ModeAgent || mode == engine.ModeChat {
+		if len(args) > 0 {
+			posPrompt := strings.Join(args, " ")
+			if prompt != "" {
+				prompt = prompt + "\n" + posPrompt
+			} else {
+				prompt = posPrompt
+			}
 		}
-		printContext(mode, args)
-		return
 	}
 
 	if execMode {
-		runSingleShot(args)
+		runSingleShot(cmd, mode, prompt, args)
 		return
 	}
 
-	if chatMode {
-		startApp(coder.ModeChat, initialPrompt, nil, customInstruction)
-		return
+	var files []string
+	if mode == engine.ModeCoder {
+		files = collectFiles(args)
 	}
-
-	files := collectFiles(args)
-	startApp(coder.ModeCoder, initialPrompt, files, customInstruction)
+	startApp(cmd, mode, prompt, files, customInstruction)
 }
 
 func generateCompletion(cmd *cobra.Command, shell string) {
@@ -239,50 +266,32 @@ func ensureConfigFile(path string) error {
 	return os.WriteFile(path, content, 0644)
 }
 
-func printContext(mode string, args []string) {
-	files := collectFiles(args)
-
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+func runSingleShot(cmd *cobra.Command, mode string, prompt string, args []string) {
+	if prompt == "" {
+		fmt.Fprintln(os.Stderr, "Error: -p/--prompt or positional prompt is required for exec mode")
 		os.Exit(1)
 	}
 
-	sess, err := coder.New(cfg, mode, customInstruction, files)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	if err := sess.LoadContext(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+	var files []string
+	if mode == engine.ModeCoder {
+		files = collectFiles(args)
 	}
 
-	var messages []types.Message
-	if initialPrompt != "" {
-		messages = append(messages, types.Message{Type: types.UserMessage, Content: initialPrompt})
-	}
-
-	fullPrompt := sess.BuildPrompt(messages)
-	for _, msg := range fullPrompt {
-		fmt.Printf("[%s]\n%s\n\n", msg.Type, msg.Content)
-	}
-}
-
-func runSingleShot(args []string) {
-	if initialPrompt == "" {
-		fmt.Fprintln(os.Stderr, "Error: -p/--prompt is required for exec mode")
-		os.Exit(1)
-	}
-
-	files := collectFiles(args)
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
 
-	sess, err := coder.New(cfg, coder.ModeCoder, customInstruction, files)
+	if cmd.Flags().Changed("protocol") && runProtocol != "" {
+		cfg.Server.Protocol = runProtocol
+	}
+	if runModel != "" {
+		cfg.Coder.ModelCode = runModel
+		cfg.Agent.ModelCode = runModel
+	}
+
+	sess, err := engine.NewSession(cfg, mode, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)
@@ -292,36 +301,22 @@ func runSingleShot(args []string) {
 		os.Exit(1)
 	}
 
-	messages := []types.Message{
-		{Type: types.UserMessage, Content: initialPrompt},
-	}
-
-	if runModel != "" {
-		cfg.Coder.ModelCode = runModel
-	}
-
-	gen, err := generation.New(cfg)
+	eventChan, err := sess.Submit(context.Background(), prompt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error initializing generator: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error submitting request: %v\n", err)
 		os.Exit(1)
 	}
 
-	promptMsgs := sess.BuildPrompt(messages)
-	instruction, chatMsgs := types.AssemblePrompt(promptMsgs, "")
-	streamChan := make(chan types.StreamChunk, 100)
-	ctx := context.Background()
-
-	go gen.GenerateTask(ctx, instruction, chatMsgs, nil, streamChan, nil)
-
 	hasError := false
-	for chunk := range streamChan {
-		if chunk.Error != nil {
-			fmt.Fprintf(os.Stderr, "\nError: %v\n", chunk.Error)
+	for ev := range eventChan {
+		if ev.Kind == types.EventError {
+			fmt.Fprintf(os.Stderr, "\nError: %v\n", ev.Error)
 			hasError = true
 			continue
 		}
-
-		fmt.Print(chunk.Content)
+		if ev.Kind == types.EventChunk && ev.Content != "" {
+			fmt.Print(ev.Content)
+		}
 	}
 
 	fmt.Println()
@@ -347,13 +342,21 @@ func runEditor(path string) {
 	}
 }
 
-func startApp(mode string, prompt string, contextFiles []string, instruction string) {
+func startApp(cmd *cobra.Command, mode string, prompt string, contextFiles []string, instruction string) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
 		os.Exit(1)
 	}
-	sess, err := coder.New(cfg, mode, instruction, contextFiles)
+	if cmd.Flags().Changed("protocol") && runProtocol != "" {
+		cfg.Server.Protocol = runProtocol
+	}
+	if runModel != "" {
+		cfg.Coder.ModelCode = runModel
+		cfg.Agent.ModelCode = runModel
+	}
+
+	sess, err := engine.NewSession(cfg, mode, instruction, contextFiles)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)

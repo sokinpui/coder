@@ -207,6 +207,7 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 	var instructions []string
 	var chatMessages []ChatMessage
 
+	hasInstructionMessage := false
 	for _, msg := range messages {
 		if !msg.CanSendToAI() {
 			continue
@@ -217,6 +218,9 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 		}
 
 		if role == RoleSystem {
+			if msg.Type == InstructionMessage {
+				hasInstructionMessage = true
+			}
 			if trimmed := strings.TrimSpace(msg.Content); trimmed != "" {
 				instructions = append(instructions, trimmed)
 			}
@@ -251,10 +255,11 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 		})
 	}
 
-	systemInstruction := strings.Join(instructions, "\n\n")
-	if systemInstruction == "" {
-		systemInstruction = defaultInstruction
+	if !hasInstructionMessage && strings.TrimSpace(defaultInstruction) != "" {
+		instructions = append([]string{strings.TrimSpace(defaultInstruction)}, instructions...)
 	}
+
+	systemInstruction := strings.Join(instructions, "\n\n")
 	return systemInstruction, chatMessages
 }
 

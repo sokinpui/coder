@@ -7,23 +7,10 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 	"maps"
 	"os"
-	"strings"
 )
 
-func (s *Session) hasConservation() bool {
-	for _, msg := range s.messages {
-		if msg.Type.IsHistory() {
-			if msg.Type.IsAI() && strings.TrimSpace(msg.Content) == "" {
-				continue
-			}
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Session) SaveConversation() error {
-	if !s.hasConservation() && s.title == "New Chat" && s.historyFilename == "" {
+	if !s.HasChatHistory() && s.title == "New Chat" && s.historyFilename == "" {
 		return nil
 	}
 
@@ -68,11 +55,7 @@ func (s *Session) LoadConversation(filename string) error {
 		return fmt.Errorf("failed to load conversation %s: %w", filename, err)
 	}
 
-	mode := metadata.Mode
-	if mode == "" {
-		mode = ModeCoder
-	}
-	s.mode = mode
+	s.mode = engine.NormalizeMode(metadata.Mode)
 	s.messages = messages
 	s.title = metadata.Title
 	s.titleGenerated = true

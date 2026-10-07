@@ -82,7 +82,7 @@ func (s *Server) handleHistoryList(req Request) {
 		return
 	}
 
-	items, err := s.session.GetHistoryManager().ListConversationsByMode("coder")
+	items, err := s.session.GetHistoryManager().ListConversationsByMode(s.session.GetMode())
 	if err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return

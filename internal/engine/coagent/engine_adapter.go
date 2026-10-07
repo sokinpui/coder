@@ -16,7 +16,7 @@ import (
 var _ engine.EngineSession = (*Session)(nil)
 
 func (s *Session) GetMode() string {
-	return ModeCoAgent
+	return engine.ModeAgent
 }
 
 func (s *Session) SetTitle(title string) {
@@ -121,7 +121,10 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 }
 
 func (s *Session) CreateNew(mode string) (engine.EngineSession, error) {
-	return NewSession(s.Config)
+	if mode == "" {
+		mode = engine.ModeAgent
+	}
+	return engine.NewSession(s.Config, mode, s.Instruction, nil)
 }
 
 func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {

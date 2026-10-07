@@ -94,9 +94,9 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 
 func (s *Session) CreateNew(mode string) (engine.EngineSession, error) {
 	if mode == "" {
-		mode = ModeCoder
+		mode = s.mode
 	}
-	return New(s.config, mode, s.instruction, s.contextFiles)
+	return engine.NewSession(s.config, mode, s.instruction, s.contextFiles)
 }
 
 func (s *Session) Submit(ctx context.Context, input string) (<-chan types.SessionEvent, error) {
