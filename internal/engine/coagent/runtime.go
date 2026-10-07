@@ -8,6 +8,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	"github.com/sokinpui/coder/internal/engine/coagent/skills"
 	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/types"
@@ -102,6 +103,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 	if instructions == "" {
 		instructions = coagentprompt.Instructions
 	}
+	instructions = skills.AppendSkillsPrompt(instructions)
 
 	for range maxIterations {
 		if ctx.Err() != nil {

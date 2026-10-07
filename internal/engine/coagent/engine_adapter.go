@@ -170,8 +170,9 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 	eventChan := make(chan types.SessionEvent, 100)
 
 	prepared := s.PrepareMessages()
+	instr := s.getEffectiveInstruction()
 	go func() {
-		s.Runtime.AgentLoop(runCtx, s.Instruction, prepared, chunkChan)
+		s.Runtime.AgentLoop(runCtx, instr, prepared, chunkChan)
 	}()
 
 	go func() {

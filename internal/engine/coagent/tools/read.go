@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sokinpui/coder/internal/engine/pdf"
+	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -66,6 +67,7 @@ func (t *ReadFileTool) ExecuteWithImages(ctx context.Context, arguments string) 
 	if strings.TrimSpace(params.Path) == "" {
 		return "", nil, fmt.Errorf("path is required")
 	}
+	params.Path = source.ExpandHome(params.Path)
 
 	ext := strings.ToLower(filepath.Ext(params.Path))
 	if ext == ".pdf" {

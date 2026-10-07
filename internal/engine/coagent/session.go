@@ -11,6 +11,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
 	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	"github.com/sokinpui/coder/internal/engine/coagent/skills"
 	"github.com/sokinpui/coder/internal/engine/coagent/tools"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/commands"
@@ -195,11 +196,16 @@ func (s *Session) HasChatHistory() bool {
 	return false
 }
 
-func (s *Session) GetPrompt() []types.Message {
+func (s *Session) getEffectiveInstruction() string {
 	instr := s.Instruction
 	if instr == "" {
 		instr = coagentprompt.Instructions
 	}
+	return skills.AppendSkillsPrompt(instr)
+}
+
+func (s *Session) GetPrompt() []types.Message {
+	instr := s.getEffectiveInstruction()
 	prompt := []types.Message{
 		{Type: types.InstructionMessage, Content: instr},
 	}
