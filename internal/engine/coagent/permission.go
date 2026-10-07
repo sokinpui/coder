@@ -288,6 +288,12 @@ func extractTarget(toolName, arguments string) string {
 		}
 	}
 
+	if toolName == "websearch" {
+		if query, ok := data["query"].(string); ok {
+			return strings.TrimSpace(query)
+		}
+	}
+
 	if path, ok := data["path"].(string); ok {
 		return strings.TrimSpace(path)
 	}

@@ -385,6 +385,11 @@ func ExtractToolTarget(name, arguments string) string {
 		return TruncateSingleLine(url, 40)
 	}
 
+	query := ExtractToolJSONField(trimmed, "query")
+	if query != "" {
+		return TruncateSingleLine(query, 40)
+	}
+
 	return SummarizeToolArgs(trimmed)
 }
 
