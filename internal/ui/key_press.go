@@ -365,9 +365,15 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 	}
 
 	callID := m.ConfirmRequest.CallID
+	approver, _ := m.Session.(engine.ToolApprover)
+	respond := func(resp types.ToolConfirmResponse) {
+		if approver != nil {
+			_ = approver.RespondToolConfirmation(callID, resp)
+		}
+	}
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		respond(types.ToolConfirmResponse{Approved: false})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Session.Cancel()
@@ -384,13 +390,13 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		m = m.updateLayout()
 		return m, textarea.Blink, true
 	case tea.KeyEsc:
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		respond(types.ToolConfirmResponse{Approved: false})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		return m, nil, true
 	case tea.KeyEnter:
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true})
+		respond(types.ToolConfirmResponse{Approved: true})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
@@ -399,19 +405,19 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 
 	switch msg.String() {
 	case "y", "Y":
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true})
+		respond(types.ToolConfirmResponse{Approved: true})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		return m, nil, true
 	case "n", "N":
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: false})
+		respond(types.ToolConfirmResponse{Approved: false})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		return m, nil, true
 	case "a", "A":
-		_ = m.Session.RespondToolConfirmation(callID, types.ToolConfirmResponse{Approved: true, AlwaysAllow: true})
+		respond(types.ToolConfirmResponse{Approved: true, AlwaysAllow: true})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())

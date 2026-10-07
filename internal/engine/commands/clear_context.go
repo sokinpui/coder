@@ -16,11 +16,16 @@ func clearContextCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: clear_context"}, false
 	}
 
-	s.SetContextFiles([]string{})
-	s.SetContextDocuments([]string{})
-	s.ClearAllDocumentMessages()
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context management not supported in this session"}, false
+	}
 
-	if err := s.LoadContext(); err != nil {
+	ctxCtrl.SetContextFiles([]string{})
+	ctxCtrl.SetContextDocuments([]string{})
+	ctxCtrl.ClearAllDocumentMessages()
+
+	if err := ctxCtrl.LoadContext(); err != nil {
 		msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)
 		return CommandOutput{Type: types.MessagesUpdated, Payload: msg}, false
 	}

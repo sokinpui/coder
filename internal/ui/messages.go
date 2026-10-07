@@ -2,8 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"sort"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -398,7 +398,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.LastInteractionFailed = false
 		m.Chat.TextArea.Reset()
 		m.Chat.TextArea.SetHeight(1)
-		_ = m.Session.LoadContext()
+		if ctxCtrl, ok := m.Session.(engine.ContextController); ok {
+			_ = ctxCtrl.LoadContext()
+		}
 
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()

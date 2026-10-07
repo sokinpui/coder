@@ -173,9 +173,13 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
 			return m, nil, false
 		}
+		ctxCtrl, ok := m.Session.(engine.ContextController)
+		if !ok {
+			return m, nil, false
+		}
 		if strings.TrimSpace(args) == "" {
 			m.Chat.TextArea.Reset()
-			files := m.Session.GetContextFiles()
+			files := ctxCtrl.GetContextFiles()
 			if len(files) == 0 {
 				m.StatusBarMessage = "No project source files in context."
 				return m, clearStatusBarCmd(), true
@@ -362,7 +366,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
 			return m, nil, false
 		}
-		files := m.Session.GetContextFiles()
+		ctxCtrl, ok := m.Session.(engine.ContextController)
+		if !ok {
+			return m, nil, false
+		}
+		files := ctxCtrl.GetContextFiles()
 		if len(files) == 0 {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd(), true

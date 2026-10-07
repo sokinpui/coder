@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -42,7 +43,9 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		if m.ConfirmRequest != nil {
-			_ = m.Session.RespondToolConfirmation(m.ConfirmRequest.CallID, types.ToolConfirmResponse{Approved: false})
+			if approver, ok := m.Session.(engine.ToolApprover); ok {
+				_ = approver.RespondToolConfirmation(m.ConfirmRequest.CallID, types.ToolConfirmResponse{Approved: false})
+			}
 			m.ConfirmRequest = nil
 		}
 		m.ActiveOverlay = overlayNone

@@ -91,18 +91,26 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	res := ExecuteItf(lastAIResponse, args)
-	s.SetLastModifiedFiles(res.AffectedFiles)
-
-	// Mark that this session has applied changes
-	if len(res.Raw["Created"]) > 0 ||
-		len(res.Raw["Modified"]) > 0 ||
-		len(res.Raw["Renamed"]) > 0 ||
-		len(res.Raw["Deleted"]) > 0 {
-		s.SetHasAppliedChanges(true)
+	if applier, ok := s.(engine.ChangeApplier); ok {
+		applier.SetLastModifiedFiles(res.AffectedFiles)
+		if len(res.Raw["Created"]) > 0 ||
+			len(res.Raw["Modified"]) > 0 ||
+			len(res.Raw["Renamed"]) > 0 ||
+			len(res.Raw["Deleted"]) > 0 {
+			applier.SetHasAppliedChanges(true)
+		}
 	}
 
-	// Update context paths based on itf results
-	currentFiles := s.GetContextFiles()
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return CommandOutput{
+			Type:        types.MessagesUpdated,
+			Payload:     res.Summary,
+			IsFileApply: true,
+		}, res.Success
+	}
+
+	currentFiles := ctxCtrl.GetContextFiles()
 	contextUpdated := false
 
 	// Handle Created files
@@ -138,8 +146,8 @@ func itfCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if contextUpdated {
-		s.SetContextFiles(currentFiles)
-		_ = s.LoadContext()
+		ctxCtrl.SetContextFiles(currentFiles)
+		_ = ctxCtrl.LoadContext()
 	}
 
 	return CommandOutput{

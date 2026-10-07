@@ -132,8 +132,11 @@ func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 
 func loadInitialContextCmd(sess engine.EngineSession) tea.Cmd {
 	return func() tea.Msg {
-		err := sess.LoadContext()
-		return initialContextLoadedMsg{err: err}
+		if ctxCtrl, ok := sess.(engine.ContextController); ok {
+			err := ctxCtrl.LoadContext()
+			return initialContextLoadedMsg{err: err}
+		}
+		return initialContextLoadedMsg{}
 	}
 }
 

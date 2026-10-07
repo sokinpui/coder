@@ -54,11 +54,15 @@ func atCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: @"}, false
 	}
 	if s.Capabilities().Has(engine.CapToolLoop) {
+		reader, ok := s.(engine.AgentFileReader)
+		if !ok {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Agent file reading not supported"}, false
+		}
 		paths := strings.Fields(args)
 		if len(paths) == 0 {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: @ <paths...>"}, false
 		}
-		return s.ReadAgentFiles("@ "+args, paths)
+		return reader.ReadAgentFiles("@ "+args, paths)
 	}
 	return addFileToContext(args, "@", s)
 }
@@ -69,11 +73,15 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if s.Capabilities().Has(engine.CapToolLoop) {
+		reader, ok := s.(engine.AgentFileReader)
+		if !ok {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: "Agent file reading not supported"}, false
+		}
 		paths := strings.Fields(args)
 		if len(paths) == 0 {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /file <paths...>"}, false
 		}
-		return s.ReadAgentFiles("/file "+args, paths)
+		return reader.ReadAgentFiles("/file "+args, paths)
 	}
 	return addFileToContext(args, "/file", s)
 }
@@ -84,8 +92,13 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Usage: %s <paths...>", cmdPrefix)}, false
 	}
 
-	currentFiles := s.GetContextFiles()
-	currentDocs := s.GetContextDocuments()
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context management not supported in this session"}, false
+	}
+
+	currentFiles := ctxCtrl.GetContextFiles()
+	currentDocs := ctxCtrl.GetContextDocuments()
 
 	cfg := s.GetConfig()
 	allExclusions := append([]string{}, source.Exclusions...)
@@ -93,10 +106,10 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 
 	newFiles, newDocs, invalidPaths := source.Add(currentFiles, currentDocs, paths, allExclusions)
 	addedCount := len(newFiles) - len(currentFiles)
-	s.SetContextFiles(newFiles)
-	s.SetContextDocuments(newDocs)
+	ctxCtrl.SetContextFiles(newFiles)
+	ctxCtrl.SetContextDocuments(newDocs)
 
-	if err := s.LoadContext(); err != nil {
+	if err := ctxCtrl.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
 	}
 
@@ -106,7 +119,7 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 		if slices.Contains(currentDocs, doc) {
 			continue
 		}
-		pages := s.GetDocumentPageCount(doc)
+		pages := ctxCtrl.GetDocumentPageCount(doc)
 		if pages > 0 {
 			pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", doc, pages))
 			continue

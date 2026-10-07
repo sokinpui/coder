@@ -11,6 +11,8 @@ import (
 )
 
 var _ engine.EngineSession = (*Session)(nil)
+var _ engine.ContextController = (*Session)(nil)
+var _ engine.ChangeApplier = (*Session)(nil)
 
 func (s *Session) GetID() string {
 	return s.ID

@@ -13,6 +13,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/factory"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/types"
@@ -291,14 +292,16 @@ func runSingleShot(cmd *cobra.Command, mode string, prompt string, args []string
 		cfg.Agent.ModelCode = runModel
 	}
 
-	sess, err := engine.NewSession(cfg, mode, customInstruction, files)
+	sess, err := factory.NewSession(cfg, mode, customInstruction, files)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)
 	}
-	if err := sess.LoadContext(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading source: %v\n", err)
-		os.Exit(1)
+	if ctxCtrl, ok := sess.(engine.ContextController); ok {
+		if err := ctxCtrl.LoadContext(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading source: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	eventChan, err := sess.Submit(context.Background(), prompt)
@@ -356,7 +359,7 @@ func startApp(cmd *cobra.Command, mode string, prompt string, contextFiles []str
 		cfg.Agent.ModelCode = runModel
 	}
 
-	sess, err := engine.NewSession(cfg, mode, instruction, contextFiles)
+	sess, err := factory.NewSession(cfg, mode, instruction, contextFiles)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating session: %v\n", err)
 		os.Exit(1)

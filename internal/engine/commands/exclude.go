@@ -16,7 +16,11 @@ func excludeArgumentCompleter(s SessionController, prefix string) []string {
 	if s == nil {
 		return nil
 	}
-	return source.ContextSuggestions(s.GetContextFiles(), s.GetContextDocuments())
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return nil
+	}
+	return source.ContextSuggestions(ctxCtrl.GetContextFiles(), ctxCtrl.GetContextDocuments())
 }
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -30,14 +34,19 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /exclude <paths...>"}, false
 	}
 
-	newFiles, newDocs, removedFiles, removedDocs := source.Exclude(s.GetContextFiles(), s.GetContextDocuments(), paths)
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context management not supported in this session"}, false
+	}
+
+	newFiles, newDocs, removedFiles, removedDocs := source.Exclude(ctxCtrl.GetContextFiles(), ctxCtrl.GetContextDocuments(), paths)
 	removedCount := len(removedFiles) + len(removedDocs)
 
-	s.SetContextFiles(newFiles)
-	s.SetContextDocuments(newDocs)
-	s.PurgeDocumentMessages(removedDocs)
+	ctxCtrl.SetContextFiles(newFiles)
+	ctxCtrl.SetContextDocuments(newDocs)
+	ctxCtrl.PurgeDocumentMessages(removedDocs)
 
-	if err := s.LoadContext(); err != nil {
+	if err := ctxCtrl.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false
 	}
 

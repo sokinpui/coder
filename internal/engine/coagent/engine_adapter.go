@@ -14,6 +14,8 @@ import (
 )
 
 var _ engine.EngineSession = (*Session)(nil)
+var _ engine.ToolApprover = (*Session)(nil)
+var _ engine.AgentFileReader = (*Session)(nil)
 
 func (s *Session) GetMode() string {
 	return engine.ModeAgent

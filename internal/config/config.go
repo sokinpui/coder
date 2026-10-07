@@ -111,12 +111,12 @@ type Keymap struct {
 }
 
 type Config struct {
-	Server          Server         `mapstructure:"server" yaml:"server"`
-	Title           Title          `mapstructure:"title" yaml:"title"`
-	Coder           Coder          `mapstructure:"coder" yaml:"coder"`
-	Agent           Agent          `mapstructure:"agent" yaml:"agent"`
-	Clipboard       Clipboard      `mapstructure:"clipboard" yaml:"clipboard"`
-	AvailableModels []string       `mapstructure:"-" yaml:"-"`
+	Server          Server    `mapstructure:"server" yaml:"server"`
+	Title           Title     `mapstructure:"title" yaml:"title"`
+	Coder           Coder     `mapstructure:"coder" yaml:"coder"`
+	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
+	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
+	AvailableModels []string  `mapstructure:"-" yaml:"-"`
 }
 
 func DefaultKeymap() Keymap {

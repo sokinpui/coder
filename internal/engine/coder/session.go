@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/source"
@@ -249,23 +248,6 @@ func (s *Session) HasChatHistory() bool {
 		}
 	}
 	return false
-}
-
-func (s *Session) ReadAgentFiles(input string, paths []string) (commands.CommandOutput, bool) {
-	return commands.CommandOutput{}, false
-}
-
-func (s *Session) RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error {
-	return fmt.Errorf("tool confirmation not supported in coder session")
-}
-
-func (s *Session) SetMode(mode string) error {
-	norm := engine.NormalizeMode(mode)
-	if s.HasChatHistory() && s.mode != norm {
-		return fmt.Errorf("cannot switch mode in a non-empty session")
-	}
-	s.mode = norm
-	return s.LoadContext()
 }
 
 func (s *Session) IsStreaming() bool {

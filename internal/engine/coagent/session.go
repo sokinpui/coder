@@ -103,26 +103,6 @@ func (s *Session) ReplaceLastMessage(msg types.Message) {
 	}
 }
 
-func (s *Session) LoadContext() error                      { return nil }
-func (s *Session) GetLastModifiedFiles() []string          { return nil }
-func (s *Session) SetLastModifiedFiles(files []string)     {}
-func (s *Session) HasAppliedChanges() bool                 { return false }
-func (s *Session) SetHasAppliedChanges(applied bool)       {}
-func (s *Session) GetContextFiles() []string               { return nil }
-func (s *Session) SetContextFiles(files []string)          {}
-func (s *Session) GetContextDocuments() []string           { return nil }
-func (s *Session) SetContextDocuments(docs []string)       {}
-func (s *Session) GetDocumentPageCount(doc string) int     { return 0 }
-func (s *Session) PurgeDocumentMessages(docPaths []string) {}
-func (s *Session) ClearAllDocumentMessages()               {}
-func (s *Session) SetMode(mode string) error {
-	norm := engine.NormalizeMode(mode)
-	if s.HasChatHistory() && norm != engine.ModeAgent {
-		return fmt.Errorf("cannot switch mode in a non-empty session")
-	}
-	return nil
-}
-
 func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.CommandOutput, bool) {
 	expanded, invalid := commands.ExpandPaths(rawPaths)
 	allPaths := append(expanded, invalid...)

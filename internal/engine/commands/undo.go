@@ -16,7 +16,8 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: undo"}, false
 	}
 
-	if !s.HasAppliedChanges() {
+	applier, ok := s.(engine.ChangeApplier)
+	if !ok || !applier.HasAppliedChanges() {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No changes have been applied in this session to undo."}, false
 	}
 
@@ -35,8 +36,16 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No changes to undo.", IsFileApplyUndo: true}, true
 	}
 
-	// Update context paths based on what was undone
-	currentFiles := s.GetContextFiles()
+	ctxCtrl, hasCtx := s.(engine.ContextController)
+	if !hasCtx {
+		return CommandOutput{
+			Type:            types.MessagesUpdated,
+			Payload:         itf.FormatSummary(summary),
+			IsFileApplyUndo: true,
+		}, true
+	}
+
+	currentFiles := ctxCtrl.GetContextFiles()
 	contextUpdated := false
 
 	// If we undone a creation, the file is deleted
@@ -74,8 +83,8 @@ func undoCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	if contextUpdated {
-		s.SetContextFiles(currentFiles)
-		_ = s.LoadContext()
+		ctxCtrl.SetContextFiles(currentFiles)
+		_ = ctxCtrl.LoadContext()
 	}
 
 	return CommandOutput{

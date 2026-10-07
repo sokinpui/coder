@@ -54,6 +54,32 @@ type CommandOutput struct {
 	IsAgentFileRead bool
 }
 
+type ContextController interface {
+	LoadContext() error
+	GetContextFiles() []string
+	SetContextFiles(files []string)
+	GetContextDocuments() []string
+	SetContextDocuments(docs []string)
+	GetDocumentPageCount(doc string) int
+	PurgeDocumentMessages(docPaths []string)
+	ClearAllDocumentMessages()
+}
+
+type ChangeApplier interface {
+	GetLastModifiedFiles() []string
+	SetLastModifiedFiles(files []string)
+	HasAppliedChanges() bool
+	SetHasAppliedChanges(applied bool)
+}
+
+type ToolApprover interface {
+	RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error
+}
+
+type AgentFileReader interface {
+	ReadAgentFiles(input string, paths []string) (CommandOutput, bool)
+}
+
 type EngineSession interface {
 	GetID() string
 	GetMode() string
@@ -73,11 +99,8 @@ type EngineSession interface {
 	GetPrompt() []types.Message
 	DeleteMessages(indices []int)
 	EditMessage(index int, newContent string) error
-	SetLastModifiedFiles(files []string)
 	TokenCount() int
 	SetModel(model string)
-	LoadContext() error
-	GetContextFiles() []string
 
 	Submit(ctx context.Context, input string) (<-chan types.SessionEvent, error)
 	Cancel()
@@ -86,7 +109,6 @@ type EngineSession interface {
 	GetSupportedCommands() []string
 	GetCommandDescriptions() map[string]string
 	GetCommandSuggestions(cmdName, prefix string) []string
-	RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error
 	ExecuteCommand(input string) (CommandOutput, bool)
 
 	CreateNew(mode string) (EngineSession, error)

@@ -14,8 +14,13 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: list"}, false
 	}
 
-	allFiles := s.GetContextFiles()
-	allDocs := s.GetContextDocuments()
+	ctxCtrl, ok := s.(engine.ContextController)
+	if !ok {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or documents are in current context.", IsContext: true}, true
+	}
+
+	allFiles := ctxCtrl.GetContextFiles()
+	allDocs := ctxCtrl.GetContextDocuments()
 
 	if len(allFiles) == 0 && len(allDocs) == 0 {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or documents are in current context.", IsContext: true}, true
