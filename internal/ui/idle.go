@@ -50,6 +50,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 		return m, nil
 	}
 
+	m.ActiveOverlay = overlayNone
 	m.Session = newSess
 	m.ClearCache()
 	m.addActiveSession(newSess)
@@ -66,9 +67,16 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.IsAIRendering = false
 	m.Chat.PendingAIRender = false
 	m.Chat.LastInteractionFailed = false
+	m.Chat.TextArea.Reset()
+	m.Chat.ShowPalette = false
+	m.Chat.PaletteFilteredCommands = nil
+	m.Chat.PaletteFilteredArguments = nil
+	m.Chat.PaletteCursor = 0
+	m.Chat.PaletteOffset = 0
 	m.Chat.TextArea.Focus()
 	m.Chat.Viewport.GotoTop()
 	m.Chat.Viewport.SetContent(m.renderConversation())
+	m = m.updateLayout()
 
 	return m, tea.Batch(loadInitialContextCmd(m.Session), saveConversationCmd(oldSess), m.renderUncachedCmd())
 }
@@ -160,6 +168,18 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Reset()
 		newModel, cmd := m.openHistorySelector(1)
 		return newModel, cmd, true
+
+	case "mode":
+		if strings.TrimSpace(args) == "" {
+			if m.Session.HasChatHistory() {
+				m.StatusBarMessage = "Cannot switch mode in a non-empty session. Use /new [mode]."
+				return m, clearStatusBarCmd(), true
+			}
+			m.Chat.TextArea.Reset()
+			newModel, cmd := m.openModeSelector()
+			return newModel, cmd, true
+		}
+		return m, nil, false
 
 	case "model":
 		if strings.TrimSpace(args) == "" {

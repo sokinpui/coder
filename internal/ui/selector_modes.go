@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -125,6 +126,58 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 		newModel.Selector.UpdateFilter()
 	}
 	return newModel, cmd
+}
+
+func (m Model) openModeSelector() (Model, tea.Cmd) {
+	currentMode := m.Session.GetMode()
+	modes := []struct {
+		id   string
+		name string
+		desc string
+	}{
+		{id: engine.ModeAgent, name: "[agent]", desc: "Autonomous agent with tools"},
+		{id: engine.ModeCoder, name: "[coder]", desc: "Code editor with context"},
+		{id: engine.ModeChat, name: "[chat] ", desc: "General chat without context"},
+	}
+
+	var items []SelectorItem
+	initialCursor := 0
+	for i, md := range modes {
+		badge := " "
+		if md.id == currentMode {
+			badge = "*"
+			initialCursor = i
+		}
+		items = append(items, SelectorItem{
+			ID:          md.id,
+			Title:       md.name,
+			Description: "  " + md.desc,
+			Badge:       badge,
+		})
+	}
+
+	return m.openGenericSelector(SelectorConfig{
+		Title:         "── Switch Mode ──",
+		Footer:        "── [Esc/Ctrl+C: cancel | Enter: select] ──",
+		Items:         items,
+		ShowSearch:    false,
+		IsSearching:   false,
+		MultiSelect:   false,
+		InitialCursor: initialCursor,
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			if primary == nil || primary.ID == mod.Session.GetMode() {
+				mod.ActiveOverlay = overlayNone
+				if mod.State == stateIdle {
+					mod.Chat.TextArea.Focus()
+				}
+				return mod, textarea.Blink
+			}
+
+			mod.ActiveOverlay = overlayNone
+			newModel, cmd := mod.newSession(primary.ID)
+			return newModel, cmd
+		},
+	})
 }
 
 func (m Model) openFileListSelector(title, placeholder string, paths []string, onApply func(mod Model, selectedPaths []string) (tea.Model, tea.Cmd)) (Model, tea.Cmd) {

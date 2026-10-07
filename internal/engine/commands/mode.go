@@ -10,9 +10,6 @@ import (
 
 func init() {
 	registerCommand("mode", modeCmd, "view or switch conversation mode (coder, chat, agent)", modeArgumentCompleter)
-	registerCommand("coder", coderCmd, "switch conversation mode to coder", nil)
-	registerCommand("chat", chatCmd, "switch conversation mode to chat", nil)
-	registerCommand("agent", agentCmd, "switch conversation mode to agent", nil)
 }
 
 func modeArgumentCompleter(s SessionController, prefix string) []string {
@@ -35,18 +32,6 @@ func modeCmd(args string, s SessionController) (CommandOutput, bool) {
 		}, false
 	}
 	return switchMode(norm, s)
-}
-
-func coderCmd(args string, s SessionController) (CommandOutput, bool) {
-	return switchMode(engine.ModeCoder, s)
-}
-
-func chatCmd(args string, s SessionController) (CommandOutput, bool) {
-	return switchMode(engine.ModeChat, s)
-}
-
-func agentCmd(args string, s SessionController) (CommandOutput, bool) {
-	return switchMode(engine.ModeAgent, s)
 }
 
 func switchMode(targetMode string, s SessionController) (CommandOutput, bool) {

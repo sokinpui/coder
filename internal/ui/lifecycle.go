@@ -140,11 +140,19 @@ func (m Model) updatePalette() Model {
 }
 
 func (m Model) updateLayout() Model {
+	oldHeight := m.Chat.TextArea.Height()
+	wasAtBottom := m.Chat.Viewport.AtBottom() || m.Chat.AutoScroll
+
 	maxHeight := m.Height / 4
 	visibleLines := getVisibleLines(m.Chat.TextArea, m.Chat.TextArea.Width(), maxHeight+1)
 	inputHeight := min(visibleLines+1, maxHeight)
-	m.Chat.TextArea.SetHeight(max(1, inputHeight))
+	newHeight := max(1, inputHeight)
+	m.Chat.TextArea.SetHeight(newHeight)
 
-	m.Chat.Viewport.Height = max(0, m.Height-m.Chat.TextArea.Height()-lipgloss.Height(m.StatusView())-TextAreaContainerStyle.GetVerticalFrameSize())
+	m.Chat.Viewport.Height = max(0, m.Height-newHeight-lipgloss.Height(m.StatusView())-TextAreaContainerStyle.GetVerticalFrameSize())
+	if oldHeight != newHeight && wasAtBottom {
+		m.Chat.Viewport.GotoBottom()
+		m.Chat.AutoScroll = true
+	}
 	return m
 }
