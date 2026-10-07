@@ -9,9 +9,9 @@ Coder 是一款面向终端工作流、以人为主导的交互式 TUI AI 代码
 ```bash
 coder [files...]          # 启动交互式 TUI，将指定文件载入上下文
 coder -c                  # 以纯对话模式启动交互式 TUI（不加载文件上下文）
+coder -a [prompt]         # 以自主编程智能体模式启动交互式 TUI
 coder -p "prompt" [files] # 携带初始提示词启动会话
 coder -e -p "prompt"      # 非交互式单次执行，结果直接输出到标准输出 (stdout)
-coder -C [files...]       # 打印构建好的 Prompt 和上下文到 stdout（便于调试）
 coder --config            # 在 $EDITOR 中编辑本地 (.coder/config.yaml) 或全局配置
 coder --config -g         # 在 $EDITOR 中编辑全局配置 (~/.config/coder/config.yaml)
 coder --headless          # 作为 Headless JSON-RPC 服务运行（基于标准输入输出）
@@ -54,10 +54,9 @@ coder --ws --port 9005    # 运行支持 WebSocket/HTTP 的 Headless 服务
 - `/clear_context`：清空上下文中所有的文件和文档。
 - `/itf [args]`：将最近一条 AI 响应中的代码变更通过 `itf` 应用到文件。
 - `/undo`：撤销最近一次由 `itf` 实施的文件变更。
-- `/chat`：将当前会话模式切换为普通聊天模式。
-- `/coding`：将当前会话模式切换为编码模式。
+- `/mode [name]`：查看或切换会话模式（coder, chat, agent），无参数时弹出模式选择器。
 - `/model [name]`：在线切换生成模型，或列出可用模型列表。
-- `/new`：重置当前对话并开启新会话，保留当前配置。
+- `/new [mode]`：重置当前对话并开启新会话，可选指定模式。
 - `/history`：浏览并加载已保存的会话历史记录。
 - `/active`：查看并快速切换当前内存中的活动会话。
 - `/rename [title]`：重命名当前会话标题。

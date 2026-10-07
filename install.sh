@@ -2,7 +2,7 @@
 
 set -e
 
-BINARIES="coder co itf sf pcat pti"
+BINARIES="coder itf sf pcat pti"
 
 if ! command -v go &>/dev/null; then
   echo "Error: Go is not installed."

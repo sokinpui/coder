@@ -14,7 +14,7 @@
 
 ## Quick Install
 
-Installs `coder` and `co`:
+Installs `coder`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
@@ -30,7 +30,6 @@ curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh
 
 ```bash
 go install github.com/sokinpui/coder/cmd/coder@latest
-go install github.com/sokinpui/coder/cmd/co@latest
 ```
 
 ## Local Build
@@ -41,26 +40,29 @@ cd coder
 ./install.sh
 ```
 
-## Coder
+## Modes
 
-**`coder`** is a **one-step AI code editor**. It is designed for developers who prefer full control over their project context and changes.
+### Coder Mode (Default)
+A **one-step AI code editor** designed for developers who prefer full control over their project context and changes.
 
 - **Human-in-the-loop**: You curate the exact context files provided to the model.
 - **Unified Diff Application**: The model returns standardized diffs and file lifecycle operations applied via `itf`.
 - **Safe & Reversible**: Every applied modification can be reviewed and undone with `/undo`.
 
-## Co
-
-**`co`** is an **autonomous coding agent**. It operates in an iterative tool-calling loop to solve complex tasks independently.
+### Agent Mode
+An **autonomous coding agent** operating in an iterative tool-calling loop to solve complex tasks independently.
 
 - **Autonomous Tool Execution**: Self-directed file reading, string replacements, file creation, and shell command execution.
 - **Read-before-edit Guard**: Rejects text replacements on files the agent has not yet inspected.
 - **Visual & PDF Context**: Native multi-modal support for images and PDF documents.
 - **Configurable Permissions**: Fine-grained security policies (`allow`, `ask`, `deny`) on tool and command execution.
 
+### Chat Mode
+A lightweight conversational assistant without codebase context loading.
+
 ## Usage
 
-Launch the one-step editor:
+Launch the one-step editor (Coder mode):
 
 ```bash
 coder [files...]
@@ -68,13 +70,20 @@ coder [files...]
 
 > Detailed user guide, CLI flags, shortcuts, and commands: [**docs/coder/README.md**](docs/coder/README.md)
 
-Launch the autonomous agent:
+Launch the autonomous agent (Agent mode):
 
 ```bash
-co [prompt]
+coder -a [prompt]
+coder --agent "Fix the bug"
 ```
 
 > Detailed agent manual, tool architecture, and workflows: [**docs/coagent/README.md**](docs/coagent/README.md)
+
+Launch in chat mode:
+
+```bash
+coder -c
+```
 
 ## Endpoint Configuration
 

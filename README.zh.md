@@ -14,7 +14,7 @@
 
 ## 快速安装
 
-一键安装 `coder` 与 `co`：
+一键安装 `coder`：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
@@ -30,7 +30,6 @@ curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh
 
 ```bash
 go install github.com/sokinpui/coder/cmd/coder@latest
-go install github.com/sokinpui/coder/cmd/co@latest
 ```
 
 ## 本地编译安装
@@ -41,26 +40,29 @@ cd coder
 ./install.sh
 ```
 
-## Coder
+## 核心模式
 
-**`coder`** 是一个**单步 AI 代码编辑器**，专为希望对项目上下文和代码改动拥有绝对控制权的开发者设计。
+### Coder 模式（默认）
+**单步 AI 代码编辑器**，专为希望对项目上下文和代码改动拥有绝对控制权的开发者设计。
 
 - **人机协同（Human-in-the-loop）**：自主挑选并控制输入给模型的精确上下文文件。
 - **统一 Diff 应用**：模型输出标准 Unified Diff 与文件生命周期操作，通过 `itf` 一键安全打补丁。
 - **安全可逆**：每一次修改均可审查，并可通过 `/undo` 随时回滚撤销。
 
-## Co
-
-**`co`** 是一个**自主编程智能体（Autonomous Coding Agent）**。它在交互式工具调用循环中运作，能够自主解决复杂工程任务。
+### Agent 模式
+**自主编程智能体**。在交互式工具调用循环中运作，能够自主解决复杂工程任务。
 
 - **自主工具执行**：自主读取文件、执行精确字符串替换、创建文件以及运行 Shell 命令。
 - **编辑前必读守卫（Read-before-edit Guard）**：严禁模型在未通过 `read` 查看文件的情况下进行盲目文本替换。
 - **视觉与 PDF 多模态上下文**：原生支持本地图片与 PDF 文档的多模态视觉输入。
 - **可配置工具权限守卫**：提供粒度可控的工具执行策略（`allow`、`ask`、`deny`）。
 
+### Chat 模式
+轻量通用对话助手，不自动加载仓库代码上下文。
+
 ## 使用方式
 
-启动单步编辑器：
+启动单步编辑器（Coder 模式）：
 
 ```bash
 coder [files...]
@@ -68,13 +70,20 @@ coder [files...]
 
 > 详细使用手册、CLI 标志、快捷键与命令列表：[**docs/coder/README.zh.md**](docs/coder/README.zh.md)
 
-启动自主编程智能体：
+启动自主编程智能体（Agent 模式）：
 
 ```bash
-co [prompt]
+coder -a [prompt]
+coder --agent "修复测试用例失败"
 ```
 
 > 详细智能体手册、工具架构与工作流：[**docs/coagent/README.zh.md**](docs/coagent/README.zh.md)
+
+启动纯对话模式（Chat 模式）：
+
+```bash
+coder -c
+```
 
 ## 端点配置
 

@@ -1,24 +1,24 @@
-# Co - Autonomous Coding Agent
+# Agent Mode - Autonomous Coding Agent
 
 [简体中文](README.zh.md)
 
-`co` is an autonomous terminal coding agent powered by an iterative LLM tool-calling loop. Unlike `coder`, which relies on human-guided diff applications, `co` autonomously explores the workspace, reads files, runs commands, and edits source code in real time.
+`coder -a` (or `coder --agent`) launches Coder in autonomous terminal coding agent mode powered by an iterative LLM tool-calling loop. Unlike Coder mode, which relies on human-guided diff applications, Agent mode autonomously explores the workspace, reads files, runs commands, and edits source code in real time.
 
 ## CLI Usage
 
 ```bash
-co                         # Start interactive agent TUI in current directory
-co "Fix test failures"     # Start agent with initial task
-co -p "Refactor package"   # Explicit initial prompt flag
-co -m gpt-4o               # Override agent generation model
-co -i "Custom rules"       # Override agent system instruction
-co -P responses            # Set API protocol ("responses" or "chat")
-co --completion bash       # Generate autocompletion script
+coder -a                         # Start interactive agent TUI in current directory
+coder -a "Fix test failures"     # Start agent with initial task
+coder -a -p "Refactor package"   # Explicit initial prompt flag
+coder -a -m gpt-4o               # Override agent generation model
+coder -a -i "Custom rules"       # Override agent system instruction
+coder -a -P responses            # Set API protocol ("responses" or "chat")
+coder --completion bash          # Generate autocompletion script
 ```
 
 ## Agent Tooling & Safety Loop
 
-`co` executes an autonomous loop up to `max_iterations` (default: 50) using the following built-in tools:
+The agent executes an autonomous loop up to `max_iterations` (default: 50) using the following built-in tools:
 
 - **`read`**: Reads files from the filesystem.
   - Plain text and source code: Returns raw content.
@@ -57,7 +57,7 @@ Permissions can be configured globally (`*`), per tool, or granularly by target:
 
 ## Loading Files Directly
 
-Inside the `co` TUI, you can manually feed files into the agent's context using `@` or `/file`:
+Inside the agent TUI, you can manually feed files into the agent's context using `@` or `/file`:
 
 ```text
 @pkg/itf/patcher.go explain the hunk matching logic

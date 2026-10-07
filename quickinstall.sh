@@ -16,9 +16,9 @@ if [ "$CODER_INSTALL_ALL" = "1" ] || [ "$INSTALL_ALL_TOOLS" = "1" ]; then
   INSTALL_ALL=true
 fi
 
-BINARIES="coder co"
+BINARIES="coder"
 if [ "$INSTALL_ALL" = "true" ]; then
-  BINARIES="coder co itf sf pcat pti"
+  BINARIES="coder itf sf pcat pti"
 fi
 
 detect_os() {

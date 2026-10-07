@@ -9,9 +9,9 @@ Coder is an interactive TUI-based, human-in-the-loop AI code editor designed for
 ```bash
 coder [files...]          # Launch interactive TUI with specified files in context
 coder -c                  # Launch interactive TUI in chat mode (no files)
+coder -a [prompt]         # Launch interactive TUI in autonomous agent mode
 coder -p "prompt" [files] # Start session with an initial prompt
 coder -e -p "prompt"      # Single-shot execution output directly to stdout
-coder -C [files...]       # Print built prompt and context to stdout (debugging)
 coder --config            # Open local (.coder/config.yaml) or global config in $EDITOR
 coder --config -g         # Open global config (~/.config/coder/config.yaml)
 coder --headless          # Run as headless JSON-RPC server over stdio
@@ -54,10 +54,9 @@ coder --ws --port 9005    # Run headless WebSocket/HTTP server
 - `/clear_context`: Remove all files and documents from context.
 - `/itf [args]`: Apply diffs and changes from the last AI response.
 - `/undo`: Revert the last file changes applied by `itf`.
-- `/chat`: Switch session mode to general chat.
-- `/coding`: Switch session mode to coding.
+- `/mode [name]`: View or switch conversation mode (coder, chat, agent), or open mode selector if empty.
 - `/model [name]`: Switch generation model on the fly, or list available models.
-- `/new`: Reset conversation while preserving configuration.
+- `/new [mode]`: Reset conversation and start new session, optionally specifying mode.
 - `/history`: Browse and load saved session history.
 - `/active`: List and switch between running active sessions.
 - `/rename [title]`: Change current session title.
