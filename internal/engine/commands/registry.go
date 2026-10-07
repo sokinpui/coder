@@ -63,6 +63,8 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 		return caps.Has(engine.CapITF)
 	case "model":
 		return caps.Has(engine.CapModelSwitch)
+	case "reasoning", "thinking":
+		return caps.Has(engine.CapReasoningSwitch)
 	case "shell", "!":
 		return caps.Has(engine.CapShell)
 	case "branch":

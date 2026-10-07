@@ -189,6 +189,17 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, false
 
+	case "reasoning", "thinking":
+		if !m.Session.Capabilities().Has(engine.CapReasoningSwitch) {
+			return m, nil, false
+		}
+		if strings.TrimSpace(args) == "" {
+			m.Chat.TextArea.Reset()
+			newModel, cmd := m.openReasoningSelector()
+			return newModel, cmd, true
+		}
+		return m, nil, false
+
 	case "exclude":
 		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
 			return m, nil, false

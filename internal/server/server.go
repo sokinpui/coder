@@ -45,6 +45,8 @@ func (s *Server) dispatch(req Request) {
 		s.handleContextGet(req)
 	case "session/model":
 		s.handleModelSet(req)
+	case "session/reasoning":
+		s.handleReasoningSet(req)
 	case "session/rename":
 		s.handleSessionRename(req)
 	case "session/message/delete":

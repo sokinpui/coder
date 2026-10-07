@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -126,6 +127,58 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 		newModel.Selector.UpdateFilter()
 	}
 	return newModel, cmd
+}
+
+func (m Model) openReasoningSelector() (Model, tea.Cmd) {
+	levels := []string{"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+	var items []SelectorItem
+	currentEffort := m.Session.GetReasoningEffort()
+	initialCursor := 0
+	for i, lvl := range levels {
+		badge := " "
+		if strings.EqualFold(lvl, currentEffort) {
+			badge = "*"
+			initialCursor = i
+		}
+		items = append(items, SelectorItem{
+			ID:    lvl,
+			Title: lvl,
+			Badge: badge,
+		})
+	}
+
+	return m.openGenericSelector(SelectorConfig{
+		Title:         "── Switch Reasoning Effort ──",
+		Footer:        "── [Esc/Ctrl+C: cancel | Enter: select] ──",
+		Items:         items,
+		ShowSearch:    false,
+		IsSearching:   false,
+		MultiSelect:   false,
+		InitialCursor: initialCursor,
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			if primary == nil {
+				mod.ActiveOverlay = overlayNone
+				if mod.State == stateIdle {
+					mod.Chat.TextArea.Focus()
+				}
+				return mod, textarea.Blink
+			}
+
+			effort := primary.ID
+			mod.Session.SetReasoningEffort(effort)
+			mod.Session.AddMessages(
+				types.Message{Type: types.CommandMessage, Content: "/reasoning " + effort},
+				types.Message{Type: types.CommandResultMessage, Content: fmt.Sprintf("Switched reasoning effort to: %s", effort)},
+			)
+			mod.ActiveOverlay = overlayNone
+			mod.Chat.Viewport.SetContent(mod.renderConversation())
+			mod.Chat.Viewport.GotoBottom()
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+			}
+			return mod, textarea.Blink
+		},
+	})
 }
 
 func (m Model) openModeSelector() (Model, tea.Cmd) {

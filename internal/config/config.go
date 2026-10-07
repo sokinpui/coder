@@ -161,7 +161,7 @@ func DefaultConfig() Config {
 		},
 		Coder: Coder{
 			ModelCode:       "aisrp/gemini-flash-latest",
-			ReasoningEffort: "high",
+			ReasoningEffort: "medium",
 			Context: Context{
 				Files:      []string{},
 				Dirs:       []string{"."},
@@ -171,7 +171,7 @@ func DefaultConfig() Config {
 		},
 		Agent: Agent{
 			ModelCode:       "aisrp/gemini-flash-lite-latest",
-			ReasoningEffort: "high",
+			ReasoningEffort: "medium",
 			MaxIterations:   50,
 			Keymap:          DefaultKeymap(),
 			Tools:           map[string]any{},

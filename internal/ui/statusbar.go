@@ -43,6 +43,10 @@ func (m Model) StatusView() string {
 	}
 	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Model: %s", modelCode)))
 
+	if effort := m.Session.GetReasoningEffort(); effort != "" {
+		items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Effort: %s", effort)))
+	}
+
 	if m.Session.Capabilities().Has(engine.CapToolToggle) {
 		toolsStatus := "Tools: [Compact] (Ctrl+T)"
 		if m.ToolsExpanded {

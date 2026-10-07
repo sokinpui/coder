@@ -144,10 +144,13 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 	}
 
 	body := map[string]any{
-		"model":            genConfig.ModelCode,
-		"stream":           true,
-		"messages":         apiMessages,
-		"reasoning_effort": genConfig.ReasoningEffort,
+		"model":    genConfig.ModelCode,
+		"stream":   true,
+		"messages": apiMessages,
+	}
+
+	if genConfig.ReasoningEffort != "" {
+		body["reasoning_effort"] = genConfig.ReasoningEffort
 	}
 
 	if len(tools) > 0 {

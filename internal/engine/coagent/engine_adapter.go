@@ -36,7 +36,8 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapModelSwitch |
 		engine.CapBranch |
 		engine.CapRegenerate |
-		engine.CapShell
+		engine.CapShell |
+		engine.CapReasoningSwitch
 }
 
 func (s *Session) GetMessages() []types.Message {

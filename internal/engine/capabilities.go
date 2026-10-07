@@ -12,6 +12,7 @@ const (
 	CapShell
 	CapDocumentContext
 	CapToolLoop
+	CapReasoningSwitch
 )
 
 func (c Capability) Has(target Capability) bool {

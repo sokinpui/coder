@@ -100,6 +100,8 @@ type EngineSession interface {
 	DeleteMessages(indices []int)
 	EditMessage(index int, newContent string) error
 	TokenCount() int
+	GetReasoningEffort() string
+	SetReasoningEffort(effort string)
 	SetModel(model string)
 
 	Submit(ctx context.Context, input string) (<-chan types.SessionEvent, error)

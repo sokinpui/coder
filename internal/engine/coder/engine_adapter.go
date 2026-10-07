@@ -25,7 +25,8 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapBranch |
 		engine.CapRegenerate |
 		engine.CapShell |
-		engine.CapDocumentContext
+		engine.CapDocumentContext |
+		engine.CapReasoningSwitch
 }
 
 func (s *Session) TokenCount() int {

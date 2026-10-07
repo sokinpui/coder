@@ -30,10 +30,11 @@ type Notification struct {
 }
 
 type InitParams struct {
-	Mode         string   `json:"mode,omitempty"`
-	Instruction  string   `json:"instruction,omitempty"`
-	ContextFiles []string `json:"contextFiles,omitempty"`
-	Model        string   `json:"model,omitempty"`
+	Mode            string   `json:"mode,omitempty"`
+	Instruction     string   `json:"instruction,omitempty"`
+	ContextFiles    []string `json:"contextFiles,omitempty"`
+	Model           string   `json:"model,omitempty"`
+	ReasoningEffort string   `json:"reasoningEffort,omitempty"`
 }
 
 type SendPromptParams struct {

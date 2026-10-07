@@ -133,10 +133,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 			}
 
 			leadingSpaces := len(plain) - len(strings.TrimLeft(plain, " "))
-			colStart := leadingSpaces
-			if leadingSpaces >= 4 {
-				colStart = 4
-			}
+			colStart := min(leadingSpaces, 4)
 
 			contentEnd := ansi.StringWidth(contentTrimmed)
 			rawText := ansi.Cut(plain, colStart, contentEnd)
@@ -204,11 +201,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 			colStart := 0
 			if len(contentTrimmed) > 0 {
 				leading := len(plain) - len(strings.TrimLeft(plain, " "))
-				if leading >= 4 {
-					colStart = 4
-				} else {
-					colStart = leading
-				}
+				colStart = min(leading, 4)
 			}
 			contentEnd := ansi.StringWidth(contentTrimmed)
 			allMetas = append(allMetas, LineMeta{

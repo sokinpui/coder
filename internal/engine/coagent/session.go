@@ -81,6 +81,21 @@ func (s *Session) GetConfig() *config.Config {
 	return s.Config
 }
 
+func (s *Session) GetReasoningEffort() string {
+	return s.Config.Agent.ReasoningEffort
+}
+
+func (s *Session) SetReasoningEffort(effort string) {
+	s.Config.Agent.ReasoningEffort = effort
+	if s.Runtime != nil {
+		s.Runtime.Config.ReasoningEffort = effort
+		s.Runtime.SecondaryConfig.ReasoningEffort = effort
+		if s.Runtime.Generator != nil {
+			s.Runtime.Generator.Config.ReasoningEffort = effort
+		}
+	}
+}
+
 func (s *Session) SetModel(model string) {
 	s.Config.Agent.ModelCode = model
 	s.Runtime.Config.ModelCode = model

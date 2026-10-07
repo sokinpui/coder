@@ -224,6 +224,20 @@ func (s *Session) GetMode() string {
 	return s.mode
 }
 
+func (s *Session) GetReasoningEffort() string {
+	return s.config.Coder.ReasoningEffort
+}
+
+func (s *Session) SetReasoningEffort(effort string) {
+	s.config.Coder.ReasoningEffort = effort
+	if s.Runtime != nil {
+		s.Runtime.Config.ReasoningEffort = effort
+		if s.Runtime.Generator != nil {
+			s.Runtime.Generator.Config.ReasoningEffort = effort
+		}
+	}
+}
+
 func (s *Session) SetModel(model string) {
 	s.config.Coder.ModelCode = model
 	if s.Runtime != nil {

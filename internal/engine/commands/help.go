@@ -44,6 +44,7 @@ var commandGroup = helpGroup{
 	{key: "mode", desc: "View or switch conversation mode (coder, chat, agent)."},
 	{key: "model", desc: "Switch generation model (e.g., /model gemini-2.5-pro).", cap: engine.CapModelSwitch},
 	{key: "msg", desc: "Open atomic messages overlay."},
+	{key: "reasoning", desc: "Switch reasoning effort level (alias: thinking).", cap: engine.CapReasoningSwitch},
 	{key: "new", desc: "Start a new session (e.g., /new [mode])."},
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},

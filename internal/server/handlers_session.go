@@ -25,11 +25,18 @@ func (s *Server) handleInit(req Request) {
 	if params.Model != "" {
 		s.cfg.Coder.ModelCode = params.Model
 	}
+	if params.ReasoningEffort != "" {
+		s.cfg.Coder.ReasoningEffort = params.ReasoningEffort
+	}
 
 	sess, err := coder.New(s.cfg, params.Mode, params.Instruction, params.ContextFiles)
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to initialize session: %v", err))
 		return
+	}
+
+	if params.ReasoningEffort != "" {
+		sess.SetReasoningEffort(params.ReasoningEffort)
 	}
 
 	s.session = sess
@@ -42,6 +49,7 @@ func (s *Server) handleInit(req Request) {
 		"contextFiles":     sess.GetContextFiles(),
 		"contextDocuments": sess.GetContextDocuments(),
 		"model":            sess.GetConfig().Coder.ModelCode,
+		"reasoningEffort":  sess.GetReasoningEffort(),
 		"tokenCount":       tokenCount,
 	})
 }
@@ -339,6 +347,30 @@ func (s *Server) handleModelSet(req Request) {
 	s.sendResult(req.ID, map[string]any{
 		"model": s.session.GetConfig().Coder.ModelCode,
 	})
+}
+
+func (s *Server) handleReasoningSet(req Request) {
+	var params struct {
+		Effort string `json:"effort"`
+	}
+	if len(req.Params) > 0 {
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			s.sendError(req.ID, -32602, "Invalid params")
+			return
+		}
+	}
+	if err := s.ensureSession(); err != nil {
+		s.sendError(req.ID, -32603, err.Error())
+		return
+	}
+	if params.Effort == "" {
+		s.sendResult(req.ID, map[string]any{
+			"effort": s.session.GetReasoningEffort(),
+		})
+		return
+	}
+	s.session.SetReasoningEffort(params.Effort)
+	s.sendResult(req.ID, map[string]any{"effort": s.session.GetReasoningEffort()})
 }
 
 func (s *Server) handleSessionRename(req Request) {
