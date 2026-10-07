@@ -80,6 +80,9 @@ func (s *Session) GetConfig() *config.Config {
 func (s *Session) SetModel(model string) {
 	s.Config.Agent.ModelCode = model
 	s.Runtime.Config.ModelCode = model
+	if s.Config.Agent.SecondaryModel == "" {
+		s.Runtime.SecondaryConfig.ModelCode = model
+	}
 }
 
 func (s *Session) AddMessages(msg ...types.Message) {

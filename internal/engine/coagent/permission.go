@@ -282,6 +282,12 @@ func extractTarget(toolName, arguments string) string {
 		}
 	}
 
+	if toolName == "webfetch" {
+		if url, ok := data["url"].(string); ok {
+			return strings.TrimSpace(url)
+		}
+	}
+
 	if path, ok := data["path"].(string); ok {
 		return strings.TrimSpace(path)
 	}

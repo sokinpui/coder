@@ -53,6 +53,7 @@ func (c Coder) ModelConfig() ModelConfig {
 
 type Agent struct {
 	ModelCode       string         `mapstructure:"modelcode" yaml:"modelcode"`
+	SecondaryModel  string         `mapstructure:"secondarymodel" yaml:"secondarymodel,omitempty"`
 	ReasoningEffort string         `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
 	MaxIterations   int            `mapstructure:"max_iterations" yaml:"max_iterations"`
 	Keymap          Keymap         `mapstructure:"keymap" yaml:"keymap"`
@@ -65,6 +66,16 @@ func (a Agent) ModelConfig() ModelConfig {
 		ModelCode:       a.ModelCode,
 		ReasoningEffort: a.ReasoningEffort,
 	}
+}
+
+func (a Agent) SecondaryModelConfig() ModelConfig {
+	if a.SecondaryModel != "" {
+		return ModelConfig{
+			ModelCode:       a.SecondaryModel,
+			ReasoningEffort: a.ReasoningEffort,
+		}
+	}
+	return a.ModelConfig()
 }
 
 type HistoryKeymap struct {
@@ -100,13 +111,13 @@ type Keymap struct {
 }
 
 type Config struct {
-	Server          Server    `mapstructure:"server" yaml:"server"`
-	Title           Title     `mapstructure:"title" yaml:"title"`
-	Coder           Coder     `mapstructure:"coder" yaml:"coder"`
-	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
-	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
+	Server          Server         `mapstructure:"server" yaml:"server"`
+	Title           Title          `mapstructure:"title" yaml:"title"`
+	Coder           Coder          `mapstructure:"coder" yaml:"coder"`
+	Agent           Agent          `mapstructure:"agent" yaml:"agent"`
+	Clipboard       Clipboard      `mapstructure:"clipboard" yaml:"clipboard"`
 	Tools           map[string]any `mapstructure:"tools" yaml:"tools,omitempty"`
-	AvailableModels []string  `mapstructure:"-" yaml:"-"`
+	AvailableModels []string       `mapstructure:"-" yaml:"-"`
 }
 
 func DefaultKeymap() Keymap {
@@ -245,6 +256,9 @@ func Load() (*Config, error) {
 	}
 	if v.IsSet("generation.reasoningeffort") && !v.IsSet("coder.reasoningeffort") {
 		cfg.Coder.ReasoningEffort = v.GetString("generation.reasoningeffort")
+	}
+	if v.IsSet("agent.secondary_model") && !v.IsSet("agent.secondarymodel") {
+		cfg.Agent.SecondaryModel = v.GetString("agent.secondary_model")
 	}
 	if v.IsSet("context.files") && !v.IsSet("coder.context.files") {
 		cfg.Coder.Context.Files = v.GetStringSlice("context.files")

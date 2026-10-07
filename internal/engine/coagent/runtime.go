@@ -14,6 +14,7 @@ import (
 
 type AgentRuntime struct {
 	Config            config.ModelConfig
+	SecondaryConfig   config.ModelConfig
 	Generator         *generation.Generator
 	MaxToolIterations int
 	Registry          *Registry
@@ -43,14 +44,19 @@ func NewAgentRuntime(cfg *config.Config, registry *Registry) (*AgentRuntime, err
 	if cfg != nil && cfg.Agent.Tools != nil {
 		toolsMap = cfg.Agent.Tools
 	}
-	return &AgentRuntime{
+	ar := &AgentRuntime{
 		Config:            cfg.Agent.ModelConfig(),
+		SecondaryConfig:   cfg.Agent.SecondaryModelConfig(),
 		Generator:         gen,
 		MaxToolIterations: maxIterations,
 		Registry:          registry,
 		Permissions:       NewPermissionManager(permMap, toolsMap),
 		pending:           make(map[string]chan types.ToolConfirmResponse),
-	}, nil
+	}
+
+	ar.Registry.Register(NewWebFetchTool(gen, &ar.SecondaryConfig))
+
+	return ar, nil
 }
 
 func (ar *AgentRuntime) registerConfirmation(callID string, ch chan types.ToolConfirmResponse) {

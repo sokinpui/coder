@@ -274,6 +274,7 @@ func (s *Session) ReloadConfig() error {
 	s.Config = cfg
 	s.Runtime.Config = cfg.Agent.ModelConfig()
 	s.Runtime.Generator.Config = cfg.Agent.ModelConfig()
+	s.Runtime.SecondaryConfig = cfg.Agent.SecondaryModelConfig()
 	s.Runtime.Generator.TitleModel = cfg.Title.ModelCode
 	s.Runtime.Generator.BaseURL = cfg.Server.URL
 	s.Runtime.Generator.Protocol = cfg.Server.Protocol
@@ -281,6 +282,9 @@ func (s *Session) ReloadConfig() error {
 	if s.Runtime.Permissions != nil {
 		s.Runtime.Permissions.SetConfig(cfg.Agent.Permission)
 		s.Runtime.Permissions.SetToolsConfig(cfg.Agent.Tools)
+	}
+	if s.Runtime.Registry != nil {
+		s.Runtime.Registry.Register(NewWebFetchTool(s.Runtime.Generator, &s.Runtime.SecondaryConfig))
 	}
 	return nil
 }

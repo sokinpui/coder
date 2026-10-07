@@ -118,7 +118,7 @@ func SummarizeToolArgs(args string) string {
 
 	var m map[string]any
 	if err := json.Unmarshal([]byte(trimmed), &m); err == nil {
-		for _, key := range []string{"path", "command", "query"} {
+		for _, key := range []string{"path", "command", "query", "url"} {
 			if val, ok := m[key]; ok {
 				if s, ok := val.(string); ok && s != "" {
 					return TruncateSingleLine(s, 60)

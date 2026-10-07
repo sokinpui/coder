@@ -380,6 +380,11 @@ func ExtractToolTarget(name, arguments string) string {
 		return TruncateSingleLine(cmd, 40)
 	}
 
+	url := ExtractToolJSONField(trimmed, "url")
+	if url != "" {
+		return TruncateSingleLine(url, 40)
+	}
+
 	return SummarizeToolArgs(trimmed)
 }
 
