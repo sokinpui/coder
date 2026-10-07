@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultFetchTimeout = 30 * time.Second
-	maxFetchSizeBytes   = 2 * 1024 * 1024 // 2MB
+	maxFetchSizeBytes   = 1 * 1024 * 1024 // 1MB
 	defaultMaxLines     = 1000
 )
 
