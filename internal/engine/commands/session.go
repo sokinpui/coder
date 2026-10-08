@@ -13,6 +13,7 @@ func init() {
 	registerCommand("history", historyCmd, "view chat history", nil)
 	registerCommand("rename", renameCmd, "rename session title", nil)
 	registerCommand("active", activeCmd, "view active sessions", nil)
+	registerCommand("skills", skillsCmd, "view and preview available skills", nil)
 }
 
 func genCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -36,6 +37,10 @@ func historyCmd(args string, s SessionController) (CommandOutput, bool) {
 }
 
 func activeCmd(args string, s SessionController) (CommandOutput, bool) {
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
+}
+
+func skillsCmd(args string, s SessionController) (CommandOutput, bool) {
 	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 

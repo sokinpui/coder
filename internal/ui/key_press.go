@@ -137,6 +137,16 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 		case tea.KeyDown, tea.KeyCtrlJ, tea.KeyCtrlN:
 			m.moveSelectorCursor(1)
 			return m, nil, true
+		case tea.KeyCtrlD:
+			if m.Selector.ShowPreview {
+				m.scrollPreview(4)
+				return m, nil, true
+			}
+		case tea.KeyCtrlU:
+			if m.Selector.ShowPreview {
+				m.Selector.PreviewOffset = max(0, m.Selector.PreviewOffset-4)
+				return m, nil, true
+			}
 		case tea.KeyEnter:
 			if m.Selector.IsLoading {
 				return m, nil, true
@@ -208,6 +218,18 @@ func (m Model) handleKeyPressSelector(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 	case tea.KeyDown, tea.KeyCtrlJ:
 		m.moveSelectorCursor(1)
 		return m, nil, true
+
+	case tea.KeyCtrlD:
+		if m.Selector.ShowPreview {
+			m.scrollPreview(4)
+			return m, nil, true
+		}
+
+	case tea.KeyCtrlU:
+		if m.Selector.ShowPreview {
+			m.Selector.PreviewOffset = max(0, m.Selector.PreviewOffset-4)
+			return m, nil, true
+		}
 
 	case tea.KeyEsc, tea.KeyCtrlC:
 		return m.cancelSelector()
@@ -339,6 +361,11 @@ func (m Model) notifySelectorCursorChange() Model {
 		return m.Selector.OnCursorChange(m, primary)
 	}
 	return m
+}
+
+func (m *Model) scrollPreview(delta int) {
+	newOffset := m.Selector.PreviewOffset + delta
+	m.Selector.PreviewOffset = max(0, newOffset)
 }
 
 func (m Model) toggleSelectorItem(dir int) (tea.Model, tea.Cmd, bool) {

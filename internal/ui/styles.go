@@ -130,6 +130,15 @@ var (
 	SearchPlaceholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("240"))
 
+	PreviewBoxStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1)
+
+	PreviewTitleStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("228")).
+				Bold(true)
+
 	// Spinner Dot Styles
 	LightGreyDotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
 	GreyDotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))

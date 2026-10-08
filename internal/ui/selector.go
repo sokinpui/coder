@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
+	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
 type SelectorItem struct {
@@ -36,6 +37,12 @@ type SelectorModel struct {
 	GGPressed     bool
 	Width         int
 	Height        int
+	CustomWidth   int
+	CustomHeight  int
+	ShowPreview   bool
+	PreviewTitle  string
+	PreviewContent string
+	PreviewOffset int
 	FooterHelp    string
 	IsLoading     bool
 	MultiSelect   bool
@@ -189,6 +196,11 @@ func (s *SelectorModel) View(main *Model) string {
 		}
 
 		itemWidth := max(20, s.Width-4)
+		if s.ShowPreview {
+			innerWidth := max(30, s.Width-6)
+			leftWidth := (innerWidth * 45) / 100
+			itemWidth = max(15, leftWidth-2)
+		}
 		for i := start; i < end; i++ {
 			item := s.FilteredItems[i]
 			isCursor := i == s.Cursor
@@ -240,8 +252,58 @@ func (s *SelectorModel) View(main *Model) string {
 		contentParts = append(contentParts, footer)
 	}
 
+	if s.ShowPreview {
+		return s.renderSplitView(header.String(), listBuf.String())
+	}
+
 	content := lipgloss.JoinVertical(lipgloss.Left, contentParts...)
 	return PaletteContainerStyle.Width(s.Width).Render(content)
+}
+
+func (s *SelectorModel) renderSplitView(headerStr, listStr string) string {
+	innerWidth := max(30, s.Width-6)
+	innerHeight := max(10, s.Height-2)
+	leftWidth := (innerWidth * 45) / 100
+	gapWidth := 2
+	rightWidth := innerWidth - leftWidth - gapWidth
+
+	contentParts := []string{headerStr, strings.TrimRight(listStr, "\n")}
+	if s.FooterHelp != "" {
+		contentParts = append(contentParts, PaletteHeaderStyle.Render(s.FooterHelp))
+	}
+	leftContent := lipgloss.JoinVertical(lipgloss.Left, contentParts...)
+	leftPane := lipgloss.NewStyle().Width(leftWidth).Height(innerHeight).Render(leftContent)
+
+	previewInnerWidth := max(10, rightWidth-4)
+	previewInnerHeight := max(4, innerHeight-2)
+
+	var rightBuf strings.Builder
+	headerLines := 0
+	if s.PreviewTitle != "" {
+		rightBuf.WriteString(PreviewTitleStyle.MaxWidth(previewInnerWidth).Render(s.PreviewTitle))
+		rightBuf.WriteString("\n\n")
+		headerLines = 2
+	}
+
+	if strings.TrimSpace(s.PreviewContent) == "" {
+		rightBuf.WriteString(ToolMutedStyle.Render("No preview available."))
+	} else {
+		rendered := markdown.Render(s.PreviewContent, previewInnerWidth)
+		lines := strings.Split(rendered, "\n")
+		bodyMaxLines := max(1, previewInnerHeight-headerLines)
+		maxStart := max(0, len(lines)-bodyMaxLines)
+		startLine := clamp(s.PreviewOffset, 0, maxStart)
+		endLine := min(startLine+bodyMaxLines, len(lines))
+		rightBuf.WriteString(strings.Join(lines[startLine:endLine], "\n"))
+	}
+
+	renderedPreview := PreviewBoxStyle.
+		Width(previewInnerWidth).
+		Height(previewInnerHeight).
+		Render(rightBuf.String())
+
+	combined := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, strings.Repeat(" ", gapWidth), renderedPreview)
+	return PaletteContainerStyle.Width(s.Width).Render(combined)
 }
 
 type SelectorOverlay struct{}
@@ -251,11 +313,28 @@ func (s *SelectorOverlay) IsVisible(main *Model) bool {
 }
 
 func (s *SelectorOverlay) View(main *Model) string {
-	modalWidth := min(90, max(50, main.Width-4))
-	modalHeight := min(30, max(12, main.Height-4))
+	maxWidth := max(40, main.Width-4)
+	maxHeight := max(10, main.Height-4)
+
+	modalWidth := min(90, maxWidth)
+	modalHeight := min(30, maxHeight)
+	if main.Selector.ShowPreview {
+		modalWidth = max(60, min((main.Width*9)/10, maxWidth))
+		modalHeight = max(18, min((main.Height*85)/100, maxHeight))
+	}
+	if main.Selector.CustomWidth > 0 {
+		modalWidth = min(main.Selector.CustomWidth, maxWidth)
+	}
+	if main.Selector.CustomHeight > 0 {
+		modalHeight = min(main.Selector.CustomHeight, maxHeight)
+	}
 	main.Selector.Width = modalWidth
 	main.Selector.Height = modalHeight
-	main.Selector.SearchInput.Width = modalWidth - 20
+	if main.Selector.ShowPreview {
+		main.Selector.SearchInput.Width = max(10, (modalWidth*45/100)-12)
+	} else {
+		main.Selector.SearchInput.Width = modalWidth - 20
+	}
 
 	content := main.Selector.View(main)
 	if content == "" {

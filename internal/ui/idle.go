@@ -169,6 +169,11 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		newModel, cmd := m.openHistorySelector(1)
 		return newModel, cmd, true
 
+	case "skills":
+		m.Chat.TextArea.Reset()
+		newModel, cmd := m.openSkillsSelector()
+		return newModel, cmd, true
+
 	case "mode":
 		if strings.TrimSpace(args) == "" {
 			if m.Session.HasChatHistory() {

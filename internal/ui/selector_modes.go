@@ -2,12 +2,16 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/coagent/skills"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -22,6 +26,11 @@ type SelectorConfig struct {
 	Tabs           []string
 	ActiveTab      int
 	InitialCursor  int
+	CustomWidth    int
+	CustomHeight   int
+	ShowPreview    bool
+	PreviewTitle   string
+	PreviewContent string
 	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
 	OnCancel       func(m Model) (tea.Model, tea.Cmd)
 	OnTabChange    func(m Model, newTab int) (tea.Model, tea.Cmd)
@@ -42,6 +51,12 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.Selector.Tabs = cfg.Tabs
 	m.Selector.ActiveTab = cfg.ActiveTab
 	m.Selector.OnTabChange = cfg.OnTabChange
+	m.Selector.CustomWidth = cfg.CustomWidth
+	m.Selector.CustomHeight = cfg.CustomHeight
+	m.Selector.ShowPreview = cfg.ShowPreview
+	m.Selector.PreviewTitle = cfg.PreviewTitle
+	m.Selector.PreviewContent = cfg.PreviewContent
+	m.Selector.PreviewOffset = 0
 	m.Selector.OnCursorChange = cfg.OnCursorChange
 	m.Selector.KeyHandler = cfg.KeyHandler
 	m.Selector.OnConfirm = cfg.OnConfirm
@@ -346,4 +361,85 @@ func (m Model) refreshHistorySelectorItems() Model {
 	}
 	m.Selector.SetItems(items)
 	return m
+}
+
+func (m Model) openSkillsSelector() (Model, tea.Cmd) {
+	skillList := skills.Discover()
+	if len(skillList) == 0 {
+		m.StatusBarMessage = "No skills found in .coder/skills or ~/.config/coder/skills"
+		return m, clearStatusBarCmd()
+	}
+
+	var items []SelectorItem
+	for _, s := range skillList {
+		items = append(items, SelectorItem{
+			ID:          s.Name,
+			Title:       s.Name,
+			Description: s.Description,
+			Data:        s,
+		})
+	}
+
+	initialPreview := ""
+	initialTitle := ""
+	if len(skillList) > 0 {
+		initialTitle = skillList[0].Name
+		initialPreview = loadSkillPreview(skillList[0])
+	}
+
+	return m.openGenericSelector(SelectorConfig{
+		Title:          "── Skills Catalog ──",
+		Placeholder:    "Filter skills...",
+		Footer:         "── [Esc/Ctrl+C: close | /: search | Enter: use skill | C-d/C-u: scroll preview] ──",
+		Items:          items,
+		ShowSearch:     true,
+		IsSearching:    false,
+		MultiSelect:    false,
+		ShowPreview:    true,
+		PreviewTitle:   initialTitle,
+		PreviewContent: initialPreview,
+		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
+		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
+		OnCursorChange: func(mod Model, current *SelectorItem) Model {
+			if current != nil {
+				if sk, ok := current.Data.(skills.Skill); ok {
+					mod.Selector.PreviewTitle = sk.Name
+					mod.Selector.PreviewContent = loadSkillPreview(sk)
+					mod.Selector.PreviewOffset = 0
+				}
+			}
+			return mod
+		},
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			mod.ActiveOverlay = overlayNone
+			if primary == nil {
+				if mod.State == stateIdle {
+					mod.Chat.TextArea.Focus()
+				}
+				return mod, textarea.Blink
+			}
+			if sk, ok := primary.Data.(skills.Skill); ok {
+				mod.Chat.TextArea.SetValue("@ " + sk.Path + " ")
+				mod.Chat.TextArea.CursorEnd()
+			}
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+			}
+			return mod, textarea.Blink
+		},
+	})
+}
+
+func loadSkillPreview(s skills.Skill) string {
+	filePath := s.Path
+	if !filepath.IsAbs(filePath) {
+		if root := project.Root(); root != "" {
+			filePath = filepath.Join(root, filePath)
+		}
+	}
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Sprintf("Failed to read skill file:\n%v", err)
+	}
+	return string(data)
 }
