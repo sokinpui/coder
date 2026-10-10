@@ -3,6 +3,7 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -130,6 +131,13 @@ func ExtractToolJSONField(arguments string, field string) string {
 
 	var data map[string]any
 	if err := json.Unmarshal([]byte(trimmed), &data); err != nil {
+		pattern := `"` + regexp.QuoteMeta(field) + `"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)`
+		re, reErr := regexp.Compile(pattern)
+		if reErr == nil {
+			if matches := re.FindStringSubmatch(trimmed); len(matches) > 1 {
+				return strings.ReplaceAll(strings.ReplaceAll(matches[1], `\"`, `"`), `\\`, `\`)
+			}
+		}
 		return ""
 	}
 
