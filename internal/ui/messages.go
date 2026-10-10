@@ -149,16 +149,21 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if msg.event.Kind == types.EventThinking && isActive {
-			if m.State != stateGenerating {
+			if m.State != stateThinking {
 				m.State = stateThinking
+				m.Chat.StateStartTime = time.Now()
 			}
 			if msg.event.Content != "" {
-				m.StatusText = msg.event.Content
+				if m.StatusText != msg.event.Content {
+					m.Chat.StateStartTime = time.Now()
+					m.StatusText = msg.event.Content
+				}
 			}
 		}
 
 		if msg.event.Kind == types.EventToolCall && isActive {
 			m.State = stateThinking
+			m.Chat.StateStartTime = time.Now()
 			if msg.event.ToolName != "" {
 				m.StatusText = fmt.Sprintf("Running %s", msg.event.ToolName)
 			} else {
@@ -168,17 +173,18 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 		if msg.event.Kind == types.EventToolResult && isActive {
 			m.State = stateThinking
+			m.Chat.StateStartTime = time.Now()
 			m.StatusText = "Processing"
 		}
 
 		var renderCmd tea.Cmd
 		if msg.event.Kind == types.EventChunk && msg.event.Content != "" {
 			if isActive {
-				m.State = stateGenerating
-				m.Chat.StateStartTime = time.Now()
-				m.StatusText = "Generating"
-			}
-			if isActive {
+				if m.State != stateGenerating {
+					m.State = stateGenerating
+					m.Chat.StateStartTime = time.Now()
+					m.StatusText = "Generating"
+				}
 				if !m.Chat.IsAIRendering {
 					m.Chat.IsAIRendering = true
 					m.Chat.PendingAIRender = false
