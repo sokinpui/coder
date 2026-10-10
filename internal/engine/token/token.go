@@ -53,11 +53,12 @@ func CountTokens(messages []types.Message) int {
 			counts[i] = 1200
 			continue
 		}
-		if msg.Content == "" {
+		content := messageTokenContent(msg)
+		if content == "" {
 			continue
 		}
 
-		key := getCacheKey(msg.Content)
+		key := getCacheKey(content)
 		if val, ok := tokenCache.Load(key); ok {
 			counts[i] = val.(int)
 			continue
@@ -71,7 +72,8 @@ func CountTokens(messages []types.Message) int {
 
 	if len(uncachedIndices) == 1 {
 		idx := uncachedIndices[0]
-		counts[idx] = countAndCache(messages[idx].Content, encoder)
+		content := messageTokenContent(messages[idx])
+		counts[idx] = countAndCache(content, encoder)
 		return sumCounts(counts)
 	}
 
@@ -87,6 +89,8 @@ func CountTokens(messages []types.Message) int {
 		wg.Go(func() {
 			for idx := range jobs {
 				counts[idx] = countAndCache(messages[idx].Content, encoder)
+				content := messageTokenContent(messages[idx])
+				counts[idx] = countAndCache(content, encoder)
 			}
 		})
 	}
@@ -102,10 +106,32 @@ func countSingleMessage(msg types.Message, encoder tokenizer.Codec) int {
 	if msg.Type == types.ImageMessage {
 		return 1200
 	}
-	if msg.Content == "" {
+	content := messageTokenContent(msg)
+	if content == "" {
 		return 0
 	}
-	return countAndCache(msg.Content, encoder)
+	return countAndCache(content, encoder)
+}
+
+func messageTokenContent(msg types.Message) string {
+	if len(msg.ToolCalls) == 0 {
+		return msg.Content
+	}
+	var sb strings.Builder
+	if msg.Content != "" {
+		sb.WriteString(msg.Content)
+	}
+	for _, tc := range msg.ToolCalls {
+		if sb.Len() > 0 {
+			sb.WriteString("\n")
+		}
+		sb.WriteString(tc.Name)
+		if tc.Arguments != "" {
+			sb.WriteString(" ")
+			sb.WriteString(tc.Arguments)
+		}
+	}
+	return sb.String()
 }
 
 func countAndCache(content string, encoder tokenizer.Codec) int {

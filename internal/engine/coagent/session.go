@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
@@ -21,6 +22,7 @@ import (
 )
 
 type Session struct {
+	mu              sync.RWMutex
 	ID              string
 	Config          *config.Config
 	Runtime         *AgentRuntime
@@ -106,14 +108,20 @@ func (s *Session) SetModel(model string) {
 }
 
 func (s *Session) AddMessages(msg ...types.Message) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.Messages = append(s.Messages, msg...)
 }
 
 func (s *Session) PrependMessages(msg ...types.Message) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.Messages = append(msg, s.Messages...)
 }
 
 func (s *Session) ReplaceLastMessage(msg types.Message) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if len(s.Messages) > 0 {
 		s.Messages[len(s.Messages)-1] = msg
 	}
@@ -156,6 +164,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		}
 	}
 
+	s.mu.Lock()
 	s.Messages = append(s.Messages, types.Message{
 		Type:    types.UserMessage,
 		Content: input,
@@ -165,6 +174,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		ToolCalls: toolCalls,
 	})
 	s.Messages = append(s.Messages, toolResults...)
+	s.mu.Unlock()
 
 	return commands.CommandOutput{
 		Type:            types.MessagesUpdated,
@@ -184,6 +194,8 @@ func (s *Session) HasChatHistory() bool {
 	if s.HistoryFilename != "" {
 		return true
 	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, msg := range s.Messages {
 		switch msg.Type {
 		case types.UserMessage, types.AIMessage, types.ImageMessage, types.ToolCallMessage, types.ToolResultMessage:
@@ -215,8 +227,10 @@ func (s *Session) GetPrompt() []types.Message {
 
 func (s *Session) PrepareMessages() []types.Message {
 	repoRoot := project.Root()
+	s.mu.RLock()
 	prepared := make([]types.Message, len(s.Messages))
 	copy(prepared, s.Messages)
+	s.mu.RUnlock()
 
 	for i := range prepared {
 		if prepared[i].Type == types.ImageMessage && len(prepared[i].Data) == 0 && prepared[i].Content != "" {
@@ -233,9 +247,18 @@ func (s *Session) PrepareMessages() []types.Message {
 }
 
 func (s *Session) SaveConversation() error {
-	if len(s.Messages) == 0 {
+	if !s.HasChatHistory() && s.HistoryFilename == "" {
 		return nil
 	}
+
+	s.mu.RLock()
+	if len(s.Messages) == 0 {
+		s.mu.RUnlock()
+		return nil
+	}
+	msgsCopy := make([]types.Message, len(s.Messages))
+	copy(msgsCopy, s.Messages)
+	s.mu.RUnlock()
 
 	if s.HistoryFilename == "" {
 		s.HistoryFilename = fmt.Sprintf("%d.md", s.CreatedAt.Unix())
@@ -247,7 +270,7 @@ func (s *Session) SaveConversation() error {
 		Title:      s.Title,
 		Mode:       engine.ModeAgent,
 		CreatedAt:  s.CreatedAt,
-		Messages:   s.Messages,
+		Messages:   msgsCopy,
 		WorkingDir: wd,
 	}
 	return s.HistoryManager.SaveConversation(data)
@@ -259,11 +282,13 @@ func (s *Session) LoadConversation(filename string) error {
 		return err
 	}
 
+	s.mu.Lock()
 	s.Messages = msgs
 	s.Title = metadata.Title
 	s.TitleGenerated = true
 	s.CreatedAt = metadata.CreatedAt
 	s.HistoryFilename = filename
+	s.mu.Unlock()
 	return nil
 }
 

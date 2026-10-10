@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Session) SaveConversation() error {
-	if !s.HasChatHistory() && s.title == "New Chat" && s.historyFilename == "" {
+	if !s.HasChatHistory() && s.historyFilename == "" {
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func (s *Session) GetHistoryFilename() string {
 }
 
 func (s *Session) LoadConversation(filename string) error {
-	if len(s.messages) > 0 {
+	if s.HasChatHistory() {
 		_ = s.SaveConversation()
 	}
 

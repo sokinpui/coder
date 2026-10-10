@@ -287,6 +287,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				CallID: tc.ID,
 				Name:   tc.Name,
 				Output: output,
+				Images: images,
 			}
 			streamChan <- AgentStreamChunk{ToolResult: &resInfo}
 

@@ -2,6 +2,7 @@ package coagent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/sokinpui/coder/internal/config"
@@ -41,13 +42,18 @@ func (s *Session) Capabilities() engine.Capability {
 }
 
 func (s *Session) GetMessages() []types.Message {
-	return s.Messages
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	msgs := make([]types.Message, len(s.Messages))
+	copy(msgs, s.Messages)
+	return msgs
 }
 
 func (s *Session) DeleteMessages(indices []int) {
 	if len(indices) == 0 {
 		return
 	}
+	s.mu.Lock()
 	toDelete := make(map[int]struct{}, len(indices))
 	for _, idx := range indices {
 		if idx >= 0 && idx < len(s.Messages) {
@@ -61,9 +67,12 @@ func (s *Session) DeleteMessages(indices []int) {
 		}
 	}
 	s.Messages = remaining
+	s.mu.Unlock()
 }
 
 func (s *Session) EditMessage(index int, newContent string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if index < 0 || index >= len(s.Messages) {
 		return fmt.Errorf("index out of bounds: %d", index)
 	}
@@ -75,7 +84,21 @@ func (s *Session) EditMessage(index int, newContent string) error {
 }
 
 func (s *Session) TokenCount() int {
-	return token.CountTokens(s.GetPrompt())
+	count := token.CountTokens(s.GetPrompt())
+	if s.Runtime != nil && s.Runtime.Registry != nil {
+		decls := s.Runtime.Registry.Declarations()
+		for _, decl := range decls {
+			if s.Runtime.Permissions == nil || s.Runtime.Permissions.IsToolEnabled(decl.Name) {
+				if b, err := json.Marshal(decl); err == nil {
+					count += token.CountTokens([]types.Message{{
+						Type:    types.InstructionMessage,
+						Content: string(b),
+					}})
+				}
+			}
+		}
+	}
+	return count
 }
 
 func (s *Session) Cancel() {
@@ -107,19 +130,23 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 		return out, success
 	}
 	if out.Type == types.ShellExecutionStarted {
+		s.mu.Lock()
 		s.Messages = append(s.Messages, types.Message{Type: types.ShellCmdMessage, Content: input})
+		s.mu.Unlock()
 		return out, success
 	}
 	if out.IsAgentFileRead {
 		return out, success
 	}
 	msgType := types.CommandMessage
+	s.mu.Lock()
 	s.Messages = append(s.Messages, types.Message{Type: msgType, Content: input})
 	if success {
 		s.Messages = append(s.Messages, types.Message{Type: types.CommandResultMessage, Content: out.Payload})
 	} else {
 		s.Messages = append(s.Messages, types.Message{Type: types.CommandErrorResultMessage, Content: out.Payload})
 	}
+	s.mu.Unlock()
 	return out, success
 }
 
@@ -131,6 +158,8 @@ func (s *Session) CreateNew(mode string) (engine.EngineSession, error) {
 }
 
 func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if endMessageIndex < 0 || endMessageIndex >= len(s.Messages) {
 		return nil, fmt.Errorf("invalid index for branching: %d", endMessageIndex)
 	}
@@ -146,18 +175,23 @@ func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {
 }
 
 func (s *Session) Regenerate(messageIndex int) (<-chan types.SessionEvent, error) {
+	s.mu.Lock()
 	if messageIndex < 0 || messageIndex >= len(s.Messages) {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("invalid index for regeneration: %d", messageIndex)
 	}
 	s.Messages = s.Messages[:messageIndex+1]
+	s.mu.Unlock()
 	return s.runAgentLoop(context.Background())
 }
 
 func (s *Session) Submit(ctx context.Context, input string) (<-chan types.SessionEvent, error) {
+	s.mu.Lock()
 	s.Messages = append(s.Messages, types.Message{
 		Type:    types.UserMessage,
 		Content: input,
 	})
+	s.mu.Unlock()
 	return s.runAgentLoop(ctx)
 }
 
@@ -196,7 +230,9 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 
 				if len(chunk.Messages) > 0 {
+					s.mu.Lock()
 					s.Messages = chunk.Messages
+					s.mu.Unlock()
 				}
 
 				if chunk.State != "" {
@@ -212,6 +248,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 				}
 				if chunk.ToolCall != nil {
+					s.mu.Lock()
 					s.Messages = append(s.Messages, types.Message{
 						Type: types.ToolCallMessage,
 						ToolCalls: []types.ToolCall{
@@ -222,6 +259,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 							},
 						},
 					})
+					s.mu.Unlock()
 					eventChan <- types.SessionEvent{
 						Kind:          types.EventToolCall,
 						ToolCallID:    chunk.ToolCall.CallID,
@@ -236,11 +274,16 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 				}
 				if chunk.ToolResult != nil {
+					s.mu.Lock()
 					s.Messages = append(s.Messages, types.Message{
 						Type:       types.ToolResultMessage,
 						Content:    chunk.ToolResult.Output,
 						ToolCallID: chunk.ToolResult.CallID,
 					})
+					if len(chunk.ToolResult.Images) > 0 {
+						s.Messages = append(s.Messages, chunk.ToolResult.Images...)
+					}
+					s.mu.Unlock()
 					eventChan <- types.SessionEvent{
 						Kind:       types.EventToolResult,
 						ToolCallID: chunk.ToolResult.CallID,
@@ -249,6 +292,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 				}
 				if chunk.Content != "" {
+					s.mu.Lock()
 					msgs := s.Messages
 					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
 						s.Messages[len(msgs)-1].Content += chunk.Content
@@ -258,6 +302,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 							Content: chunk.Content,
 						})
 					}
+					s.mu.Unlock()
 					eventChan <- types.SessionEvent{
 						Kind:    types.EventChunk,
 						Content: chunk.Content,
