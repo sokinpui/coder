@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/coagent/skills"
+	"github.com/sokinpui/coder/internal/engine/agent/skills"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )

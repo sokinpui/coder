@@ -1,4 +1,4 @@
-package coagent
+package agent
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/sokinpui/coder/internal/config"
-	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
-	"github.com/sokinpui/coder/internal/engine/coagent/skills"
-	"github.com/sokinpui/coder/internal/engine/coagent/tools"
+	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
+	"github.com/sokinpui/coder/internal/engine/agent/skills"
+	"github.com/sokinpui/coder/internal/engine/agent/tools"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -101,7 +101,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 
 	instructions := systemInstruction
 	if instructions == "" {
-		instructions = coagentprompt.Instructions
+		instructions = agentprompt.Instructions
 	}
 	instructions = skills.AppendSkillsPrompt(instructions)
 

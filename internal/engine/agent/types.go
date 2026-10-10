@@ -1,4 +1,4 @@
-package coagent
+package agent
 
 import "github.com/sokinpui/coder/internal/types"
 

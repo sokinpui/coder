@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
-	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
+	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/types"
 	"golang.org/x/net/html"
@@ -158,7 +158,7 @@ func (t *WebFetchTool) Execute(ctx context.Context, arguments string) (string, e
 }
 
 func (t *WebFetchTool) extract(ctx context.Context, userPrompt, content string) (string, error) {
-	promptText := strings.Replace(coagentprompt.WebFetchExtractPrompt, "{{PROMPT}}", userPrompt, 1)
+	promptText := strings.Replace(agentprompt.WebFetchExtractPrompt, "{{PROMPT}}", userPrompt, 1)
 	promptText = strings.Replace(promptText, "{{CONTENT}}", content, 1)
 
 	chatMsgs := []types.ChatMessage{

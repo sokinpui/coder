@@ -1,4 +1,4 @@
-package coagent
+package agent
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	coagentprompt "github.com/sokinpui/coder/internal/engine/coagent/prompt"
-	"github.com/sokinpui/coder/internal/engine/coagent/skills"
-	"github.com/sokinpui/coder/internal/engine/coagent/tools"
+	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
+	"github.com/sokinpui/coder/internal/engine/agent/skills"
+	"github.com/sokinpui/coder/internal/engine/agent/tools"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
@@ -211,7 +211,7 @@ func (s *Session) HasChatHistory() bool {
 func (s *Session) getEffectiveInstruction() string {
 	instr := s.Instruction
 	if instr == "" {
-		instr = coagentprompt.Instructions
+		instr = agentprompt.Instructions
 	}
 	return skills.AppendSkillsPrompt(instr)
 }

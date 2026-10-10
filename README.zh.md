@@ -77,7 +77,7 @@ coder -a [prompt]
 coder --agent "修复测试用例失败"
 ```
 
-> 详细智能体手册、工具架构与工作流：[**docs/coagent/README.zh.md**](docs/coagent/README.zh.md)
+> 详细智能体手册、工具架构与工作流：[**docs/agent/README.zh.md**](docs/agent/README.zh.md)
 
 启动纯对话模式（Chat 模式）：
 

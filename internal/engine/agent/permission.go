@@ -1,4 +1,4 @@
-package coagent
+package agent
 
 import (
 	"encoding/json"

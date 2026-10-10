@@ -1,4 +1,4 @@
-package coagent
+package agent
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/coagent/tools"
+	"github.com/sokinpui/coder/internal/engine/agent/tools"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/token"

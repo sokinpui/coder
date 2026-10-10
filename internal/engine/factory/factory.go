@@ -3,7 +3,7 @@ package factory
 import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/coagent"
+	"github.com/sokinpui/coder/internal/engine/agent"
 	"github.com/sokinpui/coder/internal/engine/coder"
 )
 
@@ -14,7 +14,7 @@ func init() {
 func NewSession(cfg *config.Config, mode string, instruction string, contextFiles []string) (engine.EngineSession, error) {
 	norm := engine.NormalizeMode(mode)
 	if norm == engine.ModeAgent {
-		sess, err := coagent.NewSession(cfg)
+		sess, err := agent.NewSession(cfg)
 		if err != nil {
 			return nil, err
 		}

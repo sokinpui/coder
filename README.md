@@ -77,7 +77,7 @@ coder -a [prompt]
 coder --agent "Fix the bug"
 ```
 
-> Detailed agent manual, tool architecture, and workflows: [**docs/coagent/README.md**](docs/coagent/README.md)
+> Detailed agent manual, tool architecture, and workflows: [**docs/agent/README.md**](docs/agent/README.md)
 
 Launch in chat mode:
 
