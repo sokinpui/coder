@@ -247,18 +247,72 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						ReasoningContent: chunk.ReasoningContent,
 					}
 				}
+				if chunk.ToolCallDelta != nil {
+					s.mu.Lock()
+					delta := chunk.ToolCallDelta
+					msgs := s.Messages
+					var targetMsg *types.Message
+					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.ToolCallMessage {
+						targetMsg = &s.Messages[len(msgs)-1]
+					} else {
+						s.Messages = append(s.Messages, types.Message{
+							Type: types.ToolCallMessage,
+						})
+						targetMsg = &s.Messages[len(s.Messages)-1]
+					}
+					for len(targetMsg.ToolCalls) <= delta.Index {
+						targetMsg.ToolCalls = append(targetMsg.ToolCalls, types.ToolCall{})
+					}
+					if delta.ID != "" {
+						targetMsg.ToolCalls[delta.Index].ID = delta.ID
+					}
+					if delta.Name != "" {
+						targetMsg.ToolCalls[delta.Index].Name = delta.Name
+					}
+					if delta.ArgumentsDelta != "" {
+						targetMsg.ToolCalls[delta.Index].Arguments += delta.ArgumentsDelta
+					}
+					currTC := targetMsg.ToolCalls[delta.Index]
+					s.mu.Unlock()
+					eventChan <- types.SessionEvent{
+						Kind:          types.EventToolCallDelta,
+						ToolCallIndex: delta.Index,
+						ToolCallID:    currTC.ID,
+						ToolName:      currTC.Name,
+						ToolArguments: currTC.Arguments,
+					}
+				}
 				if chunk.ToolCall != nil {
 					s.mu.Lock()
-					s.Messages = append(s.Messages, types.Message{
-						Type: types.ToolCallMessage,
-						ToolCalls: []types.ToolCall{
-							{
-								ID:        chunk.ToolCall.CallID,
-								Name:      chunk.ToolCall.Name,
-								Arguments: chunk.ToolCall.Arguments,
+					msgs := s.Messages
+					var found bool
+					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.ToolCallMessage {
+						tcMsg := &s.Messages[len(msgs)-1]
+						for i, existing := range tcMsg.ToolCalls {
+							if (existing.ID != "" && existing.ID == chunk.ToolCall.CallID) ||
+								(existing.Name != "" && existing.Name == chunk.ToolCall.Name) {
+								tcMsg.ToolCalls[i] = types.ToolCall{
+									ID:        chunk.ToolCall.CallID,
+									Name:      chunk.ToolCall.Name,
+									Arguments: chunk.ToolCall.Arguments,
+								}
+								found = true
+								break
+							}
+						}
+					}
+					if !found {
+						s.Messages = append(s.Messages, types.Message{
+							Type: types.ToolCallMessage,
+							ToolCalls: []types.ToolCall{
+								{
+									ID:        chunk.ToolCall.CallID,
+									Name:      chunk.ToolCall.Name,
+									Arguments: chunk.ToolCall.Arguments,
+								},
 							},
-						},
-					})
+						})
+					}
 					s.mu.Unlock()
 					eventChan <- types.SessionEvent{
 						Kind:          types.EventToolCall,
@@ -273,13 +327,50 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						Confirm: chunk.ToolConfirm,
 					}
 				}
+				if chunk.ToolOutputChunk != "" && chunk.ToolCall != nil {
+					s.mu.Lock()
+					msgs := s.Messages
+					var found bool
+					for i := len(msgs) - 1; i >= 0; i-- {
+						if msgs[i].Type == types.ToolResultMessage && msgs[i].ToolCallID == chunk.ToolCall.CallID {
+							s.Messages[i].Content += chunk.ToolOutputChunk
+							found = true
+							break
+						}
+					}
+					if !found {
+						s.Messages = append(s.Messages, types.Message{
+							Type:       types.ToolResultMessage,
+							Content:    chunk.ToolOutputChunk,
+							ToolCallID: chunk.ToolCall.CallID,
+						})
+					}
+					s.mu.Unlock()
+					eventChan <- types.SessionEvent{
+						Kind:            types.EventToolOutputChunk,
+						ToolCallID:      chunk.ToolCall.CallID,
+						ToolName:        chunk.ToolCall.Name,
+						ToolOutputChunk: chunk.ToolOutputChunk,
+					}
+				}
 				if chunk.ToolResult != nil {
 					s.mu.Lock()
-					s.Messages = append(s.Messages, types.Message{
-						Type:       types.ToolResultMessage,
-						Content:    chunk.ToolResult.Output,
-						ToolCallID: chunk.ToolResult.CallID,
-					})
+					msgs := s.Messages
+					var found bool
+					for i := len(msgs) - 1; i >= 0; i-- {
+						if msgs[i].Type == types.ToolResultMessage && msgs[i].ToolCallID == chunk.ToolResult.CallID {
+							s.Messages[i].Content = chunk.ToolResult.Output
+							found = true
+							break
+						}
+					}
+					if !found {
+						s.Messages = append(s.Messages, types.Message{
+							Type:       types.ToolResultMessage,
+							Content:    chunk.ToolResult.Output,
+							ToolCallID: chunk.ToolResult.CallID,
+						})
+					}
 					if len(chunk.ToolResult.Images) > 0 {
 						s.Messages = append(s.Messages, chunk.ToolResult.Images...)
 					}

@@ -158,6 +158,13 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				case streamChan <- AgentStreamChunk{ReasoningContent: chunk.ReasoningContent}:
 				}
 			}
+			if chunk.ToolCallDelta != nil {
+				select {
+				case <-ctx.Done():
+					return
+				case streamChan <- AgentStreamChunk{ToolCallDelta: chunk.ToolCallDelta}:
+				}
+			}
 			if chunk.ToolCall != nil {
 				toolCalls = append(toolCalls, *chunk.ToolCall)
 			}
@@ -278,7 +285,27 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				}
 			}
 
-			output, images, err := ar.Registry.Execute(ctx, tc.Name, tc.Arguments)
+			outChan := make(chan string, 50)
+			var (
+				output string
+				images []types.Message
+				err    error
+			)
+
+			go func() {
+				defer close(outChan)
+				output, images, err = ar.Registry.ExecuteStream(ctx, tc.Name, tc.Arguments, outChan)
+			}()
+
+			for chunk := range outChan {
+				if ctx.Err() != nil {
+					return
+				}
+				streamChan <- AgentStreamChunk{
+					ToolCall:        &callInfo,
+					ToolOutputChunk: chunk,
+				}
+			}
 			if err != nil {
 				output = fmt.Sprintf("Error: %v", err)
 			}
