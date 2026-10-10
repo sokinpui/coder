@@ -52,6 +52,13 @@ type ToolCall struct {
 	Arguments string `json:"arguments"`
 }
 
+type ToolCallDelta struct {
+	Index          int    `json:"index"`
+	ID             string `json:"id,omitempty"`
+	Name           string `json:"name,omitempty"`
+	ArgumentsDelta string `json:"arguments_delta"`
+}
+
 type ToolDeclaration struct {
 	Type        string         `json:"type"`
 	Name        string         `json:"name"`
@@ -71,6 +78,7 @@ type StreamChunk struct {
 	Content          string
 	ReasoningContent string
 	ToolCall         *ToolCall
+	ToolCallDelta    *ToolCallDelta
 	Error            error
 }
 

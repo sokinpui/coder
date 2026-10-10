@@ -17,7 +17,9 @@ const (
 	EventChunk SessionEventKind = iota
 	EventThinking
 	EventToolCall
+	EventToolCallDelta
 	EventToolResult
+	EventToolOutputChunk
 	EventComplete
 	EventError
 	EventToolConfirm
@@ -38,10 +40,12 @@ type SessionEvent struct {
 	Kind             SessionEventKind
 	Content          string
 	ReasoningContent string
+	ToolCallIndex    int
 	ToolCallID       string
 	ToolName         string
 	ToolArguments    string
 	ToolOutput       string
+	ToolOutputChunk  string
 	Error            error
 	Messages         []Message
 	Confirm          *ToolConfirmRequest
