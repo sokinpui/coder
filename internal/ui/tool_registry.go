@@ -9,11 +9,30 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
+type ToolViewMode int
+
+const (
+	ToolViewCompact ToolViewMode = iota
+	ToolViewSummary
+	ToolViewFull
+)
+
+func (m ToolViewMode) Label() string {
+	switch m {
+	case ToolViewFull:
+		return "Full"
+	case ToolViewSummary:
+		return "Summary"
+	default:
+		return "Compact"
+	}
+}
+
 type ToolViewRenderer interface {
 	RenderCall(call types.ToolCall, viewportWidth int) string
 	RenderResult(output string, callID string, viewportWidth int) string
-	RenderExpandedCall(call types.ToolCall, viewportWidth int) string
-	RenderExpandedResult(output string, callID string, viewportWidth int) string
+	RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string
+	RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string
 	RenderConfirmPrompt(arguments string, width int) string
 }
 
@@ -58,11 +77,11 @@ func (d *DefaultToolRenderer) RenderCall(call types.ToolCall, viewportWidth int)
 	return fmt.Sprintf("%s(%s)", prefix, ToolMutedStyle.Render(summary))
 }
 
-func (d *DefaultToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (d *DefaultToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
 	return d.RenderCall(call, viewportWidth)
 }
 
-func (d *DefaultToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (d *DefaultToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
 	return d.RenderResult(output, callID, viewportWidth)
 }
 

@@ -24,7 +24,10 @@ func (r *ReadToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
 }
 
-func (r *ReadToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (r *ReadToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return r.RenderCall(call, viewportWidth)
+	}
 	path := ExtractToolJSONField(call.Arguments, "path")
 	if path == "" && !strings.HasPrefix(strings.TrimSpace(call.Arguments), "{") {
 		path = strings.TrimSpace(call.Arguments)
@@ -66,7 +69,7 @@ func (r *ReadToolRenderer) RenderResult(output string, callID string, viewportWi
 	return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(msg))
 }
 
-func (r *ReadToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (r *ReadToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
 	return r.RenderResult(output, callID, viewportWidth)
 }
 

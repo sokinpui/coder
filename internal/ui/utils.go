@@ -15,7 +15,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -93,6 +95,121 @@ func renderUncachedMessagesCmd(sessID string, messages []types.Message, cache ma
 			width:   width,
 		}
 	}
+}
+
+type toolWorkKind int
+
+const (
+	toolWorkCall toolWorkKind = iota
+	toolWorkResult
+)
+
+type toolWorkItem struct {
+	key      ToolCacheKey
+	kind     toolWorkKind
+	call     types.ToolCall
+	content  string
+	callID   string
+	toolName string
+}
+
+func renderUncachedToolsCmd(sessID string, messages []types.Message, cache map[ToolCacheKey]string, currentMode ToolViewMode, width int) tea.Cmd {
+	if len(messages) == 0 || width <= 0 {
+		return nil
+	}
+
+	var items []toolWorkItem
+	modesToWarm := []ToolViewMode{ToolViewCompact, ToolViewSummary, ToolViewFull}
+
+	for _, msg := range messages {
+		if msg.Type == types.AIMessage || msg.Type == types.ToolCallMessage {
+			for _, tc := range msg.ToolCalls {
+				id := ToolCallKeyID(tc)
+				for _, mode := range modesToWarm {
+					key := ToolCacheKey{ID: id, Mode: mode, Width: width}
+					if _, ok := cache[key]; ok {
+						continue
+					}
+					items = append(items, toolWorkItem{
+						key:  key,
+						kind: toolWorkCall,
+						call: tc,
+					})
+				}
+			}
+		}
+
+		if msg.Type == types.ToolResultMessage {
+			toolName := GetToolNameForCallID(messages, msg.ToolCallID)
+			id := ToolResultKeyID(msg.ToolCallID, toolName, msg.Content)
+			for _, mode := range modesToWarm {
+				key := ToolCacheKey{ID: id, Mode: mode, Width: width}
+				if _, ok := cache[key]; ok {
+					continue
+				}
+				items = append(items, toolWorkItem{
+					key:      key,
+					kind:     toolWorkResult,
+					content:  msg.Content,
+					callID:   msg.ToolCallID,
+					toolName: toolName,
+				})
+			}
+		}
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	return func() tea.Msg {
+		results := batchRenderTools(items, width)
+		return toolsBatchRenderedMsg{
+			sessID:  sessID,
+			results: results,
+			width:   width,
+		}
+	}
+}
+
+func batchRenderTools(items []toolWorkItem, width int) []toolRenderResult {
+	if len(items) == 0 {
+		return nil
+	}
+
+	workerCount := max(min(len(items), runtime.NumCPU()), 1)
+	jobs := make(chan toolWorkItem, len(items))
+	for _, it := range items {
+		jobs <- it
+	}
+	close(jobs)
+
+	results := make(chan toolRenderResult, len(items))
+	var wg sync.WaitGroup
+	for range workerCount {
+		wg.Go(func() {
+			for job := range jobs {
+				var val string
+				if job.kind == toolWorkCall {
+					val = RenderToolCall(job.call, job.key.Mode, width)
+				} else {
+					val = RenderToolResult(job.content, job.callID, job.toolName, job.key.Mode, width)
+				}
+				results <- toolRenderResult{key: job.key, value: val}
+			}
+		})
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	output := make([]toolRenderResult, 0, len(items))
+	for res := range results {
+		output = append(output, res)
+	}
+	return output
 }
 
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {

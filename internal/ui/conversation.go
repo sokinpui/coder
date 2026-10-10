@@ -12,7 +12,7 @@ import (
 func (m Model) getAIMessageLines(msg types.Message, idx, total, viewportWidth int) []string {
 	var lines []string
 	if len(msg.ToolCalls) > 0 {
-		tcPart := RenderToolCallMessage(msg, m.ToolsExpanded, viewportWidth)
+		tcPart := m.renderToolCalls(msg.ToolCalls, viewportWidth)
 		if tcPart != "" {
 			lines = append(lines, strings.Split(tcPart, "\n")...)
 		}
@@ -39,8 +39,24 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 		return m.getAIMessageLines(msg, idx, total, viewportWidth)
 	}
 
-	if msg.Type == types.ToolCallMessage || msg.Type == types.ToolResultMessage {
-		rendered := m.renderMessage(msg, viewportWidth)
+	if msg.Type == types.ToolCallMessage {
+		if len(msg.ToolCalls) > 0 {
+			rendered := m.renderToolCalls(msg.ToolCalls, viewportWidth)
+			if rendered == "" {
+				return nil
+			}
+			normalized := strings.ReplaceAll(rendered, "\r\n", "\n")
+			return strings.Split(normalized, "\n")
+		}
+		if msg.Content == "" {
+			return nil
+		}
+		normalized := strings.ReplaceAll(ToolCallStyle.Render("⚡ "+msg.Content), "\r\n", "\n")
+		return strings.Split(normalized, "\n")
+	}
+
+	if msg.Type == types.ToolResultMessage {
+		rendered := m.getOrRenderToolResult(msg, viewportWidth)
 		if rendered == "" {
 			return nil
 		}
@@ -233,20 +249,63 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 		return ""
 	}
 	if msg.Type == types.ToolCallMessage {
-		return RenderToolCallMessage(msg, m.ToolsExpanded, viewportWidth)
+		return m.renderToolCalls(msg.ToolCalls, viewportWidth)
 	}
 	if msg.Type == types.ToolResultMessage {
-		toolName := m.getToolNameForCallID(msg.ToolCallID)
-		return RenderToolResultMessage(msg, toolName, m.ToolsExpanded, viewportWidth)
+		return m.getOrRenderToolResult(msg, viewportWidth)
 	}
 	return RenderMessage(msg, viewportWidth, nil)
 }
 
+func (m Model) renderToolCalls(toolCalls []types.ToolCall, width int) string {
+	if len(toolCalls) == 0 {
+		return ""
+	}
+	lines := make([]string, 0, len(toolCalls))
+	for _, tc := range toolCalls {
+		lines = append(lines, m.getOrRenderToolCall(tc, width))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (m Model) getOrRenderToolCall(tc types.ToolCall, width int) string {
+	key := ToolCacheKey{
+		ID:    ToolCallKeyID(tc),
+		Mode:  m.ToolMode,
+		Width: width,
+	}
+	if cached, ok := m.Chat.ToolRenderCache[key]; ok {
+		return cached
+	}
+	rendered := RenderToolCall(tc, m.ToolMode, width)
+	m.Chat.ToolRenderCache[key] = rendered
+	return rendered
+}
+
+func (m Model) getOrRenderToolResult(msg types.Message, width int) string {
+	toolName := m.getToolNameForCallID(msg.ToolCallID)
+	key := ToolCacheKey{
+		ID:    ToolResultKeyID(msg.ToolCallID, toolName, msg.Content),
+		Mode:  m.ToolMode,
+		Width: width,
+	}
+	if cached, ok := m.Chat.ToolRenderCache[key]; ok {
+		return cached
+	}
+	rendered := RenderToolResult(msg.Content, msg.ToolCallID, toolName, m.ToolMode, width)
+	m.Chat.ToolRenderCache[key] = rendered
+	return rendered
+}
+
 func (m Model) getToolNameForCallID(callID string) string {
+	return GetToolNameForCallID(m.Session.GetMessages(), callID)
+}
+
+func GetToolNameForCallID(messages []types.Message, callID string) string {
 	if callID == "" {
 		return ""
 	}
-	for _, msg := range m.Session.GetMessages() {
+	for _, msg := range messages {
 		for _, tc := range msg.ToolCalls {
 			if tc.ID == callID {
 				return tc.Name

@@ -42,7 +42,7 @@ type Model struct {
 	StatusText          string
 	StatusBarMessage    string
 	TokenCount          int
-	ToolsExpanded       bool
+	ToolMode            ToolViewMode
 }
 
 func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
@@ -70,12 +70,14 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 		GlamourRenderer:     renderer,
 		AvailableCommands:   availableCommands,
 		CommandDescriptions: commandDescriptions,
+		ToolMode:            ToolViewCompact,
 	}
 	return m, nil
 }
 
 func (m *Model) ClearCache() {
 	m.Chat.RenderCache = make(map[int]markdown.CachedRender)
+	m.Chat.ToolRenderCache = make(map[ToolCacheKey]string)
 }
 
 func (m *Model) PruneCacheAfter(idx int) {
@@ -109,13 +111,23 @@ func (m Model) renderUncachedCmd() tea.Cmd {
 	if m.Session == nil {
 		return nil
 	}
-	return renderUncachedMessagesCmd(
+	messages := m.Session.GetMessages()
+	width := m.Chat.Viewport.Width
+	mdCmd := renderUncachedMessagesCmd(
 		m.Session.GetID(),
-		m.Session.GetMessages(),
+		messages,
 		m.Chat.RenderCache,
-		m.Chat.Viewport.Width,
+		width,
 		m.Chat.IsStreaming,
 	)
+	toolCmd := renderUncachedToolsCmd(
+		m.Session.GetID(),
+		messages,
+		m.Chat.ToolRenderCache,
+		m.ToolMode,
+		width,
+	)
+	return tea.Batch(mdCmd, toolCmd)
 }
 
 func (m Model) updateTokenCountCmd() tea.Cmd {

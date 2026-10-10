@@ -59,6 +59,15 @@ type (
 		sessID string
 		count  int
 	}
+	toolRenderResult struct {
+		key   ToolCacheKey
+		value string
+	}
+	toolsBatchRenderedMsg struct {
+		sessID  string
+		results []toolRenderResult
+		width   int
+	}
 	ctrlCTimeoutMsg         struct{}
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg       struct {

@@ -32,7 +32,7 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	case types.AIMessage:
 		var parts []string
 		if len(msg.ToolCalls) > 0 {
-			tcPart := RenderToolCallMessage(msg, false, viewportWidth)
+			tcPart := RenderToolCallMessage(msg, ToolViewCompact, viewportWidth)
 			if tcPart != "" {
 				parts = append(parts, tcPart)
 			}
@@ -51,9 +51,9 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		}
 		return strings.Join(parts, "\n")
 	case types.ToolCallMessage:
-		return RenderToolCallMessage(msg, false, viewportWidth)
+		return RenderToolCallMessage(msg, ToolViewCompact, viewportWidth)
 	case types.ToolResultMessage:
-		return RenderToolResultMessage(msg, "", false, viewportWidth)
+		return RenderToolResultMessage(msg, "", ToolViewCompact, viewportWidth)
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		return CommandResultStyle.Width(viewportWidth - CommandResultStyle.GetHorizontalFrameSize()).Render(content)
@@ -65,7 +65,46 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	}
 }
 
-func RenderToolCallMessage(msg types.Message, expanded bool, viewportWidth ...int) string {
+func ToolCallKeyID(tc types.ToolCall) string {
+	if tc.ID != "" {
+		return "call:" + tc.ID
+	}
+	return "call:" + tc.Name + ":" + tc.Arguments
+}
+
+func ToolResultKeyID(callID string, toolName string, content string) string {
+	if callID != "" {
+		return "res:" + callID + ":" + toolName
+	}
+	return "res:" + toolName + ":" + content
+}
+
+func RenderToolCall(tc types.ToolCall, mode ToolViewMode, width int) string {
+	renderer := DefaultToolRegistry.Get(tc.Name)
+	if mode == ToolViewCompact {
+		return renderer.RenderCall(tc, width)
+	}
+	return renderer.RenderDetailedCall(tc, mode, width)
+}
+
+func RenderToolResult(content string, callID string, toolName string, mode ToolViewMode, width int) string {
+	renderer := DefaultToolRegistry.fallback
+	if toolName != "" {
+		renderer = DefaultToolRegistry.Get(toolName)
+	}
+	var res string
+	if mode == ToolViewCompact {
+		res = renderer.RenderResult(content, callID, width)
+	} else {
+		res = renderer.RenderDetailedResult(content, callID, mode, width)
+	}
+	if res == "" {
+		return ""
+	}
+	return strings.TrimRight(res, "\n") + "\n"
+}
+
+func RenderToolCallMessage(msg types.Message, mode ToolViewMode, viewportWidth ...int) string {
 	width := 80
 	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
 		width = viewportWidth[0]
@@ -80,29 +119,17 @@ func RenderToolCallMessage(msg types.Message, expanded bool, viewportWidth ...in
 
 	var lines []string
 	for _, tc := range msg.ToolCalls {
-		renderer := DefaultToolRegistry.Get(tc.Name)
-		if expanded {
-			lines = append(lines, renderer.RenderExpandedCall(tc, width))
-		} else {
-			lines = append(lines, renderer.RenderCall(tc, width))
-		}
+		lines = append(lines, RenderToolCall(tc, mode, width))
 	}
 	return strings.Join(lines, "\n")
 }
 
-func RenderToolResultMessage(msg types.Message, toolName string, expanded bool, viewportWidth ...int) string {
+func RenderToolResultMessage(msg types.Message, toolName string, mode ToolViewMode, viewportWidth ...int) string {
 	width := 80
 	if len(viewportWidth) > 0 && viewportWidth[0] > 0 {
 		width = viewportWidth[0]
 	}
-	renderer := DefaultToolRegistry.fallback
-	if toolName != "" {
-		renderer = DefaultToolRegistry.Get(toolName)
-	}
-	if expanded {
-		return renderer.RenderExpandedResult(msg.Content, msg.ToolCallID, width)
-	}
-	return renderer.RenderResult(msg.Content, msg.ToolCallID, width)
+	return RenderToolResult(msg.Content, msg.ToolCallID, toolName, mode, width)
 }
 
 func SummarizeToolArgs(args string) string {

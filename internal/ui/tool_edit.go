@@ -22,7 +22,10 @@ func (e *EditToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
 }
 
-func (e *EditToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (e *EditToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return e.RenderCall(call, viewportWidth)
+	}
 	path := ExtractToolJSONField(call.Arguments, "path")
 	oldStr := ExtractToolJSONField(call.Arguments, "old_string")
 	newStr := ExtractToolJSONField(call.Arguments, "new_string")
@@ -210,7 +213,10 @@ func splitEditLines(text string) []string {
 	return strings.Split(text, "\n")
 }
 
-func (e *EditToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (e *EditToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return e.RenderResult(output, callID, viewportWidth)
+	}
 	if strings.HasPrefix(strings.TrimSpace(output), "Error:") {
 		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(strings.TrimSpace(output)))
 	}

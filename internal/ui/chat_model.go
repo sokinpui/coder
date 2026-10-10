@@ -20,6 +20,12 @@ type LineMeta struct {
 	IsDecoration    bool
 }
 
+type ToolCacheKey struct {
+	ID    string
+	Mode  ToolViewMode
+	Width int
+}
+
 type ChatModel struct {
 	TextArea                 textarea.Model
 	Viewport                 viewport.Model
@@ -43,6 +49,7 @@ type ChatModel struct {
 	EditingMessageIndex      int
 	MessageLineOffsets       map[int]int
 	PreserveInputOnSubmit    bool
+	ToolRenderCache          map[ToolCacheKey]string
 	RenderCache              map[int]markdown.CachedRender
 	StateStartTime           time.Time
 	AutoSubmitPending        bool
@@ -77,6 +84,7 @@ func NewChat(initialInput string) ChatModel {
 		IsFetchingModels:    true,
 		MessageLineOffsets:  make(map[int]int),
 		EditingMessageIndex: -1,
+		ToolRenderCache:     make(map[ToolCacheKey]string),
 		RenderCache:         make(map[int]markdown.CachedRender),
 		AutoSubmitPending:   initialInput != "",
 		AutoScroll:          true,

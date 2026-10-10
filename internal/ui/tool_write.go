@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
@@ -22,7 +23,10 @@ func (w *WriteToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) s
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
 }
 
-func (w *WriteToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderCall(call, viewportWidth)
+	}
 	path := ExtractToolJSONField(call.Arguments, "path")
 	content := ExtractToolJSONField(call.Arguments, "content")
 
@@ -36,17 +40,35 @@ func (w *WriteToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidt
 		lang = "txt"
 	}
 
-	lines := strings.Split(content, "\n")
 	previewContent := content
-	if len(lines) > 40 {
-		head := strings.Join(lines[:20], "\n")
-		tail := strings.Join(lines[len(lines)-10:], "\n")
-		previewContent = fmt.Sprintf("%s\n... [%d lines omitted] ...\n%s", head, len(lines)-30, tail)
+	if mode == ToolViewSummary {
+		lines := strings.Split(content, "\n")
+		if len(lines) > 24 {
+			head := strings.Join(lines[:12], "\n")
+			tail := strings.Join(lines[len(lines)-8:], "\n")
+			previewContent = fmt.Sprintf("%s\n... [%d lines omitted] ...\n%s", head, len(lines)-20, tail)
+		}
 	}
 
+	cardWidth := max(30, viewportWidth-4)
+	contentWidth := max(20, cardWidth-PreviewBoxStyle.GetHorizontalFrameSize())
 	codeBlock := fmt.Sprintf("```%s\n%s\n```", lang, previewContent)
-	renderedCode := markdown.Render(codeBlock, viewportWidth)
-	return fmt.Sprintf("%s\n%s", header, renderedCode)
+	rendered := markdown.Render(codeBlock, contentWidth)
+	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
+	lines = trimVerticalBlankLines(lines)
+	renderedCode := strings.Join(lines, "\n")
+	styledBox := PreviewBoxStyle.Width(cardWidth).Render(renderedCode)
+	return fmt.Sprintf("%s\n%s", header, styledBox)
+}
+
+func trimVerticalBlankLines(lines []string) []string {
+	for len(lines) > 0 && strings.TrimSpace(ansi.Strip(lines[0])) == "" {
+		lines = lines[1:]
+	}
+	for len(lines) > 0 && strings.TrimSpace(ansi.Strip(lines[len(lines)-1])) == "" {
+		lines = lines[:len(lines)-1]
+	}
+	return lines
 }
 
 func (w *WriteToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
@@ -66,7 +88,10 @@ func (w *WriteToolRenderer) RenderConfirmPrompt(arguments string, width int) str
 	return fmt.Sprintf("%s\n\n%s", header, ToolResultStyle.Render(preview))
 }
 
-func (w *WriteToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (w *WriteToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderResult(output, callID, viewportWidth)
+	}
 	trimmed := strings.TrimSpace(output)
 	if strings.HasPrefix(trimmed, "Error:") {
 		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(trimmed))

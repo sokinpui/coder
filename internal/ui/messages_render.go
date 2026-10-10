@@ -54,6 +54,21 @@ func (m Model) handleRenderMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
+
+	case toolsBatchRenderedMsg:
+		if m.Session == nil || m.Session.GetID() != msg.sessID || msg.width != m.Chat.Viewport.Width {
+			return m, nil, true
+		}
+
+		for _, res := range msg.results {
+			m.Chat.ToolRenderCache[res.key] = res.value
+		}
+
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.Chat.AutoScroll {
+			m.Chat.Viewport.GotoBottom()
+		}
+		return m, nil, true
 	}
 
 	return m, nil, false

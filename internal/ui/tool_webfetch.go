@@ -24,7 +24,10 @@ func (w *WebFetchToolRenderer) RenderCall(call types.ToolCall, viewportWidth int
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(target))
 }
 
-func (w *WebFetchToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (w *WebFetchToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderCall(call, viewportWidth)
+	}
 	url := ExtractToolJSONField(call.Arguments, "url")
 	prompt := ExtractToolJSONField(call.Arguments, "prompt")
 	startLine := ExtractToolJSONField(call.Arguments, "start_line")
@@ -79,19 +82,25 @@ func (w *WebFetchToolRenderer) RenderResult(output string, callID string, viewpo
 	return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(summary))
 }
 
-func (w *WebFetchToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (w *WebFetchToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderResult(output, callID, viewportWidth)
+	}
 	trimmed := strings.TrimSpace(output)
 	if strings.HasPrefix(trimmed, "Error:") || strings.HasPrefix(trimmed, "failed to") {
 		return fmt.Sprintf("↳ %s\n%s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(trimmed))
 	}
 
 	lines := strings.Split(trimmed, "\n")
-	maxLines := 25
 	displayLines := lines
-	if len(lines) > maxLines {
-		displayLines = append(lines[:maxLines], fmt.Sprintf("... [%d lines omitted]", len(lines)-maxLines))
+	if mode == ToolViewSummary && len(lines) > 16 {
+		head := lines[:8]
+		tail := lines[len(lines)-5:]
+		displayLines = make([]string, 0, len(head)+len(tail)+1)
+		displayLines = append(displayLines, head...)
+		displayLines = append(displayLines, fmt.Sprintf("... [%d lines omitted] ...", len(lines)-(len(head)+len(tail))))
+		displayLines = append(displayLines, tail...)
 	}
-
 	var formatted []string
 	for _, l := range displayLines {
 		formatted = append(formatted, "    "+ToolResultStyle.Render(l))

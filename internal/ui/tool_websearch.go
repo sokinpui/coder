@@ -23,7 +23,10 @@ func (w *WebSearchToolRenderer) RenderCall(call types.ToolCall, viewportWidth in
 	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(query, 60)))
 }
 
-func (w *WebSearchToolRenderer) RenderExpandedCall(call types.ToolCall, viewportWidth int) string {
+func (w *WebSearchToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderCall(call, viewportWidth)
+	}
 	query := ExtractToolJSONField(call.Arguments, "query")
 	if query == "" && !strings.HasPrefix(strings.TrimSpace(call.Arguments), "{") {
 		query = strings.TrimSpace(call.Arguments)
@@ -60,19 +63,25 @@ func (w *WebSearchToolRenderer) RenderResult(output string, callID string, viewp
 	return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(summary))
 }
 
-func (w *WebSearchToolRenderer) RenderExpandedResult(output string, callID string, viewportWidth int) string {
+func (w *WebSearchToolRenderer) RenderDetailedResult(output string, callID string, mode ToolViewMode, viewportWidth int) string {
+	if mode == ToolViewCompact {
+		return w.RenderResult(output, callID, viewportWidth)
+	}
 	trimmed := strings.TrimSpace(output)
 	if strings.HasPrefix(trimmed, "Error:") || strings.HasPrefix(trimmed, "search failed:") {
 		return fmt.Sprintf("↳ %s\n%s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(trimmed))
 	}
 
 	lines := strings.Split(trimmed, "\n")
-	maxLines := 30
 	displayLines := lines
-	if len(lines) > maxLines {
-		displayLines = append(lines[:maxLines], fmt.Sprintf("... [%d lines omitted]", len(lines)-maxLines))
+	if mode == ToolViewSummary && len(lines) > 16 {
+		head := lines[:8]
+		tail := lines[len(lines)-5:]
+		displayLines = make([]string, 0, len(head)+len(tail)+1)
+		displayLines = append(displayLines, head...)
+		displayLines = append(displayLines, fmt.Sprintf("... [%d lines omitted] ...", len(lines)-(len(head)+len(tail))))
+		displayLines = append(displayLines, tail...)
 	}
-
 	var formatted []string
 	for _, l := range displayLines {
 		formatted = append(formatted, "    "+ToolResultStyle.Render(l))

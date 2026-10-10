@@ -48,11 +48,7 @@ func (m Model) StatusView() string {
 	}
 
 	if m.Session.Capabilities().Has(engine.CapToolToggle) {
-		toolsStatus := "Tools: [Compact] (Ctrl+T)"
-		if m.ToolsExpanded {
-			toolsStatus = "Tools: [Expanded] (Ctrl+T)"
-		}
-		items = append(items, ToolMutedStyle.Render(toolsStatus))
+		items = append(items, ToolMutedStyle.Render(fmt.Sprintf("Tools: [%s] (Ctrl+T)", m.ToolMode.Label())))
 	}
 
 	switch m.State {
