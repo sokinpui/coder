@@ -205,10 +205,34 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 						name: ev.Item.Name,
 					}
 					currentToolCall.arguments.WriteString(parseRawArgs(ev.Item.Arguments))
+					select {
+					case <-ctx.Done():
+						return
+					case streamChan <- types.StreamChunk{
+						ToolCallDelta: &types.ToolCallDelta{
+							Index:          len(toolCalls),
+							ID:             cid,
+							Name:           ev.Item.Name,
+							ArgumentsDelta: parseRawArgs(ev.Item.Arguments),
+						},
+					}:
+					}
 				}
 			case "response.function_call_arguments.delta":
 				if currentToolCall != nil {
 					currentToolCall.arguments.WriteString(ev.Delta)
+					select {
+					case <-ctx.Done():
+						return
+					case streamChan <- types.StreamChunk{
+						ToolCallDelta: &types.ToolCallDelta{
+							Index:          len(toolCalls),
+							ID:             currentToolCall.id,
+							Name:           currentToolCall.name,
+							ArgumentsDelta: ev.Delta,
+						},
+					}:
+					}
 				}
 			case "response.function_call_arguments.done":
 				if currentToolCall != nil {

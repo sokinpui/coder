@@ -267,6 +267,19 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 				if tcDelta.Function.Arguments != "" {
 					toolCalls[idx].arguments.WriteString(tcDelta.Function.Arguments)
 				}
+
+				select {
+				case <-ctx.Done():
+					return
+				case streamChan <- types.StreamChunk{
+					ToolCallDelta: &types.ToolCallDelta{
+						Index:          idx,
+						ID:             tcDelta.ID,
+						Name:           tcDelta.Function.Name,
+						ArgumentsDelta: tcDelta.Function.Arguments,
+					},
+				}:
+				}
 			}
 		}
 	}
