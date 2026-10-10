@@ -29,6 +29,13 @@ type responseStreamEvent struct {
 		Arguments json.RawMessage `json:"arguments"`
 	} `json:"item,omitempty"`
 	Response *struct {
+		Status        string `json:"status,omitempty"`
+		StatusDetails *struct {
+			Reason string `json:"reason,omitempty"`
+			Error  *struct {
+				Message string `json:"message,omitempty"`
+			} `json:"error,omitempty"`
+		} `json:"status_details,omitempty"`
 		Output []struct {
 			Type      string          `json:"type"`
 			ID        string          `json:"id"`
@@ -37,6 +44,9 @@ type responseStreamEvent struct {
 			Arguments json.RawMessage `json:"arguments"`
 		} `json:"output"`
 	} `json:"response,omitempty"`
+	ResponseError *struct {
+		Message string `json:"message"`
+	} `json:"response_error,omitempty"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
@@ -270,6 +280,24 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 					currentToolCall = nil
 				}
 			case "response.completed":
+				if ev.Error != nil && ev.Error.Message != "" {
+					streamChan <- types.StreamChunk{Error: errors.New(ev.Error.Message)}
+					return
+				}
+				if ev.Response != nil {
+					if ev.Response.StatusDetails != nil && ev.Response.StatusDetails.Error != nil && ev.Response.StatusDetails.Error.Message != "" {
+						streamChan <- types.StreamChunk{Error: errors.New(ev.Response.StatusDetails.Error.Message)}
+						return
+					}
+					if ev.Response.Status == "failed" {
+						msg := "response generation failed"
+						if ev.Response.StatusDetails != nil && ev.Response.StatusDetails.Reason != "" {
+							msg += ": " + ev.Response.StatusDetails.Reason
+						}
+						streamChan <- types.StreamChunk{Error: errors.New(msg)}
+						return
+					}
+				}
 				if len(toolCalls) == 0 && ev.Response != nil {
 					for _, out := range ev.Response.Output {
 						if out.Type == "function_call" {
@@ -288,6 +316,20 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				}
 				break
 			case "response.incomplete":
+				if ev.Error != nil && ev.Error.Message != "" {
+					streamChan <- types.StreamChunk{Error: errors.New(ev.Error.Message)}
+					return
+				}
+				if ev.Response != nil && ev.Response.StatusDetails != nil {
+					if ev.Response.StatusDetails.Error != nil && ev.Response.StatusDetails.Error.Message != "" {
+						streamChan <- types.StreamChunk{Error: errors.New(ev.Response.StatusDetails.Error.Message)}
+						return
+					}
+					if ev.Response.StatusDetails.Reason == "failed" {
+						streamChan <- types.StreamChunk{Error: errors.New("response generation incomplete: failed")}
+						return
+					}
+				}
 				break
 			case "error", "response.failed":
 				errMsg := data

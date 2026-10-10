@@ -189,6 +189,13 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		}
 
 		if len(toolCalls) == 0 {
+			if turnText.String() == "" {
+				select {
+				case <-ctx.Done():
+				case streamChan <- AgentStreamChunk{Content: "Error: model finished turn without content or tool calls"}:
+				}
+				return
+			}
 			select {
 			case <-ctx.Done():
 			case streamChan <- AgentStreamChunk{Messages: currentMessages}:

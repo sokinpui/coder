@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/sokinpui/coder/internal/types"
@@ -43,8 +44,14 @@ func (r *Registry) Register(tool Tool) {
 func (r *Registry) Declarations() []ToolDeclaration {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	decls := make([]ToolDeclaration, 0, len(r.tools))
-	for _, t := range r.tools {
+	names := make([]string, 0, len(r.tools))
+	for name := range r.tools {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	decls := make([]ToolDeclaration, 0, len(names))
+	for _, name := range names {
+		t := r.tools[name]
 		decls = append(decls, t.Declaration())
 	}
 	return decls
