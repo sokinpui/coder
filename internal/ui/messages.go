@@ -161,6 +161,28 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
+		if msg.event.Kind == types.EventToolCallDelta && isActive {
+			m.State = stateThinking
+			m.Chat.StateStartTime = time.Now()
+			if msg.event.ToolName != "" {
+				m.StatusText = fmt.Sprintf("Calling %s", msg.event.ToolName)
+			} else {
+				m.StatusText = "Preparing tool"
+			}
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if m.Chat.AutoScroll {
+				m.Chat.Viewport.GotoBottom()
+			}
+		}
+
+		if msg.event.Kind == types.EventToolOutputChunk && isActive {
+			m.State = stateThinking
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			if m.Chat.AutoScroll {
+				m.Chat.Viewport.GotoBottom()
+			}
+		}
+
 		if msg.event.Kind == types.EventToolCall && isActive {
 			m.State = stateThinking
 			m.Chat.StateStartTime = time.Now()

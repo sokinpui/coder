@@ -67,7 +67,7 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 
 func ToolCallKeyID(tc types.ToolCall) string {
 	if tc.ID != "" {
-		return "call:" + tc.ID
+		return "call:" + tc.ID + ":" + tc.Arguments
 	}
 	return "call:" + tc.Name + ":" + tc.Arguments
 }
