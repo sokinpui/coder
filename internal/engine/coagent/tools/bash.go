@@ -1,11 +1,14 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -35,6 +38,10 @@ func (t *BashTool) Declaration() ToolDeclaration {
 }
 
 func (t *BashTool) Execute(ctx context.Context, arguments string) (string, error) {
+	return t.ExecuteStream(ctx, arguments, nil)
+}
+
+func (t *BashTool) ExecuteStream(ctx context.Context, arguments string, outChan chan<- string) (string, error) {
 	var params struct {
 		Command string `json:"command"`
 	}
@@ -64,9 +71,53 @@ func (t *BashTool) Execute(ctx context.Context, arguments string) (string, error
 		shell = "sh"
 	}
 
+	pr, pw := io.Pipe()
 	cmd := exec.CommandContext(runCtx, shell, "-c", params.Command)
-	outputBytes, err := cmd.CombinedOutput()
+	cmd.Stdout = pw
+	cmd.Stderr = pw
 
+	if err := cmd.Start(); err != nil {
+		pw.Close()
+		pr.Close()
+		return "", fmt.Errorf("failed to start command: %w", err)
+	}
+
+	var fullBuf bytes.Buffer
+	var fullMu sync.Mutex
+	readDone := make(chan struct{})
+
+	go func() {
+		defer close(readDone)
+		buf := make([]byte, 4096)
+		for {
+			n, rErr := pr.Read(buf)
+			if n > 0 {
+				chunk := string(buf[:n])
+				fullMu.Lock()
+				if fullBuf.Len() < maxOutputBytes {
+					fullBuf.Write(buf[:n])
+				}
+				fullMu.Unlock()
+				if outChan != nil {
+					select {
+					case outChan <- chunk:
+					case <-runCtx.Done():
+						return
+					}
+				}
+			}
+			if rErr != nil {
+				break
+			}
+		}
+	}()
+
+	err := cmd.Wait()
+	pw.Close()
+	<-readDone
+	pr.Close()
+
+	outputBytes := fullBuf.Bytes()
 	output := string(outputBytes)
 	if len(output) > maxOutputBytes {
 		output = output[:maxOutputBytes] + "\n...[output truncated]"

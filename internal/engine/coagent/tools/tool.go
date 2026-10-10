@@ -19,6 +19,10 @@ type ImageProducerTool interface {
 	ExecuteWithImages(ctx context.Context, arguments string) (string, []types.Message, error)
 }
 
+type StreamingTool interface {
+	ExecuteStream(ctx context.Context, arguments string, outChan chan<- string) (string, error)
+}
+
 type Registry struct {
 	mu    sync.RWMutex
 	tools map[string]Tool
@@ -47,12 +51,20 @@ func (r *Registry) Declarations() []ToolDeclaration {
 }
 
 func (r *Registry) Execute(ctx context.Context, name, arguments string) (string, []types.Message, error) {
+	return r.ExecuteStream(ctx, name, arguments, nil)
+}
+
+func (r *Registry) ExecuteStream(ctx context.Context, name, arguments string, outChan chan<- string) (string, []types.Message, error) {
 	r.mu.RLock()
 	tool, exists := r.tools[name]
 	r.mu.RUnlock()
 
 	if !exists {
 		return "", nil, fmt.Errorf("tool '%s' not found", name)
+	}
+	if streamTool, ok := tool.(StreamingTool); ok && outChan != nil {
+		out, err := streamTool.ExecuteStream(ctx, arguments, outChan)
+		return out, nil, err
 	}
 	if imgTool, ok := tool.(ImageProducerTool); ok {
 		return imgTool.ExecuteWithImages(ctx, arguments)
