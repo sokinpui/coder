@@ -203,7 +203,16 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 		}
 
-		return m, tea.Batch(listenForEvents(msg.sessID, msg.sub), renderCmd), true
+		var extraCmds []tea.Cmd
+		extraCmds = append(extraCmds, listenForEvents(msg.sessID, msg.sub))
+		if renderCmd != nil {
+			extraCmds = append(extraCmds, renderCmd)
+		}
+		if isActive && (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult) {
+			extraCmds = append(extraCmds, m.updateTokenCountCmd())
+		}
+
+		return m, tea.Batch(extraCmds...), true
 
 	case sessionFinishedMsg:
 		targetSess := m.getSessionByID(msg.sessID)

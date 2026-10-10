@@ -176,7 +176,7 @@ func loadConversationCmd(sess engine.EngineSession, filename string) tea.Cmd {
 }
 
 func saveConversationCmd(sess engine.EngineSession) tea.Cmd {
-	if sess == nil {
+	if sess == nil || (!sess.HasChatHistory() && sess.GetHistoryFilename() == "") {
 		return nil
 	}
 	return func() tea.Msg {

@@ -33,7 +33,7 @@ func (m Model) startGenerationEvents(eventChan <-chan types.SessionEvent) (Model
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 
-	return m, tea.Batch(listenForEvents(m.Session.GetID(), m.Chat.EventSub), m.Chat.Spinner.Tick, m.renderUncachedCmd())
+	return m, tea.Batch(listenForEvents(m.Session.GetID(), m.Chat.EventSub), m.Chat.Spinner.Tick, m.renderUncachedCmd(), m.updateTokenCountCmd())
 }
 
 func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {

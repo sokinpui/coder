@@ -4,7 +4,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
@@ -123,10 +122,10 @@ func (m Model) updateTokenCountCmd() tea.Cmd {
 	if m.Session == nil {
 		return nil
 	}
-	sessID := m.Session.GetID()
-	promptMsgs := m.Session.GetPrompt()
+	sess := m.Session
+	sessID := sess.GetID()
 	return func() tea.Msg {
-		count := token.CountTokens(promptMsgs)
+		count := sess.TokenCount()
 		return tokenCountResultMsg{sessID: sessID, count: count}
 	}
 }
