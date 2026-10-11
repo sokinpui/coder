@@ -27,9 +27,6 @@ type AgentRuntime struct {
 }
 
 func NewAgentRuntime(cfg *config.Config, registry *tools.Registry) (*AgentRuntime, error) {
-	if registry == nil {
-		registry = tools.DefaultRegistry
-	}
 	gen, err := generation.New(cfg)
 	if err != nil {
 		return nil, err
@@ -38,13 +35,15 @@ func NewAgentRuntime(cfg *config.Config, registry *tools.Registry) (*AgentRuntim
 	if maxIterations <= 0 {
 		maxIterations = 50
 	}
-	var permMap map[string]any
-	if cfg != nil && cfg.Agent.Permission != nil {
-		permMap = cfg.Agent.Permission
-	}
 	var toolsMap map[string]any
 	if cfg != nil && cfg.Agent.Tools != nil {
 		toolsMap = cfg.Agent.Tools
+	}
+	secConfig := cfg.Agent.SecondaryModelConfig()
+	if registry == nil {
+		registry = tools.BuildRegistry(toolsMap, gen, &secConfig)
+	} else {
+		tools.ConfigureRegistry(registry, toolsMap, gen, &secConfig)
 	}
 	ar := &AgentRuntime{
 		Config:            cfg.Agent.ModelConfig(),
@@ -52,11 +51,9 @@ func NewAgentRuntime(cfg *config.Config, registry *tools.Registry) (*AgentRuntim
 		Generator:         gen,
 		MaxToolIterations: maxIterations,
 		Registry:          registry,
-		Permissions:       NewPermissionManager(permMap, toolsMap),
+		Permissions:       NewPermissionManager(toolsMap, registry),
 		pending:           make(map[string]chan types.ToolConfirmResponse),
 	}
-
-	ar.Registry.Register(tools.NewWebFetchTool(gen, &ar.SecondaryConfig))
 
 	return ar, nil
 }

@@ -22,30 +22,30 @@ type SelectorItem struct {
 }
 
 type SelectorModel struct {
-	Title         string
-	Items         []SelectorItem
-	FilteredItems []SelectorItem
-	Selected      map[string]struct{}
-	Cursor        int
-	Anchor        int
-	IsSelecting   bool
-	SearchInput   textinput.Model
-	ShowSearch    bool
-	IsSearching   bool
-	Tabs          []string
-	ActiveTab     int
-	GGPressed     bool
-	Width         int
-	Height        int
-	CustomWidth   int
-	CustomHeight  int
-	ShowPreview   bool
-	PreviewTitle  string
+	Title          string
+	Items          []SelectorItem
+	FilteredItems  []SelectorItem
+	Selected       map[string]struct{}
+	Cursor         int
+	Anchor         int
+	IsSelecting    bool
+	SearchInput    textinput.Model
+	ShowSearch     bool
+	IsSearching    bool
+	Tabs           []string
+	ActiveTab      int
+	GGPressed      bool
+	Width          int
+	Height         int
+	CustomWidth    int
+	CustomHeight   int
+	ShowPreview    bool
+	PreviewTitle   string
 	PreviewContent string
-	PreviewOffset int
-	FooterHelp    string
-	IsLoading     bool
-	MultiSelect   bool
+	PreviewOffset  int
+	FooterHelp     string
+	IsLoading      bool
+	MultiSelect    bool
 
 	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
 	OnCancel       func(m Model) (tea.Model, tea.Cmd)

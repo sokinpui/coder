@@ -57,7 +57,6 @@ type Agent struct {
 	ReasoningEffort string         `mapstructure:"reasoningeffort" yaml:"reasoningeffort"`
 	MaxIterations   int            `mapstructure:"max_iterations" yaml:"max_iterations"`
 	Keymap          Keymap         `mapstructure:"keymap" yaml:"keymap"`
-	Permission      map[string]any `mapstructure:"permission" yaml:"permission,omitempty"`
 	Tools           map[string]any `mapstructure:"tools" yaml:"tools,omitempty"`
 }
 

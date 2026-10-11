@@ -26,15 +26,57 @@ type SearchResult struct {
 }
 
 type WebSearchTool struct {
-	client *http.Client
+	client     *http.Client
+	Timeout    time.Duration
+	MaxResults int
+	Endpoint   string
 }
+
+var _ ConfigurableTool = (*WebSearchTool)(nil)
+var _ TargetExtractorTool = (*WebSearchTool)(nil)
+var _ ClonableTool = (*WebSearchTool)(nil)
 
 func NewWebSearchTool(client ...*http.Client) *WebSearchTool {
 	httpClient := &http.Client{Timeout: defaultSearchTimeout}
 	if len(client) > 0 && client[0] != nil {
 		httpClient = client[0]
 	}
-	return &WebSearchTool{client: httpClient}
+	return &WebSearchTool{
+		client:     httpClient,
+		Timeout:    defaultSearchTimeout,
+		MaxResults: maxSearchResults,
+		Endpoint:   ddgEndpoint,
+	}
+}
+
+func (t *WebSearchTool) Configure(raw any) error {
+	opts, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	if timeout := parseDuration(opts["timeout"]); timeout > 0 {
+		t.Timeout = timeout
+	}
+	if maxRes := parseInt(opts["max_results"]); maxRes > 0 {
+		t.MaxResults = maxRes
+	}
+	if endpoint := parseString(opts["endpoint"]); endpoint != "" {
+		t.Endpoint = endpoint
+	}
+	return nil
+}
+
+func (t *WebSearchTool) ExtractTarget(arguments string) string {
+	return extractJSONField(arguments, "query")
+}
+
+func (t *WebSearchTool) Clone() Tool {
+	return &WebSearchTool{
+		client:     t.client,
+		Timeout:    t.Timeout,
+		MaxResults: t.MaxResults,
+		Endpoint:   t.Endpoint,
+	}
 }
 
 func (t *WebSearchTool) Declaration() ToolDeclaration {
@@ -78,7 +120,11 @@ func (t *WebSearchTool) Execute(ctx context.Context, arguments string) (string, 
 		return "", fmt.Errorf("query is required")
 	}
 
-	results, err := t.search(ctx, params.Query, maxSearchResults)
+	maxRes := t.MaxResults
+	if maxRes <= 0 {
+		maxRes = maxSearchResults
+	}
+	results, err := t.search(ctx, params.Query, maxRes)
 	if err != nil {
 		return "", fmt.Errorf("search failed: %w", err)
 	}
@@ -88,16 +134,24 @@ func (t *WebSearchTool) Execute(ctx context.Context, arguments string) (string, 
 
 func (t *WebSearchTool) search(ctx context.Context, query string, maxResults int) ([]SearchResult, error) {
 	runCtx := ctx
+	timeout := t.Timeout
+	if timeout <= 0 {
+		timeout = defaultSearchTimeout
+	}
 	var cancel context.CancelFunc
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		runCtx, cancel = context.WithTimeout(ctx, defaultSearchTimeout)
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
 
 	data := url.Values{}
 	data.Set("q", query)
 
-	req, err := http.NewRequestWithContext(runCtx, http.MethodPost, ddgEndpoint, strings.NewReader(data.Encode()))
+	endpoint := t.Endpoint
+	if endpoint == "" {
+		endpoint = ddgEndpoint
+	}
+	req, err := http.NewRequestWithContext(runCtx, http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}

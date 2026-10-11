@@ -20,13 +20,23 @@ const (
 	defaultFetchTimeout = 30 * time.Second
 	maxFetchSizeBytes   = 1 * 1024 * 1024
 	defaultMaxLines     = 1000
+	defaultUserAgent    = "Mozilla/5.0 (compatible; CoderBot/1.0; +https://github.com/sokinpui/coder)"
 )
 
 type WebFetchTool struct {
-	generator *generation.Generator
-	config    *config.ModelConfig
-	client    *http.Client
+	generator       *generation.Generator
+	config          *config.ModelConfig
+	client          *http.Client
+	Timeout         time.Duration
+	MaxSizeBytes    int64
+	DefaultMaxLines int
+	UserAgent       string
 }
+
+var _ ConfigurableTool = (*WebFetchTool)(nil)
+var _ TargetExtractorTool = (*WebFetchTool)(nil)
+var _ GeneratorConsumer = (*WebFetchTool)(nil)
+var _ ClonableTool = (*WebFetchTool)(nil)
 
 func NewWebFetchTool(generator *generation.Generator, cfg *config.ModelConfig, client ...*http.Client) *WebFetchTool {
 	httpClient := &http.Client{Timeout: defaultFetchTimeout}
@@ -34,9 +44,58 @@ func NewWebFetchTool(generator *generation.Generator, cfg *config.ModelConfig, c
 		httpClient = client[0]
 	}
 	return &WebFetchTool{
-		generator: generator,
-		config:    cfg,
-		client:    httpClient,
+		generator:       generator,
+		config:          cfg,
+		client:          httpClient,
+		Timeout:         defaultFetchTimeout,
+		MaxSizeBytes:    maxFetchSizeBytes,
+		DefaultMaxLines: defaultMaxLines,
+		UserAgent:       defaultUserAgent,
+	}
+}
+
+func (t *WebFetchTool) SetGenerator(generator *generation.Generator, cfg *config.ModelConfig) {
+	t.generator = generator
+	t.config = cfg
+}
+
+func (t *WebFetchTool) Configure(raw any) error {
+	opts, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	if timeout := parseDuration(opts["timeout"]); timeout > 0 {
+		t.Timeout = timeout
+	}
+	if maxBytes := parseInt64(opts["max_size_bytes"]); maxBytes > 0 {
+		t.MaxSizeBytes = maxBytes
+	} else if maxMb := parseInt64(opts["max_size_mb"]); maxMb > 0 {
+		t.MaxSizeBytes = maxMb * 1024 * 1024
+	}
+	if maxLines := parseInt(opts["default_max_lines"]); maxLines > 0 {
+		t.DefaultMaxLines = maxLines
+	} else if maxLines := parseInt(opts["max_lines"]); maxLines > 0 {
+		t.DefaultMaxLines = maxLines
+	}
+	if ua := parseString(opts["user_agent"]); ua != "" {
+		t.UserAgent = ua
+	}
+	return nil
+}
+
+func (t *WebFetchTool) ExtractTarget(arguments string) string {
+	return extractJSONField(arguments, "url")
+}
+
+func (t *WebFetchTool) Clone() Tool {
+	return &WebFetchTool{
+		generator:       t.generator,
+		config:          t.config,
+		client:          t.client,
+		Timeout:         t.Timeout,
+		MaxSizeBytes:    t.MaxSizeBytes,
+		DefaultMaxLines: t.DefaultMaxLines,
+		UserAgent:       t.UserAgent,
 	}
 }
 
@@ -117,7 +176,11 @@ func (t *WebFetchTool) Execute(ctx context.Context, arguments string) (string, e
 		start = *params.StartLine
 	}
 
-	end := start + defaultMaxLines - 1
+	maxLines := t.DefaultMaxLines
+	if maxLines <= 0 {
+		maxLines = defaultMaxLines
+	}
+	end := start + maxLines - 1
 	if params.EndLine != nil && *params.EndLine > 0 {
 		end = *params.EndLine
 	}
@@ -187,12 +250,27 @@ func (t *WebFetchTool) extract(ctx context.Context, userPrompt, content string) 
 }
 
 func (t *WebFetchTool) fetchContentAsMarkdown(ctx context.Context, targetURL string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+	runCtx := ctx
+	timeout := t.Timeout
+	if timeout <= 0 {
+		timeout = defaultFetchTimeout
+	}
+	var cancel context.CancelFunc
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	req, err := http.NewRequestWithContext(runCtx, http.MethodGet, targetURL, nil)
 	if err != nil {
 		return "", err
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; CoderBot/1.0; +https://github.com/sokinpui/coder)")
+	ua := t.UserAgent
+	if ua == "" {
+		ua = defaultUserAgent
+	}
+	req.Header.Set("User-Agent", ua)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8")
 
 	resp, err := t.client.Do(req)
@@ -205,7 +283,11 @@ func (t *WebFetchTool) fetchContentAsMarkdown(ctx context.Context, targetURL str
 		return "", fmt.Errorf("server responded with status code %d", resp.StatusCode)
 	}
 
-	limitedReader := io.LimitReader(resp.Body, maxFetchSizeBytes)
+	maxBytes := t.MaxSizeBytes
+	if maxBytes <= 0 {
+		maxBytes = maxFetchSizeBytes
+	}
+	limitedReader := io.LimitReader(resp.Body, maxBytes)
 	bodyBytes, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return "", err

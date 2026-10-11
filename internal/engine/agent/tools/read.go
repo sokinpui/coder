@@ -18,6 +18,8 @@ import (
 
 type ReadFileTool struct{}
 
+var _ TargetExtractorTool = (*ReadFileTool)(nil)
+
 func (t *ReadFileTool) Declaration() ToolDeclaration {
 	return ToolDeclaration{
 		Type:        "function",
@@ -38,6 +40,10 @@ func (t *ReadFileTool) Declaration() ToolDeclaration {
 			"required": []string{"path"},
 		},
 	}
+}
+
+func (t *ReadFileTool) ExtractTarget(arguments string) string {
+	return extractJSONField(arguments, "path")
 }
 
 func (t *ReadFileTool) Execute(ctx context.Context, arguments string) (string, error) {

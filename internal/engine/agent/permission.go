@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/sokinpui/coder/internal/engine/agent/tools"
 )
 
 type PermissionAction string
@@ -17,27 +19,27 @@ const (
 
 type PermissionManager struct {
 	mu            sync.RWMutex
-	config        map[string]any
 	toolsConfig   map[string]any
+	registry      *tools.Registry
 	alwaysAllowed map[string]bool
 }
 
-func NewPermissionManager(config map[string]any, toolsConfig ...map[string]any) *PermissionManager {
-	var tc map[string]any
-	if len(toolsConfig) > 0 {
-		tc = toolsConfig[0]
+func NewPermissionManager(toolsConfig map[string]any, registry ...*tools.Registry) *PermissionManager {
+	var reg *tools.Registry
+	if len(registry) > 0 {
+		reg = registry[0]
 	}
 	return &PermissionManager{
-		toolsConfig:   tc,
-		config:        config,
+		toolsConfig:   toolsConfig,
+		registry:      reg,
 		alwaysAllowed: make(map[string]bool),
 	}
 }
 
-func (pm *PermissionManager) SetConfig(config map[string]any) {
+func (pm *PermissionManager) SetRegistry(registry *tools.Registry) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-	pm.config = config
+	pm.registry = registry
 }
 
 func (pm *PermissionManager) SetToolsConfig(toolsConfig map[string]any) {
@@ -54,24 +56,21 @@ func (pm *PermissionManager) IsToolEnabled(toolName string) bool {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 
-	if len(pm.toolsConfig) > 0 {
-		if rule, exists := pm.toolsConfig[toolName]; exists {
-			enabled, _, specified := parseToolOption(rule)
-			if specified {
-				return enabled
-			}
-		}
-		if rule, exists := pm.toolsConfig["*"]; exists {
-			enabled, _, specified := parseToolOption(rule)
-			if specified {
-				return enabled
-			}
-		}
+	if len(pm.toolsConfig) == 0 {
+		return true
 	}
 
-	if rule, exists := pm.config[toolName]; exists {
+	if rule, exists := pm.toolsConfig[toolName]; exists {
 		enabled, _, specified := parseToolOption(rule)
-		return !specified || enabled
+		if specified {
+			return enabled
+		}
+	}
+	if rule, exists := pm.toolsConfig["*"]; exists {
+		enabled, _, specified := parseToolOption(rule)
+		if specified {
+			return enabled
+		}
 	}
 
 	return true
@@ -95,34 +94,48 @@ func (pm *PermissionManager) Check(toolName, arguments string) PermissionAction 
 		return ActionAllow
 	}
 
-	if len(pm.toolsConfig) > 0 {
-		if rule, exists := pm.toolsConfig[toolName]; exists {
-			if _, action, specified := parseToolOption(rule); specified {
-				return action
-			}
-		}
-	}
-
-	if len(pm.config) == 0 && len(pm.toolsConfig) == 0 {
+	if len(pm.toolsConfig) == 0 {
 		return ActionAllow
 	}
 
-	target := extractTarget(toolName, arguments)
+	target := pm.extractTarget(toolName, arguments)
 
-	if toolRule, exists := pm.config[toolName]; exists {
-		if action, matched := pm.evaluateRule(toolRule, target); matched {
+	if rule, exists := pm.toolsConfig[toolName]; exists {
+		if m, ok := rule.(map[string]any); ok {
+			if permRule, hasPerm := m["permission"]; hasPerm {
+				if action, matched := pm.evaluateRule(permRule, target); matched {
+					return action
+				}
+			}
+		}
+		if _, action, specified := parseToolOption(rule); specified {
 			return action
 		}
 	}
 
-	if globalRule, exists := pm.config["*"]; exists {
-		if action, matched := pm.evaluateRule(globalRule, target); matched {
+	if rule, exists := pm.toolsConfig["*"]; exists {
+		if m, ok := rule.(map[string]any); ok {
+			if permRule, hasPerm := m["permission"]; hasPerm {
+				if action, matched := pm.evaluateRule(permRule, target); matched {
+					return action
+				}
+			}
+		}
+		if _, action, specified := parseToolOption(rule); specified {
 			return action
 		}
 	}
 
 	if len(pm.toolsConfig) > 0 {
 		if rule, exists := pm.toolsConfig["*"]; exists {
+			if m, ok := rule.(map[string]any); ok {
+				if permRule, hasPerm := m["permission"]; hasPerm {
+					target := pm.extractTarget(toolName, arguments)
+					if action, matched := pm.evaluateRule(permRule, target); matched {
+						return action
+					}
+				}
+			}
 			if _, action, specified := parseToolOption(rule); specified {
 				return action
 			}
@@ -149,6 +162,19 @@ func parseToolOption(val any) (bool, PermissionAction, bool) {
 			return true, ActionAsk, true
 		case "allow", "true", "on", "enabled", "enable":
 			return true, ActionAllow, true
+		}
+	case map[string]any:
+		if enVal, ok := v["enabled"]; ok {
+			en, act, spec := parseToolOption(enVal)
+			if spec && !en {
+				return false, ActionDeny, true
+			}
+			if permVal, ok := v["permission"]; ok {
+				if _, permAct, permSpec := parseToolOption(permVal); permSpec {
+					return en, permAct, true
+				}
+			}
+			return en, act, spec
 		}
 	}
 	return false, ActionAllow, false
@@ -257,7 +283,15 @@ func matchWildcard(pattern, target string) bool {
 	return strings.HasSuffix(target, parts[len(parts)-1])
 }
 
-func extractTarget(toolName, arguments string) string {
+func (pm *PermissionManager) extractTarget(toolName, arguments string) string {
+	if pm != nil && pm.registry != nil {
+		if tool, exists := pm.registry.Get(toolName); exists {
+			if extractor, ok := tool.(tools.TargetExtractorTool); ok {
+				return extractor.ExtractTarget(arguments)
+			}
+		}
+	}
+
 	trimmed := strings.TrimSpace(arguments)
 	if trimmed == "" {
 		return ""
@@ -274,24 +308,6 @@ func extractTarget(toolName, arguments string) string {
 			return trimmed
 		}
 		return ""
-	}
-
-	if toolName == "bash" {
-		if cmd, ok := data["command"].(string); ok {
-			return strings.TrimSpace(cmd)
-		}
-	}
-
-	if toolName == "webfetch" {
-		if url, ok := data["url"].(string); ok {
-			return strings.TrimSpace(url)
-		}
-	}
-
-	if toolName == "websearch" {
-		if query, ok := data["query"].(string); ok {
-			return strings.TrimSpace(query)
-		}
 	}
 
 	if path, ok := data["path"].(string); ok {

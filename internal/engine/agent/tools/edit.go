@@ -10,6 +10,8 @@ import (
 
 type EditFileTool struct{}
 
+var _ TargetExtractorTool = (*EditFileTool)(nil)
+
 func (t *EditFileTool) Declaration() ToolDeclaration {
 	return ToolDeclaration{
 		Type:        "function",
@@ -34,6 +36,10 @@ func (t *EditFileTool) Declaration() ToolDeclaration {
 			"required": []string{"path", "old_string", "new_string"},
 		},
 	}
+}
+
+func (t *EditFileTool) ExtractTarget(arguments string) string {
+	return extractJSONField(arguments, "path")
 }
 
 func (t *EditFileTool) Execute(ctx context.Context, arguments string) (string, error) {

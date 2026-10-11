@@ -17,7 +17,15 @@ const (
 	maxOutputBytes     = 64 * 1024
 )
 
-type BashTool struct{}
+type BashTool struct {
+	Timeout        time.Duration
+	MaxOutputBytes int
+	Shell          string
+}
+
+var _ ConfigurableTool = (*BashTool)(nil)
+var _ TargetExtractorTool = (*BashTool)(nil)
+var _ ClonableTool = (*BashTool)(nil)
 
 func (t *BashTool) Declaration() ToolDeclaration {
 	return ToolDeclaration{
@@ -34,6 +42,41 @@ func (t *BashTool) Declaration() ToolDeclaration {
 			},
 			"required": []string{"command"},
 		},
+	}
+}
+
+func (t *BashTool) Configure(raw any) error {
+	opts, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	if timeout := parseDuration(opts["timeout"]); timeout > 0 {
+		t.Timeout = timeout
+	}
+	if maxBytes := parseInt(opts["max_output_bytes"]); maxBytes > 0 {
+		t.MaxOutputBytes = maxBytes
+	} else if maxKb := parseInt(opts["max_output_kb"]); maxKb > 0 {
+		t.MaxOutputBytes = maxKb * 1024
+	}
+	if shell := parseString(opts["shell"]); shell != "" {
+		t.Shell = shell
+	}
+	return nil
+}
+
+func (t *BashTool) ExtractTarget(arguments string) string {
+	cmd := extractJSONField(arguments, "command")
+	if cmd != "" {
+		return cmd
+	}
+	return strings.TrimSpace(arguments)
+}
+
+func (t *BashTool) Clone() Tool {
+	return &BashTool{
+		Timeout:        t.Timeout,
+		MaxOutputBytes: t.MaxOutputBytes,
+		Shell:          t.Shell,
 	}
 }
 
@@ -60,14 +103,21 @@ func (t *BashTool) ExecuteStream(ctx context.Context, arguments string, outChan 
 	}
 
 	runCtx := ctx
+	timeout := t.Timeout
+	if timeout <= 0 {
+		timeout = defaultBashTimeout
+	}
 	var cancel context.CancelFunc
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		runCtx, cancel = context.WithTimeout(ctx, defaultBashTimeout)
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
 
-	shell := "bash"
-	if _, err := exec.LookPath("bash"); err != nil {
+	shell := t.Shell
+	if shell == "" {
+		shell = "bash"
+	}
+	if _, err := exec.LookPath(shell); err != nil {
 		shell = "sh"
 	}
 
@@ -85,16 +135,21 @@ func (t *BashTool) ExecuteStream(ctx context.Context, arguments string, outChan 
 	var fullBuf bytes.Buffer
 	var fullMu sync.Mutex
 	readDone := make(chan struct{})
+	maxBytes := t.MaxOutputBytes
+	if maxBytes <= 0 {
+		maxBytes = maxOutputBytes
+	}
 
 	go func() {
 		defer close(readDone)
 		buf := make([]byte, 4096)
 		for {
 			n, rErr := pr.Read(buf)
+			limit := maxBytes
 			if n > 0 {
 				chunk := string(buf[:n])
 				fullMu.Lock()
-				if fullBuf.Len() < maxOutputBytes {
+				if fullBuf.Len() < limit {
 					fullBuf.Write(buf[:n])
 				}
 				fullMu.Unlock()
@@ -119,8 +174,8 @@ func (t *BashTool) ExecuteStream(ctx context.Context, arguments string, outChan 
 
 	outputBytes := fullBuf.Bytes()
 	output := string(outputBytes)
-	if len(output) > maxOutputBytes {
-		output = output[:maxOutputBytes] + "\n...[output truncated]"
+	if len(output) > maxBytes {
+		output = output[:maxBytes] + "\n...[output truncated]"
 	}
 
 	trimmedOutput := strings.TrimSpace(output)

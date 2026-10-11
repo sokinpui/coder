@@ -424,11 +424,11 @@ func (s *Session) ReloadConfig() error {
 	s.Runtime.Generator.Protocol = cfg.Server.Protocol
 	s.Runtime.Generator.APIKey = cfg.Server.APIKey
 	if s.Runtime.Permissions != nil {
-		s.Runtime.Permissions.SetConfig(cfg.Agent.Permission)
 		s.Runtime.Permissions.SetToolsConfig(cfg.Agent.Tools)
+		s.Runtime.Permissions.SetRegistry(s.Runtime.Registry)
 	}
 	if s.Runtime.Registry != nil {
-		s.Runtime.Registry.Register(tools.NewWebFetchTool(s.Runtime.Generator, &s.Runtime.SecondaryConfig))
+		tools.ConfigureRegistry(s.Runtime.Registry, cfg.Agent.Tools, s.Runtime.Generator, &s.Runtime.SecondaryConfig)
 	}
 	return nil
 }

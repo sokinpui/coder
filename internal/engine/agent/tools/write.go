@@ -11,6 +11,8 @@ import (
 
 type WriteFileTool struct{}
 
+var _ TargetExtractorTool = (*WriteFileTool)(nil)
+
 func (t *WriteFileTool) Declaration() ToolDeclaration {
 	return ToolDeclaration{
 		Type:        "function",
@@ -31,6 +33,10 @@ func (t *WriteFileTool) Declaration() ToolDeclaration {
 			"required": []string{"path", "content"},
 		},
 	}
+}
+
+func (t *WriteFileTool) ExtractTarget(arguments string) string {
+	return extractJSONField(arguments, "path")
 }
 
 func (t *WriteFileTool) Execute(ctx context.Context, arguments string) (string, error) {
