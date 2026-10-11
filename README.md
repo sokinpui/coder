@@ -56,7 +56,8 @@ An **autonomous coding agent** operating in an iterative tool-calling loop to so
 - **Read-before-edit Guard**: Rejects text replacements on files the agent has not yet inspected.
 - **Visual & PDF Context**: Native multi-modal support for images and PDF documents.
 - **Configurable Permissions**: Fine-grained security policies (`allow`, `ask`, `deny`) on tool and command execution.
-- **Extensible Skills**: Automatically initializes editable built-in skills to `~/.config/coder/skills/` (such as `/init` for `AGENTS.md`) with support for project-level `.coder/skills/`.
+- **Extensible Skills**: Support for project-local (`.coder/skills/`) and global (`~/.config/coder/skills/`) autonomous skill workflows.
+- **Prompt Templates**: Built-in and customizable prompt templates stored in `~/.config/coder/templates/` (such as `/init` for `AGENTS.md`) loaded strictly on demand without polluting system prompts.
 
 ### Chat Mode
 A lightweight conversational assistant without codebase context loading.

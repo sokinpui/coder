@@ -66,14 +66,21 @@ Inside the agent TUI, you can manually feed files into the agent's context using
 
 This immediately triggers the `read` tool and injects the file content into the conversation history.
 
+## Prompt Templates
+
+Prompt templates provide repeatable, user-triggered task instructions without polluting the LLM's system prompt:
+
+- **Storage**: Located in `~/.config/coder/templates/` (global) and `.coder/templates/` (project-local).
+- **On-Demand Execution**: Templates are only loaded into context when explicitly executed via slash commands (e.g., `/init`).
+- **Repository Init (`/init`)**: Loads `~/.config/coder/templates/init.md` via `read` to inspect repository structure and conventions, then creates or updates `AGENTS.md`. The template is seeded automatically and can be modified at any time.
+
 ## Skills & Customization
 
-Coder supports extensible skills that provide specialized workflows and guidelines for the agent:
+Coder supports extensible skills that provide autonomous workflows and domain guidelines for the agent:
 
-- **Built-in Skills**: On the first run, built-in skills (such as `init` for generating or updating `AGENTS.md`) are automatically seeded to `~/.config/coder/skills/`. You can edit these markdown files directly to customize default behaviors.
 - **Skill Discovery**: Skills are discovered from project-local `.coder/skills/` (takes precedence) and global `~/.config/coder/skills/`.
 - **Skills Catalog (`/skills`)**: Browse, search, and preview available skills in a split-pane modal, then press `Enter` to load the skill into the prompt.
-- **Repository Init (`/init`)**: Automatically loads the `init` skill (`~/.config/coder/skills/init/SKILL.md`) to inspect the project structure, build commands, and conventions, then generates or updates `AGENTS.md`.
+- **System Prompt Integration**: Only metadata (`name`, `description`) of discovered skills is provided in the agent's prompt to allow autonomous tool activation when relevant tasks match.
 - **Creating Custom Skills**: Create a directory in `.coder/skills/<skill-name>/` or `~/.config/coder/skills/<skill-name>/` containing a `SKILL.md` file with YAML frontmatter:
 
 ```markdown

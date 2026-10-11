@@ -1,8 +1,3 @@
----
-name: init
-description: Initialize or update the AGENTS.md file with repository guidelines, build instructions, and architecture overview
----
-
 # Repository Initialization (AGENTS.md)
 
 Your task is to inspect this codebase and generate or update the root `AGENTS.md` file.

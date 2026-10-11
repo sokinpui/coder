@@ -66,14 +66,21 @@ coder --completion bash          # 生成 Shell 自动补全脚本
 
 该操作会立刻触发 `read` 工具，并将解析后的文件内容直接插入到当前对话的消息流中。
 
+## 提示词模板 (Prompt Templates)
+
+提示词模板用于存放由用户显式触发的重复性任务指令，完全避免污染系统提示词与上下文：
+
+- **存储路径**：全局存放于 `~/.config/coder/templates/`，项目本地存放于 `.coder/templates/`。
+- **按需加载**：模板仅在用户执行斜杠命令时（如 `/init`）按需加载，绝不预先注入系统提示词。
+- **项目初始化 (`/init`)**：一键调用 `~/.config/coder/templates/init.md` 模板，指导智能体分析仓库架构并生成或更新 `AGENTS.md`。首次运行自动生成该文件，用户可自由编辑定制。
+
 ## 技能系统与自定义扩展 (Skills & Customization)
 
-Coder 支持可扩展的智能体技能系统，为智能体提供专项工作流与指导规范：
+Coder 支持可扩展的智能体技能系统，为智能体提供自主工作流与领域规范：
 
-- **内置技能安装**：首次运行时，内置技能（如用于初始化与更新 `AGENTS.md` 的 `init` 技能）会自动生成至全局配置目录 `~/.config/coder/skills/`。你可以直接修改这些 Markdown 文件以定制默认行为。
 - **技能检索路径**：优先加载项目本地 `.coder/skills/`，其次加载全局 `~/.config/coder/skills/`。
 - **技能面板 (`/skills`)**：支持分栏预览、模糊搜索已发现的技能，回车即可一键将技能载入提示词输入框。
-- **项目初始化 (`/init`)**：一键调用 `init` 技能（`~/.config/coder/skills/init/SKILL.md`），自主分析当前项目的目录架构、构建测试命令与代码规范，并在项目根目录生成或更新 `AGENTS.md`。
+- **系统提示词接入**：仅已注册技能的基础元数据（`name`, `description`）会放入系统提示词，以便智能体在遇到匹配任务时自主发现并调用。
 - **创建自定义技能**：在 `.coder/skills/<skill-name>/` 或 `~/.config/coder/skills/<skill-name>/` 目录下创建带有 YAML Frontmatter 的 `SKILL.md` 文件：
 
 ```markdown

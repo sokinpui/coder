@@ -56,7 +56,8 @@ cd coder
 - **编辑前必读守卫（Read-before-edit Guard）**：严禁模型在未通过 `read` 查看文件的情况下进行盲目文本替换。
 - **视觉与 PDF 多模态上下文**：原生支持本地图片与 PDF 文档的多模态视觉输入。
 - **可配置工具权限守卫**：提供粒度可控的工具执行策略（`allow`、`ask`、`deny`）。
-- **可扩展技能生态**：首次运行自动将内置技能（如用于生成 `AGENTS.md` 的 `/init`）释放至 `~/.config/coder/skills/` 供自由修改，并支持项目级 `.coder/skills/`。
+- **可扩展技能生态**：支持项目级（`.coder/skills/`）与全局（`~/.config/coder/skills/`）自主技能工作流。
+- **提示词模板**：内置与自定义模板存放于 `~/.config/coder/templates/`（如用于生成 `AGENTS.md` 的 `/init`），按需触发不污染系统提示词。
 
 ### Chat 模式
 轻量通用对话助手，不自动加载仓库代码上下文。

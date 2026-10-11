@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/agent/skills"
+	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -26,20 +26,20 @@ func initCmd(args string, s SessionController) (CommandOutput, bool) {
 		}, false
 	}
 
-	skill, found := skills.Find("init")
+	tmpl, found := templates.Find("init")
 	if !found {
 		return CommandOutput{
 			Type:    types.MessagesUpdated,
-			Payload: "Init skill not found.",
+			Payload: "Init template not found.",
 		}, false
 	}
 
-	readOut, ok := reader.ReadAgentFiles("/init", []string{skill.Path})
+	readOut, ok := reader.ReadAgentFiles("/init", []string{tmpl.Path})
 	if !ok {
 		return readOut, false
 	}
 
-	prompt := "Please follow the instructions in the init skill above to inspect the repository and create or update AGENTS.md."
+	prompt := "Please follow the instructions in the init template above to inspect the repository and create or update AGENTS.md."
 	if args != "" {
 		prompt += "\nAdditional user instructions: " + args
 	}
