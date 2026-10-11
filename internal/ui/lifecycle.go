@@ -33,6 +33,10 @@ func (m Model) updateComponents(msg tea.Msg) (Model, tea.Cmd) {
 		m.Chat.TextArea, cmd = m.Chat.TextArea.Update(msg)
 		cmds = append(cmds, cmd)
 
+		if cleaned := CleanSGRLeakedText(m.Chat.TextArea.Value()); cleaned != m.Chat.TextArea.Value() {
+			m.Chat.TextArea.SetValue(cleaned)
+		}
+
 		if !isRuneKey && !isViewportNavKey {
 			m.Chat.Viewport, cmd = m.Chat.Viewport.Update(msg)
 			cmds = append(cmds, cmd)

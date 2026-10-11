@@ -2,12 +2,23 @@ package ui
 
 import (
 	"regexp"
-	"strings"
+	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-var sgrFragmentRegex = regexp.MustCompile(`\[<\d+;\d+;\d+[Mm]`)
+var (
+	sgrFragmentRegex = regexp.MustCompile(`\[?<\d+;\d+;\d+[Mm]`)
+	sgrPartialRegex  = regexp.MustCompile(`\[<\d*(?:;\d*)*$`)
+	sgrMouseRegex    = regexp.MustCompile(`\[?<(\d+);(\d+);(\d+)([Mm])`)
+)
+
+func CleanSGRLeakedText(s string) string {
+	if !sgrFragmentRegex.MatchString(s) {
+		return s
+	}
+	return sgrFragmentRegex.ReplaceAllString(s, "")
+}
 
 type sgrSequenceFilter struct {
 	pending string
@@ -28,33 +39,48 @@ func newSGRSequenceFilter() func(tea.Model, tea.Msg) tea.Msg {
 			return msg
 		}
 
-		raw := keyMsg.String()
-		if keyMsg.Type == tea.KeyRunes && len(keyMsg.Runes) > 0 {
-			raw = string(keyMsg.Runes)
+		if keyMsg.Type != tea.KeyRunes || len(keyMsg.Runes) == 0 {
+			filter.pending = ""
+			return keyMsg
+		}
+
+		raw := string(keyMsg.Runes)
+		if keyMsg.Alt && raw == "[" {
+			filter.pending = "["
+			return nil
 		}
 
 		combined := filter.pending + raw
 		filter.pending = ""
 
-		cleaned := sgrFragmentRegex.ReplaceAllString(combined, "")
+		var mouseEv tea.Msg
+		var isMouse bool
+		if sgrFragmentRegex.MatchString(combined) {
+			mouseEv, isMouse = parseSGRMouseMsg(combined)
+			combined = sgrFragmentRegex.ReplaceAllString(combined, "")
+		}
 
-		if idx := strings.LastIndex(cleaned, "[<"); idx != -1 {
-			filter.pending = cleaned[idx:]
-			cleaned = cleaned[:idx]
-		} else if strings.HasSuffix(cleaned, "[") {
-			filter.pending = "["
-			cleaned = cleaned[:len(cleaned)-1]
+		cleaned := combined
+		combined = ""
+
+		if loc := sgrPartialRegex.FindStringIndex(cleaned); loc != nil {
+			filter.pending = cleaned[loc[0]:]
+			cleaned = cleaned[:loc[0]]
 		}
 
 		if len(filter.pending) > 32 {
 			filter.pending = ""
 		}
 
+		if isMouse && mouseEv != nil {
+			return mouseEv
+		}
+
 		if cleaned == "" {
 			return nil
 		}
 
-		if cleaned == raw {
+		if cleaned == raw && !keyMsg.Alt {
 			return keyMsg
 		}
 
@@ -62,6 +88,43 @@ func newSGRSequenceFilter() func(tea.Model, tea.Msg) tea.Msg {
 			Type:  tea.KeyRunes,
 			Runes: []rune(cleaned),
 		}
+	}
+}
+
+func parseSGRMouseMsg(s string) (tea.Msg, bool) {
+	match := sgrMouseRegex.FindStringSubmatch(s)
+	if len(match) < 5 {
+		return nil, false
+	}
+
+	btn, _ := strconv.Atoi(match[1])
+	x, _ := strconv.Atoi(match[2])
+	y, _ := strconv.Atoi(match[3])
+
+	if x > 0 {
+		x--
+	}
+	if y > 0 {
+		y--
+	}
+
+	switch btn {
+	case 64:
+		return tea.MouseMsg{
+			X:      x,
+			Y:      y,
+			Button: tea.MouseButtonWheelUp,
+			Action: tea.MouseActionPress,
+		}, true
+	case 65:
+		return tea.MouseMsg{
+			X:      x,
+			Y:      y,
+			Button: tea.MouseButtonWheelDown,
+			Action: tea.MouseActionPress,
+		}, true
+	default:
+		return nil, true
 	}
 }
 
