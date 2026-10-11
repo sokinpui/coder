@@ -47,15 +47,15 @@ func Root() string {
 func DirInfo() string {
 	var dirInfoParts []string
 	if cwd, err := os.Getwd(); err == nil {
-		dirInfoParts = append(dirInfoParts, fmt.Sprintf("Current directory: %s", shortenPath(cwd)))
+		dirInfoParts = append(dirInfoParts, fmt.Sprintf("Current directory: %s", ShortenPath(cwd)))
 	}
 	if repoRoot, err := FindRepoRoot(); err == nil {
-		dirInfoParts = append(dirInfoParts, fmt.Sprintf("Project Root: %s", shortenPath(repoRoot)))
+		dirInfoParts = append(dirInfoParts, fmt.Sprintf("Project Root: %s", ShortenPath(repoRoot)))
 	}
 	return strings.Join(dirInfoParts, "\n")
 }
 
-func shortenPath(path string) string {
+func ShortenPath(path string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return path

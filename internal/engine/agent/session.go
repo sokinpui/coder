@@ -146,7 +146,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		toolCalls = append(toolCalls, types.ToolCall{
 			ID:        callID,
 			Name:      "read",
-			Arguments: fmt.Sprintf(`{"path":%q}`, p),
+			Arguments: fmt.Sprintf(`{"path":%q}`, filepath.ToSlash(project.ShortenPath(p))),
 		})
 
 		out, imgs, err := rf.ExecuteWithImages(context.Background(), p)

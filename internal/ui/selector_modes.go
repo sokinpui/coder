@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
+	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -431,7 +432,7 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 }
 
 func loadSkillPreview(s skills.Skill) string {
-	filePath := s.Path
+	filePath := source.ExpandHome(s.Path)
 	if !filepath.IsAbs(filePath) {
 		if root := project.Root(); root != "" {
 			filePath = filepath.Join(root, filePath)

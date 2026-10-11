@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -21,7 +22,7 @@ func (r *ReadToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	if path == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(project.ShortenPath(path), 60)))
 }
 
 func (r *ReadToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -37,7 +38,7 @@ func (r *ReadToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolView
 	if path == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(path))
+	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(project.ShortenPath(path)))
 }
 
 func (r *ReadToolRenderer) RenderConfirmPrompt(arguments string, width int) string {
@@ -45,7 +46,7 @@ func (r *ReadToolRenderer) RenderConfirmPrompt(arguments string, width int) stri
 	if path == "" && !strings.HasPrefix(strings.TrimSpace(arguments), "{") {
 		path = strings.TrimSpace(arguments)
 	}
-	return ToolMutedStyle.Render("Read file: ") + path
+	return ToolMutedStyle.Render("Read file: ") + project.ShortenPath(path)
 }
 
 func (r *ReadToolRenderer) RenderResult(output string, callID string, viewportWidth int) string {

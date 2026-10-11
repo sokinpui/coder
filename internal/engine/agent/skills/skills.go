@@ -1,7 +1,6 @@
 package skills
 
 import (
-	"bytes"
 	"embed"
 	"io/fs"
 	"os"
@@ -28,21 +27,28 @@ type SkillMetadata struct {
 var builtinFS embed.FS
 
 var (
-	builtinDirOnce sync.Once
-	builtinDir     string
+	ensureBuiltinOnce sync.Once
 )
 
-func getBuiltinSkillsDir() string {
-	builtinDirOnce.Do(func() {
-		cacheDir := filepath.Join(os.TempDir(), "coder", "skills")
-		if err := extractBuiltinSkills(cacheDir); err == nil {
-			builtinDir = cacheDir
-		}
-	})
-	return builtinDir
+func getGlobalSkillsDir() string {
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" {
+		return filepath.Join(home, ".config", "coder", "skills")
+	}
+	return filepath.Join(os.TempDir(), "coder", "skills")
 }
 
-func extractBuiltinSkills(targetDir string) error {
+func ensureBuiltinSkills() {
+	ensureBuiltinOnce.Do(func() {
+		targetDir := getGlobalSkillsDir()
+		if targetDir == "" {
+			return
+		}
+		_ = installBuiltinSkills(targetDir)
+	})
+}
+
+func installBuiltinSkills(targetDir string) error {
 	return fs.WalkDir(builtinFS, "builtin", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -58,12 +64,12 @@ func extractBuiltinSkills(targetDir string) error {
 		if d.IsDir() {
 			return os.MkdirAll(dest, 0755)
 		}
+		if _, err := os.Stat(dest); err == nil {
+			return nil
+		}
 		data, err := builtinFS.ReadFile(path)
 		if err != nil {
 			return err
-		}
-		if existing, err := os.ReadFile(dest); err == nil && bytes.Equal(existing, data) {
-			return nil
 		}
 		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 			return err
@@ -82,6 +88,7 @@ func Find(name string) (Skill, bool) {
 }
 
 func Discover() []Skill {
+	ensureBuiltinSkills()
 	dirs := getSkillDirs()
 	seen := make(map[string]struct{})
 	var result []Skill
@@ -131,11 +138,8 @@ func getSkillDirs() []string {
 	if root := project.Root(); root != "" {
 		dirs = append(dirs, filepath.Join(root, ".coder", "skills"))
 	}
-	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		dirs = append(dirs, filepath.Join(home, ".config", "coder", "skills"))
-	}
-	if bDir := getBuiltinSkillsDir(); bDir != "" {
-		dirs = append(dirs, bDir)
+	if gDir := getGlobalSkillsDir(); gDir != "" {
+		dirs = append(dirs, gDir)
 	}
 	return dirs
 }
@@ -278,5 +282,5 @@ func relativizePath(path string) string {
 		}
 	}
 
-	return filepath.ToSlash(abs)
+	return filepath.ToSlash(project.ShortenPath(abs))
 }
