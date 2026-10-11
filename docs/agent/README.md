@@ -66,6 +66,27 @@ Inside the agent TUI, you can manually feed files into the agent's context using
 
 This immediately triggers the `read` tool and injects the file content into the conversation history.
 
+## Skills & Customization
+
+Coder supports extensible skills that provide specialized workflows and guidelines for the agent:
+
+- **Built-in Skills**: On the first run, built-in skills (such as `init` for generating or updating `AGENTS.md`) are automatically seeded to `~/.config/coder/skills/`. You can edit these markdown files directly to customize default behaviors.
+- **Skill Discovery**: Skills are discovered from project-local `.coder/skills/` (takes precedence) and global `~/.config/coder/skills/`.
+- **Skills Catalog (`/skills`)**: Browse, search, and preview available skills in a split-pane modal, then press `Enter` to load the skill into the prompt.
+- **Repository Init (`/init`)**: Automatically loads the `init` skill (`~/.config/coder/skills/init/SKILL.md`) to inspect the project structure, build commands, and conventions, then generates or updates `AGENTS.md`.
+- **Creating Custom Skills**: Create a directory in `.coder/skills/<skill-name>/` or `~/.config/coder/skills/<skill-name>/` containing a `SKILL.md` file with YAML frontmatter:
+
+```markdown
+---
+name: my-skill
+description: Describe when the agent should use this skill
+---
+
+# My Skill Instructions
+
+Detailed guidelines and workflow steps...
+```
+
 ## Shortcuts
 
 | Shortcut       | Action                                                       |

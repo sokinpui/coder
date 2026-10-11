@@ -60,6 +60,8 @@ coder --ws --port 9005    # Run headless WebSocket/HTTP server
 - `/history`: Browse and load saved session history.
 - `/active`: List and switch between running active sessions.
 - `/rename [title]`: Change current session title.
+- `/skills`: View and preview available skills.
+- `/init`: Initialize or update AGENTS.md guide for the repository (agent mode).
 - `/shell [cmd]` (alias: `!`): Execute interactive terminal command or launch subshell.
 - `/config [reload]`: View current configuration or reload from disk.
 - `/help`: Display internal help screen.

@@ -60,6 +60,8 @@ coder --ws --port 9005    # 运行支持 WebSocket/HTTP 的 Headless 服务
 - `/history`：浏览并加载已保存的会话历史记录。
 - `/active`：查看并快速切换当前内存中的活动会话。
 - `/rename [title]`：重命名当前会话标题。
+- `/skills`：浏览与预览可用技能（Skills）。
+- `/init`：初始化或更新仓库 AGENTS.md 规范指南（需 Agent 模式）。
 - `/shell [cmd]`（别名：`!`）：运行交互式终端命令或启动子 Shell。
 - `/config [reload]`：查看当前生效配置，或从磁盘重新加载配置。
 - `/help`：展示帮助界面。

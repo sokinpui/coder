@@ -66,6 +66,27 @@ coder --completion bash          # 生成 Shell 自动补全脚本
 
 该操作会立刻触发 `read` 工具，并将解析后的文件内容直接插入到当前对话的消息流中。
 
+## 技能系统与自定义扩展 (Skills & Customization)
+
+Coder 支持可扩展的智能体技能系统，为智能体提供专项工作流与指导规范：
+
+- **内置技能安装**：首次运行时，内置技能（如用于初始化与更新 `AGENTS.md` 的 `init` 技能）会自动生成至全局配置目录 `~/.config/coder/skills/`。你可以直接修改这些 Markdown 文件以定制默认行为。
+- **技能检索路径**：优先加载项目本地 `.coder/skills/`，其次加载全局 `~/.config/coder/skills/`。
+- **技能面板 (`/skills`)**：支持分栏预览、模糊搜索已发现的技能，回车即可一键将技能载入提示词输入框。
+- **项目初始化 (`/init`)**：一键调用 `init` 技能（`~/.config/coder/skills/init/SKILL.md`），自主分析当前项目的目录架构、构建测试命令与代码规范，并在项目根目录生成或更新 `AGENTS.md`。
+- **创建自定义技能**：在 `.coder/skills/<skill-name>/` 或 `~/.config/coder/skills/<skill-name>/` 目录下创建带有 YAML Frontmatter 的 `SKILL.md` 文件：
+
+```markdown
+---
+name: my-skill
+description: 描述该技能的使用场景与用途
+---
+
+# 技能指导规范
+
+详细的工作流与执行指示...
+```
+
 ## 快捷键
 
 | 快捷键         | 操作说明                                              |
