@@ -30,9 +30,9 @@ The agent executes an autonomous loop up to `max_iterations` (default: 50) using
 - **`write`**: Creates new files or overwrites existing files. Automatically creates missing parent directories.
 - **`bash`**: Executes shell commands on the host system with a 60-second default timeout and captured combined stdout/stderr.
 
-## Tool Permissions & Approval
+## Tool Configuration & Permissions
 
-Control tool execution security under `agent.permission` in your configuration. Each tool or pattern supports three actions:
+Control tool execution options and security under `agent.tools` in your configuration. Each tool supports enablement (`enabled: true|false`), execution options (e.g. `timeout`, `shell`, `max_output_kb`), and permissions. Each permission rule supports three actions:
 
 - **`allow`**: Executes the tool immediately without prompting.
 - **`ask`**: Pauses and presents an interactive confirmation modal before execution.
@@ -92,15 +92,26 @@ agent:
   modelcode: aisrp/gemini-flash-lite-latest
   reasoningeffort: high
   max_iterations: 50
-  permission:
-    bash: ask
+  tools:
+    "*":
+      permission: allow
+    bash:
+      enabled: true
+      timeout: 60s
+      max_output_kb: 64
+      shell: bash
+      permission: ask
     write:
-      ".env*": deny
-      "src/*": allow
-      "*": ask
+      enabled: true
+      permission:
+        ".env*": deny
+        "src/*": allow
+        "*": ask
     edit:
-      "*.go": allow
-      "*": ask
+      enabled: true
+      permission:
+        "*.go": allow
+        "*": ask
   keymap:
     submit: ctrl+j
     editor: ctrl+e

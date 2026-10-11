@@ -30,9 +30,9 @@ coder --completion bash          # 生成 Shell 自动补全脚本
 - **`write`**：创建新文件或完全覆写现有文件，自动创建不存在的父级目录。
 - **`bash`**：在宿主系统中执行 Shell 命令，默认超时时间 60 秒，自动捕获并截断标准输出与错误流。
 
-## 工具权限与执行审批 (Tool Permissions)
+## 工具配置与执行审批 (Tool Configuration & Permissions)
 
-可通过配置文件中 `agent.permission` 节点精细控制各工具的执行权限。支持三种权限动作：
+可通过配置文件中 `agent.tools` 节点集中配置各工具的运行参数与执行权限。每个工具支持启用开关（`enabled: true|false`）、专属执行参数（如 `timeout`、`shell`、`max_output_kb` 等）以及权限策略。支持三种权限动作：
 
 - **`allow`**：直接执行，无需人工确认。
 - **`ask`**：执行前在终端界面弹出审批弹窗，等待用户授权。
@@ -92,15 +92,26 @@ agent:
   modelcode: aisrp/gemini-flash-lite-latest
   reasoningeffort: high
   max_iterations: 50
-  permission:
-    bash: ask
+  tools:
+    "*":
+      permission: allow
+    bash:
+      enabled: true
+      timeout: 60s
+      max_output_kb: 64
+      shell: bash
+      permission: ask
     write:
-      ".env*": deny
-      "src/*": allow
-      "*": ask
+      enabled: true
+      permission:
+        ".env*": deny
+        "src/*": allow
+        "*": ask
     edit:
-      "*.go": allow
-      "*": ask
+      enabled: true
+      permission:
+        "*.go": allow
+        "*": ask
   keymap:
     submit: ctrl+j
     editor: ctrl+e

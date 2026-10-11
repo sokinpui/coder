@@ -113,12 +113,17 @@ agent:
   modelcode: aisrp/gemini-flash-lite-latest
   reasoningeffort: high
   max_iterations: 50
-  permission:
-    bash: ask
+  tools:
+    "*":
+      permission: allow
+    bash:
+      enabled: true
+      permission: ask
     write:
-      ".env*": deny
-      "*": ask
-```
+      enabled: true
+      permission:
+        ".env*": deny
+        "*": ask
 
 ## Coder 工具生态
 
