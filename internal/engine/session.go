@@ -46,6 +46,7 @@ func NormalizeMode(mode string) string {
 type CommandOutput struct {
 	Type            types.EventType
 	Payload         string
+	SubmitPrompt    string
 	Mode            string
 	IsShell         bool
 	IsContext       bool

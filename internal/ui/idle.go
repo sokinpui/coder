@@ -90,26 +90,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	}
 
 	if !commands.IsCommand(input) {
-		m.Chat.ShowPalette = false
-
-		var cmds []tea.Cmd
-		if !m.Session.IsTitleGenerated() {
-			cmds = append(cmds, generateTitleCmd(m.Session, input))
-		}
-		cmds = append(cmds, m.updateTokenCountCmd())
-
-		eventChan, err := m.Session.Submit(context.Background(), input)
-		if err != nil {
-			m.Session.AddMessages(types.Message{
-				Type:    types.CommandErrorResultMessage,
-				Content: err.Error(),
-			})
-			return m, tea.Batch(cmds...)
-		}
-
-		newModel, genCmd := m.startGenerationEvents(eventChan)
-		cmds = append(cmds, genCmd)
-		return newModel, tea.Batch(cmds...)
+		return m.submitPrompt(input)
 	}
 
 	m.Chat.ShowPalette = false
@@ -144,7 +125,34 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 		m.Chat.TextArea.Reset()
 	}
 
+	if cmdOut.SubmitPrompt != "" {
+		return m.submitPrompt(cmdOut.SubmitPrompt)
+	}
+
 	return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd())
+}
+
+func (m Model) submitPrompt(prompt string) (tea.Model, tea.Cmd) {
+	m.Chat.ShowPalette = false
+
+	var cmds []tea.Cmd
+	if !m.Session.IsTitleGenerated() {
+		cmds = append(cmds, generateTitleCmd(m.Session, prompt))
+	}
+	cmds = append(cmds, m.updateTokenCountCmd())
+
+	eventChan, err := m.Session.Submit(context.Background(), prompt)
+	if err != nil {
+		m.Session.AddMessages(types.Message{
+			Type:    types.CommandErrorResultMessage,
+			Content: err.Error(),
+		})
+		return m, tea.Batch(cmds...)
+	}
+
+	newModel, genCmd := m.startGenerationEvents(eventChan)
+	cmds = append(cmds, genCmd)
+	return newModel, tea.Batch(cmds...)
 }
 
 func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {

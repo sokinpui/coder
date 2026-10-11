@@ -1,9 +1,13 @@
 package skills
 
 import (
+	"bytes"
+	"embed"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/sokinpui/coder/internal/project"
 	"gopkg.in/yaml.v3"
@@ -18,6 +22,63 @@ type Skill struct {
 type SkillMetadata struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
+}
+
+//go:embed builtin
+var builtinFS embed.FS
+
+var (
+	builtinDirOnce sync.Once
+	builtinDir     string
+)
+
+func getBuiltinSkillsDir() string {
+	builtinDirOnce.Do(func() {
+		cacheDir := filepath.Join(os.TempDir(), "coder", "skills")
+		if err := extractBuiltinSkills(cacheDir); err == nil {
+			builtinDir = cacheDir
+		}
+	})
+	return builtinDir
+}
+
+func extractBuiltinSkills(targetDir string) error {
+	return fs.WalkDir(builtinFS, "builtin", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel("builtin", path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		dest := filepath.Join(targetDir, rel)
+		if d.IsDir() {
+			return os.MkdirAll(dest, 0755)
+		}
+		data, err := builtinFS.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if existing, err := os.ReadFile(dest); err == nil && bytes.Equal(existing, data) {
+			return nil
+		}
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(dest, data, 0644)
+	})
+}
+
+func Find(name string) (Skill, bool) {
+	for _, s := range Discover() {
+		if strings.EqualFold(s.Name, name) {
+			return s, true
+		}
+	}
+	return Skill{}, false
 }
 
 func Discover() []Skill {
@@ -72,6 +133,9 @@ func getSkillDirs() []string {
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		dirs = append(dirs, filepath.Join(home, ".config", "coder", "skills"))
+	}
+	if bDir := getBuiltinSkillsDir(); bDir != "" {
+		dirs = append(dirs, bDir)
 	}
 	return dirs
 }
