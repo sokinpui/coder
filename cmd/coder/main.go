@@ -16,6 +16,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/factory"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/server"
+	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
 	"github.com/sokinpui/coder/pkg/version"
@@ -146,13 +147,15 @@ func runServer(cmd *cobra.Command) {
 }
 
 func runCLI(cmd *cobra.Command, args []string) {
-	if headlessMode || serverPort > 0 || serverSocket != "" || wsMode {
-		runServer(cmd)
+	if completionShell != "" {
+		generateCompletion(cmd, completionShell)
 		return
 	}
 
-	if completionShell != "" {
-		generateCompletion(cmd, completionShell)
+	templates.EnsureBuiltinTemplates()
+
+	if headlessMode || serverPort > 0 || serverSocket != "" || wsMode {
+		runServer(cmd)
 		return
 	}
 

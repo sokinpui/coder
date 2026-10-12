@@ -31,7 +31,7 @@ func getGlobalTemplatesDir() string {
 	return filepath.Join(os.TempDir(), "coder", "templates")
 }
 
-func ensureBuiltinTemplates() {
+func EnsureBuiltinTemplates() {
 	ensureBuiltinOnce.Do(func() {
 		targetDir := getGlobalTemplatesDir()
 		if targetDir == "" {
@@ -72,7 +72,7 @@ func installBuiltinTemplates(targetDir string) error {
 }
 
 func Find(name string) (Template, bool) {
-	ensureBuiltinTemplates()
+	EnsureBuiltinTemplates()
 
 	for _, dir := range getTemplateDirs() {
 		candidate := filepath.Join(dir, name+".md")
