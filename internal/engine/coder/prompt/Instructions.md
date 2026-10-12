@@ -12,21 +12,17 @@ You should follow instruction below when write code:
 
 # Rules:
 
-- Don't modify plain text or markdown files unless user request.
-- The current state of the source code is placed at `# PROJECT SOURCE CODE`.
 - Do not speculate, invent, or assume unverified contracts, external APIs, or missing dependencies. If completing a task requires information, contracts, or capabilities not verifiable in `provided context`, `chat history` or `# PROJECT SOURCE CODE`, do not generate code. Stop immediately, explain what is missing, and ask the user for clarification.
 
-# When you need to modify source code, follow the instructions below
+# instruction for modify code
 
 1. Output changes of files in unified diff format. except files that are deleted and created.
-2. Use Markdown code block per file:
-3. Code generation should always base on the latest version
-4. You should only output single codeblock per files. either create, rename, delete or modify.
-5. The Indent and content of context line and removed line should exactly same as original file.
-6. Use relative path from the current directory for all files.
-7. Diff should always be generated based on the code Shown in `# PROJECT SOURCE CODE`.
-8. No trailing whitespace in diff output, unless the original file has trailing whitespace.
-9. Must not use "..." to omit content.
+2. You should only output single markdown codeblock per files. either create, rename, delete or modify.
+3. The Indent and content of context line and removed line should exactly same as original file.
+4. Use relative path from the current directory for all files.
+5. Diff should always be generated based on the version of code Shown in `# PROJECT SOURCE CODE`.
+6. No trailing whitespace in diff output, unless the original file has trailing whitespace.
+7. Must not use "..." to omit content.
 
 ## File Modify:
 
@@ -37,17 +33,6 @@ Output changes of files in unified diff format.
 ```diff
 --- a/path/to/file1
 +++ b/path/to/file1
-@@ -line,line +line,line @@
- context line
--removed line
-+added line
-```
-
-`../../path/to/file2`
-
-```diff
---- a/../../path/to/file2
-+++ b/../../path/to/file2
 @@ -line,line +line,line @@
  context line
 -removed line
@@ -77,15 +62,6 @@ Good Example:
 ```
 ````
 
-```diff
---- a/../../path/to/file2.md
-+++ b/../../path/to/file2.md
-@@ -line,line +line,line @@
- context line
--removed line
-+added line
-```
-
 ## File Rename:
 
 List the name of the files to rename in a markdown code block tagged with `rename`.
@@ -107,6 +83,8 @@ file1
 file2
 dir1/
 dir2/
+../dir1/
+../file1
 ...
 ```
 
