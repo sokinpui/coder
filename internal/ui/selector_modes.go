@@ -12,6 +12,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
 	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -362,6 +363,75 @@ func (m Model) refreshHistorySelectorItems() Model {
 	}
 	m.Selector.SetItems(items)
 	return m
+}
+
+func (m Model) openTemplateSelector() (Model, tea.Cmd) {
+	templateList := templates.Discover()
+	if len(templateList) == 0 {
+		m.StatusBarMessage = "No templates found in .coder/templates or ~/.config/coder/templates"
+		return m, clearStatusBarCmd()
+	}
+
+	var items []SelectorItem
+	for _, t := range templateList {
+		items = append(items, SelectorItem{
+			ID:          t.Name,
+			Title:       t.Name,
+			Description: t.Description,
+			Data:        t,
+		})
+	}
+
+	initialPreview := ""
+	initialTitle := ""
+	if len(templateList) > 0 {
+		initialTitle = templateList[0].Name
+		initialPreview = templateList[0].Content
+	}
+
+	return m.openGenericSelector(SelectorConfig{
+		Title:          "── Prompt Templates ──",
+		Placeholder:    "Filter templates...",
+		Footer:         "── [Esc/Ctrl+C: close | /: search | Enter: apply template | C-d/C-u: scroll preview] ──",
+		Items:          items,
+		ShowSearch:     true,
+		IsSearching:    false,
+		MultiSelect:    false,
+		ShowPreview:    true,
+		PreviewTitle:   initialTitle,
+		PreviewContent: initialPreview,
+		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
+		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
+		OnCursorChange: func(mod Model, current *SelectorItem) Model {
+			if current != nil {
+				if t, ok := current.Data.(templates.Template); ok {
+					mod.Selector.PreviewTitle = t.Name
+					mod.Selector.PreviewContent = t.Content
+					mod.Selector.PreviewOffset = 0
+				}
+			}
+			return mod
+		},
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			mod.ActiveOverlay = overlayNone
+			if primary == nil {
+				if mod.State == stateIdle {
+					mod.Chat.TextArea.Focus()
+				}
+				return mod, textarea.Blink
+			}
+			if tmpl, ok := primary.Data.(templates.Template); ok {
+				cmdOut, _ := mod.Session.ExecuteCommand("/template " + tmpl.Name)
+				if cmdOut.SubmitPrompt != "" {
+					return mod.submitPrompt(cmdOut.SubmitPrompt)
+				}
+			}
+			if mod.State == stateIdle {
+				mod.Chat.TextArea.Focus()
+			}
+			return mod, textarea.Blink
+		},
+	})
 }
 
 func (m Model) openSkillsSelector() (Model, tea.Cmd) {

@@ -71,8 +71,6 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 		return caps.Has(engine.CapBranch)
 	case "gen":
 		return caps.Has(engine.CapRegenerate)
-	case "init":
-		return caps.Has(engine.CapToolLoop)
 	default:
 		return true
 	}

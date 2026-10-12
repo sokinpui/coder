@@ -9,11 +9,19 @@ import (
 	"sync"
 
 	"github.com/sokinpui/coder/internal/project"
+	"gopkg.in/yaml.v3"
 )
 
 type Template struct {
-	Name string
-	Path string
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Path        string `yaml:"path"`
+	Content     string `yaml:"content"`
+}
+
+type TemplateMetadata struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
 }
 
 //go:embed builtin
@@ -70,29 +78,142 @@ func installBuiltinTemplates(targetDir string) error {
 		return os.WriteFile(dest, data, 0644)
 	})
 }
-
 func Find(name string) (Template, bool) {
 	EnsureBuiltinTemplates()
 
-	for _, dir := range getTemplateDirs() {
-		candidate := filepath.Join(dir, name+".md")
-		if _, err := os.Stat(candidate); err == nil {
-			return Template{
-				Name: name,
-				Path: relativizePath(candidate),
-			}, true
-		}
-
-		candidateRaw := filepath.Join(dir, name)
-		if info, err := os.Stat(candidateRaw); err == nil && !info.IsDir() {
-			return Template{
-				Name: name,
-				Path: relativizePath(candidateRaw),
-			}, true
+	for _, t := range Discover() {
+		if strings.EqualFold(t.Name, name) {
+			return t, true
 		}
 	}
 
 	return Template{}, false
+}
+
+func Discover() []Template {
+	EnsureBuiltinTemplates()
+
+	dirs := getTemplateDirs()
+	seen := make(map[string]struct{})
+	var result []Template
+
+	for _, dir := range dirs {
+		templatesInDir := scanDir(dir)
+		for _, t := range templatesInDir {
+			norm := strings.ToLower(t.Name)
+			if _, ok := seen[norm]; ok {
+				continue
+			}
+			seen[norm] = struct{}{}
+			result = append(result, t)
+		}
+	}
+
+	return result
+}
+
+func scanDir(dir string) []Template {
+	if _, err := os.Stat(dir); err != nil {
+		return nil
+	}
+
+	var templates []Template
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		name := d.Name()
+		if path != dir && strings.HasPrefix(name, ".") {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		if !strings.EqualFold(filepath.Ext(name), ".md") {
+			return nil
+		}
+
+		defaultName := strings.TrimSuffix(name, filepath.Ext(name))
+		tmpl, err := loadTemplate(path, defaultName)
+		if err == nil {
+			templates = append(templates, tmpl)
+		}
+		return nil
+	})
+
+	return templates
+}
+
+func loadTemplate(filePath, defaultName string) (Template, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return Template{}, err
+	}
+
+	meta, body, _ := parseFrontmatter(data)
+	name := meta.Name
+	if name == "" {
+		name = defaultName
+	}
+
+	displayPath := relativizePath(filePath)
+
+	return Template{
+		Name:        name,
+		Description: meta.Description,
+		Path:        displayPath,
+		Content:     strings.TrimSpace(body),
+	}, nil
+}
+
+func parseFrontmatter(data []byte) (TemplateMetadata, string, bool) {
+	content := string(data)
+	if !strings.HasPrefix(content, "---") {
+		return TemplateMetadata{}, content, false
+	}
+
+	rest := strings.TrimPrefix(content, "---")
+	if strings.HasPrefix(rest, "\r\n") {
+		rest = rest[2:]
+	} else if strings.HasPrefix(rest, "\n") {
+		rest = rest[1:]
+	} else {
+		return TemplateMetadata{}, content, false
+	}
+
+	marker := "\n---"
+	endIdx := strings.Index(rest, marker)
+	if endIdx == -1 {
+		marker = "\n..."
+		endIdx = strings.Index(rest, marker)
+	}
+	if endIdx == -1 {
+		marker = "\r\n---"
+		endIdx = strings.Index(rest, marker)
+	}
+	if endIdx == -1 {
+		marker = "\r\n..."
+		endIdx = strings.Index(rest, marker)
+	}
+	if endIdx == -1 {
+		return TemplateMetadata{}, content, false
+	}
+
+	frontmatter := rest[:endIdx]
+	body := rest[endIdx+len(marker):]
+	body = strings.TrimLeft(body, "\r\n")
+
+	var meta TemplateMetadata
+	if err := yaml.Unmarshal([]byte(frontmatter), &meta); err != nil {
+		return TemplateMetadata{}, content, false
+	}
+	return meta, body, true
 }
 
 func getTemplateDirs() []string {
