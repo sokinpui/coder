@@ -33,10 +33,6 @@ func (m Model) StatusView() string {
 	items = append(items, ModelInfoStyle.Render(version.Get()))
 	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Mode: %s", m.Session.GetMode())))
 
-	if m.TokenCount > 0 {
-		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))
-	}
-
 	modelCode := m.Session.GetConfig().Coder.ModelCode
 	if m.Session.Capabilities().Has(engine.CapToolLoop) {
 		modelCode = m.Session.GetConfig().Agent.ModelCode
@@ -44,11 +40,15 @@ func (m Model) StatusView() string {
 	items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Model: %s", modelCode)))
 
 	if effort := m.Session.GetReasoningEffort(); effort != "" {
-		items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Effort: %s", effort)))
+		items = append(items, ModelInfoStyle.Render(fmt.Sprintf("Reasoning: %s", effort)))
+	}
+
+	if m.TokenCount > 0 {
+		items = append(items, TokenCountStyle.Render(fmt.Sprintf("Tokens: ≈%d", m.TokenCount)))
 	}
 
 	if m.Session.Capabilities().Has(engine.CapToolToggle) {
-		items = append(items, ToolMutedStyle.Render(fmt.Sprintf("Tools: [%s] (Ctrl+T)", m.ToolMode.Label())))
+		items = append(items, ToolCallStyle.Render(m.ToolMode.Icon()))
 	}
 
 	switch m.State {

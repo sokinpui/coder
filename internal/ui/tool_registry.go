@@ -29,6 +29,17 @@ func (m ToolViewMode) Label() string {
 	}
 }
 
+func (m ToolViewMode) Icon() string {
+	switch m {
+	case ToolViewFull:
+		return "⚡▼"
+	case ToolViewSummary:
+		return "⚡▾"
+	default:
+		return "⚡▸"
+	}
+}
+
 type ToolViewRenderer interface {
 	RenderCall(call types.ToolCall, viewportWidth int) string
 	RenderResult(output string, callID string, viewportWidth int) string
