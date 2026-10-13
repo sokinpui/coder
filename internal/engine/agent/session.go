@@ -14,6 +14,7 @@ import (
 	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
 	"github.com/sokinpui/coder/internal/engine/agent/tools"
+	"github.com/sokinpui/coder/internal/engine/compactor"
 	coderprompt "github.com/sokinpui/coder/internal/engine/coder/prompt"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
@@ -181,6 +182,40 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		Payload:         fmt.Sprintf("Read %d file(s)", len(allPaths)),
 		IsAgentFileRead: true,
 	}, true
+}
+
+func (s *Session) Compact(ctx context.Context) (string, error) {
+	s.mu.RLock()
+	startIndex, splitIndex, err := compactor.FindSplitPoint(s.Messages)
+	if err != nil {
+		s.mu.RUnlock()
+		return "", err
+	}
+	span := append([]types.Message(nil), s.Messages[startIndex:startIndex+splitIndex+1]...)
+	s.mu.RUnlock()
+
+	cfg := s.Runtime.SecondaryConfig
+	if cfg.ModelCode == "" {
+		cfg = s.Runtime.Config
+	}
+	summary, err := compactor.Execute(ctx, s.Runtime.Generator, &cfg, span)
+	if err != nil {
+		return "", err
+	}
+
+	compactMsg := types.Message{
+		Type:    types.CompactedSummaryMessage,
+		Content: "<compacted-summary>\n" + summary + "\n</compacted-summary>",
+	}
+
+	s.mu.Lock()
+	tail := append([]types.Message(nil), s.Messages[startIndex+splitIndex+1:]...)
+	s.Messages = append(s.Messages[:startIndex], compactMsg)
+	s.Messages = append(s.Messages, tail...)
+	s.mu.Unlock()
+
+	_ = s.SaveConversation()
+	return summary, nil
 }
 
 func (s *Session) RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error {

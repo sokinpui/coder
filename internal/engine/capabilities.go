@@ -13,6 +13,7 @@ const (
 	CapDocumentContext
 	CapToolLoop
 	CapReasoningSwitch
+	CapCompact
 )
 
 func (c Capability) Has(target Capability) bool {

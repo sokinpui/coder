@@ -95,17 +95,25 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				})
 			}
 			for _, tc := range msg.ToolCalls {
-				inputItems = append(inputItems, map[string]any{
+				item := map[string]any{
 					"type":      "function_call",
 					"call_id":   tc.ID,
 					"name":      tc.Name,
 					"arguments": tc.Arguments,
-				})
+				}
+				if tc.ID != "" {
+					item["id"] = tc.ID
+				}
+				inputItems = append(inputItems, item)
 			}
 		case types.RoleTool:
+			callID := msg.ToolCallID
+			if callID == "" {
+				callID = "call_fallback"
+			}
 			inputItems = append(inputItems, map[string]any{
 				"type":    "function_call_output",
-				"call_id": msg.ToolCallID,
+				"call_id": callID,
 				"output":  msg.Content,
 			})
 		}

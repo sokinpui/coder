@@ -27,6 +27,7 @@ const (
 	FileApplyUndoCmdErrorMessage
 	ToolCallMessage
 	ToolResultMessage
+	CompactedSummaryMessage
 )
 
 type Message struct {
@@ -128,6 +129,8 @@ func (t MessageType) String() string {
 		return "Tool Call"
 	case ToolResultMessage:
 		return "Tool Result"
+	case CompactedSummaryMessage:
+		return "Compacted Summary"
 	default:
 		return "Unknown"
 	}
@@ -175,7 +178,8 @@ func (t MessageType) IsHistory() bool {
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
 		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
-		ToolCallMessage, ToolResultMessage:
+		ToolCallMessage, ToolResultMessage,
+		CompactedSummaryMessage:
 		return true
 	default:
 		return false
@@ -204,7 +208,7 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
-		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage:
+		CompactedSummaryMessage:
 		return RoleUser, true
 	default:
 		return "", false
@@ -222,6 +226,20 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 		}
 		role, ok := msg.Type.ChatRole()
 		if !ok {
+			continue
+		}
+
+		if msg.Type == CompactedSummaryMessage {
+			chatMessages = append(chatMessages,
+				ChatMessage{
+					Role:    RoleUser,
+					Content: "[Conversation Checkpoint]\n" + msg.Content,
+				},
+				ChatMessage{
+					Role:    RoleAssistant,
+					Content: "Understood. I have loaded the conversation checkpoint and will continue based on this context.",
+				},
+			)
 			continue
 		}
 
@@ -279,7 +297,8 @@ func (m Message) CanSendToAI() bool {
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
 		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
-		ToolCallMessage, ToolResultMessage:
+		ToolCallMessage, ToolResultMessage,
+		CompactedSummaryMessage:
 		return true
 	default:
 		return false

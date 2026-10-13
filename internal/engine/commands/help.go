@@ -32,6 +32,7 @@ var commandGroup = helpGroup{
 	{key: "active", desc: "View active chat sessions."},
 	{key: "branch", desc: "Enter branch mode to branch from a message.", cap: engine.CapBranch},
 	{key: "clear_context", desc: "Clear all context files and documents.", cap: engine.CapContextFiles},
+	{key: "compact", desc: "Compact conversation history into a structured checkpoint.", cap: engine.CapCompact},
 	{key: "config", desc: "Print the current configuration."},
 	{key: "edit", desc: "Enter edit mode to edit a user prompt."},
 	{key: "exclude", desc: "Exclude a file/directory from the project source.", cap: engine.CapContextFiles},

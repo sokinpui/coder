@@ -115,6 +115,7 @@ type EngineSession interface {
 	ExecuteCommand(input string) (CommandOutput, bool)
 
 	CreateNew(mode string) (EngineSession, error)
+	Compact(ctx context.Context) (string, error)
 	SaveConversation() error
 	LoadConversation(filename string) error
 	Branch(endMessageIndex int) (EngineSession, error)

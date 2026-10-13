@@ -38,6 +38,7 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapBranch |
 		engine.CapRegenerate |
 		engine.CapShell |
+		engine.CapCompact |
 		engine.CapReasoningSwitch
 }
 
