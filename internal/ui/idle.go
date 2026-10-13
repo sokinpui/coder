@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
@@ -265,6 +266,16 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 			return newModel, cmd, true
 		}
 		return m, nil, false
+
+	case "compact":
+		if !m.Session.Capabilities().Has(engine.CapCompact) {
+			return m, nil, false
+		}
+		m.Chat.TextArea.Reset()
+		m.State = stateThinking
+		m.StatusText = "Compacting conversation"
+		m.Chat.StateStartTime = time.Now()
+		return m, tea.Batch(compactConversationCmd(m.Session), m.Chat.Spinner.Tick), true
 	}
 
 	return m, nil, false

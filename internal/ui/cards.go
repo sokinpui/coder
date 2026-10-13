@@ -54,6 +54,8 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		return RenderToolCallMessage(msg, ToolViewCompact, viewportWidth)
 	case types.ToolResultMessage:
 		return RenderToolResultMessage(msg, "", ToolViewCompact, viewportWidth)
+	case types.CompactedSummaryMessage:
+		return RenderCompactedSummaryMessage(msg, viewportWidth)
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
 		return CommandResultStyle.Width(viewportWidth - CommandResultStyle.GetHorizontalFrameSize()).Render(content)
@@ -63,6 +65,25 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	default:
 		return ""
 	}
+}
+
+func RenderCompactedSummaryMessage(msg types.Message, viewportWidth int) string {
+	width := 80
+	if viewportWidth > 0 {
+		width = viewportWidth
+	}
+	cardWidth := max(30, width-4)
+	contentWidth := max(20, cardWidth-PreviewBoxStyle.GetHorizontalFrameSize())
+
+	header := CompactedSummaryHeaderStyle.Render("⚡ Conversation Checkpoint (Compacted)")
+	body := strings.TrimSpace(msg.Content)
+	body = strings.TrimPrefix(body, "<compacted-summary>")
+	body = strings.TrimSuffix(body, "</compacted-summary>")
+	body = strings.TrimSpace(body)
+
+	rendered := markdown.Render(body, contentWidth)
+	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
+	return PreviewBoxStyle.Width(cardWidth).Render(header + "\n\n" + strings.Join(lines, "\n"))
 }
 
 func ToolCallKeyID(tc types.ToolCall) string {

@@ -95,6 +95,11 @@ type (
 	switchActiveSessionMsg struct {
 		sess engine.EngineSession
 	}
+	conversationCompactedMsg struct {
+		sessID  string
+		summary string
+		err     error
+	}
 	pasteResultMsg   = PasteResultMsg
 	shellFinishedMsg struct {
 		cmdStr string

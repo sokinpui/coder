@@ -273,6 +273,17 @@ func scanAddFilesCmd(customExclusions []string) tea.Cmd {
 	}
 }
 
+func compactConversationCmd(sess engine.EngineSession) tea.Cmd {
+	return func() tea.Msg {
+		summary, err := sess.Compact(context.Background())
+		return conversationCompactedMsg{
+			sessID:  sess.GetID(),
+			summary: summary,
+			err:     err,
+		}
+	}
+}
+
 func listHistoryCmd(histMgr *history.Manager, mode string) tea.Cmd {
 	return func() tea.Msg {
 		items, err := histMgr.ListConversationsByMode(mode)

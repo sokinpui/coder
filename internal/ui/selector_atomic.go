@@ -353,6 +353,10 @@ func getMessageSummary(msg types.Message) string {
 		return strings.Join(calls, ", ")
 	}
 
+	if msg.Type == types.CompactedSummaryMessage {
+		return "Compacted Summary Checkpoint"
+	}
+
 	if msg.Type == types.ToolResultMessage {
 		trimmed := strings.TrimSpace(msg.Content)
 		if !strings.HasPrefix(trimmed, "Error:") && !strings.HasPrefix(trimmed, "cannot read") {

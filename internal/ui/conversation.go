@@ -64,6 +64,12 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 		return strings.Split(normalized, "\n")
 	}
 
+	if msg.Type == types.CompactedSummaryMessage {
+		rendered := RenderCompactedSummaryMessage(msg, viewportWidth)
+		normalized := strings.ReplaceAll(rendered, "\r\n", "\n")
+		return strings.Split(normalized, "\n")
+	}
+
 	if cache, ok := m.Chat.RenderCache[idx]; ok && cache.Content == msg.Content && cache.Width == viewportWidth {
 		return cache.Lines
 	}
@@ -92,7 +98,8 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 	switch msg.Type {
 	case types.UserMessage, types.ImageMessage, types.CommandMessage, types.ShellCmdMessage,
 		types.ContextCmdMessage, types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage,
-		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:
+		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage,
+		types.CompactedSummaryMessage:
 		colStart := 2
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)

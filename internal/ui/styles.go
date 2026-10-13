@@ -64,6 +64,10 @@ var (
 	ToolResultStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244"))
 
+	CompactedSummaryHeaderStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("214")).
+					Bold(true)
+
 	// Status Bar Styles
 	StatusStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
 	ModelInfoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))

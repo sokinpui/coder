@@ -352,7 +352,33 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				Title: p,
 			})
 		}
-		m.Selector.SetItems(items)
+		return m, nil, true
+
+	case conversationCompactedMsg:
+		targetSess := m.getSessionByID(msg.sessID)
+		if targetSess == nil {
+			return m, nil, true
+		}
+		isActive := m.Session != nil && targetSess.GetID() == m.Session.GetID()
+		if isActive {
+			m.State = stateIdle
+			m.StatusText = ""
+			if msg.err != nil {
+				m.Session.AddMessages(
+					types.Message{Type: types.CommandErrorResultMessage, Content: fmt.Sprintf("Compaction failed: %v", msg.err)},
+				)
+			} else {
+				m.Session.AddMessages(
+					types.Message{Type: types.CommandResultMessage, Content: "Conversation successfully compacted into checkpoint."},
+				)
+			}
+			m.ClearCache()
+			m.Chat.Viewport.SetContent(m.renderConversation())
+			m.Chat.Viewport.GotoBottom()
+			m.Chat.TextArea.Focus()
+			m = m.updateLayout()
+			return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd(), textarea.Blink), true
+		}
 		return m, nil, true
 
 	case conversationLoadedMsg:
