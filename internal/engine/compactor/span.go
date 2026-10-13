@@ -3,14 +3,12 @@ package compactor
 import (
 	"fmt"
 
-	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/types"
 )
 
 const (
 	minConversationalMessages = 4
-	minCompactionTokens       = 250
-	targetBudgetFraction      = 0.85
+	minTailMessages           = 2
 )
 
 func FindSplitPoint(messages []types.Message) (int, int, error) {
@@ -24,14 +22,7 @@ func FindSplitPoint(messages []types.Message) (int, int, error) {
 		return -1, -1, fmt.Errorf("conversation too short to compact (need at least %d turns, got %d)", minConversationalMessages, len(convMsgs))
 	}
 
-	totalTokens := token.CountTokens(convMsgs)
-	if totalTokens < minCompactionTokens {
-		return -1, -1, fmt.Errorf("conversation token count too small to compact (%d tokens)", totalTokens)
-	}
-
-	targetTokens := int(float64(totalTokens) * targetBudgetFraction)
-	initialCut := findInitialTokenCut(convMsgs, targetTokens)
-
+	initialCut := len(convMsgs) - minTailMessages - 1
 	balancedCut := balanceToolCallBoundaries(convMsgs, initialCut)
 	if balancedCut < 0 {
 		return -1, -1, fmt.Errorf("unable to find a safe turn boundary for compaction")
@@ -50,23 +41,6 @@ func findConversationalStart(messages []types.Message) int {
 		}
 	}
 	return -1
-}
-
-func findInitialTokenCut(convMsgs []types.Message, targetTokens int) int {
-	maxAllowedCut := len(convMsgs) - 2
-	accumulated := 0
-	cut := 0
-
-	for i := 0; i <= maxAllowedCut; i++ {
-		accumulated += token.CountTokens([]types.Message{convMsgs[i]})
-		if accumulated <= targetTokens {
-			cut = i
-			continue
-		}
-		break
-	}
-
-	return min(cut, maxAllowedCut)
 }
 
 func balanceToolCallBoundaries(convMsgs []types.Message, cut int) int {

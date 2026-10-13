@@ -134,8 +134,8 @@ func (s *Session) GetConfig() *config.Config {
 	return s.config
 }
 
-func (s *Session) Compact(ctx context.Context) (string, error) {
-	return "", fmt.Errorf("compaction is only supported in agent mode")
+func (s *Session) Compact(ctx context.Context) (engine.EngineSession, string, error) {
+	return nil, "", fmt.Errorf("compaction is only supported in agent mode")
 }
 
 func (s *Session) ReloadConfig() error {

@@ -97,6 +97,7 @@ type (
 	}
 	conversationCompactedMsg struct {
 		sessID  string
+		newSess engine.EngineSession
 		summary string
 		err     error
 	}

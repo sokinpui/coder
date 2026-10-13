@@ -184,14 +184,16 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 	}, true
 }
 
-func (s *Session) Compact(ctx context.Context) (string, error) {
+func (s *Session) Compact(ctx context.Context) (engine.EngineSession, string, error) {
 	s.mu.RLock()
 	startIndex, splitIndex, err := compactor.FindSplitPoint(s.Messages)
 	if err != nil {
 		s.mu.RUnlock()
-		return "", err
+		return nil, "", err
 	}
 	span := append([]types.Message(nil), s.Messages[startIndex:startIndex+splitIndex+1]...)
+	tail := append([]types.Message(nil), s.Messages[startIndex+splitIndex+1:]...)
+	prefix := append([]types.Message(nil), s.Messages[:startIndex]...)
 	s.mu.RUnlock()
 
 	cfg := s.Runtime.SecondaryConfig
@@ -200,7 +202,12 @@ func (s *Session) Compact(ctx context.Context) (string, error) {
 	}
 	summary, err := compactor.Execute(ctx, s.Runtime.Generator, &cfg, span)
 	if err != nil {
-		return "", err
+		return nil, "", err
+	}
+
+	newSess, err := NewSession(s.Config)
+	if err != nil {
+		return nil, "", err
 	}
 
 	compactMsg := types.Message{
@@ -208,14 +215,15 @@ func (s *Session) Compact(ctx context.Context) (string, error) {
 		Content: "<compacted-summary>\n" + summary + "\n</compacted-summary>",
 	}
 
-	s.mu.Lock()
-	tail := append([]types.Message(nil), s.Messages[startIndex+splitIndex+1:]...)
-	s.Messages = append(s.Messages[:startIndex], compactMsg)
-	s.Messages = append(s.Messages, tail...)
-	s.mu.Unlock()
+	newMessages := append(prefix, compactMsg)
+	newMessages = append(newMessages, tail...)
+	newSess.Messages = newMessages
+	newSess.Title = fmt.Sprintf("compacted of %s", s.Title)
+	newSess.TitleGenerated = true
+	newSess.Instruction = s.Instruction
 
-	_ = s.SaveConversation()
-	return summary, nil
+	_ = newSess.SaveConversation()
+	return newSess, summary, nil
 }
 
 func (s *Session) RespondToolConfirmation(callID string, response types.ToolConfirmResponse) error {

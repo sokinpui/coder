@@ -367,17 +367,26 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.Session.AddMessages(
 					types.Message{Type: types.CommandErrorResultMessage, Content: fmt.Sprintf("Compaction failed: %v", msg.err)},
 				)
-			} else {
-				m.Session.AddMessages(
-					types.Message{Type: types.CommandResultMessage, Content: "Conversation successfully compacted into checkpoint."},
-				)
+				m.Chat.Viewport.SetContent(m.renderConversation())
+				m.Chat.Viewport.GotoBottom()
+				m.Chat.TextArea.Focus()
+				m = m.updateLayout()
+				return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd(), textarea.Blink), true
 			}
+
+			oldSess := m.Session
+			m.Session = msg.newSess
 			m.ClearCache()
+			m.addActiveSession(msg.newSess)
+			m.AvailableCommands = msg.newSess.GetSupportedCommands()
+			m.CommandDescriptions = msg.newSess.GetCommandDescriptions()
+			sort.Strings(m.AvailableCommands)
+			m.StatusBarMessage = "Branched to compacted session."
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 			m.Chat.TextArea.Focus()
 			m = m.updateLayout()
-			return m, tea.Batch(m.updateTokenCountCmd(), m.renderUncachedCmd(), textarea.Blink), true
+			return m, tea.Batch(clearStatusBarCmd(), m.updateTokenCountCmd(), m.renderUncachedCmd(), textarea.Blink, saveConversationCmd(oldSess)), true
 		}
 		return m, nil, true
 

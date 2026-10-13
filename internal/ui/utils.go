@@ -275,9 +275,10 @@ func scanAddFilesCmd(customExclusions []string) tea.Cmd {
 
 func compactConversationCmd(sess engine.EngineSession) tea.Cmd {
 	return func() tea.Msg {
-		summary, err := sess.Compact(context.Background())
+		newSess, summary, err := sess.Compact(context.Background())
 		return conversationCompactedMsg{
 			sessID:  sess.GetID(),
+			newSess: newSess,
 			summary: summary,
 			err:     err,
 		}

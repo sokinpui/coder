@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/types"
 )
@@ -17,16 +14,8 @@ func compactCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: compact"}, false
 	}
 
-	_, err := s.Compact(context.Background())
-	if err != nil {
-		return CommandOutput{
-			Type:    types.MessagesUpdated,
-			Payload: fmt.Sprintf("Compaction failed: %v", err),
-		}, false
-	}
-
 	return CommandOutput{
 		Type:    types.MessagesUpdated,
-		Payload: "Conversation successfully compacted into checkpoint.",
+		Payload: "Interactive command: use in TUI mode or session/compact RPC.",
 	}, true
 }

@@ -64,19 +64,22 @@ func (s *Server) handleCompact(req Request) {
 		s.sendError(req.ID, -32603, "Compaction is only supported in agent mode")
 		return
 	}
-	summary, err := s.session.Compact(context.Background())
+	newSess, summary, err := s.session.Compact(context.Background())
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Compaction failed: %v", err))
 		return
 	}
-	_ = s.session.SaveConversation()
-	s.hydrateSessionImages()
-	tokenCount := token.CountTokens(s.session.GetPrompt())
+	if cs, ok := newSess.(*coder.Session); ok {
+		s.session = cs
+		s.hydrateSessionImages()
+	}
+	tokenCount := token.CountTokens(newSess.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
 		"compacted":  true,
+		"sessionId":  newSess.GetID(),
 		"summary":    summary,
 		"tokenCount": tokenCount,
-		"messages":   s.session.GetMessages(),
+		"messages":   newSess.GetMessages(),
 	})
 }
 
