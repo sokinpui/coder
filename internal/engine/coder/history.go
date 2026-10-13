@@ -15,7 +15,7 @@ func (s *Session) SaveConversation() error {
 	}
 
 	if s.historyFilename == "" {
-		s.historyFilename = fmt.Sprintf("%d.md", s.createdAt.Unix())
+		s.historyFilename = fmt.Sprintf("%d", s.createdAt.Unix())
 	}
 
 	wd, err := os.Getwd()
@@ -23,16 +23,12 @@ func (s *Session) SaveConversation() error {
 		wd = ""
 	}
 
-	promptMsgs := s.BuildPrompt(nil)
-	allMsgs := append([]types.Message{}, promptMsgs...)
-	allMsgs = append(allMsgs, s.messages...)
-
 	data := &history.ConversationData{
 		Filename:         s.historyFilename,
 		Title:            s.title,
 		Mode:             s.GetMode(),
 		CreatedAt:        s.createdAt,
-		Messages:         allMsgs,
+		Messages:         s.messages,
 		ContextFiles:     s.contextFiles,
 		ContextDocuments: s.contextDocuments,
 		Exclusions:       s.config.Coder.Context.Exclusions,

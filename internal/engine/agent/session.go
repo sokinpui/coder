@@ -261,7 +261,7 @@ func (s *Session) SaveConversation() error {
 	s.mu.RUnlock()
 
 	if s.HistoryFilename == "" {
-		s.HistoryFilename = fmt.Sprintf("%d.md", s.CreatedAt.Unix())
+		s.HistoryFilename = fmt.Sprintf("%d", s.CreatedAt.Unix())
 	}
 
 	wd, _ := os.Getwd()

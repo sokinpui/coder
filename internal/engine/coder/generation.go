@@ -38,7 +38,10 @@ func (s *Session) StartGeneration() types.Event {
 
 	for i := range messages {
 		if messages[i].Type == types.ImageMessage && messages[i].Data == nil {
-			absPath := filepath.Join(repoRoot, messages[i].Content)
+			absPath := messages[i].Content
+			if !filepath.IsAbs(absPath) && repoRoot != "" {
+				absPath = filepath.Join(repoRoot, absPath)
+			}
 			data, err := os.ReadFile(absPath)
 			if err != nil {
 				continue
