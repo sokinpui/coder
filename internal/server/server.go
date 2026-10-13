@@ -33,6 +33,8 @@ func (s *Server) dispatch(req Request) {
 		s.handleInit(req)
 	case "session/prompt":
 		s.handlePrompt(req)
+	case "session/compact":
+		s.handleCompact(req)
 	case "session/cancel":
 		s.handleCancel(req)
 	case "session/context/add":

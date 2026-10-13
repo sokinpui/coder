@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/coder"
 	"github.com/sokinpui/coder/internal/engine/token"
 	"github.com/sokinpui/coder/internal/project"
@@ -51,6 +52,31 @@ func (s *Server) handleInit(req Request) {
 		"model":            sess.GetConfig().Coder.ModelCode,
 		"reasoningEffort":  sess.GetReasoningEffort(),
 		"tokenCount":       tokenCount,
+	})
+}
+
+func (s *Server) handleCompact(req Request) {
+	if err := s.ensureSession(); err != nil {
+		s.sendError(req.ID, -32603, err.Error())
+		return
+	}
+	if !s.session.Capabilities().Has(engine.CapCompact) {
+		s.sendError(req.ID, -32603, "Compaction is only supported in agent mode")
+		return
+	}
+	summary, err := s.session.Compact(context.Background())
+	if err != nil {
+		s.sendError(req.ID, -32603, fmt.Sprintf("Compaction failed: %v", err))
+		return
+	}
+	_ = s.session.SaveConversation()
+	s.hydrateSessionImages()
+	tokenCount := token.CountTokens(s.session.GetPrompt())
+	s.sendResult(req.ID, map[string]any{
+		"compacted":  true,
+		"summary":    summary,
+		"tokenCount": tokenCount,
+		"messages":   s.session.GetMessages(),
 	})
 }
 
