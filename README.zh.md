@@ -28,8 +28,16 @@ curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh
 
 ## 通过 Go 安装
 
+安装最新发布版本：
+
 ```bash
 go install github.com/sokinpui/coder/cmd/coder@latest
+```
+
+从 `main` 分支安装最新开发版本：
+
+```bash
+go install github.com/sokinpui/coder/cmd/coder@main
 ```
 
 ## 本地编译安装

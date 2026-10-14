@@ -28,8 +28,16 @@ curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh
 
 ## Install with Go
 
+To install the latest release version:
+
 ```bash
 go install github.com/sokinpui/coder/cmd/coder@latest
+```
+
+To install the latest development version from the `main` branch:
+
+```bash
+go install github.com/sokinpui/coder/cmd/coder@main
 ```
 
 ## Local Build
