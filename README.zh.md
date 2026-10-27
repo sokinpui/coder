@@ -20,7 +20,7 @@
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
 ```
 
-如需同时安装所有独立子工具（`itf`、`sf`、`pcat`、`pti`），可追加 `--all`：
+如需同时安装所有独立子工具（`coder-server`、`itf`、`sf`、`pcat`、`pti`），可追加 `--all`：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash -s -- --all
@@ -138,7 +138,8 @@ agent:
 ## Coder 工具生态
 
 - **[coder.nvim](https://github.com/sokinpui/coder.nvim)**：直接集成到 Neovim 编辑器缓冲区的插件。
-- **[coder.flutter](https://github.com/sokinpui/coder.flutter)**：跨平台 GUI 客户端（桌面端、移动端、Web），通过 WebSocket 连接（`coder --ws`）。
+- **[coder.flutter](https://github.com/sokinpui/coder.flutter)**：跨平台 GUI 客户端（桌面端、移动端、Web），通过 WebSocket 连接（`coder-server --ws`）。
+- **coder-server**：独立 Headless JSON-RPC 与 WebSocket/HTTP 服务端，专为远程接入与 GUI 客户端打造。
 - **[itf](./pkg/itf/README.md)**：Insert To File — 补丁解析与应用工具，具备事务级 undo/redo 撤销重做能力。
 - **[sf](./pkg/sf/README.md)**：Search Fast — 遵循 `.gitignore` 的高并发并行目录检索器。
 - **[pti](./pkg/pti/README.md)**：PDF To Image — 将 PDF 文档按需渲染为高质量图片供视觉模型理解。

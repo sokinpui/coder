@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +14,6 @@ import (
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/factory"
 	"github.com/sokinpui/coder/internal/project"
-	"github.com/sokinpui/coder/internal/server"
 	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui"
@@ -36,10 +34,6 @@ var (
 	globalConfig      bool
 	execMode          bool
 	completionShell   string
-	headlessMode      bool
-	serverPort        int
-	serverSocket      string
-	wsMode            bool
 )
 
 func main() {
@@ -54,8 +48,7 @@ func main() {
   coder --chat
   coder --agent "Fix the failing test in pkg/itf"
   coder -a -m gpt-4o
-  coder --config -g
-  coder --headless`,
+  coder --config -g`,
 		Args: cobra.ArbitraryArgs,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault
@@ -76,10 +69,6 @@ func main() {
 	rootCmd.Flags().BoolVar(&configFlag, "config", false, "Edit configuration file")
 	rootCmd.Flags().BoolVarP(&globalConfig, "global", "g", false, "Use with --config to edit global configuration")
 	rootCmd.Flags().StringVar(&completionShell, "completion", "", "Generate autocompletion script (bash, zsh, fish, powershell)")
-	rootCmd.Flags().BoolVar(&headlessMode, "headless", false, "Run as headless JSON-RPC server over stdio")
-	rootCmd.Flags().IntVar(&serverPort, "port", 0, "Run headless server listening on TCP port")
-	rootCmd.Flags().StringVar(&serverSocket, "socket", "", "Run headless server listening on Unix socket path")
-	rootCmd.Flags().BoolVar(&wsMode, "ws", false, "Run headless server with WebSocket/HTTP support")
 
 	_ = rootCmd.RegisterFlagCompletionFunc("completion", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"bash", "zsh", "fish", "powershell"}, cobra.ShellCompDirectiveNoFileComp
@@ -95,69 +84,12 @@ func main() {
 	}
 }
 
-func runServer(cmd *cobra.Command) {
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	if cmd.Flags().Changed("protocol") && runProtocol != "" {
-		cfg.Server.Protocol = runProtocol
-	}
-	if runModel != "" {
-		cfg.Coder.ModelCode = runModel
-		cfg.Agent.ModelCode = runModel
-	}
-
-	srv := server.New(cfg)
-	if wsMode {
-		port := serverPort
-		if port == 0 {
-			port = 9005
-		}
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", port, err)
-			os.Exit(1)
-		}
-		fmt.Printf("Coder WebSocket server listening on ws://localhost:%d/ws\n", port)
-		_ = srv.ServeHTTP(listener)
-		return
-	}
-	if serverPort > 0 {
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", serverPort, err)
-			os.Exit(1)
-		}
-		_ = srv.ServeListener(listener)
-		return
-	}
-	if serverSocket != "" {
-		listener, err := net.Listen("unix", serverSocket)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on socket %s: %v\n", serverSocket, err)
-			os.Exit(1)
-		}
-		_ = srv.ServeListener(listener)
-		return
-	}
-	_ = srv.ServeStdio()
-}
-
 func runCLI(cmd *cobra.Command, args []string) {
 	if completionShell != "" {
 		generateCompletion(cmd, completionShell)
 		return
 	}
-
 	templates.EnsureBuiltinTemplates()
-
-	if headlessMode || serverPort > 0 || serverSocket != "" || wsMode {
-		runServer(cmd)
-		return
-	}
 
 	if configFlag {
 		editConfig()

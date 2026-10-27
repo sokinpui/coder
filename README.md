@@ -20,7 +20,7 @@ Installs `coder`:
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash
 ```
 
-To include all standalone utilities (`itf`, `sf`, `pcat`, `pti`), append `--all`:
+To include all standalone utilities (`coder-server`, `itf`, `sf`, `pcat`, `pti`), append `--all`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sokinpui/coder/main/quickinstall.sh | bash -s -- --all
@@ -138,7 +138,8 @@ agent:
 ## Coder Suite
 
 - **[coder.nvim](https://github.com/sokinpui/coder.nvim)**: Neovim plugin integrating Coder directly into your editor buffer.
-- **[coder.flutter](https://github.com/sokinpui/coder.flutter)**: Cross-platform GUI client (Desktop, Mobile, Web) connecting via WebSocket (`coder --ws`).
+- **[coder.flutter](https://github.com/sokinpui/coder.flutter)**: Cross-platform GUI client (Desktop, Mobile, Web) connecting via WebSocket (`coder-server --ws`).
+- **coder-server**: Standalone headless JSON-RPC and WebSocket/HTTP server for remote and GUI integrations.
 - **[itf](./pkg/itf/README.md)**: Insert To File — parser and patching utility with transactional undo/redo.
 - **[sf](./pkg/sf/README.md)**: Search Fast — parallel directory walker respecting `.gitignore`.
 - **[pti](./pkg/pti/README.md)**: PDF To Image — renders PDF documents into images for vision models.

@@ -14,9 +14,9 @@ coder -p "prompt" [files] # 携带初始提示词启动会话
 coder -e -p "prompt"      # 非交互式单次执行，结果直接输出到标准输出 (stdout)
 coder --config            # 在 $EDITOR 中编辑本地 (.coder/config.yaml) 或全局配置
 coder --config -g         # 在 $EDITOR 中编辑全局配置 (~/.config/coder/config.yaml)
-coder --headless          # 作为 Headless JSON-RPC 服务运行（基于标准输入输出）
-coder --port 9005         # 在指定 TCP 端口运行 Headless JSON-RPC 服务
-coder --ws --port 9005    # 运行支持 WebSocket/HTTP 的 Headless 服务
+coder-server              # 作为 Headless JSON-RPC 服务运行（基于标准输入输出）
+coder-server --port 9005  # 在指定 TCP 端口运行 Headless JSON-RPC 服务
+coder-server --ws         # 运行支持 WebSocket/HTTP 的 Headless 服务
 ```
 
 ## 核心工作流

@@ -18,7 +18,7 @@ fi
 
 BINARIES="coder"
 if [ "$INSTALL_ALL" = "true" ]; then
-  BINARIES="coder itf sf pcat pti"
+  BINARIES="coder coder-server itf sf pcat pti"
 fi
 
 detect_os() {
@@ -108,7 +108,7 @@ done
 
 if [ "$INSTALL_ALL" != "true" ]; then
   echo ""
-  echo "Tip: Run with --all (or set CODER_INSTALL_ALL=1) to also install standalone sub-tools (itf, sf, pcat, pti)."
+  echo "Tip: Run with --all (or set CODER_INSTALL_ALL=1) to also install standalone sub-tools (coder-server, itf, sf, pcat, pti)."
 fi
 
 case ":$PATH:" in

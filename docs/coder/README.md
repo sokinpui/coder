@@ -14,9 +14,9 @@ coder -p "prompt" [files] # Start session with an initial prompt
 coder -e -p "prompt"      # Single-shot execution output directly to stdout
 coder --config            # Open local (.coder/config.yaml) or global config in $EDITOR
 coder --config -g         # Open global config (~/.config/coder/config.yaml)
-coder --headless          # Run as headless JSON-RPC server over stdio
-coder --port 9005         # Run headless JSON-RPC server on TCP port
-coder --ws --port 9005    # Run headless WebSocket/HTTP server
+coder-server              # Run as headless JSON-RPC server over stdio
+coder-server --port 9005  # Run headless JSON-RPC server on TCP port
+coder-server --ws         # Run headless WebSocket/HTTP server
 ```
 
 ## Core Workflow
