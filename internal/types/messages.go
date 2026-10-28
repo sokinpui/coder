@@ -208,6 +208,8 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
+		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
+		CommandMessage, CommandResultMessage, CommandErrorResultMessage,
 		CompactedSummaryMessage:
 		return RoleUser, true
 	default:
