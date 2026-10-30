@@ -6,6 +6,7 @@ import (
 
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Renderer) string {
@@ -83,7 +84,35 @@ func RenderCompactedSummaryMessage(msg types.Message, viewportWidth int) string 
 
 	rendered := markdown.Render(body, contentWidth)
 	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
+	lines = stripCommonLeadingSpaces(lines)
 	return PreviewBoxStyle.Width(cardWidth).Render(header + "\n\n" + strings.Join(lines, "\n"))
+}
+
+func stripCommonLeadingSpaces(lines []string) []string {
+	minSpaces := -1
+	for _, l := range lines {
+		plain := ansi.Strip(l)
+		trimmed := strings.TrimRight(plain, " \r\n")
+		if len(trimmed) == 0 {
+			continue
+		}
+		leading := len(plain) - len(strings.TrimLeft(plain, " "))
+		if minSpaces == -1 || leading < minSpaces {
+			minSpaces = leading
+		}
+	}
+	if minSpaces <= 0 {
+		return lines
+	}
+	stripped := make([]string, len(lines))
+	for i, l := range lines {
+		if strings.TrimSpace(ansi.Strip(l)) == "" {
+			stripped[i] = ""
+			continue
+		}
+		stripped[i] = ansi.TruncateLeft(l, minSpaces, "")
+	}
+	return stripped
 }
 
 func ToolCallKeyID(tc types.ToolCall) string {

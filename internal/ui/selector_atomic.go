@@ -186,7 +186,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		var contents []string
 		for _, idx := range targetIndices {
-			contents = append(contents, messages[idx].Content)
+			contents = append(contents, getMessageCopyContent(messages[idx]))
 		}
 		combined := strings.Join(contents, "\n\n")
 		cfg := m.Session.GetConfig()
@@ -336,6 +336,41 @@ func getSelectableIndices(messages []types.Message) []int {
 		}
 	}
 	return indices
+}
+
+func getMessageCopyContent(msg types.Message) string {
+	if msg.Type == types.ToolCallMessage && len(msg.ToolCalls) > 0 {
+		var parts []string
+		for _, tc := range msg.ToolCalls {
+			switch tc.Name {
+			case "write":
+				if content := ExtractToolJSONField(tc.Arguments, "content"); content != "" {
+					parts = append(parts, content)
+					continue
+				}
+			case "edit":
+				if newStr := ExtractToolJSONField(tc.Arguments, "new_string"); newStr != "" {
+					parts = append(parts, newStr)
+					continue
+				}
+			case "bash":
+				if cmd := ExtractToolJSONField(tc.Arguments, "command"); cmd != "" {
+					parts = append(parts, cmd)
+					continue
+				}
+			}
+			if tc.Arguments != "" {
+				parts = append(parts, tc.Arguments)
+			}
+		}
+		if len(parts) > 0 {
+			return strings.Join(parts, "\n\n")
+		}
+	}
+	if msg.Type == types.CompactedSummaryMessage {
+		return strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(msg.Content), "<compacted-summary>"), "</compacted-summary>"))
+	}
+	return msg.Content
 }
 
 func getMessageSummary(msg types.Message) string {

@@ -88,6 +88,93 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 	return lines
 }
 
+func isBoxTopBorder(plain string) bool {
+	trimmed := strings.TrimSpace(plain)
+	if len(trimmed) < 2 {
+		return false
+	}
+	isCorner := (strings.HasPrefix(trimmed, "╭") && strings.HasSuffix(trimmed, "╮")) ||
+		(strings.HasPrefix(trimmed, "┌") && strings.HasSuffix(trimmed, "┐")) ||
+		(strings.HasPrefix(trimmed, "┏") && strings.HasSuffix(trimmed, "┓")) ||
+		(strings.HasPrefix(trimmed, "╔") && strings.HasSuffix(trimmed, "╗"))
+	return isCorner && strings.ContainsAny(trimmed, "─━═")
+}
+
+func isBoxBottomBorder(plain string) bool {
+	trimmed := strings.TrimSpace(plain)
+	if len(trimmed) < 2 {
+		return false
+	}
+	isCorner := (strings.HasPrefix(trimmed, "╰") && strings.HasSuffix(trimmed, "╯")) ||
+		(strings.HasPrefix(trimmed, "└") && strings.HasSuffix(trimmed, "┘")) ||
+		(strings.HasPrefix(trimmed, "┗") && strings.HasSuffix(trimmed, "┛")) ||
+		(strings.HasPrefix(trimmed, "╚") && strings.HasSuffix(trimmed, "╝"))
+	return isCorner && strings.ContainsAny(trimmed, "─━═")
+}
+
+func isVerticalBorderRune(r rune) bool {
+	return r == '│' || r == '┃' || r == '║'
+}
+
+func parseBoxMiddleLine(plain string) (int, int, bool) {
+	trimmedRight := strings.TrimRight(plain, " \r\n")
+	trimmedLeft := strings.TrimLeft(plain, " ")
+	if len(trimmedLeft) == 0 || len(trimmedRight) == 0 {
+		return 0, 0, false
+	}
+	runesLeft := []rune(trimmedLeft)
+	runesRight := []rune(trimmedRight)
+	if !isVerticalBorderRune(runesLeft[0]) || !isVerticalBorderRune(runesRight[len(runesRight)-1]) {
+		return 0, 0, false
+	}
+	leadingCols := ansi.StringWidth(plain[:len(plain)-len(trimmedLeft)])
+	colStart := leadingCols + ansi.StringWidth(string(runesLeft[0]))
+	if len(runesLeft) > 1 && runesLeft[1] == ' ' {
+		colStart++
+	}
+	colEnd := max(colStart, ansi.StringWidth(strings.TrimRight(string(runesRight[:len(runesRight)-1]), " ")))
+	return colStart, colEnd, true
+}
+
+type boxRunItem struct {
+	index int
+	sc    int
+	ec    int
+	plain string
+}
+
+func processBoxMiddleLines(items []boxRunItem, metas []LineMeta, msgIdx int, isContinuation bool) {
+	if len(items) == 0 {
+		return
+	}
+	minIndent := -1
+	for _, it := range items {
+		content := it.plain[it.sc:it.ec]
+		trimmed := strings.TrimRight(content, " ")
+		if len(trimmed) == 0 {
+			continue
+		}
+		leading := len(trimmed) - len(strings.TrimLeft(trimmed, " "))
+		if minIndent == -1 || leading < minIndent {
+			minIndent = leading
+		}
+	}
+	if minIndent < 0 {
+		minIndent = 0
+	}
+	for _, it := range items {
+		sc := it.sc + minIndent
+		rawText := ansi.Cut(it.plain, sc, it.ec)
+		metas[it.index] = LineMeta{
+			MsgIndex:        msgIdx,
+			ContentColStart: sc,
+			ContentColEnd:   it.ec,
+			Text:            rawText,
+			IsContinuation:  isContinuation,
+		}
+	}
+}
+
 func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []string) []LineMeta {
 	if len(renderedLines) == 0 {
 		return nil
@@ -101,15 +188,24 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage,
 		types.CompactedSummaryMessage:
 		colStart := 2
+		var boxRun []boxRunItem
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
-			if i == 0 || i == len(renderedLines)-1 {
+			if i == 0 || i == len(renderedLines)-1 || isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
+				processBoxMiddleLines(boxRun, metas, msgIdx, true)
+				boxRun = nil
 				metas[i] = LineMeta{
 					MsgIndex:     msgIdx,
 					IsDecoration: true,
 				}
 				continue
 			}
+			if sc, ec, ok := parseBoxMiddleLine(plain); ok {
+				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
+				continue
+			}
+			processBoxMiddleLines(boxRun, metas, msgIdx, true)
+			boxRun = nil
 			contentTrimmed := strings.TrimRight(strings.TrimSuffix(plain, "│"), " ")
 			contentEnd := max(colStart, ansi.StringWidth(contentTrimmed))
 			rawText := ansi.Cut(plain, colStart, contentEnd)
@@ -122,6 +218,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				IsContinuation:  i > 1,
 			}
 		}
+		processBoxMiddleLines(boxRun, metas, msgIdx, true)
 
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
@@ -141,8 +238,24 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		}
 
 	default:
+		var boxRun []boxRunItem
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
+			if isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
+				processBoxMiddleLines(boxRun, metas, msgIdx, false)
+				boxRun = nil
+				metas[i] = LineMeta{
+					MsgIndex:     msgIdx,
+					IsDecoration: true,
+				}
+				continue
+			}
+			if sc, ec, ok := parseBoxMiddleLine(plain); ok {
+				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
+				continue
+			}
+			processBoxMiddleLines(boxRun, metas, msgIdx, false)
+			boxRun = nil
 			contentTrimmed := strings.TrimRight(plain, " \r\n")
 			if len(contentTrimmed) == 0 {
 				metas[i] = LineMeta{
@@ -168,6 +281,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				IsContinuation:  false,
 			}
 		}
+		processBoxMiddleLines(boxRun, metas, msgIdx, false)
 	}
 
 	return metas
@@ -218,8 +332,26 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 	}
 
 	if len(allMetas) < len(allLines) {
+		startIdx := len(allMetas)
+		var boxRun []boxRunItem
 		for i := len(allMetas); i < len(allLines); i++ {
 			plain := ansi.Strip(allLines[i])
+			if isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
+				processBoxMiddleLines(boxRun, allMetas, -1, false)
+				boxRun = nil
+				allMetas = append(allMetas, LineMeta{
+					MsgIndex:     -1,
+					IsDecoration: true,
+				})
+				continue
+			}
+			if sc, ec, ok := parseBoxMiddleLine(plain); ok {
+				allMetas = append(allMetas, LineMeta{})
+				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
+				continue
+			}
+			processBoxMiddleLines(boxRun, allMetas, -1, false)
+			boxRun = nil
 			contentTrimmed := strings.TrimRight(plain, " \r\n")
 			colStart := 0
 			if len(contentTrimmed) > 0 {
@@ -234,6 +366,8 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 				Text:            ansi.Cut(plain, colStart, contentEnd),
 			})
 		}
+		processBoxMiddleLines(boxRun, allMetas, -1, false)
+		_ = startIdx
 	}
 	return strings.Join(allLines, "\n"), messageLineOffsets, allLines, allMetas
 }

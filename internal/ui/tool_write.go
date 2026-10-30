@@ -56,6 +56,7 @@ func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolVie
 	rendered := markdown.Render(codeBlock, contentWidth)
 	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
 	lines = trimVerticalBlankLines(lines)
+	lines = stripCommonLeadingSpaces(lines)
 	renderedCode := strings.Join(lines, "\n")
 	styledBox := PreviewBoxStyle.Width(cardWidth).Render(renderedCode)
 	return fmt.Sprintf("%s\n%s", header, styledBox)
