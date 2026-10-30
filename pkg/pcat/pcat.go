@@ -106,7 +106,7 @@ func FormatSingleFile(file string, withLineNumbers bool) string {
 	var out strings.Builder
 	out.WriteString(fmt.Sprintf("`%s`\n", file))
 	lang := getLang(file)
-	fence := getFence(lang)
+	fence := getFence(content, lang)
 
 	out.WriteString(fmt.Sprintf("%s%s\n", fence, lang))
 	if withLineNumbers {
@@ -132,11 +132,24 @@ func getLang(file string) string {
 	return lang
 }
 
-func getFence(lang string) string {
-	if lang == "md" || lang == "markdown" {
-		return "````"
+func getFence(content []byte, lang string) string {
+	maxRun := 0
+	currentRun := 0
+	for _, b := range content {
+		if b == '`' {
+			currentRun++
+			if currentRun > maxRun {
+				maxRun = currentRun
+			}
+			continue
+		}
+		currentRun = 0
 	}
-	return "```"
+	fenceLen := max(3, maxRun+1)
+	if (lang == "md" || lang == "markdown") && fenceLen < 4 {
+		fenceLen = 4
+	}
+	return strings.Repeat("`", fenceLen)
 }
 
 func writeWithLineNumbers(out *strings.Builder, content []byte) {

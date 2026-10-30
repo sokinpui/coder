@@ -52,7 +52,9 @@ func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolVie
 
 	cardWidth := max(30, viewportWidth-4)
 	contentWidth := max(20, cardWidth-PreviewBoxStyle.GetHorizontalFrameSize())
-	codeBlock := fmt.Sprintf("```%s\n%s\n```", lang, previewContent)
+	fence := calculateFence(previewContent)
+	trimmed := strings.TrimRight(previewContent, "\r\n")
+	codeBlock := fmt.Sprintf("%s%s\n%s\n%s", fence, lang, trimmed, fence)
 	rendered := markdown.Render(codeBlock, contentWidth)
 	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
 	lines = trimVerticalBlankLines(lines)
@@ -60,6 +62,22 @@ func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolVie
 	renderedCode := strings.Join(lines, "\n")
 	styledBox := PreviewBoxStyle.Width(cardWidth).Render(renderedCode)
 	return fmt.Sprintf("%s\n%s", header, styledBox)
+}
+
+func calculateFence(content string) string {
+	maxRun := 0
+	currentRun := 0
+	for i := 0; i < len(content); i++ {
+		if content[i] == '`' {
+			currentRun++
+			if currentRun > maxRun {
+				maxRun = currentRun
+			}
+			continue
+		}
+		currentRun = 0
+	}
+	return strings.Repeat("`", max(3, maxRun+1))
 }
 
 func trimVerticalBlankLines(lines []string) []string {
