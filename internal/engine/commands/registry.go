@@ -79,34 +79,38 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 }
 
 func IsCommand(input string) bool {
+	if !strings.HasPrefix(input, "/") && !strings.HasPrefix(input, "@") && !strings.HasPrefix(input, "!") {
+		return false
+	}
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" || trimmed == "@" || trimmed == "/@" {
 		return false
 	}
-	return strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "!")
+	return true
 }
 
 func ParseCommand(input string) (cmdName string, args string, isCmd bool) {
+	if !strings.HasPrefix(input, "/") && !strings.HasPrefix(input, "@") && !strings.HasPrefix(input, "!") {
+		return "", "", false
+	}
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" || trimmed == "@" || trimmed == "/@" {
 		return "", "", false
 	}
 
-	if strings.HasPrefix(trimmed, "/@") {
-		return "@", strings.TrimSpace(trimmed[2:]), true
+	if strings.HasPrefix(input, "/@") {
+		return "@", strings.TrimSpace(input[2:]), true
 	}
-	if strings.HasPrefix(trimmed, "/!") {
-		return "shell", strings.TrimSpace(trimmed[2:]), true
+	if strings.HasPrefix(input, "/!") {
+		return "shell", strings.TrimSpace(input[2:]), true
 	}
-	if strings.HasPrefix(trimmed, "@") {
-		return "@", strings.TrimSpace(trimmed[1:]), true
+	if strings.HasPrefix(input, "@") {
+		return "@", strings.TrimSpace(input[1:]), true
 	}
-	if strings.HasPrefix(trimmed, "!") {
-		return "shell", strings.TrimSpace(trimmed[1:]), true
+	if strings.HasPrefix(input, "!") {
+		return "shell", strings.TrimSpace(input[1:]), true
 	}
-	if !strings.HasPrefix(trimmed, "/") {
-		return "", "", false
-	}
+
 
 	trimmedCmd := strings.TrimPrefix(trimmed, "/")
 	parts := strings.Fields(trimmedCmd)

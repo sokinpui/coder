@@ -58,15 +58,14 @@ func (m Model) updatePalette() Model {
 	m.Chat.PaletteFilteredCommands = []string{}
 	m.Chat.PaletteFilteredArguments = []string{}
 
-	trimmed := strings.TrimSpace(val)
-	if m.State == stateIdle && (commands.IsCommand(val) || strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "/@")) {
+	if m.State == stateIdle && (commands.IsCommand(val) || strings.HasPrefix(val, "@") || strings.HasPrefix(val, "/@") || strings.HasPrefix(val, "!") || strings.HasPrefix(val, "/!") || strings.HasPrefix(val, "/")) {
 		hasTrailingSpace := strings.HasSuffix(val, " ")
 
-		if strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "/@") {
+		if strings.HasPrefix(val, "@") || strings.HasPrefix(val, "/@") {
 			argPrefix := ""
 			parts := strings.Fields(val)
 			prefixLen := 1
-			if strings.HasPrefix(trimmed, "/@") {
+			if strings.HasPrefix(val, "/@") {
 				prefixLen = 2
 			}
 			if len(parts) == 1 && !hasTrailingSpace {
@@ -81,11 +80,11 @@ func (m Model) updatePalette() Model {
 					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
 				}
 			}
-		} else if strings.HasPrefix(trimmed, "!") || strings.HasPrefix(trimmed, "/!") {
+		} else if strings.HasPrefix(val, "!") || strings.HasPrefix(val, "/!") {
 			argPrefix := ""
 			parts := strings.Fields(val)
 			prefixLen := 1
-			if strings.HasPrefix(trimmed, "/!") {
+			if strings.HasPrefix(val, "/!") {
 				prefixLen = 2
 			}
 			if len(parts) == 1 && !hasTrailingSpace {
