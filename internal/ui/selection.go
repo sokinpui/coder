@@ -41,18 +41,66 @@ func (s TextSelection) Normalize() (SelectionPoint, SelectionPoint) {
 	return s.End, s.Start
 }
 
+func (m Model) handleWheelScroll(lines int) (tea.Model, tea.Cmd) {
+	if lines == 0 {
+		return m, nil
+	}
+
+	if m.ActiveOverlay == overlayQuickView {
+		if m.QuickView == nil {
+			return m, nil
+		}
+		if lines < 0 && m.QuickView.Viewport.YOffset > 0 {
+			m.QuickView.Viewport.LineUp(-lines)
+			return m, nil
+		}
+		if lines > 0 && !m.QuickView.Viewport.AtBottom() {
+			m.QuickView.Viewport.LineDown(lines)
+			return m, nil
+		}
+		return m, nil
+	}
+
+	if m.ActiveOverlay != overlayNone {
+		return m, nil
+	}
+
+	if lines < 0 {
+		if m.Chat.Viewport.YOffset <= 0 {
+			return m, nil
+		}
+		m.Chat.AutoScroll = false
+		m.Chat.Viewport.LineUp(-lines)
+		if m.Chat.Selection.Active {
+			m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
+		}
+		return m, nil
+	}
+
+	if m.Chat.Viewport.AtBottom() {
+		m.Chat.AutoScroll = true
+		return m, nil
+	}
+	m.Chat.Viewport.LineDown(lines)
+	if m.Chat.Viewport.AtBottom() {
+		m.Chat.AutoScroll = true
+	}
+	if m.Chat.Selection.Active {
+		m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
+	}
+	return m, nil
+}
+
 func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	if m.ActiveOverlay == overlayQuickView {
 		if m.QuickView == nil {
 			return m, nil
 		}
-		if msg.Button == tea.MouseButtonWheelUp && m.QuickView.Viewport.YOffset > 0 {
-			m.QuickView.Viewport.LineUp(2)
-			return m, nil
+		if msg.Button == tea.MouseButtonWheelUp {
+			return m.handleWheelScroll(-2)
 		}
-		if msg.Button == tea.MouseButtonWheelDown && !m.QuickView.Viewport.AtBottom() {
-			m.QuickView.Viewport.LineDown(2)
-			return m, nil
+		if msg.Button == tea.MouseButtonWheelDown {
+			return m.handleWheelScroll(2)
 		}
 		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
 			quickViewWidth := m.Width * 3 / 4
@@ -78,30 +126,11 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.Button == tea.MouseButtonWheelUp {
-		if m.Chat.Viewport.YOffset <= 0 {
-			return m, nil
-		}
-		m.Chat.AutoScroll = false
-		m.Chat.Viewport.LineUp(2)
-		if m.Chat.Selection.Active {
-			m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
-		}
-		return m, nil
+		return m.handleWheelScroll(-2)
 	}
 
 	if msg.Button == tea.MouseButtonWheelDown {
-		if m.Chat.Viewport.AtBottom() {
-			m.Chat.AutoScroll = true
-			return m, nil
-		}
-		m.Chat.Viewport.LineDown(2)
-		if m.Chat.Viewport.AtBottom() {
-			m.Chat.AutoScroll = true
-		}
-		if m.Chat.Selection.Active {
-			m.Chat.Viewport.SetContent(m.applySelectionToLines(m.Chat.RenderedLines))
-		}
-		return m, nil
+		return m.handleWheelScroll(2)
 	}
 
 	if len(m.Chat.RenderedLines) == 0 {

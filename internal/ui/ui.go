@@ -21,13 +21,16 @@ func Start(sess engine.EngineSession, prompt string) error {
 		&PaletteOverlay{},
 	}
 
+	filter := newSGRSequenceFilter()
 	p := tea.NewProgram(
 		manager,
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
-		tea.WithFilter(newSGRSequenceFilter()),
+		tea.WithFilter(filter.Filter),
 	)
+	filter.SetSender(p.Send)
 
+	// Save conversation on exit
 	finalModel, err := p.Run()
 	if err != nil {
 		return fmt.Errorf("error starting program: %w", err)

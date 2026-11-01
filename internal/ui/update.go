@@ -15,6 +15,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	if wheelMsg, ok := msg.(MouseWheelScrollMsg); ok {
+		return m.handleWheelScroll(wheelMsg.Lines)
+	}
+
 	if mouseMsg, ok := msg.(tea.MouseMsg); ok {
 		return m.handleMouseMsg(mouseMsg)
 	}
@@ -38,6 +42,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	if _, ok := msg.(tea.MouseMsg); ok {
+		isScrollOnly = true
+	}
+	if _, ok := msg.(MouseWheelScrollMsg); ok {
 		isScrollOnly = true
 	}
 

@@ -3,6 +3,8 @@ package ui
 import (
 	"regexp"
 	"strconv"
+	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -20,75 +22,163 @@ func CleanSGRLeakedText(s string) string {
 	return sgrFragmentRegex.ReplaceAllString(s, "")
 }
 
+const wheelThrottleInterval = 42 * time.Millisecond
+
 type sgrSequenceFilter struct {
-	pending string
+	mu         sync.Mutex
+	pending    string
+	sender     func(tea.Msg)
+	accumDelta int
+	lastFlush  time.Time
+	flushTimer *time.Timer
 }
 
-func newSGRSequenceFilter() func(tea.Model, tea.Msg) tea.Msg {
-	filter := &sgrSequenceFilter{}
-	return func(tm tea.Model, msg tea.Msg) tea.Msg {
-		if mouseMsg, ok := msg.(tea.MouseMsg); ok {
-			if !canScrollMouse(tm, mouseMsg) {
-				return nil
-			}
-			return mouseMsg
-		}
+func newSGRSequenceFilter() *sgrSequenceFilter {
+	return &sgrSequenceFilter{}
+}
 
-		keyMsg, ok := msg.(tea.KeyMsg)
-		if !ok {
-			return msg
-		}
+func (filter *sgrSequenceFilter) SetSender(sender func(tea.Msg)) {
+	filter.mu.Lock()
+	defer filter.mu.Unlock()
+	filter.sender = sender
+}
 
-		if keyMsg.Type != tea.KeyRunes || len(keyMsg.Runes) == 0 {
-			filter.pending = ""
-			return keyMsg
-		}
-
-		raw := string(keyMsg.Runes)
-		if keyMsg.Alt && raw == "[" {
-			filter.pending = "["
-			return nil
-		}
-
-		combined := filter.pending + raw
-		filter.pending = ""
-
-		var mouseEv tea.Msg
-		var isMouse bool
-		if sgrFragmentRegex.MatchString(combined) {
-			mouseEv, isMouse = parseSGRMouseMsg(combined)
-			combined = sgrFragmentRegex.ReplaceAllString(combined, "")
-		}
-
-		cleaned := combined
-		combined = ""
-
-		if loc := sgrPartialRegex.FindStringIndex(cleaned); loc != nil {
-			filter.pending = cleaned[loc[0]:]
-			cleaned = cleaned[:loc[0]]
-		}
-
-		if len(filter.pending) > 32 {
-			filter.pending = ""
-		}
-
-		if isMouse && mouseEv != nil {
-			return mouseEv
-		}
-
-		if cleaned == "" {
-			return nil
-		}
-
-		if cleaned == raw && !keyMsg.Alt {
-			return keyMsg
-		}
-
-		return tea.KeyMsg{
-			Type:  tea.KeyRunes,
-			Runes: []rune(cleaned),
-		}
+func (filter *sgrSequenceFilter) Filter(tm tea.Model, msg tea.Msg) tea.Msg {
+	if wheelMsg, ok := msg.(MouseWheelScrollMsg); ok {
+		return wheelMsg
 	}
+
+	if mouseMsg, ok := msg.(tea.MouseMsg); ok {
+		return filter.handleMouse(tm, mouseMsg)
+	}
+
+	keyMsg, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return msg
+	}
+
+	if keyMsg.Type != tea.KeyRunes || len(keyMsg.Runes) == 0 {
+		filter.pending = ""
+		return keyMsg
+	}
+
+	raw := string(keyMsg.Runes)
+	if keyMsg.Alt && raw == "[" {
+		filter.pending = "["
+		return nil
+	}
+
+	combined := filter.pending + raw
+	filter.pending = ""
+
+	var mouseEv tea.Msg
+	var isMouse bool
+	if sgrFragmentRegex.MatchString(combined) {
+		mouseEv, isMouse = parseSGRMouseMsg(combined)
+		combined = sgrFragmentRegex.ReplaceAllString(combined, "")
+	}
+
+	cleaned := combined
+	combined = ""
+
+	if loc := sgrPartialRegex.FindStringIndex(cleaned); loc != nil {
+		filter.pending = cleaned[loc[0]:]
+		cleaned = cleaned[:loc[0]]
+	}
+
+	if len(filter.pending) > 32 {
+		filter.pending = ""
+	}
+
+	if isMouse && mouseEv != nil {
+		if mm, ok := mouseEv.(tea.MouseMsg); ok {
+			return filter.handleMouse(tm, mm)
+		}
+		return mouseEv
+	}
+
+	if cleaned == "" {
+		return nil
+	}
+
+	if cleaned == raw && !keyMsg.Alt {
+		return keyMsg
+	}
+
+	return tea.KeyMsg{
+		Type:  tea.KeyRunes,
+		Runes: []rune(cleaned),
+	}
+}
+
+func (filter *sgrSequenceFilter) handleMouse(tm tea.Model, mouseMsg tea.MouseMsg) tea.Msg {
+	if mouseMsg.Action == tea.MouseActionMotion {
+		main := extractMainModel(tm)
+		if main == nil || !main.Chat.Selection.Dragging {
+			return nil
+		}
+		return mouseMsg
+	}
+
+	if mouseMsg.Button != tea.MouseButtonWheelUp && mouseMsg.Button != tea.MouseButtonWheelDown {
+		filter.flushPending()
+		return mouseMsg
+	}
+
+	if !canScrollMouse(tm, mouseMsg) {
+		filter.flushPending()
+		return nil
+	}
+
+	step := 2
+	if mouseMsg.Button == tea.MouseButtonWheelUp {
+		step = -2
+	}
+
+	return filter.coalesceWheel(step, mouseMsg.X, mouseMsg.Y)
+}
+
+func (filter *sgrSequenceFilter) coalesceWheel(step, x, y int) tea.Msg {
+	filter.mu.Lock()
+	defer filter.mu.Unlock()
+
+	now := time.Now()
+	if filter.accumDelta != 0 && (filter.accumDelta > 0) != (step > 0) {
+		filter.clearTimerLocked()
+		filter.accumDelta = 0
+	}
+
+	if now.Sub(filter.lastFlush) >= wheelThrottleInterval {
+		filter.clearTimerLocked()
+		total := filter.accumDelta + step
+		filter.accumDelta = 0
+		filter.lastFlush = now
+		return MouseWheelScrollMsg{Lines: total, X: x, Y: y}
+	}
+
+	filter.accumDelta += step
+	if filter.flushTimer == nil && filter.sender != nil {
+		remaining := max(time.Millisecond, wheelThrottleInterval-now.Sub(filter.lastFlush))
+		filter.flushTimer = time.AfterFunc(remaining, func() {
+			filter.mu.Lock()
+			if filter.accumDelta == 0 {
+				filter.flushTimer = nil
+				filter.mu.Unlock()
+				return
+			}
+			lines := filter.accumDelta
+			filter.accumDelta = 0
+			filter.lastFlush = time.Now()
+			filter.flushTimer = nil
+			send := filter.sender
+			filter.mu.Unlock()
+
+			if send != nil {
+				send(MouseWheelScrollMsg{Lines: lines, X: x, Y: y})
+			}
+		})
+	}
+	return nil
 }
 
 func parseSGRMouseMsg(s string) (tea.Msg, bool) {
@@ -162,6 +252,20 @@ func canScrollMouse(tm tea.Model, msg tea.MouseMsg) bool {
 	}
 }
 
+func (filter *sgrSequenceFilter) flushPending() {
+	filter.mu.Lock()
+	defer filter.mu.Unlock()
+	filter.clearTimerLocked()
+	filter.accumDelta = 0
+}
+
+func (filter *sgrSequenceFilter) clearTimerLocked() {
+	if filter.flushTimer != nil {
+		filter.flushTimer.Stop()
+		filter.flushTimer = nil
+	}
+}
+
 func extractMainModel(tm tea.Model) *Model {
 	switch m := tm.(type) {
 	case *Manager:
@@ -170,6 +274,8 @@ func extractMainModel(tm tea.Model) *Model {
 		}
 	case *Model:
 		return m
+	case Model:
+		return &m
 	}
 	return nil
 }

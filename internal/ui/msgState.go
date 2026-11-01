@@ -107,4 +107,9 @@ type (
 		output string
 		err    error
 	}
+	MouseWheelScrollMsg struct {
+		Lines int
+		X     int
+		Y     int
+	}
 )
