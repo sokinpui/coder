@@ -127,7 +127,7 @@ func initSchema(db *sql.DB) error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_messages_session_seq ON messages(session_id, seq);
-	CREATE INDEX IF NOT EXISTS idx_sessions_modified_at ON sessions(modified_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at DESC);
 	CREATE INDEX IF NOT EXISTS idx_sessions_mode ON sessions(mode);
 	`
 	_, err := db.Exec(schema)
@@ -363,7 +363,7 @@ func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo
 	rows, err := m.db.Query(`
 	SELECT id, title, mode, created_at, modified_at
 	FROM sessions
-	ORDER BY modified_at DESC
+	ORDER BY created_at DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sessions: %w", err)
@@ -374,10 +374,10 @@ func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo
 	for rows.Next() {
 		var (
 			id, title, mode       string
-			createdAt, modifiedAt time.Time
+			rawCreated, rawMod    any
 		)
-		if err := rows.Scan(&id, &title, &mode, &createdAt, &modifiedAt); err != nil {
-			return nil, err
+		if err := rows.Scan(&id, &title, &mode, &rawCreated, &rawMod); err != nil {
+			continue
 		}
 
 		normMode := normalizeMode(mode)
@@ -390,8 +390,8 @@ func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo
 			Filename:   id,
 			Mode:       normMode,
 			Title:      title,
-			CreatedAt:  createdAt,
-			ModifiedAt: modifiedAt,
+			CreatedAt:  parseDBTimestamp(rawCreated),
+			ModifiedAt: parseDBTimestamp(rawMod),
 		})
 	}
 
@@ -400,6 +400,32 @@ func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo
 	}
 
 	return conversations, nil
+}
+
+func parseDBTimestamp(v any) time.Time {
+	switch val := v.(type) {
+	case time.Time:
+		return val
+	case string:
+		for _, layout := range []string{
+			time.RFC3339Nano,
+			time.RFC3339,
+			"2006-01-02 15:04:05.999999999-07:00",
+			"2006-01-02 15:04:05-07:00",
+			"2006-01-02 15:04:05",
+			"2006-01-02T15:04:05",
+		} {
+			if t, err := time.Parse(layout, val); err == nil {
+				return t
+			}
+		}
+	case int64:
+		if val > 1000000000000 {
+			return time.UnixMilli(val)
+		}
+		return time.Unix(val, 0)
+	}
+	return time.Time{}
 }
 
 func normalizeMode(mode string) string {

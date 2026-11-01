@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/token"
 )
 
@@ -82,10 +83,26 @@ func (s *Server) handleHistoryList(req Request) {
 		return
 	}
 
-	items, err := s.session.GetHistoryManager().ListConversationsByMode(s.session.GetMode())
+	var params struct {
+		Mode string `json:"mode"`
+	}
+	if len(req.Params) > 0 {
+		_ = json.Unmarshal(req.Params, &params)
+	}
+
+	var items []history.ConversationInfo
+	var err error
+	if params.Mode != "" && params.Mode != "all" && params.Mode != "*" {
+		items, err = s.session.GetHistoryManager().ListConversationsByMode(params.Mode)
+	} else {
+		items, err = s.session.GetHistoryManager().ListConversations()
+	}
 	if err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
+	}
+	if items == nil {
+		items = []history.ConversationInfo{}
 	}
 	s.sendResult(req.ID, items)
 }
@@ -112,6 +129,7 @@ func (s *Server) handleHistoryLoad(req Request) {
 	tokenCount := token.CountTokens(s.session.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
 		"loaded":           true,
+		"mode":             s.session.GetMode(),
 		"title":            s.session.GetTitle(),
 		"contextFiles":     s.session.GetContextFiles(),
 		"contextDocuments": s.session.GetContextDocuments(),
