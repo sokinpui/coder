@@ -307,6 +307,10 @@ func collectFiles(args []string) []string {
 
 	// Expand globs for positional arguments
 	for _, arg := range args {
+		if strings.EqualFold(filepath.Ext(arg), ".pdf") {
+			fmt.Fprintf(os.Stderr, "Notice: %s is a PDF document. To add PDFs, use /file or @ inside the session.\n", arg)
+			continue
+		}
 		matches, err := filepath.Glob(arg)
 		if err != nil || len(matches) == 0 {
 			// If not a glob or no matches, treat as a literal path
@@ -321,7 +325,7 @@ func collectFiles(args []string) []string {
 		lines := strings.SplitSeq(strings.TrimSpace(piped), "\n")
 		for line := range lines {
 			trimmed := strings.TrimSpace(line)
-			if trimmed == "" {
+			if trimmed == "" || strings.EqualFold(filepath.Ext(trimmed), ".pdf") {
 				continue
 			}
 			// Avoid duplicates if already added via positional args

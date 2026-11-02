@@ -22,7 +22,7 @@ coder-server --ws         # 运行支持 WebSocket/HTTP 的 Headless 服务
 ## 核心工作流
 
 1. **选择上下文**：在命令行启动时指定文件（如 `coder main.go internal/`），或在 TUI 中使用 `/file <路径>` 或 `@<路径>` 动态添加。
-2. **审查指示**：Coder 会加载对应文件和目录并遵循排除规则。PDF 文档会自动转为视觉多模态上下文。
+2. **审查指示**：Coder 会加载对应文件和目录并遵循排除规则。
 3. **生成变更**：模型以 Unified Diff、新建文件、删除或重命名代码块的形式输出变更方案。
 4. **应用补丁**：按 `Ctrl+A` 或运行 `/itf` 自动打补丁到本地文件系统中。如需撤销，运行 `/undo` 即可安全回滚。
 
@@ -50,8 +50,8 @@ coder-server --ws         # 运行支持 WebSocket/HTTP 的 Headless 服务
 
 - `/file [paths...]`（别名：`@`）：将文件或目录追加到当前活动上下文中。
 - `/exclude [paths...]`：从当前活动上下文中剔除指定路径。
-- `/list`：显示当前上下文中包含的项目文件及 PDF 文档列表。
-- `/clear_context`：清空上下文中所有的文件和文档。
+- `/list`：显示当前上下文中包含的项目文件列表。
+- `/clear_context`：清空上下文中所有的文件。
 - `/itf [args]`：将最近一条 AI 响应中的代码变更通过 `itf` 应用到文件。
 - `/undo`：撤销最近一次由 `itf` 实施的文件变更。
 - `/mode [name]`：查看或切换会话模式（coder, chat, agent），无参数时弹出模式选择器。

@@ -22,7 +22,7 @@ coder-server --ws         # Run headless WebSocket/HTTP server
 ## Core Workflow
 
 1. **Curate Context**: Specify files directly as CLI arguments (`coder main.go internal/`), or add them dynamically inside the TUI with `/file <path>` or `@<path>`.
-2. **Review Instructions**: Coder loads relevant files and directories while adhering to exclusion rules. PDF documents are converted to visual context.
+2. **Review Instructions**: Coder loads relevant files and directories while adhering to exclusion rules.
 3. **Generate Changes**: The model outputs modifications as unified diffs, file creates, deletes, or renames.
 4. **Apply Changes**: Press `Ctrl+A` or execute `/itf` to parse and apply changes to your filesystem. If needed, `/undo` reverts the patch.
 
@@ -50,8 +50,8 @@ coder-server --ws         # Run headless WebSocket/HTTP server
 
 - `/file [paths...]` (alias: `@`): Add files or directories to active context.
 - `/exclude [paths...]`: Remove paths from active context.
-- `/list`: Display current project files and PDF documents in context.
-- `/clear_context`: Remove all files and documents from context.
+- `/list`: Display current project files in context.
+- `/clear_context`: Remove all files from context.
 - `/itf [args]`: Apply diffs and changes from the last AI response.
 - `/undo`: Revert the last file changes applied by `itf`.
 - `/mode [name]`: View or switch conversation mode (coder, chat, agent), or open mode selector if empty.
