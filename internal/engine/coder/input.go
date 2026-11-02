@@ -77,5 +77,8 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		}
 		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
 	}
+	if len(cmdOutput.Messages) > 0 {
+		s.messages = append(s.messages, cmdOutput.Messages...)
+	}
 	return types.Event{Type: types.MessagesUpdated}
 }

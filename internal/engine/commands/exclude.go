@@ -20,7 +20,7 @@ func excludeArgumentCompleter(s SessionController, prefix string) []string {
 	if !ok {
 		return nil
 	}
-	return source.ContextSuggestions(ctxCtrl.GetContextFiles(), ctxCtrl.GetContextDocuments())
+	return source.ContextSuggestions(ctxCtrl.GetContextFiles())
 }
 
 func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -39,12 +39,10 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context management not supported in this session"}, false
 	}
 
-	newFiles, newDocs, removedFiles, removedDocs := source.Exclude(ctxCtrl.GetContextFiles(), ctxCtrl.GetContextDocuments(), paths)
-	removedCount := len(removedFiles) + len(removedDocs)
+	newFiles, removedFiles := source.Exclude(ctxCtrl.GetContextFiles(), paths)
+	removedCount := len(removedFiles)
 
 	ctxCtrl.SetContextFiles(newFiles)
-	ctxCtrl.SetContextDocuments(newDocs)
-	ctxCtrl.PurgeDocumentMessages(removedDocs)
 
 	if err := ctxCtrl.LoadContext(); err != nil {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project source updated, but failed to reload context: %v", err)}, false

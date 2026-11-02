@@ -3,18 +3,18 @@ package coder
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/generation"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
-	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/types"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type Session struct {
@@ -34,10 +34,6 @@ type Session struct {
 	lastModifiedFiles  []string
 	hasAppliedChanges  bool
 	contextFiles       []string
-	contextDocuments   []string
-	documentMessages   []types.Message
-	cachedDocMessages  map[string][]types.Message
-	docModTimes        map[string]time.Time
 	contextLoadedAt    time.Time
 	isStreaming        bool
 }
@@ -75,36 +71,32 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 	allExclusions = append(allExclusions, cfgCopy.Coder.Context.Exclusions...)
 
 	var resolvedContextFiles []string
-	var resolvedContextDocs []string
 	switch mode {
 	case engine.ModeCoder:
 		initialPaths := contextFiles
 		if len(initialPaths) == 0 {
 			initialPaths = append(append([]string{}, getSafeContextDirs(cfgCopy.Coder.Context.Dirs)...), cfgCopy.Coder.Context.Files...)
 		}
-		resolvedContextFiles, resolvedContextDocs, _ = source.Add(nil, nil, initialPaths, allExclusions)
+		resolvedContextFiles, _ = source.Add(nil, initialPaths, allExclusions)
 	default:
 		if len(contextFiles) > 0 {
-			resolvedContextFiles, resolvedContextDocs, _ = source.Add(nil, nil, contextFiles, allExclusions)
+			resolvedContextFiles, _ = source.Add(nil, contextFiles, allExclusions)
 		}
 	}
 
 	s := &Session{
-		ID:                fmt.Sprintf("%d", time.Now().UnixNano()),
-		config:            &cfgCopy,
-		Runtime:           rt,
-		historyManager:    hist,
-		messages:          messages,
-		title:             "New Chat",
+		ID:              fmt.Sprintf("%d", time.Now().UnixNano()),
+		config:          &cfgCopy,
+		Runtime:         rt,
+		historyManager:  hist,
+		messages:        messages,
+		title:           "New Chat",
 		titleGenerated:    false,
 		createdAt:         time.Now(),
 		historyFilename:   "",
 		mode:              mode,
 		instruction:       instruction,
 		contextFiles:      resolvedContextFiles,
-		contextDocuments:  resolvedContextDocs,
-		cachedDocMessages: make(map[string][]types.Message),
-		docModTimes:       make(map[string]time.Time),
 	}
 
 	return s, nil
@@ -175,39 +167,6 @@ func (s *Session) GetInstruction() string {
 
 func (s *Session) GetContextFiles() []string {
 	return s.contextFiles
-}
-
-func (s *Session) GetContextDocuments() []string {
-	return s.contextDocuments
-}
-
-func (s *Session) SetContextDocuments(docs []string) {
-	s.contextDocuments = docs
-	s.contextLoadedAt = time.Time{}
-}
-
-func (s *Session) GetDocumentPageCount(doc string) int {
-	docPath := doc
-	pagesSpec := ""
-	if idx := strings.Index(docPath, " (pages:"); idx != -1 {
-		if endIdx := strings.Index(docPath[idx:], ")"); endIdx != -1 {
-			pagesSpec = docPath[idx+8 : idx+endIdx]
-		}
-		docPath = strings.TrimSpace(docPath[:idx])
-	}
-	cleanPath := filepath.ToSlash(docPath)
-	if msgs, ok := s.cachedDocMessages[cleanPath]; ok {
-		return len(msgs)
-	}
-	msgs, err := pdf.RenderPDFToMessages(cleanPath, pagesSpec)
-	if err != nil {
-		return 0
-	}
-	return len(msgs)
-}
-
-func (s *Session) GetDocumentMessages() []types.Message {
-	return s.documentMessages
 }
 
 func (s *Session) SetContextFiles(files []string) {

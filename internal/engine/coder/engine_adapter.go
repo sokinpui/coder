@@ -25,7 +25,6 @@ func (s *Session) Capabilities() engine.Capability {
 		engine.CapBranch |
 		engine.CapRegenerate |
 		engine.CapShell |
-		engine.CapDocumentContext |
 		engine.CapReasoningSwitch
 }
 
@@ -91,6 +90,9 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 			errType = types.FileApplyUndoCmdErrorMessage
 		}
 		s.messages = append(s.messages, types.Message{Type: errType, Content: out.Payload})
+	}
+	if len(out.Messages) > 0 {
+		s.messages = append(s.messages, out.Messages...)
 	}
 	return out, success
 }

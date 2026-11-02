@@ -59,6 +59,9 @@ func (s *Session) DeleteMessages(indices []int) {
 	for _, idx := range indices {
 		if idx >= 0 && idx < len(s.Messages) {
 			toDelete[idx] = struct{}{}
+			for next := idx + 1; next < len(s.Messages) && s.Messages[next].IsDocumentImage(); next++ {
+				toDelete[next] = struct{}{}
+			}
 		}
 	}
 	var remaining []types.Message

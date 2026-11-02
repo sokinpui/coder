@@ -7,14 +7,16 @@ import (
 	"strings"
 )
 
-func Add(currentFiles, currentDocs, inputs, exclusions []string) ([]string, []string, []string) {
+func Add(currentFiles, inputs, exclusions []string) ([]string, []string) {
 	expanded, invalid := ExpandPaths(inputs)
 
 	var dirs []string
 	var codeFiles []string
-	var pdfFiles []string
 
 	for _, p := range expanded {
+		if strings.EqualFold(filepath.Ext(p), ".pdf") {
+			continue
+		}
 		info, err := os.Stat(p)
 		if err != nil {
 			invalid = append(invalid, p)
@@ -26,13 +28,7 @@ func Add(currentFiles, currentDocs, inputs, exclusions []string) ([]string, []st
 			continue
 		}
 
-		slashed := filepath.ToSlash(p)
-		if strings.EqualFold(filepath.Ext(slashed), ".pdf") {
-			pdfFiles = append(pdfFiles, slashed)
-			continue
-		}
-
-		codeFiles = append(codeFiles, slashed)
+		codeFiles = append(codeFiles, filepath.ToSlash(p))
 	}
 
 	var resolvedFiles []string
@@ -41,11 +37,10 @@ func Add(currentFiles, currentDocs, inputs, exclusions []string) ([]string, []st
 	}
 
 	newFiles := AppendUnique(currentFiles, resolvedFiles)
-	newDocs := AppendUnique(currentDocs, pdfFiles)
-	return newFiles, newDocs, invalid
+	return newFiles, invalid
 }
 
-func Exclude(currentFiles, currentDocs, targets []string) ([]string, []string, []string, []string) {
+func Exclude(currentFiles, targets []string) ([]string, []string) {
 	expanded, _ := ExpandPaths(targets)
 	toRemove := make(map[string]struct{}, len(expanded))
 	for _, p := range expanded {
@@ -62,21 +57,7 @@ func Exclude(currentFiles, currentDocs, targets []string) ([]string, []string, [
 		newFiles = append(newFiles, f)
 	}
 
-	newDocs := make([]string, 0, len(currentDocs))
-	var removedDocs []string
-	for _, d := range currentDocs {
-		if ShouldRemovePath(d, toRemove) {
-			cleanDoc := d
-			if idx := strings.Index(cleanDoc, " (pages:"); idx != -1 {
-				cleanDoc = cleanDoc[:idx]
-			}
-			removedDocs = append(removedDocs, strings.TrimSpace(cleanDoc))
-			continue
-		}
-		newDocs = append(newDocs, d)
-	}
-
-	return newFiles, newDocs, removedFiles, removedDocs
+	return newFiles, removedFiles
 }
 
 func FilterPaths(original []string, toRemove map[string]struct{}) []string {
@@ -92,10 +73,6 @@ func FilterPaths(original []string, toRemove map[string]struct{}) []string {
 
 func ShouldRemovePath(path string, toRemove map[string]struct{}) bool {
 	pathKey := path
-	if idx := strings.Index(pathKey, " (pages:"); idx != -1 {
-		pathKey = pathKey[:idx]
-	}
-
 	cleanTarget := filepath.ToSlash(filepath.Clean(pathKey))
 	if _, found := toRemove[cleanTarget]; found {
 		return true
@@ -124,8 +101,8 @@ func ShouldRemovePath(path string, toRemove map[string]struct{}) bool {
 	return false
 }
 
-func ContextSuggestions(files, docs []string) []string {
-	if len(files) == 0 && len(docs) == 0 {
+func ContextSuggestions(files []string) []string {
+	if len(files) == 0 {
 		return nil
 	}
 
@@ -158,13 +135,6 @@ func ContextSuggestions(files, docs []string) []string {
 
 	for _, f := range files {
 		addPath(f)
-	}
-	for _, d := range docs {
-		cleanDoc := d
-		if idx := strings.Index(cleanDoc, " (pages:"); idx != -1 {
-			cleanDoc = cleanDoc[:idx]
-		}
-		addPath(strings.TrimSpace(cleanDoc))
 	}
 
 	sort.Strings(suggestions)

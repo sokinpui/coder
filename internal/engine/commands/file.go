@@ -2,13 +2,14 @@ package commands
 
 import (
 	"fmt"
-	"github.com/sokinpui/coder/internal/engine"
-	"github.com/sokinpui/coder/internal/engine/source"
-	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
+
+	"github.com/sokinpui/coder/internal/engine"
+	"github.com/sokinpui/coder/internal/engine/pdf"
+	"github.com/sokinpui/coder/internal/engine/source"
+	"github.com/sokinpui/coder/internal/types"
 )
 
 func init() {
@@ -97,50 +98,99 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Context management not supported in this session"}, false
 	}
 
-	currentFiles := ctxCtrl.GetContextFiles()
-	currentDocs := ctxCtrl.GetContextDocuments()
+	expanded, invalidPaths := ExpandPaths(paths)
+	allPaths := append(expanded, invalidPaths...)
 
-	cfg := s.GetConfig()
-	allExclusions := append([]string{}, source.Exclusions...)
-	allExclusions = append(allExclusions, cfg.Coder.Context.Exclusions...)
+	var codePaths []string
+	var pdfPaths []string
 
-	newFiles, newDocs, invalidPaths := source.Add(currentFiles, currentDocs, paths, allExclusions)
-	addedCount := len(newFiles) - len(currentFiles)
-	ctxCtrl.SetContextFiles(newFiles)
-	ctxCtrl.SetContextDocuments(newDocs)
+	for _, p := range allPaths {
+		clean := p
+		if idx := strings.Index(clean, " (pages:"); idx != -1 {
+			clean = strings.TrimSpace(clean[:idx])
+		}
+		if strings.EqualFold(filepath.Ext(clean), ".pdf") {
+			pdfPaths = append(pdfPaths, p)
+		} else {
+			codePaths = append(codePaths, p)
+		}
+	}
 
-	if err := ctxCtrl.LoadContext(); err != nil {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
+	var addedCount int
+	if len(codePaths) > 0 {
+		currentFiles := ctxCtrl.GetContextFiles()
+		cfg := s.GetConfig()
+		allExclusions := append([]string{}, source.Exclusions...)
+		allExclusions = append(allExclusions, cfg.Coder.Context.Exclusions...)
+
+		newFiles, newInvalid := source.Add(currentFiles, codePaths, allExclusions)
+		addedCount = len(newFiles) - len(currentFiles)
+		ctxCtrl.SetContextFiles(newFiles)
+		if err := ctxCtrl.LoadContext(); err != nil {
+			return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Project context updated, but failed to reload context: %v", err)}, false
+		}
+		invalidPaths = newInvalid
 	}
 
 	var pdfRenderNotes []string
 	var pdfErrors []string
-	for _, doc := range newDocs {
-		if slices.Contains(currentDocs, doc) {
+	var imageMessages []types.Message
+
+	for _, rawDoc := range pdfPaths {
+		docPath := rawDoc
+		pagesSpec := ""
+		if idx := strings.Index(docPath, " (pages:"); idx != -1 {
+			if endIdx := strings.Index(docPath[idx:], ")"); endIdx != -1 {
+				pagesSpec = docPath[idx+8 : idx+endIdx]
+			}
+			docPath = strings.TrimSpace(docPath[:idx])
+		}
+
+		msgs, err := pdf.RenderPDFToMessages(docPath, pagesSpec)
+		if err != nil {
+			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (%v)", docPath, err))
 			continue
 		}
-		pages := ctxCtrl.GetDocumentPageCount(doc)
-		if pages > 0 {
-			pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", doc, pages))
+		if len(msgs) == 0 {
+			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (0 pages)", docPath))
 			continue
 		}
-		pdfErrors = append(pdfErrors, fmt.Sprintf("%s (failed to render or 0 pages)", doc))
+
+		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", docPath, len(msgs)))
+		imageMessages = append(imageMessages, msgs...)
 	}
 
-	fileWord := "files"
-	if addedCount == 1 {
-		fileWord = "file"
+	var msgParts []string
+	if addedCount > 0 || (len(codePaths) > 0 && len(pdfPaths) == 0) {
+		fileWord := "files"
+		if addedCount == 1 {
+			fileWord = "file"
+		}
+		msgParts = append(msgParts, fmt.Sprintf("Successfully added %d %s to context.", addedCount, fileWord))
 	}
-	msg := fmt.Sprintf("Successfully add: %s, %d %s added.", args, addedCount, fileWord)
 	if len(pdfRenderNotes) > 0 {
-		msg += fmt.Sprintf("\nPDF pages added: %s", strings.Join(pdfRenderNotes, ", "))
+		msgParts = append(msgParts, fmt.Sprintf("PDF pages added to chat: %s", strings.Join(pdfRenderNotes, ", ")))
 	}
 	if len(pdfErrors) > 0 {
-		msg += fmt.Sprintf("\nPDF rendering failed: %s", strings.Join(pdfErrors, ", "))
+		msgParts = append(msgParts, fmt.Sprintf("PDF rendering failed: %s", strings.Join(pdfErrors, ", ")))
 	}
 	if len(invalidPaths) > 0 {
-		msg += fmt.Sprintf("\nWarning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", "))
+		msgParts = append(msgParts, fmt.Sprintf("Warning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", ")))
 	}
 
-	return CommandOutput{Type: types.MessagesUpdated, Payload: msg, IsContext: true}, true
+	if len(msgParts) == 0 {
+		msgParts = append(msgParts, "No files or documents added.")
+	}
+
+	success := (addedCount > 0) || (len(pdfRenderNotes) > 0)
+	if len(codePaths) == 0 && len(pdfPaths) == 0 {
+		success = false
+	}
+
+	return CommandOutput{
+		Type:      types.MessagesUpdated,
+		Payload:   strings.Join(msgParts, "\n"),
+		IsContext: true,
+		Messages:  imageMessages,
+	}, success
 }

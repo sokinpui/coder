@@ -10,7 +10,6 @@ const (
 	CapBranch
 	CapRegenerate
 	CapShell
-	CapDocumentContext
 	CapToolLoop
 	CapReasoningSwitch
 	CapCompact

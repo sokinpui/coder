@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registerCommand("clear_context", clearContextCmd, "clear all context files and documents", nil)
+	registerCommand("clear_context", clearContextCmd, "clear all context files", nil)
 }
 
 func clearContextCmd(args string, s SessionController) (CommandOutput, bool) {
@@ -22,8 +22,6 @@ func clearContextCmd(args string, s SessionController) (CommandOutput, bool) {
 	}
 
 	ctxCtrl.SetContextFiles([]string{})
-	ctxCtrl.SetContextDocuments([]string{})
-	ctxCtrl.ClearAllDocumentMessages()
 
 	if err := ctxCtrl.LoadContext(); err != nil {
 		msg := fmt.Sprintf("Project context cleared, but failed to reload context: %v", err)

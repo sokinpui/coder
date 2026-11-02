@@ -53,17 +53,13 @@ type CommandOutput struct {
 	IsFileApply     bool
 	IsFileApplyUndo bool
 	IsAgentFileRead bool
+	Messages        []types.Message
 }
 
 type ContextController interface {
 	LoadContext() error
 	GetContextFiles() []string
 	SetContextFiles(files []string)
-	GetContextDocuments() []string
-	SetContextDocuments(docs []string)
-	GetDocumentPageCount(doc string) int
-	PurgeDocumentMessages(docPaths []string)
-	ClearAllDocumentMessages()
 }
 
 type ChangeApplier interface {

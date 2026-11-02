@@ -2,11 +2,11 @@ package coder
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/types"
-	"maps"
-	"os"
 )
 
 func (s *Session) SaveConversation() error {
@@ -24,15 +24,14 @@ func (s *Session) SaveConversation() error {
 	}
 
 	data := &history.ConversationData{
-		Filename:         s.historyFilename,
-		Title:            s.title,
-		Mode:             s.GetMode(),
-		CreatedAt:        s.createdAt,
-		Messages:         s.messages,
-		ContextFiles:     s.contextFiles,
-		ContextDocuments: s.contextDocuments,
-		Exclusions:       s.config.Coder.Context.Exclusions,
-		WorkingDir:       wd,
+		Filename:     s.historyFilename,
+		Title:        s.title,
+		Mode:         s.GetMode(),
+		CreatedAt:    s.createdAt,
+		Messages:     s.messages,
+		ContextFiles: s.contextFiles,
+		Exclusions:   s.config.Coder.Context.Exclusions,
+		WorkingDir:   wd,
 	}
 	return s.historyManager.SaveConversation(data)
 }
@@ -58,7 +57,6 @@ func (s *Session) LoadConversation(filename string) error {
 	s.createdAt = metadata.CreatedAt
 	s.historyFilename = filename
 	s.contextFiles = metadata.ContextFiles
-	s.contextDocuments = metadata.ContextDocuments
 
 	return s.LoadContext()
 }
@@ -76,9 +74,6 @@ func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {
 	}
 	newSess.title = fmt.Sprintf("branch of %s", s.title)
 	newSess.titleGenerated = true
-	newSess.contextDocuments = append([]string{}, s.contextDocuments...)
-	maps.Copy(newSess.cachedDocMessages, s.cachedDocMessages)
-	maps.Copy(newSess.docModTimes, s.docModTimes)
 
 	if err := newSess.LoadContext(); err != nil {
 		return nil, fmt.Errorf("failed to load context for branched session: %w", err)

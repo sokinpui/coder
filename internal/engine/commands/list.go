@@ -16,17 +16,16 @@ func listCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	ctxCtrl, ok := s.(engine.ContextController)
 	if !ok {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or documents are in current context.", IsContext: true}, true
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files are in current context.", IsContext: true}, true
 	}
 
 	allFiles := ctxCtrl.GetContextFiles()
-	allDocs := ctxCtrl.GetContextDocuments()
 
-	if len(allFiles) == 0 && len(allDocs) == 0 {
-		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files or documents are in current context.", IsContext: true}, true
+	if len(allFiles) == 0 {
+		return CommandOutput{Type: types.MessagesUpdated, Payload: "No project source files are in current context.", IsContext: true}, true
 	}
 
-	overview := formatFileListSummary(allFiles, allDocs)
+	overview := formatFileListSummary(allFiles)
 	summary := "Current project context:\n" + overview
 
 	return CommandOutput{Type: types.MessagesUpdated, Payload: summary, IsContext: true}, true
