@@ -1,6 +1,7 @@
 package pdf
 
 import (
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,6 +12,11 @@ import (
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/pkg/pti"
+)
+
+const (
+	defaultMaxCacheEntries = 16
+	defaultMaxCacheBytes   = 64 * 1024 * 1024
 )
 
 type pdfCacheKey struct {
@@ -24,6 +30,105 @@ type pdfCacheEntry struct {
 	messages []types.Message
 }
 
+type cacheItem struct {
+	key      pdfCacheKey
+	entry    pdfCacheEntry
+	byteSize int64
+}
+
+type memoryCache struct {
+	mu         sync.Mutex
+	items      map[pdfCacheKey]*list.Element
+	evictList  *list.List
+	maxEntries int
+	maxBytes   int64
+	totalBytes int64
+}
+
+func newMemoryCache(maxEntries int, maxBytes int64) *memoryCache {
+	return &memoryCache{
+		items:      make(map[pdfCacheKey]*list.Element),
+		evictList:  list.New(),
+		maxEntries: maxEntries,
+		maxBytes:   maxBytes,
+	}
+}
+
+func (c *memoryCache) Get(key pdfCacheKey, modTime time.Time, size int64) ([]types.Message, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	elem, found := c.items[key]
+	if !found {
+		return nil, false
+	}
+
+	item := elem.Value.(*cacheItem)
+	if !item.entry.modTime.Equal(modTime) || item.entry.size != size {
+		c.removeElement(elem)
+		return nil, false
+	}
+
+	c.evictList.MoveToFront(elem)
+	msgs := make([]types.Message, len(item.entry.messages))
+	copy(msgs, item.entry.messages)
+	return msgs, true
+}
+
+func (c *memoryCache) Put(key pdfCacheKey, entry pdfCacheEntry) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entryBytes := calculateEntrySize(entry.messages)
+
+	if elem, found := c.items[key]; found {
+		oldItem := elem.Value.(*cacheItem)
+		c.totalBytes -= oldItem.byteSize
+		oldItem.entry = entry
+		oldItem.byteSize = entryBytes
+		c.totalBytes += entryBytes
+		c.evictList.MoveToFront(elem)
+		c.evict()
+		return
+	}
+
+	item := &cacheItem{
+		key:      key,
+		entry:    entry,
+		byteSize: entryBytes,
+	}
+	elem := c.evictList.PushFront(item)
+	c.items[key] = elem
+	c.totalBytes += entryBytes
+
+	c.evict()
+}
+
+func (c *memoryCache) evict() {
+	for (len(c.items) > c.maxEntries || (c.totalBytes > c.maxBytes && len(c.items) > 1)) && c.evictList.Len() > 0 {
+		back := c.evictList.Back()
+		if back == nil {
+			break
+		}
+		c.removeElement(back)
+	}
+}
+
+func (c *memoryCache) removeElement(elem *list.Element) {
+	c.evictList.Remove(elem)
+	item := elem.Value.(*cacheItem)
+	delete(c.items, item.key)
+	c.totalBytes -= item.byteSize
+}
+
+func calculateEntrySize(messages []types.Message) int64 {
+	var total int64
+	for _, msg := range messages {
+		total += int64(len(msg.Data)) + int64(len(msg.Content))
+	}
+	return total
+}
+
 type manifestEntry struct {
 	ModTime  int64    `json:"mod_time"`
 	Size     int64    `json:"size"`
@@ -31,8 +136,8 @@ type manifestEntry struct {
 }
 
 var (
-	cacheMu  sync.RWMutex
-	memCache = make(map[pdfCacheKey]pdfCacheEntry)
+	manifestMu sync.Mutex
+	memCache   = newMemoryCache(defaultMaxCacheEntries, defaultMaxCacheBytes)
 )
 
 func loadDiskManifest(manifestPath string) map[string]manifestEntry {
@@ -82,26 +187,16 @@ func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, err
 		path:      filepath.ToSlash(absPath),
 		pagesSpec: pagesSpec,
 	}
-
-	cacheMu.RLock()
-	entry, ok := memCache[key]
-	if ok && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
-		msgs := make([]types.Message, len(entry.messages))
-		copy(msgs, entry.messages)
-		cacheMu.RUnlock()
+	if msgs, ok := memCache.Get(key, info.ModTime(), info.Size()); ok {
 		return msgs, nil
 	}
-	cacheMu.RUnlock()
 
 	manifestPath := filepath.Join(imagesBaseDir, ".manifest.json")
 	manifestKey := fmt.Sprintf("%s\x00%s", filepath.ToSlash(absPath), pagesSpec)
 
-	cacheMu.Lock()
-	defer cacheMu.Unlock()
-
-	if entry, ok := memCache[key]; ok && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
-		msgs := make([]types.Message, len(entry.messages))
-		copy(msgs, entry.messages)
+	manifestMu.Lock()
+	defer manifestMu.Unlock()
+	if msgs, ok := memCache.Get(key, info.ModTime(), info.Size()); ok {
 		return msgs, nil
 	}
 
@@ -124,11 +219,11 @@ func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, err
 				})
 			}
 			if allFilesExist && len(diskMessages) > 0 {
-				memCache[key] = pdfCacheEntry{
+				memCache.Put(key, pdfCacheEntry{
 					modTime:  info.ModTime(),
 					size:     info.Size(),
 					messages: diskMessages,
-				}
+				})
 				msgs := make([]types.Message, len(diskMessages))
 				copy(msgs, diskMessages)
 				return msgs, nil
@@ -163,11 +258,11 @@ func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, err
 		relPaths = append(relPaths, slashedRelPath)
 	}
 
-	memCache[key] = pdfCacheEntry{
+	memCache.Put(key, pdfCacheEntry{
 		modTime:  info.ModTime(),
 		size:     info.Size(),
 		messages: messages,
-	}
+	})
 
 	diskManifest[manifestKey] = manifestEntry{
 		ModTime:  info.ModTime().UnixNano(),
