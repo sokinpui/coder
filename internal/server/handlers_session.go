@@ -45,13 +45,12 @@ func (s *Server) handleInit(req Request) {
 	_ = sess.LoadContext()
 	tokenCount := token.CountTokens(sess.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"sessionId":        sess.ID,
-		"mode":             sess.GetMode(),
-		"contextFiles":     sess.GetContextFiles(),
-		"contextDocuments": sess.GetContextDocuments(),
-		"model":            sess.GetConfig().Coder.ModelCode,
-		"reasoningEffort":  sess.GetReasoningEffort(),
-		"tokenCount":       tokenCount,
+		"sessionId":       sess.ID,
+		"mode":            sess.GetMode(),
+		"contextFiles":    sess.GetContextFiles(),
+		"model":           sess.GetConfig().Coder.ModelCode,
+		"reasoningEffort": sess.GetReasoningEffort(),
+		"tokenCount":      tokenCount,
 	})
 }
 
@@ -321,13 +320,12 @@ func (s *Server) handleBranch(req Request) {
 
 	tokenCount := token.CountTokens(s.session.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"branched":         true,
-		"sessionId":        newSess.ID,
-		"title":            newSess.GetTitle(),
-		"contextFiles":     newSess.GetContextFiles(),
-		"contextDocuments": newSess.GetContextDocuments(),
-		"messages":         newSess.GetMessages(),
-		"tokenCount":       tokenCount,
+		"branched":     true,
+		"sessionId":    newSess.ID,
+		"title":        newSess.GetTitle(),
+		"contextFiles": newSess.GetContextFiles(),
+		"messages":     newSess.GetMessages(),
+		"tokenCount":   tokenCount,
 	})
 }
 

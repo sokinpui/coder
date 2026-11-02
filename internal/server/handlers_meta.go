@@ -128,13 +128,12 @@ func (s *Server) handleHistoryLoad(req Request) {
 	s.hydrateSessionImages()
 	tokenCount := token.CountTokens(s.session.GetPrompt())
 	s.sendResult(req.ID, map[string]any{
-		"loaded":           true,
-		"mode":             s.session.GetMode(),
-		"title":            s.session.GetTitle(),
-		"contextFiles":     s.session.GetContextFiles(),
-		"contextDocuments": s.session.GetContextDocuments(),
-		"messages":         s.session.GetMessages(),
-		"tokenCount":       tokenCount,
+		"loaded":       true,
+		"mode":         s.session.GetMode(),
+		"title":        s.session.GetTitle(),
+		"contextFiles": s.session.GetContextFiles(),
+		"messages":     s.session.GetMessages(),
+		"tokenCount":   tokenCount,
 	})
 }
 

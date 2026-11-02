@@ -2,8 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
-	"path/filepath"
 
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/token"
@@ -20,17 +18,17 @@ func (s *Server) handlePDFAdd(req Request) {
 		return
 	}
 
-	docEntry := filepath.ToSlash(params.Path)
-	s.session.SetContextDocuments(commands.AppendUnique(s.session.GetContextDocuments(), []string{docEntry}))
-	if err := s.session.LoadContext(); err != nil {
-		s.sendError(req.ID, -32603, fmt.Sprintf("Failed to load PDF document: %v", err))
+	res, success := s.session.ExecuteCommand("/file " + params.Path)
+	if !success {
+		s.sendError(req.ID, -32603, res.Payload)
 		return
 	}
 	_ = s.session.SaveConversation()
 	s.sendResult(req.ID, map[string]any{
 		"success":    true,
-		"pagesAdded": s.session.GetDocumentPageCount(docEntry),
+		"message":    res.Payload,
 		"tokenCount": token.CountTokens(s.session.GetPrompt()),
+		"messages":   s.session.GetMessages(),
 	})
 }
 
@@ -81,12 +79,11 @@ func (s *Server) handleContextGet(req Request) {
 
 	s.hydrateSessionImages()
 	s.sendResult(req.ID, map[string]any{
-		"mode":             s.session.GetMode(),
-		"title":            s.session.GetTitle(),
-		"contextFiles":     s.session.GetContextFiles(),
-		"contextDocuments": s.session.GetContextDocuments(),
-		"tokenCount":       tokenCount,
-		"messages":         s.session.GetMessages(),
+		"mode":         s.session.GetMode(),
+		"title":        s.session.GetTitle(),
+		"contextFiles": s.session.GetContextFiles(),
+		"tokenCount":   tokenCount,
+		"messages":     s.session.GetMessages(),
 	})
 }
 
