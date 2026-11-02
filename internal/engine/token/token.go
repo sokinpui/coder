@@ -27,7 +27,7 @@ func CountTokens(messages []types.Message) int {
 }
 
 func countSingleMessage(msg types.Message) int {
-	if !msg.CanSendToAI() {
+	if _, ok := msg.Type.ChatRole(); !ok {
 		return 0
 	}
 	if msg.Type == types.ImageMessage {

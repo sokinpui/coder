@@ -90,7 +90,7 @@ func (s *Session) BuildPrompt(messages []types.Message) []types.Message {
 	}
 
 	for _, msg := range messages {
-		if !msg.CanSendToAI() {
+		if _, ok := msg.Type.ChatRole(); !ok {
 			continue
 		}
 		result = append(result, msg)
