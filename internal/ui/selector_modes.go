@@ -85,7 +85,7 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 
 	m.Selector.SetItems(cfg.Items)
 
-	if cfg.InitialCursor > 0 && cfg.InitialCursor < len(m.Selector.FilteredItems) {
+	if cfg.InitialCursor >= 0 && cfg.InitialCursor < len(m.Selector.FilteredItems) {
 		m.Selector.Cursor = cfg.InitialCursor
 		m.Selector.Anchor = cfg.InitialCursor
 	}

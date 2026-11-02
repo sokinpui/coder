@@ -14,6 +14,10 @@ import (
 )
 
 func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
+	if len(m.Chat.MessageLineOffsets) == 0 || len(m.Chat.RenderedLines) == 0 {
+		_ = (&m).renderConversation()
+	}
+
 	messages := m.Session.GetMessages()
 	selectable := getSelectableIndices(messages)
 
@@ -47,6 +51,26 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	initialCursor := 0
 	if len(items) > 0 {
 		initialCursor = len(items) - 1
+		if !m.Chat.Viewport.AtBottom() {
+			viewportHeight := m.Chat.Viewport.Height
+			if viewportHeight <= 0 {
+				viewportHeight = 20
+			}
+			focalLine := m.Chat.Viewport.YOffset + (viewportHeight / 3)
+			bestIdx := 0
+			for i, item := range items {
+				if msgIdx, ok := item.Data.(int); ok {
+					if lineOffset, exists := m.Chat.MessageLineOffsets[msgIdx]; exists {
+						if lineOffset <= focalLine {
+							bestIdx = i
+						} else {
+							break
+						}
+					}
+				}
+			}
+			initialCursor = bestIdx
+		}
 	}
 
 	newModel, cmd := m.openGenericSelector(SelectorConfig{
@@ -108,9 +132,11 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 	case "ctrl+d":
 		m.Chat.Viewport.HalfPageDown()
+		m.Chat.AutoScroll = m.Chat.Viewport.AtBottom()
 		return m, nil, true
 
 	case "ctrl+u":
+		m.Chat.AutoScroll = false
 		m.Chat.Viewport.HalfPageUp()
 		return m, nil, true
 
@@ -321,6 +347,7 @@ func (m Model) syncViewportToMessage(msgIdx int) Model {
 		viewportHeight := m.Chat.Viewport.Height
 		targetY := max(line-(viewportHeight/3), 0)
 		m.Chat.Viewport.SetYOffset(targetY)
+		m.Chat.AutoScroll = m.Chat.Viewport.AtBottom()
 	}
 	return m
 }
