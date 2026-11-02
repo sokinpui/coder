@@ -20,7 +20,6 @@ import (
 type SelectorConfig struct {
 	Title          string
 	Placeholder    string
-	Footer         string
 	Items          []SelectorItem
 	ShowSearch     bool
 	IsSearching    bool
@@ -32,6 +31,7 @@ type SelectorConfig struct {
 	CustomHeight   int
 	ShowPreview    bool
 	PreviewTitle   string
+	PreviewDescription string
 	PreviewContent string
 	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
 	OnCancel       func(m Model) (tea.Model, tea.Cmd)
@@ -49,7 +49,6 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.Selector.MultiSelect = cfg.MultiSelect
 	m.Selector.ShowSearch = cfg.ShowSearch
 	m.Selector.IsSearching = cfg.IsSearching
-	m.Selector.FooterHelp = cfg.Footer
 	m.Selector.Tabs = cfg.Tabs
 	m.Selector.ActiveTab = cfg.ActiveTab
 	m.Selector.OnTabChange = cfg.OnTabChange
@@ -57,6 +56,7 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.Selector.CustomHeight = cfg.CustomHeight
 	m.Selector.ShowPreview = cfg.ShowPreview
 	m.Selector.PreviewTitle = cfg.PreviewTitle
+	m.Selector.PreviewDescription = cfg.PreviewDescription
 	m.Selector.PreviewContent = cfg.PreviewContent
 	m.Selector.PreviewOffset = 0
 	m.Selector.OnCursorChange = cfg.OnCursorChange
@@ -107,9 +107,8 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 	}
 
 	newModel, cmd := m.openGenericSelector(SelectorConfig{
-		Title:       "── Switch Model ──",
+		Title:       "Switch Model [Esc/Ctrl+C: cancel | Enter: select]",
 		Placeholder: "Filter models...",
-		Footer:      "── [Esc/Ctrl+C: cancel | Enter: select] ──",
 		Items:       items,
 		ShowSearch:  true,
 		IsSearching: true,
@@ -165,8 +164,7 @@ func (m Model) openReasoningSelector() (Model, tea.Cmd) {
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:         "── Switch Reasoning Effort ──",
-		Footer:        "── [Esc/Ctrl+C: cancel | Enter: select] ──",
+		Title:         "Switch Reasoning Effort [Esc/Ctrl+C: cancel | Enter: select]",
 		Items:         items,
 		ShowSearch:    false,
 		IsSearching:   false,
@@ -221,14 +219,13 @@ func (m Model) openModeSelector() (Model, tea.Cmd) {
 		items = append(items, SelectorItem{
 			ID:          md.id,
 			Title:       md.name,
-			Description: "  " + md.desc,
+			Description: md.desc,
 			Badge:       badge,
 		})
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:         "── Switch Mode ──",
-		Footer:        "── [Esc/Ctrl+C: cancel | Enter: select] ──",
+		Title:         "Switch Mode [Esc/Ctrl+C: cancel | Enter: select]",
 		Items:         items,
 		ShowSearch:    false,
 		IsSearching:   false,
@@ -259,10 +256,10 @@ func (m Model) openFileListSelector(title, placeholder string, paths []string, o
 		})
 	}
 
+	titleWithHelp := fmt.Sprintf("%s [Esc/Ctrl+C: cancel | Tab: toggle select | Enter: apply]", strings.Trim(title, "─ "))
 	return m.openGenericSelector(SelectorConfig{
-		Title:       title,
+		Title:       titleWithHelp,
 		Placeholder: placeholder,
-		Footer:      "── [Esc/Ctrl+C: cancel | Tab: toggle select | Enter: apply] ──",
 		Items:       items,
 		ShowSearch:  true,
 		IsSearching: true,
@@ -286,11 +283,11 @@ func (m Model) openFileListSelector(title, placeholder string, paths []string, o
 
 func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 	newModel, cmd := m.openGenericSelector(SelectorConfig{
+		Title:       "Chat History [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load]",
 		Tabs:        []string{"History", "Active"},
 		ActiveTab:   initialTab,
 		ShowSearch:  true,
 		IsSearching: false,
-		Footer:      "── [Esc/q: close | /: search | Tab/h/l: switch tab | Enter: load] ──",
 		OnTabChange: func(mod Model, newTab int) (tea.Model, tea.Cmd) {
 			mod.Selector.ActiveTab = newTab
 			mod.Selector.Selected = make(map[string]struct{})
@@ -384,21 +381,23 @@ func (m Model) openTemplateSelector() (Model, tea.Cmd) {
 
 	initialPreview := ""
 	initialTitle := ""
+	initialDesc := ""
 	if len(templateList) > 0 {
 		initialTitle = templateList[0].Name
+		initialDesc = templateList[0].Description
 		initialPreview = templateList[0].Content
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:          "── Prompt Templates ──",
+		Title:          "Prompt Templates [Esc/Ctrl+C: close | /: search | Enter: apply template | C-d/C-u: scroll preview]",
 		Placeholder:    "Filter templates...",
-		Footer:         "── [Esc/Ctrl+C: close | /: search | Enter: apply template | C-d/C-u: scroll preview] ──",
 		Items:          items,
 		ShowSearch:     true,
 		IsSearching:    false,
 		MultiSelect:    false,
 		ShowPreview:    true,
 		PreviewTitle:   initialTitle,
+		PreviewDescription: initialDesc,
 		PreviewContent: initialPreview,
 		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
 		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
@@ -406,6 +405,7 @@ func (m Model) openTemplateSelector() (Model, tea.Cmd) {
 			if current != nil {
 				if t, ok := current.Data.(templates.Template); ok {
 					mod.Selector.PreviewTitle = t.Name
+					mod.Selector.PreviewDescription = t.Description
 					mod.Selector.PreviewContent = t.Content
 					mod.Selector.PreviewOffset = 0
 				}
@@ -453,21 +453,23 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 
 	initialPreview := ""
 	initialTitle := ""
+	initialDesc := ""
 	if len(skillList) > 0 {
 		initialTitle = skillList[0].Name
+		initialDesc = skillList[0].Description
 		initialPreview = loadSkillPreview(skillList[0])
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:          "── Skills Catalog ──",
+		Title:          "Skills Catalog [Esc/Ctrl+C: close | /: search | Enter: use skill | C-d/C-u: scroll preview]",
 		Placeholder:    "Filter skills...",
-		Footer:         "── [Esc/Ctrl+C: close | /: search | Enter: use skill | C-d/C-u: scroll preview] ──",
 		Items:          items,
 		ShowSearch:     true,
 		IsSearching:    false,
 		MultiSelect:    false,
 		ShowPreview:    true,
 		PreviewTitle:   initialTitle,
+		PreviewDescription: initialDesc,
 		PreviewContent: initialPreview,
 		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
 		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
@@ -475,6 +477,7 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 			if current != nil {
 				if sk, ok := current.Data.(skills.Skill); ok {
 					mod.Selector.PreviewTitle = sk.Name
+					mod.Selector.PreviewDescription = sk.Description
 					mod.Selector.PreviewContent = loadSkillPreview(sk)
 					mod.Selector.PreviewOffset = 0
 				}

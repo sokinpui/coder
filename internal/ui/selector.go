@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/sahilm/fuzzy"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
@@ -41,9 +42,9 @@ type SelectorModel struct {
 	CustomHeight   int
 	ShowPreview    bool
 	PreviewTitle   string
+	PreviewDescription string
 	PreviewContent string
 	PreviewOffset  int
-	FooterHelp     string
 	IsLoading      bool
 	MultiSelect    bool
 
@@ -140,8 +141,21 @@ func (s *SelectorModel) GetPrimaryItem() *SelectorItem {
 
 func (s *SelectorModel) View(main *Model) string {
 	var header strings.Builder
+	var topTitle string
 
-	if len(s.Tabs) > 0 {
+	if s.ShowPreview {
+		if s.Title != "" {
+			topTitle = PaletteHeaderStyle.Render(s.Title)
+		}
+		if s.ShowSearch {
+			header.WriteString(s.SearchInput.View())
+			header.WriteString("\n\n")
+		}
+	} else if len(s.Tabs) > 0 {
+		if s.Title != "" {
+			header.WriteString(PaletteHeaderStyle.Render(s.Title))
+			header.WriteString("\n")
+		}
 		for i, tab := range s.Tabs {
 			tabStr := fmt.Sprintf("[ %s ]", tab)
 			if i == s.ActiveTab {
@@ -180,6 +194,13 @@ func (s *SelectorModel) View(main *Model) string {
 		listBuf.WriteString("  No matching items.\n")
 	} else {
 		maxItems := max(5, s.Height-6)
+		if s.ShowPreview {
+			availHeight := max(6, s.Height-2)
+			if topTitle != "" {
+				availHeight = max(4, availHeight-lipgloss.Height(topTitle))
+			}
+			maxItems = max(3, availHeight-3)
+		}
 		start := 0
 		if s.Cursor >= maxItems {
 			start = s.Cursor - maxItems + 1
@@ -225,85 +246,130 @@ func (s *SelectorModel) View(main *Model) string {
 				badgeStr = item.Badge + " "
 			}
 
-			title := item.Title
-			availableWidth := max(10, itemWidth-lipgloss.Width(badgeStr)-lipgloss.Width(checkPrefix)-lipgloss.Width(item.Description)-5)
-			runes := []rune(title)
-			if len(runes) > availableWidth {
-				if availableWidth > 3 {
-					title = string(runes[:availableWidth-3]) + "..."
+			desc := strings.TrimSpace(item.Description)
+			prefix := cursorPrefix + checkPrefix + badgeStr
+			prefixW := lipgloss.Width(prefix)
+			contentW := max(5, itemWidth-prefixW)
+			titleW := lipgloss.Width(item.Title)
+
+			var line string
+			if s.ShowPreview || desc == "" || contentW <= titleW+5 {
+				title := item.Title
+				if titleW > contentW {
+					title = ansi.Truncate(title, contentW, "...")
+				}
+				if isCursor || isSelected {
+					line = PaletteSelectedItemStyle.Render(prefix + title)
 				} else {
-					title = string(runes[:availableWidth])
+					line = prefix + PaletteItemStyle.Render(title)
+				}
+			} else {
+				title := item.Title
+				availForDesc := contentW - titleW - 2
+				descText := ansi.Truncate(desc, availForDesc, "...")
+
+				if isCursor || isSelected {
+					line = PaletteSelectedItemStyle.Render(prefix+title) + "  " + PaletteDescriptionStyle.Render(descText)
+				} else {
+					line = prefix + PaletteItemStyle.Render(title) + "  " + PaletteDescriptionStyle.Render(descText)
 				}
 			}
 
-			line := fmt.Sprintf("%s%s%s%s%s", cursorPrefix, checkPrefix, badgeStr, title, item.Description)
-			if isCursor || isSelected {
-				listBuf.WriteString(PaletteSelectedItemStyle.Width(itemWidth).Render(line))
-			} else {
-				listBuf.WriteString(PaletteItemStyle.Width(itemWidth).Render(line))
-			}
+			listBuf.WriteString(line)
 			listBuf.WriteString("\n")
 		}
 	}
 
 	contentParts := []string{header.String(), strings.TrimRight(listBuf.String(), "\n")}
-	if s.FooterHelp != "" {
-		footer := PaletteHeaderStyle.Render(s.FooterHelp)
-		contentParts = append(contentParts, footer)
-	}
 
 	if s.ShowPreview {
-		return s.renderSplitView(header.String(), listBuf.String())
+		return s.renderSplitView(topTitle, header.String(), listBuf.String())
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Left, contentParts...)
 	return PaletteContainerStyle.Width(s.Width).Render(content)
 }
 
-func (s *SelectorModel) renderSplitView(headerStr, listStr string) string {
+func (s *SelectorModel) renderSplitView(topTitle, leftHeaderStr, listStr string) string {
 	innerWidth := max(30, s.Width-6)
 	innerHeight := max(10, s.Height-2)
+	if topTitle != "" {
+		innerHeight = max(6, innerHeight-lipgloss.Height(topTitle))
+	}
 	leftWidth := (innerWidth * 45) / 100
 	gapWidth := 2
 	rightWidth := innerWidth - leftWidth - gapWidth
 
-	contentParts := []string{headerStr, strings.TrimRight(listStr, "\n")}
-	if s.FooterHelp != "" {
-		contentParts = append(contentParts, PaletteHeaderStyle.Render(s.FooterHelp))
-	}
+	contentParts := []string{leftHeaderStr, strings.TrimRight(listStr, "\n")}
 	leftContent := lipgloss.JoinVertical(lipgloss.Left, contentParts...)
 	leftPane := lipgloss.NewStyle().Width(leftWidth).Height(innerHeight).Render(leftContent)
 
 	previewInnerWidth := max(10, rightWidth-4)
-	previewInnerHeight := max(4, innerHeight-2)
 
-	var rightBuf strings.Builder
-	headerLines := 0
-	if s.PreviewTitle != "" {
-		rightBuf.WriteString(PreviewTitleStyle.MaxWidth(previewInnerWidth).Render(s.PreviewTitle))
-		rightBuf.WriteString("\n\n")
-		headerLines = 2
+	titleText := s.PreviewTitle
+	descText := s.PreviewDescription
+	if (titleText == "" || descText == "") && len(s.FilteredItems) > 0 && s.Cursor < len(s.FilteredItems) {
+		item := s.FilteredItems[s.Cursor]
+		if titleText == "" {
+			titleText = item.Title
+		}
+		if descText == "" {
+			descText = item.Description
+		}
 	}
 
+	var descLines []string
+	if titleText != "" {
+		descLines = append(descLines, PreviewTitleStyle.MaxWidth(previewInnerWidth).Render(titleText))
+	}
+	if descText != "" {
+		descLines = append(descLines, PreviewDescriptionStyle.MaxWidth(previewInnerWidth).Render(descText))
+	}
+
+	var rightPane string
+	if len(descLines) == 0 {
+		previewInnerHeight := max(4, innerHeight-2)
+		rightPane = s.renderPreviewBox(previewInnerWidth, previewInnerHeight)
+	} else {
+		descContent := strings.Join(descLines, "\n")
+		actualDescLines := len(strings.Split(descContent, "\n"))
+		descContentHeight := min(actualDescLines, max(1, (innerHeight-6)/2))
+		previewContentHeight := max(2, innerHeight-4-descContentHeight)
+
+		descBox := PreviewBoxStyle.
+			Width(previewInnerWidth).
+			Height(descContentHeight).
+			Render(descContent)
+
+		previewBox := s.renderPreviewBox(previewInnerWidth, previewContentHeight)
+		rightPane = lipgloss.JoinVertical(lipgloss.Left, descBox, previewBox)
+	}
+
+	combined := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, strings.Repeat(" ", gapWidth), rightPane)
+	if topTitle != "" {
+		combined = lipgloss.JoinVertical(lipgloss.Left, topTitle, combined)
+	}
+	return PaletteContainerStyle.Width(s.Width).Render(combined)
+}
+
+func (s *SelectorModel) renderPreviewBox(innerWidth, innerHeight int) string {
+	var rightBuf strings.Builder
 	if strings.TrimSpace(s.PreviewContent) == "" {
 		rightBuf.WriteString(ToolMutedStyle.Render("No preview available."))
 	} else {
-		rendered := markdown.Render(s.PreviewContent, previewInnerWidth)
+		rendered := markdown.Render(s.PreviewContent, innerWidth)
 		lines := strings.Split(rendered, "\n")
-		bodyMaxLines := max(1, previewInnerHeight-headerLines)
+		bodyMaxLines := max(1, innerHeight)
 		maxStart := max(0, len(lines)-bodyMaxLines)
 		startLine := clamp(s.PreviewOffset, 0, maxStart)
 		endLine := min(startLine+bodyMaxLines, len(lines))
 		rightBuf.WriteString(strings.Join(lines[startLine:endLine], "\n"))
 	}
 
-	renderedPreview := PreviewBoxStyle.
-		Width(previewInnerWidth).
-		Height(previewInnerHeight).
+	return PreviewBoxStyle.
+		Width(innerWidth).
+		Height(innerHeight).
 		Render(rightBuf.String())
-
-	combined := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, strings.Repeat(" ", gapWidth), renderedPreview)
-	return PaletteContainerStyle.Width(s.Width).Render(combined)
 }
 
 type SelectorOverlay struct{}

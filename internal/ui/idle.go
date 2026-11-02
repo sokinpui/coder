@@ -237,7 +237,7 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 				m.StatusBarMessage = "No project source files in context."
 				return m, clearStatusBarCmd(), true
 			}
-			newModel, cmd := m.openFileListSelector("── Exclude Files ──", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+			newModel, cmd := m.openFileListSelector("Exclude Files", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 				cmdStr := "/exclude " + strings.Join(selected, " ")
 				cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
 				return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
@@ -438,7 +438,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			m.StatusBarMessage = "No project source files in context."
 			return m, clearStatusBarCmd(), true
 		}
-		newModel, cmd := m.openFileListSelector("── Search Context Files ──", "Search context files...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+		newModel, cmd := m.openFileListSelector("Search Context Files", "Search context files...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			return mod, openFilesInEditorCmd(selected)
 		})
 		return newModel, cmd, true
@@ -448,7 +448,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			return m, nil, false
 		}
 		cfg := m.Session.GetConfig()
-		newModel, cmd := m.openFileListSelector("── Add Files to Context ──", "Search files/directories to add...", nil, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
+		newModel, cmd := m.openFileListSelector("Add Files to Context", "Search files/directories to add...", nil, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
 			cmdStr := "/file " + strings.Join(selected, " ")
 			cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
 			return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})

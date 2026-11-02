@@ -19,7 +19,7 @@ func (c *ConfirmOverlay) View(main *Model) string {
 	modalWidth := min(84, max(50, main.Width-4))
 	contentWidth := max(20, modalWidth-6)
 
-	header := PaletteHeaderStyle.Render("── Tool Execution Approval ──")
+	header := PaletteHeaderStyle.Render("Tool Execution Approval")
 	toolName := ToolCallStyle.Render("⚡ " + req.ToolName)
 
 	renderer := DefaultToolRegistry.Get(req.ToolName)

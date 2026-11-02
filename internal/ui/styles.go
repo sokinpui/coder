@@ -120,7 +120,7 @@ var (
 					Foreground(lipgloss.Color("51"))
 
 	PaletteDescriptionStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244"))
+				Foreground(lipgloss.Color("240"))
 
 	TabStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")).
@@ -142,6 +142,9 @@ var (
 	PreviewTitleStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("228")).
 				Bold(true)
+
+	PreviewDescriptionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("246"))
 
 	// Spinner Dot Styles
 	LightGreyDotStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))

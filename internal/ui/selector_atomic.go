@@ -50,7 +50,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 	}
 
 	newModel, cmd := m.openGenericSelector(SelectorConfig{
-		Title:         fmt.Sprintf("── Atomic Messages [Esc/C-c: exit | v: select | o: swap | y/d: copy/del | %s] ──", actionList),
+		Title:         fmt.Sprintf("Atomic Messages [Esc/Ctrl+C: exit | v: select | o: swap | y/d: copy/del | %s]", actionList),
 		Items:         items,
 		InitialCursor: initialCursor,
 		OnCursorChange: func(mod Model, current *SelectorItem) Model {
