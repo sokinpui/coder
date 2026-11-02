@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sokinpui/coder/internal/engine"
@@ -35,7 +36,11 @@ func (s *Session) NeedsContextReload() bool {
 		}
 	}
 	for _, doc := range s.contextDocuments {
-		info, err := os.Stat(doc)
+		cleanDoc := doc
+		if idx := strings.Index(cleanDoc, " (pages:"); idx != -1 {
+			cleanDoc = strings.TrimSpace(cleanDoc[:idx])
+		}
+		info, err := os.Stat(cleanDoc)
 		if err != nil || info.ModTime().After(s.contextLoadedAt) {
 			return true
 		}
@@ -44,15 +49,15 @@ func (s *Session) NeedsContextReload() bool {
 }
 
 func (s *Session) LoadContext() error {
+	if !s.NeedsContextReload() {
+		return nil
+	}
+
 	s.loadDocumentContext()
 
 	if len(s.contextFiles) == 0 {
 		s.projectSourceFiles = nil
-		s.contextLoadedAt = time.Time{}
-		return nil
-	}
-
-	if !s.NeedsContextReload() {
+		s.contextLoadedAt = time.Now()
 		return nil
 	}
 
@@ -63,7 +68,7 @@ func (s *Session) LoadContext() error {
 
 	if len(files) == 0 {
 		s.projectSourceFiles = nil
-		s.contextLoadedAt = time.Time{}
+		s.contextLoadedAt = time.Now()
 		return nil
 	}
 	s.projectSourceFiles = files
@@ -86,7 +91,16 @@ func (s *Session) loadDocumentContext() {
 
 	var allDocMsgs []types.Message
 	for _, doc := range s.contextDocuments {
-		cleanPath := filepath.ToSlash(doc)
+		docPath := doc
+		pagesSpec := ""
+		if idx := strings.Index(docPath, " (pages:"); idx != -1 {
+			if endIdx := strings.Index(docPath[idx:], ")"); endIdx != -1 {
+				pagesSpec = docPath[idx+8 : idx+endIdx]
+			}
+			docPath = strings.TrimSpace(docPath[:idx])
+		}
+
+		cleanPath := filepath.ToSlash(docPath)
 		info, err := os.Stat(cleanPath)
 		if err != nil {
 			continue
@@ -99,7 +113,7 @@ func (s *Session) loadDocumentContext() {
 			continue
 		}
 
-		msgs, err := pdf.RenderPDFToMessages(cleanPath, "")
+		msgs, err := pdf.RenderPDFToMessages(cleanPath, pagesSpec)
 		if err != nil {
 			continue
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/sokinpui/coder/internal/engine/history"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
+	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
@@ -182,14 +183,27 @@ func (s *Session) GetContextDocuments() []string {
 
 func (s *Session) SetContextDocuments(docs []string) {
 	s.contextDocuments = docs
+	s.contextLoadedAt = time.Time{}
 }
 
 func (s *Session) GetDocumentPageCount(doc string) int {
-	doc = filepath.ToSlash(doc)
-	if msgs, ok := s.cachedDocMessages[doc]; ok {
+	docPath := doc
+	pagesSpec := ""
+	if idx := strings.Index(docPath, " (pages:"); idx != -1 {
+		if endIdx := strings.Index(docPath[idx:], ")"); endIdx != -1 {
+			pagesSpec = docPath[idx+8 : idx+endIdx]
+		}
+		docPath = strings.TrimSpace(docPath[:idx])
+	}
+	cleanPath := filepath.ToSlash(docPath)
+	if msgs, ok := s.cachedDocMessages[cleanPath]; ok {
 		return len(msgs)
 	}
-	return 0
+	msgs, err := pdf.RenderPDFToMessages(cleanPath, pagesSpec)
+	if err != nil {
+		return 0
+	}
+	return len(msgs)
 }
 
 func (s *Session) GetDocumentMessages() []types.Message {
