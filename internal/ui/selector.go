@@ -30,6 +30,7 @@ type SelectorModel struct {
 	Selected           map[string]struct{}
 	Cursor             int
 	Anchor             int
+	Offset             int
 	IsSelecting        bool
 	SearchInput        textinput.Model
 	ShowSearch         bool
@@ -102,6 +103,9 @@ func (s *SelectorModel) UpdateFilter() {
 	if s.Cursor >= len(s.FilteredItems) {
 		s.Cursor = max(0, len(s.FilteredItems)-1)
 	}
+	if s.Offset > s.Cursor {
+		s.Offset = s.Cursor
+	}
 }
 
 func (s *SelectorModel) GetSelectedItems() []SelectorItem {
@@ -124,17 +128,22 @@ func (s *SelectorModel) GetSelectedItems() []SelectorItem {
 		if len(groupIDs) == 0 {
 			return rangeItems
 		}
+		rangeIDs := make(map[string]struct{}, len(rangeItems))
+		for _, r := range rangeItems {
+			rangeIDs[r.ID] = struct{}{}
+		}
 		seen := make(map[string]struct{}, len(rangeItems))
 		var res []SelectorItem
 		for _, it := range s.FilteredItems {
-			inRange := false
-			for _, r := range rangeItems {
-				if r.ID == it.ID {
-					inRange = true
-					break
-				}
+			if _, ok := seen[it.ID]; ok {
+				continue
 			}
-			if inRange || (it.GroupID != "" && groupIDs[it.GroupID] != struct{}{}) {
+			_, inRange := rangeIDs[it.ID]
+			inGroup := false
+			if it.GroupID != "" {
+				_, inGroup = groupIDs[it.GroupID]
+			}
+			if inRange || inGroup {
 				seen[it.ID] = struct{}{}
 				res = append(res, it)
 			}
@@ -237,10 +246,19 @@ func (s *SelectorModel) View(main *Model) string {
 			}
 			maxItems = max(3, availHeight-3)
 		}
-		start := 0
-		if s.Cursor >= maxItems {
-			start = s.Cursor - maxItems + 1
+		if s.Cursor < s.Offset {
+			s.Offset = s.Cursor
+		} else if s.Cursor >= s.Offset+maxItems {
+			s.Offset = s.Cursor - maxItems + 1
 		}
+		maxOffset := max(0, len(s.FilteredItems)-maxItems)
+		if s.Offset > maxOffset {
+			s.Offset = maxOffset
+		}
+		if s.Offset < 0 {
+			s.Offset = 0
+		}
+		start := s.Offset
 		end := min(start+maxItems, len(s.FilteredItems))
 
 		selectedSet := make(map[string]struct{})

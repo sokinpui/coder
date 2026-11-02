@@ -59,6 +59,7 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.Selector.PreviewDescription = cfg.PreviewDescription
 	m.Selector.PreviewContent = cfg.PreviewContent
 	m.Selector.PreviewOffset = 0
+	m.Selector.Offset = 0
 	m.Selector.OnCursorChange = cfg.OnCursorChange
 	m.Selector.KeyHandler = cfg.KeyHandler
 	m.Selector.OnConfirm = cfg.OnConfirm
@@ -292,6 +293,7 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 			mod.Selector.ActiveTab = newTab
 			mod.Selector.Selected = make(map[string]struct{})
 			mod.Selector.Cursor = 0
+			mod.Selector.Offset = 0
 			mod.Selector.SearchInput.Reset()
 			if newTab == 0 {
 				return mod, listHistoryCmd(mod.Session.GetHistoryManager(), mod.Session.GetMode())
