@@ -180,6 +180,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 	}
 	var toolCalls []*partialToolCall
 	var currentToolCall *partialToolCall
+	var streamDone bool
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, initialStreamBufferSize), maxStreamBufferSize)
 
@@ -328,7 +329,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 						}
 					}
 				}
-				break
+				streamDone = true
 			case "response.incomplete":
 				if ev.Error != nil && ev.Error.Message != "" {
 					streamChan <- types.StreamChunk{Error: errors.New(ev.Error.Message)}
@@ -344,7 +345,7 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 						return
 					}
 				}
-				break
+				streamDone = true
 			case "error", "response.failed":
 				errMsg := data
 				if ev.Error != nil && ev.Error.Message != "" {
@@ -353,6 +354,10 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				streamChan <- types.StreamChunk{Error: errors.New(errMsg)}
 				return
 			}
+		}
+
+		if streamDone {
+			break
 		}
 	}
 
