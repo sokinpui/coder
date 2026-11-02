@@ -75,16 +75,22 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 				if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
 					mimeType = "image/jpeg"
 				}
-				apiMessages = append(apiMessages, openAIMessage{
-					Role: "user",
-					Content: []openAIContentPart{
-						{
-							Type: "image_url",
-							ImageURL: &openAIImageURL{
-								URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
-							},
-						},
+				var parts []openAIContentPart
+				if msg.Content != "" {
+					parts = append(parts, openAIContentPart{
+						Type: "text",
+						Text: msg.Content,
+					})
+				}
+				parts = append(parts, openAIContentPart{
+					Type: "image_url",
+					ImageURL: &openAIImageURL{
+						URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
 					},
+				})
+				apiMessages = append(apiMessages, openAIMessage{
+					Role:    "user",
+					Content: parts,
 				})
 				continue
 			}

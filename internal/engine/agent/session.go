@@ -12,6 +12,7 @@ import (
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
 	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
+	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
 	"github.com/sokinpui/coder/internal/engine/agent/tools"
 	"github.com/sokinpui/coder/internal/engine/compactor"
@@ -141,6 +142,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 	rf := &tools.ReadFileTool{}
 	var toolCalls []types.ToolCall
 	var toolResults []types.Message
+	ctx := pdf.WithSessionID(context.Background(), s.ID)
 
 	for i, p := range allPaths {
 		callID := fmt.Sprintf("call_%d_%d", time.Now().UnixNano(), i)
@@ -150,7 +152,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 			Arguments: fmt.Sprintf(`{"path":%q}`, filepath.ToSlash(project.ShortenPath(p))),
 		})
 
-		out, imgs, err := rf.ExecuteWithImages(context.Background(), p)
+		out, imgs, err := rf.ExecuteWithImages(ctx, p)
 		resultContent := out
 		if err != nil {
 			resultContent = fmt.Sprintf("Error: %v", err)

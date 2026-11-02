@@ -77,7 +77,7 @@ func (t *ReadFileTool) ExecuteWithImages(ctx context.Context, arguments string) 
 
 	ext := strings.ToLower(filepath.Ext(params.Path))
 	if ext == ".pdf" {
-		return t.readPDF(params.Path, params.Pages)
+		return t.readPDF(ctx, params.Path, params.Pages)
 	}
 
 	if isImageExt(ext) {
@@ -87,14 +87,16 @@ func (t *ReadFileTool) ExecuteWithImages(ctx context.Context, arguments string) 
 	return t.readText(params.Path)
 }
 
-func (t *ReadFileTool) readPDF(path, pages string) (string, []types.Message, error) {
-	msgs, err := pdf.RenderPDFToMessages(path, pages)
+func (t *ReadFileTool) readPDF(ctx context.Context, path, pages string) (string, []types.Message, error) {
+	sessID := pdf.SessionIDFromContext(ctx)
+	msg, err := pdf.RenderPDF(sessID, path, pages)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to render PDF %s: %w", path, err)
 	}
 
 	DefaultTracker.MarkRead(path)
-	return fmt.Sprintf("Successfully rendered PDF %s (%d page(s))", path, len(msgs)), msgs, nil
+	meta, _ := types.ParsePDFMetadata(msg.Content)
+	return fmt.Sprintf("Successfully rendered PDF %s (%d page(s))", path, meta.PageCount), []types.Message{msg}, nil
 }
 
 func (t *ReadFileTool) readImage(path string) (string, []types.Message, error) {

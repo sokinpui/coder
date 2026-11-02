@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"encoding/json"
 	"strings"
 
@@ -26,10 +27,9 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		}
 		return CommandInputStyle.Width(viewportWidth - CommandInputStyle.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
-		if msg.IsDocumentImage() {
-			return ""
-		}
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
+	case types.PDFMessage:
+		return RenderPDFMessage(msg, viewportWidth)
 	case types.AIMessage:
 		var parts []string
 		if len(msg.ToolCalls) > 0 {
@@ -66,6 +66,23 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	default:
 		return ""
 	}
+}
+
+func RenderPDFMessage(msg types.Message, viewportWidth int) string {
+	meta, ok := types.ParsePDFMetadata(msg.Content)
+	if !ok {
+		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Document: " + msg.Content)
+	}
+	desc := meta.Filename
+	if meta.Pages != "" {
+		desc += fmt.Sprintf(" (pages: %s)", meta.Pages)
+	}
+	pageWord := "pages"
+	if meta.PageCount == 1 {
+		pageWord = "page"
+	}
+	desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
+	return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("📄 Document: " + desc)
 }
 
 func RenderCompactedSummaryMessage(msg types.Message, viewportWidth int) string {

@@ -355,9 +355,6 @@ func (m Model) syncViewportToMessage(msgIdx int) Model {
 func getSelectableIndices(messages []types.Message) []int {
 	var indices []int
 	for i, msg := range messages {
-		if msg.IsDocumentImage() {
-			continue
-		}
 		if msg.Type.IsSelectable() {
 			indices = append(indices, i)
 		}
@@ -397,6 +394,12 @@ func getMessageCopyContent(msg types.Message) string {
 	if msg.Type == types.CompactedSummaryMessage {
 		return strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(msg.Content), "<compacted-summary>"), "</compacted-summary>"))
 	}
+	if msg.Type == types.PDFMessage {
+		if meta, ok := types.ParsePDFMetadata(msg.Content); ok {
+			return fmt.Sprintf("Document: %s (path: %s, pages: %s)", meta.Filename, meta.Path, meta.Pages)
+		}
+		return msg.Content
+	}
 	return msg.Content
 }
 
@@ -417,6 +420,21 @@ func getMessageSummary(msg types.Message) string {
 
 	if msg.Type == types.CompactedSummaryMessage {
 		return "Compacted Summary Checkpoint"
+	}
+
+	if msg.Type == types.PDFMessage {
+		if meta, ok := types.ParsePDFMetadata(msg.Content); ok {
+			pagesStr := ""
+			if meta.Pages != "" {
+				pagesStr = fmt.Sprintf(" (p.%s)", meta.Pages)
+			}
+			pageWord := "pages"
+			if meta.PageCount == 1 {
+				pageWord = "page"
+			}
+			return fmt.Sprintf("📄 %s%s (%d %s)", meta.Filename, pagesStr, meta.PageCount, pageWord)
+		}
+		return "📄 Document: " + msg.Content
 	}
 
 	if msg.Type == types.ToolResultMessage {

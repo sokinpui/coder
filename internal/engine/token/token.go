@@ -33,6 +33,12 @@ func countSingleMessage(msg types.Message) int {
 	if msg.Type == types.ImageMessage {
 		return imageTokens
 	}
+	if msg.Type == types.PDFMessage {
+		if meta, ok := types.ParsePDFMetadata(msg.Content); ok && meta.PageCount > 0 {
+			return meta.PageCount * imageTokens
+		}
+		return imageTokens
+	}
 	content := messageTokenContent(msg)
 	if content == "" {
 		return 0

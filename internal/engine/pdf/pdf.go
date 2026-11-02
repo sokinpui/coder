@@ -1,287 +1,276 @@
 package pdf
 
 import (
-	"container/list"
+	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/pkg/pti"
 )
 
-const (
-	defaultMaxCacheEntries = 16
-	defaultMaxCacheBytes   = 64 * 1024 * 1024
-)
+type contextKey struct{}
 
-type pdfCacheKey struct {
-	path      string
-	pagesSpec string
+var sessionIDKey = contextKey{}
+
+func WithSessionID(ctx context.Context, sessionID string) context.Context {
+	return context.WithValue(ctx, sessionIDKey, sessionID)
 }
 
-type pdfCacheEntry struct {
-	modTime  time.Time
-	size     int64
-	messages []types.Message
-}
-
-type cacheItem struct {
-	key      pdfCacheKey
-	entry    pdfCacheEntry
-	byteSize int64
-}
-
-type memoryCache struct {
-	mu         sync.Mutex
-	items      map[pdfCacheKey]*list.Element
-	evictList  *list.List
-	maxEntries int
-	maxBytes   int64
-	totalBytes int64
-}
-
-func newMemoryCache(maxEntries int, maxBytes int64) *memoryCache {
-	return &memoryCache{
-		items:      make(map[pdfCacheKey]*list.Element),
-		evictList:  list.New(),
-		maxEntries: maxEntries,
-		maxBytes:   maxBytes,
+func SessionIDFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
 	}
-}
-
-func (c *memoryCache) Get(key pdfCacheKey, modTime time.Time, size int64) ([]types.Message, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	elem, found := c.items[key]
-	if !found {
-		return nil, false
+	val, ok := ctx.Value(sessionIDKey).(string)
+	if !ok {
+		return ""
 	}
-
-	item := elem.Value.(*cacheItem)
-	if !item.entry.modTime.Equal(modTime) || item.entry.size != size {
-		c.removeElement(elem)
-		return nil, false
-	}
-
-	c.evictList.MoveToFront(elem)
-	msgs := make([]types.Message, len(item.entry.messages))
-	copy(msgs, item.entry.messages)
-	return msgs, true
-}
-
-func (c *memoryCache) Put(key pdfCacheKey, entry pdfCacheEntry) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	entryBytes := calculateEntrySize(entry.messages)
-
-	if elem, found := c.items[key]; found {
-		oldItem := elem.Value.(*cacheItem)
-		c.totalBytes -= oldItem.byteSize
-		oldItem.entry = entry
-		oldItem.byteSize = entryBytes
-		c.totalBytes += entryBytes
-		c.evictList.MoveToFront(elem)
-		c.evict()
-		return
-	}
-
-	item := &cacheItem{
-		key:      key,
-		entry:    entry,
-		byteSize: entryBytes,
-	}
-	elem := c.evictList.PushFront(item)
-	c.items[key] = elem
-	c.totalBytes += entryBytes
-
-	c.evict()
-}
-
-func (c *memoryCache) evict() {
-	for (len(c.items) > c.maxEntries || (c.totalBytes > c.maxBytes && len(c.items) > 1)) && c.evictList.Len() > 0 {
-		back := c.evictList.Back()
-		if back == nil {
-			break
-		}
-		c.removeElement(back)
-	}
-}
-
-func (c *memoryCache) removeElement(elem *list.Element) {
-	c.evictList.Remove(elem)
-	item := elem.Value.(*cacheItem)
-	delete(c.items, item.key)
-	c.totalBytes -= item.byteSize
-}
-
-func calculateEntrySize(messages []types.Message) int64 {
-	var total int64
-	for _, msg := range messages {
-		total += int64(len(msg.Data)) + int64(len(msg.Content))
-	}
-	return total
-}
-
-type manifestEntry struct {
-	ModTime  int64    `json:"mod_time"`
-	Size     int64    `json:"size"`
-	RelPaths []string `json:"rel_paths"`
+	return val
 }
 
 var (
-	manifestMu sync.Mutex
-	memCache   = newMemoryCache(defaultMaxCacheEntries, defaultMaxCacheBytes)
+	pageCacheMu sync.RWMutex
+	pageCache   = make(map[string][]types.PDFPage)
 )
 
-func loadDiskManifest(manifestPath string) map[string]manifestEntry {
-	data, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return make(map[string]manifestEntry)
-	}
-	var entries map[string]manifestEntry
-	if err := json.Unmarshal(data, &entries); err != nil {
-		return make(map[string]manifestEntry)
-	}
-	return entries
+func init() {
+	types.RegisterPDFPageResolver(ResolvePages)
 }
 
-func saveDiskManifest(manifestPath string, entries map[string]manifestEntry) {
-	data, err := json.Marshal(entries)
-	if err != nil {
-		return
-	}
-	_ = os.WriteFile(manifestPath, data, 0644)
+func EvictCache(cacheDir string) {
+	pageCacheMu.Lock()
+	delete(pageCache, cacheDir)
+	pageCacheMu.Unlock()
 }
 
-func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, error) {
+func ResolvePages(content string) (string, []types.PDFPage) {
+	meta, ok := types.ParsePDFMetadata(content)
+	if !ok {
+		return "", nil
+	}
+	pages := GetPages(meta)
+	return meta.Filename, pages
+}
+
+func GetPages(meta types.PDFMetadata) []types.PDFPage {
+	if meta.CacheDir == "" {
+		return nil
+	}
+
+	pageCacheMu.RLock()
+	if cached, found := pageCache[meta.CacheDir]; found && len(cached) > 0 {
+		pageCacheMu.RUnlock()
+		return cached
+	}
+	pageCacheMu.RUnlock()
+
+	pageCacheMu.Lock()
+	defer pageCacheMu.Unlock()
+	if cached, found := pageCache[meta.CacheDir]; found && len(cached) > 0 {
+		return cached
+	}
+
 	repoRoot := project.Root()
-	imagesBaseDir := filepath.Join(repoRoot, ".coder", "images")
-	if err := os.MkdirAll(imagesBaseDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create images directory: %w", err)
-	}
-
-	absPath, err := filepath.Abs(pdfPath)
-	if err != nil {
-		absPath = filepath.Clean(pdfPath)
-	}
-
-	info, err := os.Stat(absPath)
-	if err != nil {
-		info, err = os.Stat(pdfPath)
+	pages := make([]types.PDFPage, 0, len(meta.Files))
+	for i, f := range meta.Files {
+		fullPath := f
+		if !filepath.IsAbs(fullPath) {
+			fullPath = filepath.Join(repoRoot, fullPath)
+		}
+		data, err := os.ReadFile(fullPath)
 		if err != nil {
-			return nil, err
+			continue
 		}
-		if p, err := filepath.Abs(pdfPath); err == nil {
-			absPath = p
+		pageNum := i + 1
+		base := strings.TrimSuffix(filepath.Base(f), filepath.Ext(f))
+		base = strings.TrimPrefix(base, "page_")
+		base = strings.TrimPrefix(base, "page-")
+		base = strings.TrimPrefix(base, "page")
+		if n, err := strconv.Atoi(base); err == nil && n > 0 {
+			pageNum = n
 		}
+		pages = append(pages, types.PDFPage{
+			Index: pageNum,
+			Data:  data,
+		})
 	}
 
-	key := pdfCacheKey{
-		path:      filepath.ToSlash(absPath),
-		pagesSpec: pagesSpec,
+	if len(pages) > 0 {
+		pageCache[meta.CacheDir] = pages
 	}
-	if msgs, ok := memCache.Get(key, info.ModTime(), info.Size()); ok {
-		return msgs, nil
-	}
+	return pages
+}
 
-	manifestPath := filepath.Join(imagesBaseDir, ".manifest.json")
-	manifestKey := fmt.Sprintf("%s\x00%s", filepath.ToSlash(absPath), pagesSpec)
-
-	manifestMu.Lock()
-	defer manifestMu.Unlock()
-	if msgs, ok := memCache.Get(key, info.ModTime(), info.Size()); ok {
-		return msgs, nil
+func RenderPDF(sessionID, pdfPath, pagesSpec string) (types.Message, error) {
+	repoRoot := project.Root()
+	absPath, info, err := resolvePDFInfo(pdfPath)
+	if err != nil {
+		return types.Message{}, err
 	}
 
-	diskManifest := loadDiskManifest(manifestPath)
-	if diskEntry, found := diskManifest[manifestKey]; found {
-		if diskEntry.ModTime == info.ModTime().UnixNano() && diskEntry.Size == info.Size() {
-			diskMessages := make([]types.Message, 0, len(diskEntry.RelPaths))
-			allFilesExist := true
-			for _, relPath := range diskEntry.RelPaths {
-				fullPath := filepath.Join(repoRoot, relPath)
-				data, readErr := os.ReadFile(fullPath)
-				if readErr != nil {
-					allFilesExist = false
-					break
-				}
-				diskMessages = append(diskMessages, types.Message{
-					Type:    types.ImageMessage,
-					Content: filepath.ToSlash(relPath),
-					Data:    data,
-				})
-			}
-			if allFilesExist && len(diskMessages) > 0 {
-				memCache.Put(key, pdfCacheEntry{
-					modTime:  info.ModTime(),
-					size:     info.Size(),
-					messages: diskMessages,
-				})
-				msgs := make([]types.Message, len(diskMessages))
-				copy(msgs, diskMessages)
-				return msgs, nil
-			}
-		}
+	pdfHash := computePDFHash(absPath, pagesSpec, info.ModTime().UnixNano(), info.Size())
+	sessPart := sanitizeIdentifier(sessionID)
+	if sessPart == "" {
+		sessPart = "default"
+	}
+
+	folderName := fmt.Sprintf("%s-%s", sessPart, pdfHash)
+	cacheRelDir := filepath.ToSlash(filepath.Join(".coder", "pdf", folderName))
+	cacheAbsDir := filepath.Join(repoRoot, ".coder", "pdf", folderName)
+
+	if meta, ok := loadExistingRender(cacheAbsDir, cacheRelDir); ok {
+		return createPDFMessage(meta)
+	}
+
+	if err := os.MkdirAll(cacheAbsDir, 0755); err != nil {
+		return types.Message{}, fmt.Errorf("failed to create pdf cache directory: %w", err)
 	}
 
 	opts := pti.Options{
 		DPI:       pti.DefaultDPI,
-		OutputDir: imagesBaseDir,
+		OutputDir: cacheAbsDir,
 		Pages:     pagesSpec,
 	}
 
 	res, err := pti.Convert(pdfPath, opts)
 	if err != nil {
-		return nil, err
+		return types.Message{}, err
+	}
+	if len(res.Pages) == 0 {
+		return types.Message{}, fmt.Errorf("no pages rendered for PDF %s", pdfPath)
 	}
 
-	messages := make([]types.Message, 0, len(res.Pages))
-	relPaths := make([]string, 0, len(res.Pages))
-	for _, page := range res.Pages {
-		relPath, err := filepath.Rel(repoRoot, page.FilePath)
-		if err != nil {
-			relPath = page.FilePath
-		}
-		slashedRelPath := filepath.ToSlash(relPath)
-		messages = append(messages, types.Message{
-			Type:    types.ImageMessage,
-			Content: slashedRelPath,
-			Data:    page.Data,
-		})
-		relPaths = append(relPaths, slashedRelPath)
-	}
+	meta, pdfPages := buildRenderMetadata(repoRoot, pdfPath, pagesSpec, cacheRelDir, res.Pages)
+	pageCacheMu.Lock()
+	pageCache[cacheRelDir] = pdfPages
+	pageCacheMu.Unlock()
 
-	memCache.Put(key, pdfCacheEntry{
-		modTime:  info.ModTime(),
-		size:     info.Size(),
-		messages: messages,
-	})
-
-	diskManifest[manifestKey] = manifestEntry{
-		ModTime:  info.ModTime().UnixNano(),
-		Size:     info.Size(),
-		RelPaths: relPaths,
-	}
-	saveDiskManifest(manifestPath, diskManifest)
-
-	return messages, nil
+	saveMetadata(cacheAbsDir, meta)
+	return createPDFMessage(meta)
 }
 
-func RenderPDFs(pdfPaths []string) ([]types.Message, error) {
-	var allMessages []types.Message
-	for _, p := range pdfPaths {
-		msgs, err := RenderPDFToMessages(p, "")
-		if err != nil {
-			return nil, err
-		}
-		allMessages = append(allMessages, msgs...)
+func RenderPDFToMessages(pdfPath string, pagesSpec string) ([]types.Message, error) {
+	msg, err := RenderPDF("", pdfPath, pagesSpec)
+	if err != nil {
+		return nil, err
 	}
-	return allMessages, nil
+	return []types.Message{msg}, nil
+}
+
+func resolvePDFInfo(path string) (string, os.FileInfo, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		absPath = filepath.Clean(path)
+	}
+
+	info, err := os.Stat(absPath)
+	if err != nil {
+		info, err = os.Stat(path)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	return absPath, info, nil
+}
+
+func computePDFHash(absPath, pagesSpec string, modTimeNano, size int64) string {
+	h := sha256.New()
+	h.Write([]byte(absPath))
+	h.Write([]byte(pagesSpec))
+	h.Write([]byte(strconv.FormatInt(modTimeNano, 10)))
+	h.Write([]byte(strconv.FormatInt(size, 10)))
+	return fmt.Sprintf("%x", h.Sum(nil))[:12]
+}
+
+func sanitizeIdentifier(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func loadExistingRender(absDir, relDir string) (types.PDFMetadata, bool) {
+	metaPath := filepath.Join(absDir, "metadata.json")
+	data, err := os.ReadFile(metaPath)
+	if err != nil {
+		return types.PDFMetadata{}, false
+	}
+
+	meta, ok := types.ParsePDFMetadata(string(data))
+	if !ok || len(meta.Files) == 0 {
+		return types.PDFMetadata{}, false
+	}
+
+	repoRoot := project.Root()
+	for _, relFile := range meta.Files {
+		fullFile := filepath.Join(repoRoot, relFile)
+		if _, err := os.Stat(fullFile); err != nil {
+			return types.PDFMetadata{}, false
+		}
+	}
+	return meta, true
+}
+
+func buildRenderMetadata(repoRoot, originalPath, pagesSpec, cacheRelDir string, pages []pti.PageResult) (types.PDFMetadata, []types.PDFPage) {
+	relFiles := make([]string, len(pages))
+	pdfPages := make([]types.PDFPage, len(pages))
+
+	for i, page := range pages {
+		rel, err := filepath.Rel(repoRoot, page.FilePath)
+		if err != nil {
+			rel = page.FilePath
+		}
+		relFiles[i] = filepath.ToSlash(rel)
+		pageNum := i + 1
+		base := strings.TrimSuffix(filepath.Base(page.FilePath), filepath.Ext(page.FilePath))
+		base = strings.TrimPrefix(base, "page_")
+		base = strings.TrimPrefix(base, "page-")
+		base = strings.TrimPrefix(base, "page")
+		if n, err := strconv.Atoi(base); err == nil && n > 0 {
+			pageNum = n
+		}
+		pdfPages[i] = types.PDFPage{
+			Index: pageNum,
+			Data:  page.Data,
+		}
+	}
+
+	meta := types.PDFMetadata{
+		Filename:  filepath.Base(originalPath),
+		Path:      filepath.ToSlash(originalPath),
+		Pages:     pagesSpec,
+		CacheDir:  cacheRelDir,
+		PageCount: len(pages),
+		Files:     relFiles,
+	}
+	return meta, pdfPages
+}
+
+func saveMetadata(cacheAbsDir string, meta types.PDFMetadata) {
+	metaBytes, err := json.Marshal(meta)
+	if err != nil {
+		return
+	}
+	_ = os.WriteFile(filepath.Join(cacheAbsDir, "metadata.json"), metaBytes, 0644)
+}
+
+func createPDFMessage(meta types.PDFMetadata) (types.Message, error) {
+	metaBytes, err := json.Marshal(meta)
+	if err != nil {
+		return types.Message{}, err
+	}
+	return types.Message{
+		Type:    types.PDFMessage,
+		Content: string(metaBytes),
+	}, nil
 }

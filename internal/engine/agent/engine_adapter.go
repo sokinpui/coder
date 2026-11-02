@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/agent/tools"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/history"
+	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/engine/token"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 )
 
@@ -55,12 +59,17 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 	s.mu.Lock()
+	repoRoot := project.Root()
 	toDelete := make(map[int]struct{}, len(indices))
 	for _, idx := range indices {
 		if idx >= 0 && idx < len(s.Messages) {
 			toDelete[idx] = struct{}{}
-			for next := idx + 1; next < len(s.Messages) && s.Messages[next].IsDocumentImage(); next++ {
-				toDelete[next] = struct{}{}
+			msg := s.Messages[idx]
+			if msg.Type == types.PDFMessage && repoRoot != "" {
+				if meta, ok := types.ParsePDFMetadata(msg.Content); ok && meta.CacheDir != "" {
+					pdf.EvictCache(meta.CacheDir)
+					_ = os.RemoveAll(filepath.Join(repoRoot, meta.CacheDir))
+				}
 			}
 		}
 	}
@@ -201,6 +210,7 @@ func (s *Session) Submit(ctx context.Context, input string) (<-chan types.Sessio
 
 func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, error) {
 	runCtx, cancel := context.WithCancel(ctx)
+	runCtx = pdf.WithSessionID(runCtx, s.ID)
 	s.cancelFunc = cancel
 	s.isStreaming = true
 

@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+import "fmt"
 import "strings"
 
 type MessageType int
@@ -28,7 +30,38 @@ const (
 	ToolCallMessage
 	ToolResultMessage
 	CompactedSummaryMessage
+	PDFMessage
 )
+
+type PDFMetadata struct {
+	Filename  string   `json:"filename"`
+	Path      string   `json:"path"`
+	Pages     string   `json:"pages,omitempty"`
+	CacheDir  string   `json:"cache_dir"`
+	PageCount int      `json:"page_count"`
+	Files     []string `json:"files"`
+}
+
+func ParsePDFMetadata(content string) (PDFMetadata, bool) {
+	var meta PDFMetadata
+	if err := json.Unmarshal([]byte(content), &meta); err != nil {
+		return PDFMetadata{}, false
+	}
+	return meta, true
+}
+
+type PDFPage struct {
+	Index int
+	Data  []byte
+}
+
+type PDFPageResolver func(content string) (string, []PDFPage)
+
+var pdfPageResolver PDFPageResolver
+
+func RegisterPDFPageResolver(resolver PDFPageResolver) {
+	pdfPageResolver = resolver
+}
 
 type Message struct {
 	Type       MessageType
@@ -131,6 +164,8 @@ func (t MessageType) String() string {
 		return "Tool Result"
 	case CompactedSummaryMessage:
 		return "Compacted Summary"
+	case PDFMessage:
+		return "PDF Document"
 	default:
 		return "Unknown"
 	}
@@ -144,20 +179,6 @@ func (t MessageType) IsEditable() bool {
 	default:
 		return false
 	}
-}
-
-func (m Message) IsDocumentImage() bool {
-	if m.Type != ImageMessage {
-		return false
-	}
-	slashed := strings.ReplaceAll(m.Content, "\\", "/")
-	parts := strings.Split(slashed, "/")
-	for i, part := range parts {
-		if part == "images" && i+2 < len(parts) {
-			return true
-		}
-	}
-	return false
 }
 
 // IsSelectable returns true if the message can be focused/selected in Atomic Messages overlay.
@@ -179,7 +200,7 @@ func (t MessageType) IsHistory() bool {
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
 		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
 		ToolCallMessage, ToolResultMessage,
-		CompactedSummaryMessage:
+		CompactedSummaryMessage, PDFMessage:
 		return true
 	default:
 		return false
@@ -189,7 +210,7 @@ func (t MessageType) IsHistory() bool {
 // IsRegeneratable returns true if the message can serve as a starting point for regeneration.
 func (t MessageType) IsRegeneratable() bool {
 	switch t {
-	case UserMessage, ImageMessage, ShellCmdMessage, ShellCmdResultMessage:
+	case UserMessage, ImageMessage, PDFMessage, ShellCmdMessage, ShellCmdResultMessage:
 		return true
 	default:
 		return false
@@ -204,7 +225,7 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 		return RoleAssistant, true
 	case ToolResultMessage:
 		return RoleTool, true
-	case UserMessage, ImageMessage, SourceCodeMessage,
+	case UserMessage, ImageMessage, PDFMessage, SourceCodeMessage,
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
@@ -245,6 +266,35 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 			continue
 		}
 
+		if msg.Type == PDFMessage {
+			docName := msg.Content
+			if meta, ok := ParsePDFMetadata(msg.Content); ok && meta.Filename != "" {
+				docName = meta.Filename
+			}
+			if pdfPageResolver != nil {
+				resolvedName, pages := pdfPageResolver(msg.Content)
+				if resolvedName != "" {
+					docName = resolvedName
+				}
+				if len(pages) > 0 {
+					for _, page := range pages {
+						chatMessages = append(chatMessages, ChatMessage{
+							Role:    RoleUser,
+							Content: fmt.Sprintf("%s page %d:", docName, page.Index),
+							Data:    page.Data,
+						})
+					}
+					continue
+					continue
+				}
+			}
+			chatMessages = append(chatMessages, ChatMessage{
+				Role:    RoleUser,
+				Content: "[Attached Document: " + docName + "]",
+			})
+			continue
+		}
+
 		if role == RoleSystem {
 			if msg.Type == InstructionMessage {
 				hasInstructionMessage = true
@@ -255,7 +305,14 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 			continue
 		}
 
-		if msg.Type == ImageMessage && len(msg.Data) == 0 {
+		if msg.Type == ImageMessage {
+			if len(msg.Data) == 0 {
+				continue
+			}
+			chatMessages = append(chatMessages, ChatMessage{
+				Role: RoleUser,
+				Data: msg.Data,
+			})
 			continue
 		}
 
@@ -294,7 +351,7 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 func (m Message) CanSendToAI() bool {
 	switch m.Type {
 	case InstructionMessage, DirectoryMessage, SourceCodeMessage,
-		UserMessage, AIMessage, ImageMessage,
+		UserMessage, AIMessage, ImageMessage, PDFMessage,
 		ShellCmdMessage, ShellCmdResultMessage,
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,

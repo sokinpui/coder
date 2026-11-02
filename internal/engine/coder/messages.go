@@ -3,6 +3,7 @@ package coder
 import (
 	"fmt"
 	"github.com/sokinpui/coder/internal/project"
+	"github.com/sokinpui/coder/internal/engine/pdf"
 	"github.com/sokinpui/coder/internal/types"
 	"os"
 	"path/filepath"
@@ -40,9 +41,6 @@ func (s *Session) DeleteMessages(indices []int) {
 			continue
 		}
 		toDelete[idx] = struct{}{}
-		for next := idx + 1; next < len(s.messages) && s.messages[next].IsDocumentImage(); next++ {
-			toDelete[next] = struct{}{}
-		}
 
 		msg := s.messages[idx]
 		if msg.Type == types.ImageMessage && repoRoot != "" {
@@ -51,6 +49,12 @@ func (s *Session) DeleteMessages(indices []int) {
 				continue
 			}
 			_ = os.Remove(imagePath)
+		}
+		if msg.Type == types.PDFMessage && repoRoot != "" {
+			if meta, ok := types.ParsePDFMetadata(msg.Content); ok && meta.CacheDir != "" {
+				pdf.EvictCache(meta.CacheDir)
+				_ = os.RemoveAll(filepath.Join(repoRoot, meta.CacheDir))
+			}
 		}
 	}
 

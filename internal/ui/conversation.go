@@ -31,10 +31,6 @@ func (m Model) getAIMessageLines(msg types.Message, idx, total, viewportWidth in
 }
 
 func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int) []string {
-	if msg.IsDocumentImage() {
-		return nil
-	}
-
 	if msg.Type == types.AIMessage {
 		return m.getAIMessageLines(msg, idx, total, viewportWidth)
 	}
@@ -183,7 +179,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 	metas := make([]LineMeta, len(renderedLines))
 
 	switch msg.Type {
-	case types.UserMessage, types.ImageMessage, types.CommandMessage, types.ShellCmdMessage,
+	case types.UserMessage, types.ImageMessage, types.PDFMessage, types.CommandMessage, types.ShellCmdMessage,
 		types.ContextCmdMessage, types.FileApplyCmdMessage, types.FileApplyUndoCmdMessage,
 		types.CommandErrorResultMessage, types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage,
 		types.CompactedSummaryMessage:
@@ -386,9 +382,6 @@ func (m Model) renderThinkingLine() string {
 }
 
 func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
-	if msg.IsDocumentImage() {
-		return ""
-	}
 	if msg.Type == types.ToolCallMessage {
 		return m.renderToolCalls(msg.ToolCalls, viewportWidth)
 	}

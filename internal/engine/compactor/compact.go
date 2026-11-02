@@ -59,6 +59,17 @@ func buildTranscript(span []types.Message) string {
 		case types.ImageMessage:
 			sb.WriteString(fmt.Sprintf("User:\nimage:%s\n\n", msg.Content))
 
+		case types.PDFMessage:
+			meta, ok := types.ParsePDFMetadata(msg.Content)
+			if ok {
+				pagesStr := ""
+				if meta.Pages != "" {
+					pagesStr = fmt.Sprintf(" (pages: %s)", meta.Pages)
+				}
+				sb.WriteString(fmt.Sprintf("User:\ndocument:%s%s (%d pages)\n\n", meta.Filename, pagesStr, meta.PageCount))
+			} else {
+				sb.WriteString(fmt.Sprintf("User:\ndocument:%s\n\n", msg.Content))
+			}
 		case types.AIMessage:
 			if msg.Content != "" {
 				sb.WriteString("Assistant:\n")

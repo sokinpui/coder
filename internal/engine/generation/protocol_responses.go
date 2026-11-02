@@ -64,17 +64,23 @@ func (g *Generator) generateResponsesTask(ctx context.Context, systemInstruction
 				if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
 					mimeType = "image/jpeg"
 				}
-				inputItems = append(inputItems, map[string]any{
-					"type": "message",
-					"role": "user",
-					"content": []openAIContentPart{
-						{
-							Type: "input_image",
-							ImageURL: &openAIImageURL{
-								URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
-							},
-						},
+				var contentParts []openAIContentPart
+				if msg.Content != "" {
+					contentParts = append(contentParts, openAIContentPart{
+						Type: "input_text",
+						Text: msg.Content,
+					})
+				}
+				contentParts = append(contentParts, openAIContentPart{
+					Type: "input_image",
+					ImageURL: &openAIImageURL{
+						URL: fmt.Sprintf("data:%s;base64,%s", mimeType, b64),
 					},
+				})
+				inputItems = append(inputItems, map[string]any{
+					"type":    "message",
+					"role":    "user",
+					"content": contentParts,
 				})
 				continue
 			}

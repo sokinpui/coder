@@ -134,7 +134,8 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 
 	var pdfRenderNotes []string
 	var pdfErrors []string
-	var imageMessages []types.Message
+	var docMessages []types.Message
+	sessID := s.GetID()
 
 	for _, rawDoc := range pdfPaths {
 		docPath := rawDoc
@@ -146,18 +147,19 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 			docPath = strings.TrimSpace(docPath[:idx])
 		}
 
-		msgs, err := pdf.RenderPDFToMessages(docPath, pagesSpec)
+		pdfMsg, err := pdf.RenderPDF(sessID, docPath, pagesSpec)
 		if err != nil {
 			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (%v)", docPath, err))
 			continue
 		}
-		if len(msgs) == 0 {
+		meta, _ := types.ParsePDFMetadata(pdfMsg.Content)
+		if meta.PageCount == 0 {
 			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (0 pages)", docPath))
 			continue
 		}
 
-		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", docPath, len(msgs)))
-		imageMessages = append(imageMessages, msgs...)
+		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", docPath, meta.PageCount))
+		docMessages = append(docMessages, pdfMsg)
 	}
 
 	var msgParts []string
@@ -191,6 +193,6 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 		Type:      types.MessagesUpdated,
 		Payload:   strings.Join(msgParts, "\n"),
 		IsContext: true,
-		Messages:  imageMessages,
+		Messages:  docMessages,
 	}, success
 }
