@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sokinpui/coder/internal/config"
 	agentprompt "github.com/sokinpui/coder/internal/engine/agent/prompt"
@@ -178,8 +179,10 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			})
 		}
 
+		toolGroupID := fmt.Sprintf("tc_%d", time.Now().UnixNano())
 		if len(toolCalls) > 0 {
 			currentMessages = append(currentMessages, types.Message{
+				GroupID:   toolGroupID,
 				Type:      types.ToolCallMessage,
 				ToolCalls: toolCalls,
 			})
@@ -221,6 +224,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				}
 				streamChan <- AgentStreamChunk{ToolResult: &resInfo}
 				currentMessages = append(currentMessages, types.Message{
+					GroupID:    toolGroupID,
 					Type:       types.ToolResultMessage,
 					Content:    output,
 					ToolCallID: tc.ID,
@@ -242,6 +246,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				}
 				streamChan <- AgentStreamChunk{ToolResult: &resInfo}
 				currentMessages = append(currentMessages, types.Message{
+					GroupID:    toolGroupID,
 					Type:       types.ToolResultMessage,
 					Content:    output,
 					ToolCallID: tc.ID,
@@ -281,6 +286,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 					}
 					streamChan <- AgentStreamChunk{ToolResult: &resInfo}
 					currentMessages = append(currentMessages, types.Message{
+						GroupID:    toolGroupID,
 						Type:       types.ToolResultMessage,
 						Content:    output,
 						ToolCallID: tc.ID,
@@ -323,12 +329,16 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			streamChan <- AgentStreamChunk{ToolResult: &resInfo}
 
 			currentMessages = append(currentMessages, types.Message{
+				GroupID:    toolGroupID,
 				Type:       types.ToolResultMessage,
 				Content:    output,
 				ToolCallID: tc.ID,
 			})
 			if len(images) > 0 {
-				currentMessages = append(currentMessages, images...)
+				for _, img := range images {
+					img.GroupID = toolGroupID
+					currentMessages = append(currentMessages, img)
+				}
 			}
 		}
 

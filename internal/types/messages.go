@@ -2,6 +2,7 @@ package types
 
 import "encoding/json"
 import "fmt"
+import "slices"
 import "strings"
 
 type MessageType int
@@ -64,6 +65,7 @@ func RegisterPDFPageResolver(resolver PDFPageResolver) {
 }
 
 type Message struct {
+	GroupID    string
 	Type       MessageType
 	Content    string
 	Data       []byte
@@ -179,6 +181,42 @@ func (t MessageType) IsEditable() bool {
 	default:
 		return false
 	}
+}
+
+func ExpandGroupIndices(messages []Message, indices []int) []int {
+	if len(indices) == 0 || len(messages) == 0 {
+		return nil
+	}
+
+	selected := make(map[int]struct{}, len(indices))
+	targetGroups := make(map[string]struct{})
+
+	for _, idx := range indices {
+		if idx < 0 || idx >= len(messages) {
+			continue
+		}
+		selected[idx] = struct{}{}
+		if grp := messages[idx].GroupID; grp != "" {
+			targetGroups[grp] = struct{}{}
+		}
+	}
+
+	if len(targetGroups) > 0 {
+		for i, msg := range messages {
+			if msg.GroupID != "" {
+				if _, ok := targetGroups[msg.GroupID]; ok {
+					selected[i] = struct{}{}
+				}
+			}
+		}
+	}
+
+	res := make([]int, 0, len(selected))
+	for idx := range selected {
+		res = append(res, idx)
+	}
+	slices.Sort(res)
+	return res
 }
 
 // IsSelectable returns true if the message can be focused/selected in Atomic Messages overlay.

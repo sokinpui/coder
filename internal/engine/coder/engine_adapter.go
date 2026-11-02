@@ -3,6 +3,7 @@ package coder
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/commands"
@@ -54,10 +55,12 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 		return out, success
 	}
 	if out.Type == types.ShellExecutionStarted {
-		s.messages = append(s.messages, types.Message{Type: types.ShellCmdMessage, Content: input})
+		shellGroupID := fmt.Sprintf("shell_%d", time.Now().UnixNano())
+		s.messages = append(s.messages, types.Message{GroupID: shellGroupID, Type: types.ShellCmdMessage, Content: input})
 		return out, success
 	}
 
+	cmdGroupID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
 	msgType := types.CommandMessage
 	if out.IsFileApply {
 		msgType = types.FileApplyCmdMessage
@@ -68,7 +71,7 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 	} else if out.IsShell {
 		msgType = types.ShellCmdMessage
 	}
-	s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
+	s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: msgType, Content: input})
 
 	if success {
 		resType := types.CommandResultMessage
@@ -81,7 +84,7 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 		} else if out.IsContext {
 			resType = types.ContextCmdResultMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: resType, Content: out.Payload})
+		s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: resType, Content: out.Payload})
 	} else {
 		errType := types.CommandErrorResultMessage
 		if out.IsFileApply {
@@ -89,10 +92,13 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 		} else if out.IsFileApplyUndo {
 			errType = types.FileApplyUndoCmdErrorMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: errType, Content: out.Payload})
+		s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: errType, Content: out.Payload})
 	}
 	if len(out.Messages) > 0 {
-		s.messages = append(s.messages, out.Messages...)
+		for _, extraMsg := range out.Messages {
+			extraMsg.GroupID = cmdGroupID
+			s.messages = append(s.messages, extraMsg)
+		}
 	}
 	return out, success
 }

@@ -1,6 +1,8 @@
 package coder
 
 import (
+	"fmt"
+	"time"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
@@ -33,8 +35,9 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	case types.NewSessionStarted, types.Quit:
 		return types.Event{Type: cmdOutput.Type, Mode: cmdOutput.Mode}
 	case types.ShellExecutionStarted:
+		shellGroupID := fmt.Sprintf("shell_%d", time.Now().UnixNano())
 		if !silent {
-			s.messages = append(s.messages, types.Message{Type: types.ShellCmdMessage, Content: input})
+			s.messages = append(s.messages, types.Message{GroupID: shellGroupID, Type: types.ShellCmdMessage, Content: input})
 		}
 		return types.Event{Type: types.ShellExecutionStarted, Data: cmdOutput.Payload}
 	case types.NoOp:
@@ -42,6 +45,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 	}
 
 	s.Runtime.Config = s.config.Coder.ModelConfig()
+	cmdGroupID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
 	if !silent {
 		msgType := types.CommandMessage
 		if cmdOutput.IsFileApply {
@@ -53,7 +57,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		} else if cmdOutput.IsShell {
 			msgType = types.ShellCmdMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: msgType, Content: input})
+		s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: msgType, Content: input})
 	}
 
 	if cmdSuccess {
@@ -67,7 +71,7 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		} else if cmdOutput.IsContext {
 			msgType = types.ContextCmdResultMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
+		s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: msgType, Content: cmdOutput.Payload})
 	} else {
 		msgType := types.CommandErrorResultMessage
 		if cmdOutput.IsFileApply {
@@ -75,10 +79,13 @@ func (s *Session) processInput(input string, silent bool) types.Event {
 		} else if cmdOutput.IsFileApplyUndo {
 			msgType = types.FileApplyUndoCmdErrorMessage
 		}
-		s.messages = append(s.messages, types.Message{Type: msgType, Content: cmdOutput.Payload})
+		s.messages = append(s.messages, types.Message{GroupID: cmdGroupID, Type: msgType, Content: cmdOutput.Payload})
 	}
 	if len(cmdOutput.Messages) > 0 {
-		s.messages = append(s.messages, cmdOutput.Messages...)
+		for _, extraMsg := range cmdOutput.Messages {
+			extraMsg.GroupID = cmdGroupID
+			s.messages = append(s.messages, extraMsg)
+		}
 	}
 	return types.Event{Type: types.MessagesUpdated}
 }

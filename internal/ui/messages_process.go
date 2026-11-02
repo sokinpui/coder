@@ -84,7 +84,13 @@ func (m Model) handleProcessMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			} else if content == "" {
 				content = "Command completed with no output."
 			}
+			groupID := ""
+			currMsgs := m.Session.GetMessages()
+			if len(currMsgs) > 0 && currMsgs[len(currMsgs)-1].Type == types.ShellCmdMessage {
+				groupID = currMsgs[len(currMsgs)-1].GroupID
+			}
 			m.Session.AddMessages(types.Message{
+				GroupID: groupID,
 				Type:    resType,
 				Content: content,
 			})

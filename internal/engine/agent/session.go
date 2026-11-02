@@ -139,6 +139,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		}, false
 	}
 
+	readGroupID := fmt.Sprintf("read_%d", time.Now().UnixNano())
 	rf := &tools.ReadFileTool{}
 	var toolCalls []types.ToolCall
 	var toolResults []types.Message
@@ -158,21 +159,27 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 			resultContent = fmt.Sprintf("Error: %v", err)
 		}
 		toolResults = append(toolResults, types.Message{
+			GroupID:    readGroupID,
 			Type:       types.ToolResultMessage,
 			Content:    resultContent,
 			ToolCallID: callID,
 		})
 		if len(imgs) > 0 {
-			toolResults = append(toolResults, imgs...)
+			for _, img := range imgs {
+				img.GroupID = readGroupID
+				toolResults = append(toolResults, img)
+			}
 		}
 	}
 
 	s.mu.Lock()
 	s.Messages = append(s.Messages, types.Message{
+		GroupID: readGroupID,
 		Type:    types.UserMessage,
 		Content: input,
 	})
 	s.Messages = append(s.Messages, types.Message{
+		GroupID:   readGroupID,
 		Type:      types.ToolCallMessage,
 		ToolCalls: toolCalls,
 	})

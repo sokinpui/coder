@@ -33,10 +33,14 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 
-	repoRoot := project.Root()
+	expanded := types.ExpandGroupIndices(s.messages, indices)
+	if len(expanded) == 0 {
+		return
+	}
 
-	toDelete := make(map[int]struct{})
-	for _, idx := range indices {
+	repoRoot := project.Root()
+	toDelete := make(map[int]struct{}, len(expanded))
+	for _, idx := range expanded {
 		if idx < 0 || idx >= len(s.messages) {
 			continue
 		}
@@ -58,7 +62,7 @@ func (s *Session) DeleteMessages(indices []int) {
 		}
 	}
 
-	newMessages := make([]types.Message, 0, len(s.messages)-len(indices))
+	newMessages := make([]types.Message, 0, len(s.messages)-len(toDelete))
 	for i, msg := range s.messages {
 		if _, found := toDelete[i]; !found {
 			newMessages = append(newMessages, msg)

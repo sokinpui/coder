@@ -194,6 +194,11 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			targetIndices = append(targetIndices, item.Data.(int))
 		}
 
+		targetIndices = types.ExpandGroupIndices(messages, targetIndices)
+		if len(targetIndices) == 0 {
+			return m, nil, true
+		}
+
 		if len(targetIndices) == 1 && messages[targetIndices[0]].Type == types.ImageMessage {
 			imgMsg := messages[targetIndices[0]]
 			err := clipboard.CopyImage(imgMsg.Content, imgMsg.Data)
@@ -278,6 +283,11 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		var targetIndices []int
 		for _, item := range m.Selector.GetSelectedItems() {
 			targetIndices = append(targetIndices, item.Data.(int))
+		}
+
+		targetIndices = types.ExpandGroupIndices(m.Session.GetMessages(), targetIndices)
+		if len(targetIndices) == 0 {
+			return m, nil, true
 		}
 
 		if m.Chat.IsStreaming {

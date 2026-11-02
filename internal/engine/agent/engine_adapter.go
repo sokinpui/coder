@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/sokinpui/coder/internal/config"
 	"github.com/sokinpui/coder/internal/engine"
@@ -59,9 +60,16 @@ func (s *Session) DeleteMessages(indices []int) {
 		return
 	}
 	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	expanded := types.ExpandGroupIndices(s.Messages, indices)
+	if len(expanded) == 0 {
+		return
+	}
+
 	repoRoot := project.Root()
-	toDelete := make(map[int]struct{}, len(indices))
-	for _, idx := range indices {
+	toDelete := make(map[int]struct{}, len(expanded))
+	for _, idx := range expanded {
 		if idx >= 0 && idx < len(s.Messages) {
 			toDelete[idx] = struct{}{}
 			msg := s.Messages[idx]
@@ -80,7 +88,6 @@ func (s *Session) DeleteMessages(indices []int) {
 		}
 	}
 	s.Messages = remaining
-	s.mu.Unlock()
 }
 
 func (s *Session) EditMessage(index int, newContent string) error {
@@ -151,13 +158,20 @@ func (s *Session) ExecuteCommand(input string) (commands.CommandOutput, bool) {
 	if out.IsAgentFileRead {
 		return out, success
 	}
+	cmdGroupID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
 	msgType := types.CommandMessage
 	s.mu.Lock()
-	s.Messages = append(s.Messages, types.Message{Type: msgType, Content: input})
+	s.Messages = append(s.Messages, types.Message{GroupID: cmdGroupID, Type: msgType, Content: input})
 	if success {
-		s.Messages = append(s.Messages, types.Message{Type: types.CommandResultMessage, Content: out.Payload})
+		s.Messages = append(s.Messages, types.Message{GroupID: cmdGroupID, Type: types.CommandResultMessage, Content: out.Payload})
 	} else {
-		s.Messages = append(s.Messages, types.Message{Type: types.CommandErrorResultMessage, Content: out.Payload})
+		s.Messages = append(s.Messages, types.Message{GroupID: cmdGroupID, Type: types.CommandErrorResultMessage, Content: out.Payload})
+	}
+	if len(out.Messages) > 0 {
+		for _, extraMsg := range out.Messages {
+			extraMsg.GroupID = cmdGroupID
+			s.Messages = append(s.Messages, extraMsg)
+		}
 	}
 	s.mu.Unlock()
 	return out, success
@@ -226,6 +240,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 	go func() {
 		defer close(eventChan)
 
+		var currentToolGroupID string
 		for {
 			select {
 			case <-runCtx.Done():
@@ -268,8 +283,11 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					var targetMsg *types.Message
 					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.ToolCallMessage {
 						targetMsg = &s.Messages[len(msgs)-1]
+						currentToolGroupID = targetMsg.GroupID
 					} else {
+						currentToolGroupID = fmt.Sprintf("tc_%d", time.Now().UnixNano())
 						s.Messages = append(s.Messages, types.Message{
+							GroupID: currentToolGroupID,
 							Type: types.ToolCallMessage,
 						})
 						targetMsg = &s.Messages[len(s.Messages)-1]
@@ -302,6 +320,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					var found bool
 					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.ToolCallMessage {
 						tcMsg := &s.Messages[len(msgs)-1]
+						currentToolGroupID = tcMsg.GroupID
 						for i, existing := range tcMsg.ToolCalls {
 							if (existing.ID != "" && existing.ID == chunk.ToolCall.CallID) ||
 								(existing.Name != "" && existing.Name == chunk.ToolCall.Name) {
@@ -316,7 +335,9 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						}
 					}
 					if !found {
+						currentToolGroupID = fmt.Sprintf("tc_%d", time.Now().UnixNano())
 						s.Messages = append(s.Messages, types.Message{
+							GroupID: currentToolGroupID,
 							Type: types.ToolCallMessage,
 							ToolCalls: []types.ToolCall{
 								{
@@ -354,6 +375,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 					if !found {
 						s.Messages = append(s.Messages, types.Message{
+							GroupID:    currentToolGroupID,
 							Type:       types.ToolResultMessage,
 							Content:    chunk.ToolOutputChunk,
 							ToolCallID: chunk.ToolCall.CallID,
@@ -380,6 +402,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 					if !found {
 						s.Messages = append(s.Messages, types.Message{
+							GroupID:    currentToolGroupID,
 							Type:       types.ToolResultMessage,
 							Content:    chunk.ToolResult.Output,
 							ToolCallID: chunk.ToolResult.CallID,
@@ -387,6 +410,9 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 					}
 					if len(chunk.ToolResult.Images) > 0 {
 						s.Messages = append(s.Messages, chunk.ToolResult.Images...)
+						for imgIdx := len(s.Messages) - len(chunk.ToolResult.Images); imgIdx < len(s.Messages); imgIdx++ {
+							s.Messages[imgIdx].GroupID = currentToolGroupID
+						}
 					}
 					s.mu.Unlock()
 					eventChan <- types.SessionEvent{

@@ -119,6 +119,7 @@ func initSchema(db *sql.DB) error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		session_id TEXT NOT NULL,
 		seq INTEGER NOT NULL,
+		group_id TEXT NOT NULL DEFAULT '',
 		type INTEGER NOT NULL,
 		content TEXT NOT NULL,
 		tool_calls TEXT NOT NULL DEFAULT '[]',
@@ -131,6 +132,9 @@ func initSchema(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_sessions_mode ON sessions(mode);
 	`
 	_, err := db.Exec(schema)
+	if err == nil {
+		_, _ = db.Exec("ALTER TABLE messages ADD COLUMN group_id TEXT NOT NULL DEFAULT ''")
+	}
 	return err
 }
 
@@ -212,8 +216,8 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 	}
 
 	insertMsgStmt, err := tx.Prepare(`
-	INSERT INTO messages (session_id, seq, type, content, tool_calls, tool_call_id)
-	VALUES (?, ?, ?, ?, ?, ?)
+	INSERT INTO messages (session_id, seq, group_id, type, content, tool_calls, tool_call_id)
+	VALUES (?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return err
@@ -240,6 +244,7 @@ func (m *Manager) SaveConversation(data *ConversationData) error {
 		_, err = insertMsgStmt.Exec(
 			data.Filename,
 			seq,
+			msg.GroupID,
 			int(msg.Type),
 			msg.Content,
 			toolCallsJSON,
@@ -301,7 +306,7 @@ func (m *Manager) LoadConversation(id string) (*Metadata, []types.Message, error
 	}
 
 	rows, err := m.db.Query(`
-	SELECT type, content, tool_calls, tool_call_id
+	SELECT group_id, type, content, tool_calls, tool_call_id
 	FROM messages
 	WHERE session_id = ?
 	ORDER BY seq ASC
@@ -314,12 +319,13 @@ func (m *Manager) LoadConversation(id string) (*Metadata, []types.Message, error
 	var messages []types.Message
 	for rows.Next() {
 		var (
+			groupID       string
 			msgType       int
 			content       string
 			toolCallsJSON string
 			toolCallID    string
 		)
-		if err := rows.Scan(&msgType, &content, &toolCallsJSON, &toolCallID); err != nil {
+		if err := rows.Scan(&groupID, &msgType, &content, &toolCallsJSON, &toolCallID); err != nil {
 			return nil, nil, err
 		}
 
@@ -329,6 +335,7 @@ func (m *Manager) LoadConversation(id string) (*Metadata, []types.Message, error
 		}
 
 		messages = append(messages, types.Message{
+			GroupID:    groupID,
 			Type:       types.MessageType(msgType),
 			Content:    content,
 			ToolCalls:  toolCalls,
