@@ -1,13 +1,13 @@
 package ui
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
-	"github.com/charmbracelet/x/ansi"
 )
 
 func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Renderer) string {

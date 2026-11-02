@@ -111,7 +111,6 @@ func ParseCommand(input string) (cmdName string, args string, isCmd bool) {
 		return "shell", strings.TrimSpace(input[1:]), true
 	}
 
-
 	trimmedCmd := strings.TrimPrefix(trimmed, "/")
 	parts := strings.Fields(trimmedCmd)
 	if len(parts) == 0 {

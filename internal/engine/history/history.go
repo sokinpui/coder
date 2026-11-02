@@ -380,8 +380,8 @@ func (m *Manager) ListConversationsByMode(modeFilter string) ([]ConversationInfo
 	var conversations []ConversationInfo
 	for rows.Next() {
 		var (
-			id, title, mode       string
-			rawCreated, rawMod    any
+			id, title, mode    string
+			rawCreated, rawMod any
 		)
 		if err := rows.Scan(&id, &title, &mode, &rawCreated, &rawMod); err != nil {
 			continue

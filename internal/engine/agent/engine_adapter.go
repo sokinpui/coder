@@ -288,7 +288,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						currentToolGroupID = fmt.Sprintf("tc_%d", time.Now().UnixNano())
 						s.Messages = append(s.Messages, types.Message{
 							GroupID: currentToolGroupID,
-							Type: types.ToolCallMessage,
+							Type:    types.ToolCallMessage,
 						})
 						targetMsg = &s.Messages[len(s.Messages)-1]
 					}
@@ -338,7 +338,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						currentToolGroupID = fmt.Sprintf("tc_%d", time.Now().UnixNano())
 						s.Messages = append(s.Messages, types.Message{
 							GroupID: currentToolGroupID,
-							Type: types.ToolCallMessage,
+							Type:    types.ToolCallMessage,
 							ToolCalls: []types.ToolCall{
 								{
 									ID:        chunk.ToolCall.CallID,

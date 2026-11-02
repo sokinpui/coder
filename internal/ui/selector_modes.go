@@ -12,32 +12,32 @@ import (
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
 	"github.com/sokinpui/coder/internal/engine/source"
-	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/project"
+	"github.com/sokinpui/coder/internal/templates"
 	"github.com/sokinpui/coder/internal/types"
 )
 
 type SelectorConfig struct {
-	Title          string
-	Placeholder    string
-	Items          []SelectorItem
-	ShowSearch     bool
-	IsSearching    bool
-	MultiSelect    bool
-	Tabs           []string
-	ActiveTab      int
-	InitialCursor  int
-	CustomWidth    int
-	CustomHeight   int
-	ShowPreview    bool
-	PreviewTitle   string
+	Title              string
+	Placeholder        string
+	Items              []SelectorItem
+	ShowSearch         bool
+	IsSearching        bool
+	MultiSelect        bool
+	Tabs               []string
+	ActiveTab          int
+	InitialCursor      int
+	CustomWidth        int
+	CustomHeight       int
+	ShowPreview        bool
+	PreviewTitle       string
 	PreviewDescription string
-	PreviewContent string
-	OnConfirm      func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
-	OnCancel       func(m Model) (tea.Model, tea.Cmd)
-	OnTabChange    func(m Model, newTab int) (tea.Model, tea.Cmd)
-	OnCursorChange func(m Model, current *SelectorItem) Model
-	KeyHandler     func(m Model, key tea.KeyMsg) (tea.Model, tea.Cmd, bool)
+	PreviewContent     string
+	OnConfirm          func(m Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd)
+	OnCancel           func(m Model) (tea.Model, tea.Cmd)
+	OnTabChange        func(m Model, newTab int) (tea.Model, tea.Cmd)
+	OnCursorChange     func(m Model, current *SelectorItem) Model
+	KeyHandler         func(m Model, key tea.KeyMsg) (tea.Model, tea.Cmd, bool)
 }
 
 func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
@@ -389,18 +389,18 @@ func (m Model) openTemplateSelector() (Model, tea.Cmd) {
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:          "Prompt Templates [Esc/Ctrl+C: close | /: search | Enter: apply template | C-d/C-u: scroll preview]",
-		Placeholder:    "Filter templates...",
-		Items:          items,
-		ShowSearch:     true,
-		IsSearching:    false,
-		MultiSelect:    false,
-		ShowPreview:    true,
-		PreviewTitle:   initialTitle,
+		Title:              "Prompt Templates [Esc/Ctrl+C: close | /: search | Enter: apply template | C-d/C-u: scroll preview]",
+		Placeholder:        "Filter templates...",
+		Items:              items,
+		ShowSearch:         true,
+		IsSearching:        false,
+		MultiSelect:        false,
+		ShowPreview:        true,
+		PreviewTitle:       initialTitle,
 		PreviewDescription: initialDesc,
-		PreviewContent: initialPreview,
-		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
-		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
+		PreviewContent:     initialPreview,
+		CustomWidth:        max(60, min((m.Width*9)/10, m.Width-4)),
+		CustomHeight:       max(18, min((m.Height*85)/100, m.Height-4)),
 		OnCursorChange: func(mod Model, current *SelectorItem) Model {
 			if current != nil {
 				if t, ok := current.Data.(templates.Template); ok {
@@ -461,18 +461,18 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 	}
 
 	return m.openGenericSelector(SelectorConfig{
-		Title:          "Skills Catalog [Esc/Ctrl+C: close | /: search | Enter: use skill | C-d/C-u: scroll preview]",
-		Placeholder:    "Filter skills...",
-		Items:          items,
-		ShowSearch:     true,
-		IsSearching:    false,
-		MultiSelect:    false,
-		ShowPreview:    true,
-		PreviewTitle:   initialTitle,
+		Title:              "Skills Catalog [Esc/Ctrl+C: close | /: search | Enter: use skill | C-d/C-u: scroll preview]",
+		Placeholder:        "Filter skills...",
+		Items:              items,
+		ShowSearch:         true,
+		IsSearching:        false,
+		MultiSelect:        false,
+		ShowPreview:        true,
+		PreviewTitle:       initialTitle,
 		PreviewDescription: initialDesc,
-		PreviewContent: initialPreview,
-		CustomWidth:    max(60, min((m.Width*9)/10, m.Width-4)),
-		CustomHeight:   max(18, min((m.Height*85)/100, m.Height-4)),
+		PreviewContent:     initialPreview,
+		CustomWidth:        max(60, min((m.Width*9)/10, m.Width-4)),
+		CustomHeight:       max(18, min((m.Height*85)/100, m.Height-4)),
 		OnCursorChange: func(mod Model, current *SelectorItem) Model {
 			if current != nil {
 				if sk, ok := current.Data.(skills.Skill); ok {

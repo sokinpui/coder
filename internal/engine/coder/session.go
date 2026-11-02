@@ -91,12 +91,12 @@ func NewWithMessages(cfg *config.Config, initialMessages []types.Message, mode s
 		historyManager:  hist,
 		messages:        messages,
 		title:           "New Chat",
-		titleGenerated:    false,
-		createdAt:         time.Now(),
-		historyFilename:   "",
-		mode:              mode,
-		instruction:       instruction,
-		contextFiles:      resolvedContextFiles,
+		titleGenerated:  false,
+		createdAt:       time.Now(),
+		historyFilename: "",
+		mode:            mode,
+		instruction:     instruction,
+		contextFiles:    resolvedContextFiles,
 	}
 
 	return s, nil

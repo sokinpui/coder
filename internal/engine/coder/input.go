@@ -2,10 +2,10 @@ package coder
 
 import (
 	"fmt"
-	"time"
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/types"
 	"strings"
+	"time"
 )
 
 func (s *Session) HandleInput(input string) types.Event {
