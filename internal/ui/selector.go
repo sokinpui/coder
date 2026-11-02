@@ -19,6 +19,7 @@ type SelectorItem struct {
 	Description string
 	Badge       string
 	SearchText  string
+	GroupID     string
 	Data        any
 }
 
@@ -113,7 +114,32 @@ func (s *SelectorModel) GetSelectedItems() []SelectorItem {
 		if end >= len(s.FilteredItems) {
 			end = len(s.FilteredItems) - 1
 		}
-		return s.FilteredItems[start : end+1]
+		rangeItems := s.FilteredItems[start : end+1]
+		groupIDs := make(map[string]struct{})
+		for _, it := range rangeItems {
+			if it.GroupID != "" {
+				groupIDs[it.GroupID] = struct{}{}
+			}
+		}
+		if len(groupIDs) == 0 {
+			return rangeItems
+		}
+		seen := make(map[string]struct{}, len(rangeItems))
+		var res []SelectorItem
+		for _, it := range s.FilteredItems {
+			inRange := false
+			for _, r := range rangeItems {
+				if r.ID == it.ID {
+					inRange = true
+					break
+				}
+			}
+			if inRange || (it.GroupID != "" && groupIDs[it.GroupID] != struct{}{}) {
+				seen[it.ID] = struct{}{}
+				res = append(res, it)
+			}
+		}
+		return res
 	}
 
 	if s.MultiSelect && len(s.Selected) > 0 {
@@ -127,7 +153,17 @@ func (s *SelectorModel) GetSelectedItems() []SelectorItem {
 	}
 
 	if len(s.FilteredItems) > 0 && s.Cursor < len(s.FilteredItems) {
-		return []SelectorItem{s.FilteredItems[s.Cursor]}
+		primary := s.FilteredItems[s.Cursor]
+		if primary.GroupID == "" {
+			return []SelectorItem{primary}
+		}
+		var res []SelectorItem
+		for _, it := range s.FilteredItems {
+			if it.GroupID == primary.GroupID {
+				res = append(res, it)
+			}
+		}
+		return res
 	}
 	return nil
 }
@@ -216,6 +252,11 @@ func (s *SelectorModel) View(main *Model) string {
 			selectedSet = s.Selected
 		}
 
+		activeGroupID := ""
+		if !s.IsSelecting && s.Cursor >= 0 && s.Cursor < len(s.FilteredItems) {
+			activeGroupID = s.FilteredItems[s.Cursor].GroupID
+		}
+
 		itemWidth := max(20, s.Width-4)
 		if s.ShowPreview {
 			innerWidth := max(30, s.Width-6)
@@ -226,10 +267,13 @@ func (s *SelectorModel) View(main *Model) string {
 			item := s.FilteredItems[i]
 			isCursor := i == s.Cursor
 			_, isSelected := selectedSet[item.ID]
+			isGroupMember := !isCursor && activeGroupID != "" && item.GroupID == activeGroupID
 
 			cursorPrefix := "  "
 			if isCursor {
 				cursorPrefix = "▸ "
+			} else if isGroupMember {
+				cursorPrefix = "• "
 			}
 
 			checkPrefix := ""
@@ -260,6 +304,8 @@ func (s *SelectorModel) View(main *Model) string {
 				}
 				if isCursor || isSelected {
 					line = PaletteSelectedItemStyle.Render(prefix + title)
+				} else if isGroupMember {
+					line = PaletteGroupMemberStyle.Render(prefix + title)
 				} else {
 					line = prefix + PaletteItemStyle.Render(title)
 				}
@@ -270,6 +316,8 @@ func (s *SelectorModel) View(main *Model) string {
 
 				if isCursor || isSelected {
 					line = PaletteSelectedItemStyle.Render(prefix+title) + "  " + PaletteDescriptionStyle.Render(descText)
+				} else if isGroupMember {
+					line = PaletteGroupMemberStyle.Render(prefix+title) + "  " + PaletteDescriptionStyle.Render(descText)
 				} else {
 					line = prefix + PaletteItemStyle.Render(title) + "  " + PaletteDescriptionStyle.Render(descText)
 				}

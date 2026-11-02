@@ -119,6 +119,9 @@ var (
 	PaletteSelectedItemStyle = lipgloss.NewStyle().
 					Foreground(lipgloss.Color("51"))
 
+	PaletteGroupMemberStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("117"))
+
 	PaletteDescriptionStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("240"))
 

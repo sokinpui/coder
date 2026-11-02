@@ -31,6 +31,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 			Title:      summary,
 			Badge:      badge,
 			SearchText: msg.Content,
+			GroupID:    msg.GroupID,
 			Data:       idx,
 		})
 	}
