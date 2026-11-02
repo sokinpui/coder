@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -173,12 +174,13 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if applier, ok := m.Session.(engine.ChangeApplier); ok {
 			applier.SetLastModifiedFiles(res.AffectedFiles)
 		}
-		m.Session.AddMessages(types.Message{Type: types.FileApplyCmdMessage, Content: "/itf"})
+		cmdGroupID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
+		m.Session.AddMessages(types.Message{GroupID: cmdGroupID, Type: types.FileApplyCmdMessage, Content: "/itf"})
 
 		if res.Success {
-			m.Session.AddMessages(types.Message{Type: types.FileApplyCmdResultMessage, Content: res.Summary})
+			m.Session.AddMessages(types.Message{GroupID: cmdGroupID, Type: types.FileApplyCmdResultMessage, Content: res.Summary})
 		} else {
-			m.Session.AddMessages(types.Message{Type: types.FileApplyCmdErrorMessage, Content: res.Summary})
+			m.Session.AddMessages(types.Message{GroupID: cmdGroupID, Type: types.FileApplyCmdErrorMessage, Content: res.Summary})
 		}
 
 		m.ActiveOverlay = overlayNone
