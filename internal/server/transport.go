@@ -158,7 +158,7 @@ func (s *Server) handleHTTPUploadPDF(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWebSocket(ws *websocket.Conn) {
-	clientAddr := ws.RemoteAddr().String()
+	clientAddr := getWebSocketClientAddr(ws)
 	log.Printf("websocket client connected: %s", clientAddr)
 	defer ws.Close()
 	defer func() {
@@ -221,4 +221,17 @@ func (s *Server) handleReader(reader io.Reader) error {
 		go s.dispatch(req)
 	}
 	return scanner.Err()
+}
+
+func getWebSocketClientAddr(ws *websocket.Conn) string {
+	if ws == nil {
+		return "unknown"
+	}
+	if req := ws.Request(); req != nil && req.RemoteAddr != "" {
+		return req.RemoteAddr
+	}
+	if cfg := ws.Config(); cfg != nil && cfg.Origin != nil {
+		return cfg.Origin.String()
+	}
+	return "unknown"
 }
