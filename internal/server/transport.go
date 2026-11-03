@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -31,8 +32,11 @@ func (w *wsWriter) Write(p []byte) (n int, err error) {
 }
 
 func (s *Server) ServeStdio() error {
+	log.Printf("starting stdio session handler")
 	s.writer = os.Stdout
-	return s.handleReader(os.Stdin)
+	err := s.handleReader(os.Stdin)
+	log.Printf("stdio session handler finished err=%v", err)
+	return err
 }
 
 func (s *Server) ServeListener(listener net.Listener) error {
@@ -41,8 +45,11 @@ func (s *Server) ServeListener(listener net.Listener) error {
 		if err != nil {
 			return err
 		}
+		clientAddr := conn.RemoteAddr().String()
+		log.Printf("tcp client connected: %s", clientAddr)
 		go func(c net.Conn) {
 			defer c.Close()
+			defer log.Printf("tcp client disconnected: %s", clientAddr)
 			srv := New(s.cfg)
 			srv.writer = c
 			_ = srv.handleReader(c)
@@ -123,6 +130,7 @@ func (s *Server) handleHTTPUploadPDF(w http.ResponseWriter, r *http.Request) {
 	cleanBase := filepath.Base(header.Filename)
 	destPath := filepath.Join(docsDir, cleanBase)
 	outFile, err := os.Create(destPath)
+	log.Printf("pdf upload received: filename=%s size=%d", cleanBase, header.Size)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save file: %v", err), http.StatusInternalServerError)
 		return
@@ -150,8 +158,11 @@ func (s *Server) handleHTTPUploadPDF(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWebSocket(ws *websocket.Conn) {
+	clientAddr := ws.RemoteAddr().String()
+	log.Printf("websocket client connected: %s", clientAddr)
 	defer ws.Close()
 	defer func() {
+		log.Printf("websocket client disconnected: %s", clientAddr)
 		if s.session != nil {
 			s.session.CancelGeneration()
 		}

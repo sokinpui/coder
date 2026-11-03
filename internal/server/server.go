@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/sokinpui/coder/internal/config"
@@ -26,6 +27,7 @@ func New(cfg *config.Config) *Server {
 }
 
 func (s *Server) dispatch(req Request) {
+	log.Printf("[req] method=%s id=%s", req.Method, formatRawID(req.ID))
 	switch req.Method {
 	case "ping":
 		s.sendResult(req.ID, map[string]any{"pong": true, "version": version.Get()})
@@ -98,6 +100,7 @@ func (s *Server) ensureSession() error {
 }
 
 func (s *Server) sendResult(id *json.RawMessage, result any) {
+	log.Printf("[resp] id=%s status=ok", formatRawID(id))
 	s.send(Response{
 		JSONRPC: "2.0",
 		ID:      id,
@@ -106,6 +109,7 @@ func (s *Server) sendResult(id *json.RawMessage, result any) {
 }
 
 func (s *Server) sendError(id *json.RawMessage, code int, msg string) {
+	log.Printf("[resp] id=%s code=%d error=%s", formatRawID(id), code, msg)
 	s.send(Response{
 		JSONRPC: "2.0",
 		ID:      id,
@@ -114,11 +118,51 @@ func (s *Server) sendError(id *json.RawMessage, code int, msg string) {
 }
 
 func (s *Server) sendNotification(method string, params any) {
+	s.logNotification(method, params)
 	s.send(Notification{
 		JSONRPC: "2.0",
 		Method:  method,
 		Params:  params,
 	})
+}
+
+func (s *Server) logNotification(method string, params any) {
+	switch method {
+	case "session/chunk":
+		chunk, ok := params.(StreamChunkNotification)
+		if !ok {
+			log.Printf("[event] %s", method)
+			return
+		}
+		if chunk.Error != "" {
+			log.Printf("[event] session/chunk done=true error=%s", chunk.Error)
+			return
+		}
+		if chunk.Done {
+			log.Printf("[event] session/chunk done=true tokens=%d", chunk.TokenCount)
+			return
+		}
+		if chunk.ReasoningContent != "" {
+			log.Printf("[event] session/chunk reasoning delta bytes=%d", len(chunk.ReasoningContent))
+			return
+		}
+		log.Printf("[event] session/chunk content delta bytes=%d", len(chunk.Content))
+	case "session/event":
+		if evMap, ok := params.(map[string]any); ok {
+			log.Printf("[event] session/event type=%v", evMap["type"])
+			return
+		}
+		log.Printf("[event] session/event")
+	default:
+		log.Printf("[event] %s", method)
+	}
+}
+
+func formatRawID(id *json.RawMessage) string {
+	if id == nil {
+		return "null"
+	}
+	return string(*id)
 }
 
 func (s *Server) send(v any) {

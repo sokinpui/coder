@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 
@@ -21,6 +22,9 @@ var (
 )
 
 func main() {
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("[coder-server] ")
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	rootCmd := &cobra.Command{
 		Use:     "coder-server [flags]",
 		Short:   "Headless JSON-RPC and WebSocket server for Coder",
@@ -54,9 +58,10 @@ func main() {
 }
 
 func runServer(cmd *cobra.Command) {
+	log.Printf("starting coder-server version=%s", version.Get())
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		log.Printf("error loading configuration: %v", err)
 		os.Exit(1)
 	}
 
@@ -77,12 +82,12 @@ func runServer(cmd *cobra.Command) {
 		}
 		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", port, err)
+			log.Printf("failed to listen on port %d: %v", port, err)
 			os.Exit(1)
 		}
-		fmt.Printf("Coder WebSocket server listening on ws://localhost:%d/ws\n", port)
+		log.Printf("websocket server listening on ws://localhost:%d/ws", port)
 		if err := srv.ServeHTTP(listener); err != nil {
-			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			log.Printf("server error: %v", err)
 			os.Exit(1)
 		}
 		return
@@ -91,11 +96,12 @@ func runServer(cmd *cobra.Command) {
 	if serverPort > 0 {
 		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on port %d: %v\n", serverPort, err)
+			log.Printf("failed to listen on port %d: %v", serverPort, err)
 			os.Exit(1)
 		}
+		log.Printf("tcp server listening on :%d", serverPort)
 		if err := srv.ServeListener(listener); err != nil {
-			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			log.Printf("server error: %v", err)
 			os.Exit(1)
 		}
 		return
@@ -104,18 +110,20 @@ func runServer(cmd *cobra.Command) {
 	if serverSocket != "" {
 		listener, err := net.Listen("unix", serverSocket)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to listen on socket %s: %v\n", serverSocket, err)
+			log.Printf("failed to listen on socket %s: %v", serverSocket, err)
 			os.Exit(1)
 		}
+		log.Printf("unix domain socket listening on %s", serverSocket)
 		if err := srv.ServeListener(listener); err != nil {
-			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			log.Printf("server error: %v", err)
 			os.Exit(1)
 		}
 		return
 	}
 
+	log.Printf("running over stdio transport")
 	if err := srv.ServeStdio(); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+		log.Printf("server error: %v", err)
 		os.Exit(1)
 	}
 }
