@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/token"
@@ -18,6 +19,7 @@ func (s *Server) handlePDFAdd(req Request) {
 		return
 	}
 
+	log.Printf("pdf attach requested: path=%s", params.Path)
 	res, success := s.session.ExecuteCommand("/file " + params.Path)
 	if !success {
 		s.sendError(req.ID, -32603, res.Payload)
@@ -43,6 +45,7 @@ func (s *Server) handleContextAdd(req Request) {
 		return
 	}
 
+	log.Printf("context add requested: %v", params.Paths)
 	res, _, _ := commands.ProcessCommand("/file "+joinArgs(params.Paths), s.session)
 	s.sendResult(req.ID, map[string]any{
 		"message":      res.Payload,
@@ -61,6 +64,7 @@ func (s *Server) handleContextExclude(req Request) {
 		return
 	}
 
+	log.Printf("context exclude requested: %v", params.Paths)
 	res, _, _ := commands.ProcessCommand("/exclude "+joinArgs(params.Paths), s.session)
 	s.sendResult(req.ID, map[string]any{
 		"message":      res.Payload,

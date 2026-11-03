@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -44,6 +45,8 @@ func (s *Server) handleInit(req Request) {
 
 	_ = sess.LoadContext()
 	tokenCount := token.CountTokens(sess.GetPrompt())
+	log.Printf("session initialized: id=%s mode=%s model=%s context_files=%d",
+		sess.ID, sess.GetMode(), sess.GetConfig().Coder.ModelCode, len(sess.GetContextFiles()))
 	s.sendResult(req.ID, map[string]any{
 		"sessionId":       sess.ID,
 		"mode":            sess.GetMode(),
@@ -63,6 +66,7 @@ func (s *Server) handleCompact(req Request) {
 		s.sendError(req.ID, -32603, "Compaction is only supported in agent mode")
 		return
 	}
+	log.Printf("session compaction started")
 	newSess, summary, err := s.session.Compact(context.Background())
 	if err != nil {
 		s.sendError(req.ID, -32603, fmt.Sprintf("Compaction failed: %v", err))
@@ -73,6 +77,7 @@ func (s *Server) handleCompact(req Request) {
 		s.hydrateSessionImages()
 	}
 	tokenCount := token.CountTokens(newSess.GetPrompt())
+	log.Printf("session compaction complete: new_session_id=%s", newSess.GetID())
 	s.sendResult(req.ID, map[string]any{
 		"compacted":  true,
 		"sessionId":  newSess.GetID(),
@@ -95,6 +100,7 @@ func (s *Server) handlePrompt(req Request) {
 	}
 
 	s.sendResult(req.ID, map[string]any{"status": "accepted"})
+	log.Printf("prompt accepted: length=%d images=%d", len(params.Content), len(params.Images))
 
 	repoRoot := project.Root()
 	imagesDir := filepath.Join(repoRoot, ".coder", "images")
@@ -130,6 +136,7 @@ func (s *Server) handlePrompt(req Request) {
 
 	if !s.session.IsTitleGenerated() {
 		go func(promptText string) {
+			log.Printf("generating conversation title")
 			title := s.session.GenerateTitle(context.Background(), promptText)
 			_ = s.session.SaveConversation()
 			s.sendNotification("session/event", map[string]any{"type": "title", "title": title})
@@ -419,6 +426,7 @@ func (s *Server) handleSessionRename(req Request) {
 }
 
 func (s *Server) handleCancel(req Request) {
+	log.Printf("generation cancelled by client request")
 	if s.session != nil {
 		s.session.CancelGeneration()
 	}

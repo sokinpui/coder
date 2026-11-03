@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/sokinpui/coder/internal/engine/commands"
 )
@@ -18,11 +19,13 @@ func (s *Server) handleItfApply(req Request) {
 	}
 
 	if params.Content == "" {
+		log.Printf("itf apply requested with args=%s", params.Args)
 		cmdOut, _, _ := commands.ProcessCommand("/itf "+params.Args, s.session)
 		s.sendResult(req.ID, map[string]any{"summary": cmdOut.Payload})
 		return
 	}
 
+	log.Printf("itf apply custom content requested with args=%s", params.Args)
 	res := commands.ExecuteItf(params.Content, params.Args)
 	s.sendResult(req.ID, map[string]any{
 		"success":       res.Success,
@@ -38,6 +41,7 @@ func (s *Server) handleItfUndo(req Request) {
 		return
 	}
 
+	log.Printf("itf undo requested")
 	cmdOut, _, success := commands.ProcessCommand("/undo", s.session)
 	s.sendResult(req.ID, map[string]any{
 		"success": success,

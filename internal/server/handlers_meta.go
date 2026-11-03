@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -120,6 +121,7 @@ func (s *Server) handleHistoryLoad(req Request) {
 		return
 	}
 
+	log.Printf("loading conversation history: %s", params.Filename)
 	if err := s.session.LoadConversation(params.Filename); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
@@ -143,6 +145,7 @@ func (s *Server) handleConfigReload(req Request) {
 		return
 	}
 
+	log.Printf("reloading server configuration")
 	if err := s.session.ReloadConfig(); err != nil {
 		s.sendError(req.ID, -32603, err.Error())
 		return
