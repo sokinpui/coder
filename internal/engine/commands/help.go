@@ -40,6 +40,7 @@ var commandGroup = helpGroup{
 	{key: "gen", desc: "Enter generate mode to re-generate a response.", cap: engine.CapRegenerate},
 	{key: "help", desc: "Show this help message."},
 	{key: "history", desc: "View conversation history."},
+	{key: "image", desc: "Toggle Kitty graphics image display in terminal."},
 	{key: "itf", desc: "Pipe the last AI response to `itf` for applying changes.", cap: engine.CapITF},
 	{key: "list", desc: "List the current project source files/directories.", cap: engine.CapContextFiles},
 	{key: "mode", desc: "View or switch conversation mode (coder, chat, agent)."},

@@ -115,6 +115,7 @@ type Config struct {
 	Coder           Coder     `mapstructure:"coder" yaml:"coder"`
 	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
 	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
+	KittyImage      bool      `mapstructure:"kitty_image" yaml:"kitty_image"`
 	AvailableModels []string  `mapstructure:"-" yaml:"-"`
 }
 
@@ -179,6 +180,7 @@ func DefaultConfig() Config {
 			CopyCmd:  "",
 			PasteCmd: "",
 		},
+		KittyImage: true,
 	}
 }
 
@@ -193,7 +195,8 @@ func DefaultTemplate() ([]byte, error) {
 		if strings.HasPrefix(line, "title:") ||
 			strings.HasPrefix(line, "coder:") ||
 			strings.HasPrefix(line, "agent:") ||
-			strings.HasPrefix(line, "clipboard:") {
+			strings.HasPrefix(line, "clipboard:") ||
+			strings.HasPrefix(line, "kitty_image:") {
 			sb.WriteByte('\n')
 		}
 		sb.WriteString("# ")
