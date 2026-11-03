@@ -3,14 +3,16 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/types"
 	"github.com/sokinpui/coder/internal/ui/markdown"
 )
 
-func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Renderer) string {
+func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Renderer, kittyImage ...bool) string {
 	content := msg.Content
 	switch msg.Type {
 	case types.InitMessage:
@@ -27,9 +29,14 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 		}
 		return CommandInputStyle.Width(viewportWidth - CommandInputStyle.GetHorizontalFrameSize()).Render(prefix + content)
 	case types.ImageMessage:
+		if len(kittyImage) > 0 && kittyImage[0] {
+			if rendered, ok := RenderKittyImageMessage(msg, viewportWidth); ok {
+				return rendered
+			}
+		}
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Image: " + content)
 	case types.PDFMessage:
-		return RenderPDFMessage(msg, viewportWidth)
+		return RenderPDFMessage(msg, viewportWidth, kittyImage...)
 	case types.AIMessage:
 		var parts []string
 		if len(msg.ToolCalls) > 0 {
@@ -68,7 +75,7 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	}
 }
 
-func RenderPDFMessage(msg types.Message, viewportWidth int) string {
+func RenderPDFMessage(msg types.Message, viewportWidth int, kittyImage ...bool) string {
 	meta, ok := types.ParsePDFMetadata(msg.Content)
 	if !ok {
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Document: " + msg.Content)
@@ -82,7 +89,21 @@ func RenderPDFMessage(msg types.Message, viewportWidth int) string {
 		pageWord = "page"
 	}
 	desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
-	return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("📄 Document: " + desc)
+	header := "📄 Document: " + desc
+
+	if len(kittyImage) > 0 && kittyImage[0] && len(meta.Files) > 0 {
+		firstPage := meta.Files[0]
+		if !filepath.IsAbs(firstPage) {
+			if root := project.Root(); root != "" {
+				firstPage = filepath.Join(root, firstPage)
+			}
+		}
+		if rendered, ok := RenderKittyImageFile(firstPage, header, viewportWidth); ok {
+			return rendered
+		}
+	}
+
+	return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render(header)
 }
 
 func RenderCompactedSummaryMessage(msg types.Message, viewportWidth int) string {

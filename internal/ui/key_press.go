@@ -40,6 +40,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		newModel, cmd := m.showQuickView("/list")
 		return newModel, cmd, true
 	case km.Suspend:
+		ClearKittyGraphics()
 		return m, tea.Sequence(tea.Suspend, tea.EnableMouseCellMotion), true
 	case km.ScrollUp:
 		m.Chat.AutoScroll = false

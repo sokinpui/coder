@@ -388,7 +388,7 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 	if msg.Type == types.ToolResultMessage {
 		return m.getOrRenderToolResult(msg, viewportWidth)
 	}
-	return RenderMessage(msg, viewportWidth, nil)
+	return RenderMessage(msg, viewportWidth, nil, m.KittyImage)
 }
 
 func (m Model) renderToolCalls(toolCalls []types.ToolCall, width int) string {

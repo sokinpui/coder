@@ -51,6 +51,10 @@ func (m Model) StatusView() string {
 		items = append(items, ToolCallStyle.Render(m.ToolMode.Icon()))
 	}
 
+	if m.KittyImage {
+		items = append(items, ModelInfoStyle.Render("KittyImg"))
+	}
+
 	switch m.State {
 	case stateAsking, stateThinking, stateGenerating:
 		var (

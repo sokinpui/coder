@@ -43,6 +43,7 @@ type Model struct {
 	StatusBarMessage    string
 	TokenCount          int
 	ToolMode            ToolViewMode
+	KittyImage          bool
 }
 
 func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
@@ -59,6 +60,11 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 	commandDescriptions := sess.GetCommandDescriptions()
 	sort.Strings(availableCommands)
 
+	kittyImage := false
+	if sess.GetConfig() != nil {
+		kittyImage = sess.GetConfig().KittyImage
+	}
+
 	m := Model{
 		ActiveSessions:      []engine.EngineSession{sess},
 		Chat:                NewChat(initialInput),
@@ -71,6 +77,7 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 		AvailableCommands:   availableCommands,
 		CommandDescriptions: commandDescriptions,
 		ToolMode:            ToolViewCompact,
+		KittyImage:          kittyImage,
 	}
 	return m, nil
 }

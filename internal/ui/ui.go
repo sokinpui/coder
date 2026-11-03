@@ -30,6 +30,8 @@ func Start(sess engine.EngineSession, prompt string) error {
 	)
 	filter.SetSender(p.Send)
 
+	defer ClearKittyGraphics()
+
 	// Save conversation on exit
 	finalModel, err := p.Run()
 	if err != nil {

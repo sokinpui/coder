@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -267,6 +268,11 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, false
 
+	case "image":
+		m.Chat.TextArea.Reset()
+		newModel := m.toggleKittyImage(args)
+		return newModel, clearStatusBarCmd(), true
+
 	case "compact":
 		if !m.Session.Capabilities().Has(engine.CapCompact) {
 			return m, nil, false
@@ -279,6 +285,35 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 	}
 
 	return m, nil, false
+}
+
+func (m Model) toggleKittyImage(args string) Model {
+	trimmed := strings.ToLower(strings.TrimSpace(args))
+	switch trimmed {
+	case "on", "enable", "true", "1":
+		m.KittyImage = true
+	case "off", "disable", "false", "0":
+		m.KittyImage = false
+	default:
+		m.KittyImage = !m.KittyImage
+	}
+
+	cfg := m.Session.GetConfig()
+	if cfg != nil {
+		cfg.KittyImage = m.KittyImage
+	}
+
+	state := "disabled"
+	if m.KittyImage {
+		state = "enabled"
+	}
+	if !m.KittyImage {
+		ClearKittyGraphics()
+	}
+	m.StatusBarMessage = fmt.Sprintf("Kitty image display %s.", state)
+	m.ClearCache()
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	return m
 }
 
 func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {

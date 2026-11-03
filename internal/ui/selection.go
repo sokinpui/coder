@@ -334,7 +334,16 @@ func (m Model) extractSelectedText() string {
 		extracted = append(extracted, selectedPart)
 	}
 
-	return strings.Join(extracted, "\n")
+	return cleanPlaceholders(strings.Join(extracted, "\n"))
+}
+
+func cleanPlaceholders(text string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\U0010EEEE' || (r >= 0x0300 && r <= 0x036F) {
+			return -1
+		}
+		return r
+	}, text)
 }
 
 func (m Model) copySelectedText() (Model, tea.Cmd) {
