@@ -52,6 +52,7 @@ coder-server --ws         # Run headless WebSocket/HTTP server
 - `/exclude [paths...]`: Remove paths from active context.
 - `/list`: Display current project files in context.
 - `/clear_context`: Remove all files from context.
+- `/image [on|off|toggle]`: Toggle Kitty graphics image display in terminal.
 - `/itf [args]`: Apply diffs and changes from the last AI response.
 - `/undo`: Revert the last file changes applied by `itf`.
 - `/mode [name]`: View or switch conversation mode (coder, chat, agent), or open mode selector if empty.

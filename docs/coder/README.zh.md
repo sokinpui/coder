@@ -52,6 +52,7 @@ coder-server --ws         # 运行支持 WebSocket/HTTP 的 Headless 服务
 - `/exclude [paths...]`：从当前活动上下文中剔除指定路径。
 - `/list`：显示当前上下文中包含的项目文件列表。
 - `/clear_context`：清空上下文中所有的文件。
+- `/image [on|off|toggle]`：在终端中切换 Kitty 图形协议图片显示。
 - `/itf [args]`：将最近一条 AI 响应中的代码变更通过 `itf` 应用到文件。
 - `/undo`：撤销最近一次由 `itf` 实施的文件变更。
 - `/mode [name]`：查看或切换会话模式（coder, chat, agent），无参数时弹出模式选择器。
