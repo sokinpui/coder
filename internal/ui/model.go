@@ -202,6 +202,9 @@ func (m Model) needsSpinner() bool {
 	if m.Chat.IsFetchingModels {
 		return true
 	}
+	if m.Chat.IsPastingImage {
+		return true
+	}
 	if m.ActiveOverlay == overlaySelector && m.Selector.IsLoading {
 		return true
 	}

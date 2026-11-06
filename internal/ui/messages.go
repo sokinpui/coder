@@ -490,13 +490,18 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, animateTitleTick(), true
 
 	case PasteResultMsg:
+		m.Chat.IsPastingImage = false
 		if msg.Err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.Err)
 			return m, clearStatusBarCmd(), true
 		}
 
 		if msg.IsImage {
-			m.Session.AddMessages(types.Message{Type: types.ImageMessage, Content: msg.Content})
+			m.Session.AddMessages(types.Message{
+				Type:    types.ImageMessage,
+				Content: msg.Content,
+				Data:    msg.Data,
+			})
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			m.Chat.Viewport.GotoBottom()
 			return m, m.updateTokenCountCmd(), true

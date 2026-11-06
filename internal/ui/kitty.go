@@ -130,6 +130,35 @@ func RenderKittyImageFile(filePath, title string, viewportWidth int) (string, bo
 	return RenderKittyImageData(data, title, viewportWidth, filePath)
 }
 
+func PreprocessKittyImage(data []byte, cacheKey string, viewportWidth int) {
+	if len(data) == 0 {
+		return
+	}
+	img, err := getOrProcessImage(data, cacheKey)
+	if err != nil {
+		return
+	}
+
+	width := 80
+	if viewportWidth > 0 {
+		width = viewportWidth
+	}
+	cardWidth := max(24, min(width-4, 80))
+	contentWidth := max(10, cardWidth-ImageMessageStyle.GetHorizontalFrameSize())
+	maxCols := min(contentWidth, 50)
+	maxRows := 18
+
+	cols, rows := calculateCellDimensions(img.width, img.height, maxCols, maxRows)
+	placementKey := fmt.Sprintf("%d:%d:%d", img.imageID, cols, rows)
+
+	placementMu.Lock()
+	if !uploadedPlacements[placementKey] {
+		transmitKittyPlacement(img.imageID, img.pngData, cols, rows)
+		uploadedPlacements[placementKey] = true
+	}
+	placementMu.Unlock()
+}
+
 func RenderKittyImageData(data []byte, title string, viewportWidth int, cacheKey ...string) (string, bool) {
 	img, err := getOrProcessImage(data, cacheKey...)
 	if err != nil {

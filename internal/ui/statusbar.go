@@ -83,6 +83,11 @@ func (m Model) StatusView() string {
 		items = append(items, spinnerWithText)
 	}
 
+	if m.Chat.IsPastingImage {
+		spinnerWithText := lipgloss.JoinHorizontal(lipgloss.Bottom, StatusStyle.Render("Pasting image "), m.Chat.Spinner.View())
+		items = append(items, spinnerWithText)
+	}
+
 	if m.ActiveOverlay == overlayConfirm {
 		items = append(items, StatusStyle.Render("-- CONFIRM TOOL --"))
 	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {

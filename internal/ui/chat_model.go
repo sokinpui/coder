@@ -53,6 +53,7 @@ type ChatModel struct {
 	RenderCache              map[int]markdown.CachedRender
 	StateStartTime           time.Time
 	AutoSubmitPending        bool
+	IsPastingImage           bool
 	RenderedLines            []string
 	LineMetas                []LineMeta
 	Selection                TextSelection

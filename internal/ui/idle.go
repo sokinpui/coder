@@ -73,6 +73,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.ShowPalette = false
 	m.Chat.PaletteFilteredCommands = nil
 	m.Chat.PaletteFilteredArguments = nil
+	m.Chat.IsPastingImage = false
 	m.Chat.PaletteCursor = 0
 	m.Chat.PaletteOffset = 0
 	m.Chat.TextArea.Focus()
@@ -500,7 +501,11 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return model, cmd, true
 
 	case km.Paste:
-		return m, HandlePasteCmd(m.Session.GetConfig()), true
+		m.Chat.IsPastingImage = true
+		return m, tea.Batch(
+			HandlePasteCmd(m.Session.GetConfig(), m.KittyImage, m.Chat.Viewport.Width),
+			m.Chat.Spinner.Tick,
+		), true
 	}
 	return m, nil, false
 }

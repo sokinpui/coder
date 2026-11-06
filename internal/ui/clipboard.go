@@ -16,10 +16,11 @@ import (
 type PasteResultMsg struct {
 	IsImage bool
 	Content string
+	Data    []byte
 	Err     error
 }
 
-func HandlePasteCmd(cfg *config.Config) tea.Cmd {
+func HandlePasteCmd(cfg *config.Config, kittyImage bool, viewportWidth int) tea.Cmd {
 	return func() tea.Msg {
 		if cfg != nil && cfg.Clipboard.PasteCmd != "" {
 			data, contentType, err := clipboard.PasteCustom(cfg.Clipboard.PasteCmd)
@@ -43,12 +44,18 @@ func HandlePasteCmd(cfg *config.Config) tea.Cmd {
 			if err != nil {
 				return PasteResultMsg{Err: err}
 			}
-			return PasteResultMsg{IsImage: true, Content: relPath}
+			if kittyImage {
+				PreprocessKittyImage(data, relPath, viewportWidth)
+			}
+			return PasteResultMsg{IsImage: true, Content: relPath, Data: data}
 		}
 
 		if data, _, err := clipboard.GetImageFromClipboard(); err == nil {
 			if relPath, err := SaveImageToRepo(data, ".png"); err == nil {
-				return PasteResultMsg{IsImage: true, Content: relPath}
+				if kittyImage {
+					PreprocessKittyImage(data, relPath, viewportWidth)
+				}
+				return PasteResultMsg{IsImage: true, Content: relPath, Data: data}
 			}
 		}
 
