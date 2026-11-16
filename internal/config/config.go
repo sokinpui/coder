@@ -154,7 +154,7 @@ func DefaultConfig() Config {
 	return Config{
 		Server: Server{
 			URL:      "http://localhost:9001/v1",
-			Protocol: "responses",
+			Protocol: "chat",
 		},
 		Title: Title{
 			ModelCode: "aisrp/gemini-flash-lite-latest",

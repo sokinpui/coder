@@ -108,7 +108,7 @@ export CODER_API_KEY="your-api-key"
 ```yaml
 server:
   url: http://localhost:9001/v1
-  protocol: responses # "responses" (/v1/responses) 或 "chat" (/v1/chat/completions)
+  protocol: chat # "chat" (/v1/chat/completions) 或 "responses" (/v1/responses)
 
 title:
   modelcode: aisrp/gemini-flash-lite-latest

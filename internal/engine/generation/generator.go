@@ -48,7 +48,7 @@ type Generator struct {
 func New(cfg *config.Config) (*Generator, error) {
 	protocol := cfg.Server.Protocol
 	if protocol == "" {
-		protocol = "responses"
+		protocol = "chat"
 	}
 	return &Generator{
 		Config:     cfg.Coder.ModelConfig(),
@@ -74,9 +74,9 @@ func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, 
 	if generationConfig != nil {
 		genConfig = *generationConfig
 	}
-	if strings.EqualFold(g.Protocol, "chat") {
-		g.generateChatTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
+	if strings.EqualFold(g.Protocol, "responses") {
+		g.generateResponsesTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 		return
 	}
-	g.generateResponsesTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
+	g.generateChatTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
 }

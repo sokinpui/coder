@@ -11,10 +11,10 @@ import (
 )
 
 func (g *Generator) GenerateTitle(ctx context.Context, prompt string) (string, error) {
-	if strings.EqualFold(g.Protocol, "chat") {
-		return g.generateChatTitle(ctx, prompt)
+	if strings.EqualFold(g.Protocol, "responses") {
+		return g.generateResponsesTitle(ctx, prompt)
 	}
-	return g.generateResponsesTitle(ctx, prompt)
+	return g.generateChatTitle(ctx, prompt)
 }
 
 func (g *Generator) generateChatTitle(ctx context.Context, prompt string) (string, error) {

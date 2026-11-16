@@ -44,7 +44,7 @@ func main() {
 	rootCmd.Flags().BoolVar(&wsMode, "ws", false, "Run with WebSocket/HTTP support (default port 9005 if --port not specified)")
 	rootCmd.Flags().BoolVar(&stdioMode, "stdio", false, "Run over stdio (default if no port, socket, or ws specified)")
 	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Override model for generation")
-	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "responses", "Protocol to use: chat or responses")
+	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "chat", "Protocol to use: chat or responses")
 
 	_ = rootCmd.RegisterFlagCompletionFunc("protocol", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"chat", "responses"}, cobra.ShellCompDirectiveNoFileComp

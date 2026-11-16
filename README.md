@@ -108,7 +108,7 @@ Configure endpoints and models in `~/.config/coder/config.yaml` (global) or `.co
 ```yaml
 server:
   url: http://localhost:9001/v1
-  protocol: responses # "responses" (/v1/responses) or "chat" (/v1/chat/completions)
+  protocol: chat # "chat" (/v1/chat/completions) or "responses" (/v1/responses)
 
 title:
   modelcode: aisrp/gemini-flash-lite-latest

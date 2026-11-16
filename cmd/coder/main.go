@@ -61,7 +61,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&initialPrompt, "prompt", "p", "", "Prompt to start session with or execute in non-interactive mode")
 	rootCmd.Flags().StringVarP(&customInstruction, "instruction", "i", "", "Custom system instruction to replace the default one")
 	rootCmd.Flags().StringVarP(&runModel, "model", "m", "", "Model to use for generation")
-	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "responses", "Protocol to use: chat or responses")
+	rootCmd.Flags().StringVarP(&runProtocol, "protocol", "P", "chat", "Protocol to use: chat or responses")
 	rootCmd.Flags().BoolVarP(&chatMode, "chat", "c", false, "Start Coder in chat mode (no project context)")
 	rootCmd.Flags().BoolVarP(&agentMode, "agent", "a", false, "Start Coder in agent mode (autonomous AI tool-calling agent)")
 	rootCmd.Flags().BoolVar(&coderMode, "coder", false, "Start Coder in coder mode (default)")
