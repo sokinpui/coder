@@ -29,11 +29,11 @@ func msgCmd(args string, s SessionController) (CommandOutput, bool) {
 }
 
 func branchCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode or session/branch RPC."}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func historyCmd(args string, s SessionController) (CommandOutput, bool) {
-	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode or history RPC endpoints."}, true
+	return CommandOutput{Type: types.MessagesUpdated, Payload: "Interactive command: use in TUI mode."}, true
 }
 
 func activeCmd(args string, s SessionController) (CommandOutput, bool) {

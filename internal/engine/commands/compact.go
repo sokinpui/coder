@@ -16,6 +16,6 @@ func compactCmd(args string, s SessionController) (CommandOutput, bool) {
 
 	return CommandOutput{
 		Type:    types.MessagesUpdated,
-		Payload: "Interactive command: use in TUI mode or session/compact RPC.",
+		Payload: "Interactive command: use in TUI mode.",
 	}, true
 }

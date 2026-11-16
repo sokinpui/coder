@@ -2,7 +2,7 @@
 
 ## Overview & Stack
 - **Project**: Coder (`github.com/sokinpui/coder`)
-- **Description**: Terminal-centric AI development suite featuring a one-step diff editor (Coder mode), an autonomous coding agent (Agent mode), and standalone utilities (`coder-server`, `itf`, `sf`, `pcat`, `pti`).
+- **Description**: Terminal-centric AI development suite featuring a one-step diff editor (Coder mode), an autonomous coding agent (Agent mode), and standalone utilities (`itf`, `sf`, `pcat`, `pti`).
 - **Language/Runtime**: Go 1.26
 - **Key Dependencies**: Cobra, Viper, Charmbracelet (`bubbletea`, `bubbles`, `lipgloss`, `glamour`), Wazero, SQLite (`modernc.org/sqlite`), Go-Pdfium.
 
@@ -43,11 +43,9 @@ go vet ./...
 ## Architecture & Directory Layout
 - `cmd/`: Main entrypoints for binaries:
   - `coder`: Main CLI application (Coder, Agent, and Chat modes).
-  - `coder-server`: Headless JSON-RPC / WebSocket / HTTP server.
   - `itf`, `sf`, `pcat`, `pti`: Standalone CLI utilities.
 - `internal/`: Core application logic (private):
   - `engine/`: AI execution engines, prompt builders, agent tool definitions, generation handlers, context compactors.
-  - `server/`: Server implementation for `coder-server`.
   - `ui/`: Terminal user interface components built with Bubble Tea (`bubbletea`, `bubbles`, `lipgloss`, `markdown`).
   - `config/`: Configuration management (`viper`).
   - `project/`: Project context and file discovery.
