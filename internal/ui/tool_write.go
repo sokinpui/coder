@@ -40,20 +40,10 @@ func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolVie
 		lang = "txt"
 	}
 
-	previewContent := content
-	if mode == ToolViewSummary {
-		lines := strings.Split(content, "\n")
-		if len(lines) > 24 {
-			head := strings.Join(lines[:12], "\n")
-			tail := strings.Join(lines[len(lines)-8:], "\n")
-			previewContent = fmt.Sprintf("%s\n... [%d lines omitted] ...\n%s", head, len(lines)-20, tail)
-		}
-	}
-
 	cardWidth := max(30, viewportWidth-4)
 	contentWidth := max(20, cardWidth-PreviewBoxStyle.GetHorizontalFrameSize())
-	fence := calculateFence(previewContent)
-	trimmed := strings.TrimRight(previewContent, "\r\n")
+	fence := calculateFence(content)
+	trimmed := strings.TrimRight(content, "\r\n")
 	codeBlock := fmt.Sprintf("%s%s\n%s\n%s", fence, lang, trimmed, fence)
 	rendered := markdown.Render(codeBlock, contentWidth)
 	lines := strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")

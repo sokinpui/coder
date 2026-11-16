@@ -119,7 +119,7 @@ func renderUncachedToolsCmd(sessID string, messages []types.Message, cache map[T
 	}
 
 	var items []toolWorkItem
-	modesToWarm := []ToolViewMode{ToolViewCompact, ToolViewSummary, ToolViewFull}
+	modesToWarm := []ToolViewMode{ToolViewCompact, ToolViewFull}
 
 	for _, msg := range messages {
 		if msg.Type == types.AIMessage || msg.Type == types.ToolCallMessage {

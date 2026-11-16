@@ -70,10 +70,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 
 		switch m.ToolMode {
 		case ToolViewCompact:
-			m.ToolMode = ToolViewSummary
-		case ToolViewSummary:
 			m.ToolMode = ToolViewFull
-		case ToolViewFull:
+		default:
 			m.ToolMode = ToolViewCompact
 		}
 		m.Chat.Viewport.SetContent(m.renderConversation())

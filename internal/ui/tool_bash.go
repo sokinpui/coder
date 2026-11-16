@@ -69,18 +69,8 @@ func (b *BashToolRenderer) RenderDetailedResult(output string, callID string, mo
 		indicator = ToolErrorStyle.Render("✗")
 	}
 
-	displayLines := lines
-	if mode == ToolViewSummary && len(lines) > 14 {
-		head := lines[:7]
-		tail := lines[len(lines)-5:]
-		displayLines = make([]string, 0, len(head)+len(tail)+1)
-		displayLines = append(displayLines, head...)
-		displayLines = append(displayLines, fmt.Sprintf("... [%d lines omitted] ...", len(lines)-(len(head)+len(tail))))
-		displayLines = append(displayLines, tail...)
-	}
-
 	var formatted []string
-	for _, l := range displayLines {
+	for _, l := range lines {
 		formatted = append(formatted, "    "+ToolResultStyle.Render(l))
 	}
 	return fmt.Sprintf("↳ %s\n%s", indicator, strings.Join(formatted, "\n"))

@@ -14,7 +14,6 @@ type ToolViewMode int
 
 const (
 	ToolViewCompact ToolViewMode = iota
-	ToolViewSummary
 	ToolViewFull
 )
 
@@ -22,8 +21,6 @@ func (m ToolViewMode) Label() string {
 	switch m {
 	case ToolViewFull:
 		return "Full"
-	case ToolViewSummary:
-		return "Summary"
 	default:
 		return "Compact"
 	}
@@ -33,8 +30,6 @@ func (m ToolViewMode) Icon() string {
 	switch m {
 	case ToolViewFull:
 		return "⚡▼"
-	case ToolViewSummary:
-		return "⚡▾"
 	default:
 		return "⚡▸"
 	}
