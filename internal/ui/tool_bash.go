@@ -21,7 +21,7 @@ func (b *BashToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	if cmd == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s $ %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(cmd, 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render("$ "+TruncateSingleLine(cmd, 60)))
 }
 
 func (b *BashToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -36,7 +36,7 @@ func (b *BashToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolView
 	if cmd == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s $ %s", prefix, ToolMutedStyle.Render(cmd))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render("$ "+cmd))
 }
 
 func (b *BashToolRenderer) RenderConfirmPrompt(arguments string, width int) string {

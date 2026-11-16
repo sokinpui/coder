@@ -86,7 +86,7 @@ func (d *DefaultToolRenderer) RenderCall(call types.ToolCall, viewportWidth int)
 	if summary == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s(%s)", prefix, ToolMutedStyle.Render(summary))
+	return fmt.Sprintf("%s(%s)", prefix, ToolCallArgStyle.Render(summary))
 }
 
 func (d *DefaultToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {

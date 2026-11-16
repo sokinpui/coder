@@ -20,7 +20,7 @@ func (w *WebSearchToolRenderer) RenderCall(call types.ToolCall, viewportWidth in
 	if query == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(query, 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(TruncateSingleLine(query, 60)))
 }
 
 func (w *WebSearchToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -35,7 +35,7 @@ func (w *WebSearchToolRenderer) RenderDetailedCall(call types.ToolCall, mode Too
 	if query == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(query))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(query))
 }
 
 func (w *WebSearchToolRenderer) RenderConfirmPrompt(arguments string, width int) string {

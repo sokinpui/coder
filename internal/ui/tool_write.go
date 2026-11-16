@@ -20,7 +20,7 @@ func (w *WriteToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) s
 	if path == "" {
 		return w.DefaultToolRenderer.RenderCall(call, viewportWidth)
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(TruncateSingleLine(path, 60)))
 }
 
 func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -30,7 +30,7 @@ func (w *WriteToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolVie
 	path := ExtractToolJSONField(call.Arguments, "path")
 	content := ExtractToolJSONField(call.Arguments, "content")
 
-	header := fmt.Sprintf("%s %s", ToolCallStyle.Render("⚡ write"), ToolMutedStyle.Render(path))
+	header := fmt.Sprintf("%s %s", ToolCallStyle.Render("⚡ write"), ToolCallArgStyle.Render(path))
 	if content == "" {
 		return header
 	}

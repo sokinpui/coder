@@ -51,6 +51,9 @@ var (
 			Foreground(lipgloss.Color("221")).
 			Bold(true)
 
+	ToolCallArgStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "234", Dark: "15"})
+
 	ToolSuccessStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("78"))
 

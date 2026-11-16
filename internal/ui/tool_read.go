@@ -22,7 +22,7 @@ func (r *ReadToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	if path == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(project.ShortenPath(path), 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(TruncateSingleLine(project.ShortenPath(path), 60)))
 }
 
 func (r *ReadToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -38,7 +38,7 @@ func (r *ReadToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolView
 	if path == "" {
 		return prefix + "()"
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(project.ShortenPath(path)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(project.ShortenPath(path)))
 }
 
 func (r *ReadToolRenderer) RenderConfirmPrompt(arguments string, width int) string {

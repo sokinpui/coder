@@ -19,7 +19,7 @@ func (e *EditToolRenderer) RenderCall(call types.ToolCall, viewportWidth int) st
 	if path == "" {
 		return e.DefaultToolRenderer.RenderCall(call, viewportWidth)
 	}
-	return fmt.Sprintf("%s %s", prefix, ToolMutedStyle.Render(TruncateSingleLine(path, 60)))
+	return fmt.Sprintf("%s %s", prefix, ToolCallArgStyle.Render(TruncateSingleLine(path, 60)))
 }
 
 func (e *EditToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolViewMode, viewportWidth int) string {
@@ -30,7 +30,7 @@ func (e *EditToolRenderer) RenderDetailedCall(call types.ToolCall, mode ToolView
 	oldStr := ExtractToolJSONField(call.Arguments, "old_string")
 	newStr := ExtractToolJSONField(call.Arguments, "new_string")
 
-	header := fmt.Sprintf("%s %s", ToolCallStyle.Render("⚡ edit"), ToolMutedStyle.Render(path))
+	header := fmt.Sprintf("%s %s", ToolCallStyle.Render("⚡ edit"), ToolCallArgStyle.Render(path))
 	if oldStr == "" && newStr == "" {
 		return header
 	}
@@ -86,7 +86,7 @@ func renderDiffCard(path, oldStr, newStr string, width int) string {
 
 	header := fmt.Sprintf("%s %s %s",
 		ToolCallStyle.Render("⚡ edit"),
-		ToolMutedStyle.Render(path),
+		ToolCallArgStyle.Render(path),
 		statsStr,
 	)
 
