@@ -97,12 +97,6 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 			if msg.Content == "" {
 				continue
 			}
-			if len(apiMessages) > 0 && apiMessages[len(apiMessages)-1].Role == "user" {
-				if prevStr, ok := apiMessages[len(apiMessages)-1].Content.(string); ok {
-					apiMessages[len(apiMessages)-1].Content = prevStr + "\n\n" + msg.Content
-					continue
-				}
-			}
 			apiMessages = append(apiMessages, openAIMessage{
 				Role:    "user",
 				Content: msg.Content,
