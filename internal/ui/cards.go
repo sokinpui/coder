@@ -84,11 +84,15 @@ func RenderPDFMessage(msg types.Message, viewportWidth int, kittyImage ...bool) 
 	if meta.Pages != "" {
 		desc += fmt.Sprintf(" (pages: %s)", meta.Pages)
 	}
-	pageWord := "pages"
-	if meta.PageCount == 1 {
-		pageWord = "page"
+	if meta.PageCount > 0 {
+		pageWord := "pages"
+		if meta.PageCount == 1 {
+			pageWord = "page"
+		}
+		desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
+	} else if meta.Size > 0 {
+		desc += fmt.Sprintf(" [%s]", formatFileSize(meta.Size))
 	}
-	desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
 	header := "📄 Document: " + desc
 
 	if len(kittyImage) > 0 && kittyImage[0] && len(meta.Files) > 0 {
@@ -104,6 +108,21 @@ func RenderPDFMessage(msg types.Message, viewportWidth int, kittyImage ...bool) 
 	}
 
 	return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render(header)
+}
+
+func formatFileSize(size int64) string {
+	const (
+		kb = 1024
+		mb = 1024 * kb
+	)
+	switch {
+	case size >= mb:
+		return fmt.Sprintf("%.1f MB", float64(size)/float64(mb))
+	case size >= kb:
+		return fmt.Sprintf("%.1f KB", float64(size)/float64(kb))
+	default:
+		return fmt.Sprintf("%d B", size)
+	}
 }
 
 func RenderCompactedSummaryMessage(msg types.Message, viewportWidth int) string {

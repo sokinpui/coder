@@ -23,7 +23,7 @@ The agent executes an autonomous loop up to `max_iterations` (default: 50) using
 - **`read`**: Reads files from the filesystem.
   - Plain text and source code: Returns raw content.
   - Images (`.png`, `.jpg`, `.jpeg`, `.webp`): Loaded into multi-modal vision context.
-  - PDF documents (`.pdf`): Rendered into vision context pages on demand.
+  - PDF documents (`.pdf`): Attached as native documents by default (`pdf_mode: native`), or rendered into vision context pages when `pdf_mode: image` is configured.
 - **`edit`**: Replaces text blocks within files using exact string matching (`old_string` -> `new_string`).
   - **Guard Clause**: Rejects any edit attempt on a file that has not already been inspected with `read` in the current session.
   - Requires `old_string` to be unambiguous and unique.

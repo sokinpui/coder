@@ -41,6 +41,8 @@ type PDFMetadata struct {
 	CacheDir  string   `json:"cache_dir"`
 	PageCount int      `json:"page_count"`
 	Files     []string `json:"files"`
+	Mode      string   `json:"mode,omitempty"`
+	Size      int64    `json:"size,omitempty"`
 }
 
 func ParsePDFMetadata(content string) (PDFMetadata, bool) {
@@ -56,12 +58,18 @@ type PDFPage struct {
 	Data  []byte
 }
 
-type PDFPageResolver func(content string) (string, []PDFPage)
+type PDFResolved struct {
+	Filename string
+	RawData  []byte
+	Pages    []PDFPage
+}
 
-var pdfPageResolver PDFPageResolver
+type PDFResolver func(msg Message, mode string) PDFResolved
 
-func RegisterPDFPageResolver(resolver PDFPageResolver) {
-	pdfPageResolver = resolver
+var pdfResolver PDFResolver
+
+func RegisterPDFResolver(resolver PDFResolver) {
+	pdfResolver = resolver
 }
 
 type Message struct {
@@ -106,6 +114,8 @@ type ChatMessage struct {
 	Role       ChatRole
 	Content    string
 	Data       []byte
+	MimeType   string
+	Filename   string
 	ToolCalls  []ToolCall
 	ToolCallID string
 }
@@ -275,7 +285,7 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 	}
 }
 
-func AssemblePrompt(messages []Message, defaultInstruction string) (string, []ChatMessage) {
+func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...string) (string, []ChatMessage) {
 	var instructions []string
 	var chatMessages []ChatMessage
 
@@ -305,13 +315,26 @@ func AssemblePrompt(messages []Message, defaultInstruction string) (string, []Ch
 			if meta, ok := ParsePDFMetadata(msg.Content); ok && meta.Filename != "" {
 				docName = meta.Filename
 			}
-			if pdfPageResolver != nil {
-				resolvedName, pages := pdfPageResolver(msg.Content)
-				if resolvedName != "" {
-					docName = resolvedName
+			mode := ""
+			if len(pdfMode) > 0 {
+				mode = pdfMode[0]
+			}
+			if pdfResolver != nil {
+				resolved := pdfResolver(msg, mode)
+				if resolved.Filename != "" {
+					docName = resolved.Filename
 				}
-				if len(pages) > 0 {
-					for _, page := range pages {
+				if len(resolved.RawData) > 0 {
+					chatMessages = append(chatMessages, ChatMessage{
+						Role:     RoleUser,
+						Data:     resolved.RawData,
+						MimeType: "application/pdf",
+						Filename: docName,
+					})
+					continue
+				}
+				if len(resolved.Pages) > 0 {
+					for _, page := range resolved.Pages {
 						chatMessages = append(chatMessages, ChatMessage{
 							Role:    RoleUser,
 							Content: fmt.Sprintf("%s page %d:", docName, page.Index),

@@ -85,6 +85,8 @@ Press `Esc` to inspect individual messages in the conversation stack:
 Coder is configured via `config.yaml` located globally at `~/.config/coder/config.yaml` or locally at `.coder/config.yaml`:
 
 ```yaml
+pdf_mode: native # "native" (default, attach PDF directly) or "image" (render pages as images)
+
 coder:
   modelcode: aisrp/gemini-flash-latest
   reasoningeffort: high

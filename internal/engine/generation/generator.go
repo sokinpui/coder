@@ -1,6 +1,7 @@
 package generation
 
 import (
+	"bytes"
 	"context"
 	"strings"
 
@@ -12,10 +13,24 @@ type openAIImageURL struct {
 	URL string `json:"url"`
 }
 
+type openAIFile struct {
+	Filename string `json:"filename,omitempty"`
+	FileData string `json:"file_data,omitempty"`
+}
+
 type openAIContentPart struct {
 	Type     string          `json:"type"`
 	Text     string          `json:"text,omitempty"`
 	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+	File     *openAIFile     `json:"file,omitempty"`
+}
+
+type responseContentPart struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+	Filename string          `json:"filename,omitempty"`
+	FileData string          `json:"file_data,omitempty"`
 }
 
 type responseNonStreamResponse struct {
@@ -79,4 +94,15 @@ func (g *Generator) GenerateTask(ctx context.Context, systemInstruction string, 
 		return
 	}
 	g.generateChatTask(ctx, systemInstruction, messages, tools, streamChan, &genConfig)
+}
+
+func isPDFChatMessage(msg types.ChatMessage) bool {
+	return msg.MimeType == "application/pdf" || bytes.HasPrefix(msg.Data, []byte("%PDF-"))
+}
+
+func detectImageMimeType(data []byte) string {
+	if len(data) > 4 && bytes.Equal(data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
+		return "image/jpeg"
+	}
+	return "image/png"
 }

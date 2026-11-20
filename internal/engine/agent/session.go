@@ -144,6 +144,9 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 	var toolCalls []types.ToolCall
 	var toolResults []types.Message
 	ctx := pdf.WithSessionID(context.Background(), s.ID)
+	if s.Config != nil {
+		ctx = pdf.WithMode(ctx, s.Config.PDFMode)
+	}
 
 	for i, p := range allPaths {
 		callID := fmt.Sprintf("call_%d_%d", time.Now().UnixNano(), i)

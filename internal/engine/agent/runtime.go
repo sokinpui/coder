@@ -18,6 +18,7 @@ import (
 type AgentRuntime struct {
 	Config            config.ModelConfig
 	SecondaryConfig   config.ModelConfig
+	PDFMode           string
 	Generator         *generation.Generator
 	MaxToolIterations int
 	Registry          *tools.Registry
@@ -49,6 +50,7 @@ func NewAgentRuntime(cfg *config.Config, registry *tools.Registry) (*AgentRuntim
 	ar := &AgentRuntime{
 		Config:            cfg.Agent.ModelConfig(),
 		SecondaryConfig:   cfg.Agent.SecondaryModelConfig(),
+		PDFMode:           cfg.PDFMode,
 		Generator:         gen,
 		MaxToolIterations: maxIterations,
 		Registry:          registry,
@@ -114,7 +116,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 		case streamChan <- AgentStreamChunk{State: "thinking"}:
 		}
 
-		instruction, chatMsgs := types.AssemblePrompt(currentMessages, instructions)
+		instruction, chatMsgs := types.AssemblePrompt(currentMessages, instructions, ar.PDFMode)
 		toolDecls := ar.Registry.Declarations()
 
 		var activeDecls []types.ToolDeclaration

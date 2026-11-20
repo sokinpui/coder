@@ -24,7 +24,7 @@ func (t *ReadFileTool) Declaration() ToolDeclaration {
 	return ToolDeclaration{
 		Type:        "function",
 		Name:        "read",
-		Description: "Read the content of a file from the filesystem. Supports text and code files (returns plain text), images (.png, .jpg, .jpeg, .webp, etc., loaded into visual context), and PDF documents (rendered into visual context).",
+		Description: "Read the content of a file from the filesystem. Supports text and code files (returns plain text), images (.png, .jpg, .jpeg, .webp, etc., loaded into visual context), and PDF documents (attached as native document or rendered into visual context).",
 		Parameters: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -34,7 +34,7 @@ func (t *ReadFileTool) Declaration() ToolDeclaration {
 				},
 				"pages": map[string]any{
 					"type":        "string",
-					"description": "Optional comma-separated page numbers or ranges to render if reading a PDF (e.g. '1-3', '1,5'). Ignored for other files.",
+					"description": "Optional comma-separated page numbers or ranges to render when reading a PDF in image mode (e.g. '1-3', '1,5'). Ignored in native PDF mode and for other files.",
 				},
 			},
 			"required": []string{"path"},
@@ -88,15 +88,26 @@ func (t *ReadFileTool) ExecuteWithImages(ctx context.Context, arguments string) 
 }
 
 func (t *ReadFileTool) readPDF(ctx context.Context, path, pages string) (string, []types.Message, error) {
-	sessID := pdf.SessionIDFromContext(ctx)
-	msg, err := pdf.RenderPDF(sessID, path, pages)
+	if pdf.ModeFromContext(ctx) == pdf.ModeImage {
+		sessID := pdf.SessionIDFromContext(ctx)
+		msg, err := pdf.RenderPDF(sessID, path, pages)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to render PDF %s: %w", path, err)
+		}
+
+		DefaultTracker.MarkRead(path)
+		meta, _ := types.ParsePDFMetadata(msg.Content)
+		return fmt.Sprintf("Successfully rendered PDF %s (%d page(s))", path, meta.PageCount), []types.Message{msg}, nil
+	}
+
+	msg, err := pdf.LoadNativePDF(path)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to render PDF %s: %w", path, err)
+		return "", nil, fmt.Errorf("failed to read PDF %s: %w", path, err)
 	}
 
 	DefaultTracker.MarkRead(path)
 	meta, _ := types.ParsePDFMetadata(msg.Content)
-	return fmt.Sprintf("Successfully rendered PDF %s (%d page(s))", path, meta.PageCount), []types.Message{msg}, nil
+	return fmt.Sprintf("Successfully attached PDF %s (%d bytes)", path, meta.Size), []types.Message{msg}, nil
 }
 
 func (t *ReadFileTool) readImage(path string) (string, []types.Message, error) {

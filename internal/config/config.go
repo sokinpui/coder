@@ -11,6 +11,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	PDFModeNative = "native"
+	PDFModeImage  = "image"
+)
+
 type Context struct {
 	Files      []string `mapstructure:"files" yaml:"files"`
 	Dirs       []string `mapstructure:"dirs" yaml:"dirs"`
@@ -116,6 +121,7 @@ type Config struct {
 	Agent           Agent     `mapstructure:"agent" yaml:"agent"`
 	Clipboard       Clipboard `mapstructure:"clipboard" yaml:"clipboard"`
 	KittyImage      bool      `mapstructure:"kitty_image" yaml:"kitty_image"`
+	PDFMode         string    `mapstructure:"pdf_mode" yaml:"pdf_mode"`
 	AvailableModels []string  `mapstructure:"-" yaml:"-"`
 }
 
@@ -181,6 +187,16 @@ func DefaultConfig() Config {
 			PasteCmd: "",
 		},
 		KittyImage: true,
+		PDFMode:    PDFModeNative,
+	}
+}
+
+func NormalizePDFMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case PDFModeImage, "images", "img":
+		return PDFModeImage
+	default:
+		return PDFModeNative
 	}
 }
 
@@ -196,7 +212,8 @@ func DefaultTemplate() ([]byte, error) {
 			strings.HasPrefix(line, "coder:") ||
 			strings.HasPrefix(line, "agent:") ||
 			strings.HasPrefix(line, "clipboard:") ||
-			strings.HasPrefix(line, "kitty_image:") {
+			strings.HasPrefix(line, "kitty_image:") ||
+			strings.HasPrefix(line, "pdf_mode:") {
 			sb.WriteByte('\n')
 		}
 		sb.WriteString("# ")
@@ -252,6 +269,7 @@ func Load() (*Config, error) {
 	if cfg.Agent.MaxIterations <= 0 {
 		cfg.Agent.MaxIterations = 50
 	}
+	cfg.PDFMode = NormalizePDFMode(cfg.PDFMode)
 	cfg.Server.APIKey = os.Getenv("CODER_API_KEY")
 
 	if !strings.HasPrefix(cfg.Server.URL, "http") {

@@ -66,7 +66,11 @@ func buildTranscript(span []types.Message) string {
 				if meta.Pages != "" {
 					pagesStr = fmt.Sprintf(" (pages: %s)", meta.Pages)
 				}
-				sb.WriteString(fmt.Sprintf("User:\ndocument:%s%s (%d pages)\n\n", meta.Filename, pagesStr, meta.PageCount))
+				if meta.PageCount > 0 {
+					sb.WriteString(fmt.Sprintf("User:\ndocument:%s%s (%d pages)\n\n", meta.Filename, pagesStr, meta.PageCount))
+				} else {
+					sb.WriteString(fmt.Sprintf("User:\ndocument:%s%s\n\n", meta.Filename, pagesStr))
+				}
 			} else {
 				sb.WriteString(fmt.Sprintf("User:\ndocument:%s\n\n", msg.Content))
 			}

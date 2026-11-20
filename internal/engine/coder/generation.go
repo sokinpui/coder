@@ -50,7 +50,7 @@ func (s *Session) StartGeneration() types.Event {
 		}
 	}
 
-	instruction, chatMsgs := types.AssemblePrompt(messages, "")
+	instruction, chatMsgs := types.AssemblePrompt(messages, "", s.config.PDFMode)
 
 	streamChan := make(chan types.StreamChunk, 100)
 	ctx, cancel := context.WithCancel(context.Background())

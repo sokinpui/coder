@@ -54,7 +54,9 @@ func (r *ReadToolRenderer) RenderResult(output string, callID string, viewportWi
 	if strings.HasPrefix(trimmed, "Error:") || strings.HasPrefix(trimmed, "cannot read") {
 		return fmt.Sprintf("↳ %s %s", ToolErrorStyle.Render("✗"), ToolResultStyle.Render(trimmed))
 	}
-	if strings.HasPrefix(trimmed, "Successfully rendered PDF") || strings.HasPrefix(trimmed, "Successfully read image") {
+	if strings.HasPrefix(trimmed, "Successfully rendered PDF") ||
+		strings.HasPrefix(trimmed, "Successfully attached PDF") ||
+		strings.HasPrefix(trimmed, "Successfully read image") {
 		return fmt.Sprintf("↳ %s %s", ToolSuccessStyle.Render("✓"), ToolResultStyle.Render(trimmed))
 	}
 	if trimmed == "" || trimmed == "(empty file)" {

@@ -23,7 +23,7 @@ coder --completion bash          # 生成 Shell 自动补全脚本
 - **`read`**：从本地文件系统读取内容。
   - 纯文本与源代码：返回原始文本。
   - 图片（`.png`, `.jpg`, `.jpeg`, `.webp` 等）：作为多模态视觉上下文载入。
-  - PDF 文档（`.pdf`）：按需光栅化渲染为图片消息载入视觉上下文。
+  - PDF 文档（`.pdf`）：默认作为原生文档直接附带在请求中（`pdf_mode: native`），也可配置 `pdf_mode: image` 按需渲染为图片消息载入视觉上下文。
 - **`edit`**：基于精准块匹配替换文件内容（`old_string` -> `new_string`）。
   - **前置安全守卫（Guard Clause）**：严禁修改在当前会话中尚未被 `read` 读取过的文件。
   - 要求 `old_string` 在文件中具有唯一性，杜绝歧义覆盖。

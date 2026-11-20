@@ -136,6 +136,11 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 	var pdfErrors []string
 	var docMessages []types.Message
 	sessID := s.GetID()
+	pdfMode := ""
+	if cfg := s.GetConfig(); cfg != nil {
+		pdfMode = cfg.PDFMode
+	}
+	isImageMode := pdf.NormalizeMode(pdfMode) == pdf.ModeImage
 
 	for _, rawDoc := range pdfPaths {
 		docPath := rawDoc
@@ -147,18 +152,29 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 			docPath = strings.TrimSpace(docPath[:idx])
 		}
 
-		pdfMsg, err := pdf.RenderPDF(sessID, docPath, pagesSpec)
+		if isImageMode {
+			pdfMsg, err := pdf.RenderPDF(sessID, docPath, pagesSpec)
+			if err != nil {
+				pdfErrors = append(pdfErrors, fmt.Sprintf("%s (%v)", docPath, err))
+				continue
+			}
+			meta, _ := types.ParsePDFMetadata(pdfMsg.Content)
+			if meta.PageCount == 0 {
+				pdfErrors = append(pdfErrors, fmt.Sprintf("%s (0 pages)", docPath))
+				continue
+			}
+
+			pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", docPath, meta.PageCount))
+			docMessages = append(docMessages, pdfMsg)
+			continue
+		}
+
+		pdfMsg, err := pdf.LoadNativePDF(docPath)
 		if err != nil {
 			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (%v)", docPath, err))
 			continue
 		}
-		meta, _ := types.ParsePDFMetadata(pdfMsg.Content)
-		if meta.PageCount == 0 {
-			pdfErrors = append(pdfErrors, fmt.Sprintf("%s (0 pages)", docPath))
-			continue
-		}
-
-		pdfRenderNotes = append(pdfRenderNotes, fmt.Sprintf("%s (%d pages)", docPath, meta.PageCount))
+		pdfRenderNotes = append(pdfRenderNotes, docPath)
 		docMessages = append(docMessages, pdfMsg)
 	}
 
@@ -171,10 +187,14 @@ func addFileToContext(args string, cmdPrefix string, s SessionController) (Comma
 		msgParts = append(msgParts, fmt.Sprintf("Successfully added %d %s to context.", addedCount, fileWord))
 	}
 	if len(pdfRenderNotes) > 0 {
-		msgParts = append(msgParts, fmt.Sprintf("PDF pages added to chat: %s", strings.Join(pdfRenderNotes, ", ")))
+		if isImageMode {
+			msgParts = append(msgParts, fmt.Sprintf("PDF pages added to chat: %s", strings.Join(pdfRenderNotes, ", ")))
+		} else {
+			msgParts = append(msgParts, fmt.Sprintf("PDF added to chat: %s", strings.Join(pdfRenderNotes, ", ")))
+		}
 	}
 	if len(pdfErrors) > 0 {
-		msgParts = append(msgParts, fmt.Sprintf("PDF rendering failed: %s", strings.Join(pdfErrors, ", ")))
+		msgParts = append(msgParts, fmt.Sprintf("PDF loading failed: %s", strings.Join(pdfErrors, ", ")))
 	}
 	if len(invalidPaths) > 0 {
 		msgParts = append(msgParts, fmt.Sprintf("Warning: The following paths do not exist and were ignored: %s", strings.Join(invalidPaths, ", ")))

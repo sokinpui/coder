@@ -71,10 +71,32 @@ func (g *Generator) generateChatTask(ctx context.Context, systemInstruction stri
 		case types.RoleUser:
 			if len(msg.Data) > 0 {
 				b64 := base64.StdEncoding.EncodeToString(msg.Data)
-				mimeType := "image/png"
-				if len(msg.Data) > 4 && bytes.Equal(msg.Data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
-					mimeType = "image/jpeg"
+				if isPDFChatMessage(msg) {
+					filename := msg.Filename
+					if filename == "" {
+						filename = "document.pdf"
+					}
+					var parts []openAIContentPart
+					if msg.Content != "" {
+						parts = append(parts, openAIContentPart{
+							Type: "text",
+							Text: msg.Content,
+						})
+					}
+					parts = append(parts, openAIContentPart{
+						Type: "file",
+						File: &openAIFile{
+							Filename: filename,
+							FileData: fmt.Sprintf("data:application/pdf;base64,%s", b64),
+						},
+					})
+					apiMessages = append(apiMessages, openAIMessage{
+						Role:    "user",
+						Content: parts,
+					})
+					continue
 				}
+				mimeType := detectImageMimeType(msg.Data)
 				var parts []openAIContentPart
 				if msg.Content != "" {
 					parts = append(parts, openAIContentPart{

@@ -441,11 +441,14 @@ func getMessageSummary(msg types.Message) string {
 			if meta.Pages != "" {
 				pagesStr = fmt.Sprintf(" (p.%s)", meta.Pages)
 			}
-			pageWord := "pages"
-			if meta.PageCount == 1 {
-				pageWord = "page"
+			if meta.PageCount > 0 {
+				pageWord := "pages"
+				if meta.PageCount == 1 {
+					pageWord = "page"
+				}
+				return fmt.Sprintf("📄 %s%s (%d %s)", meta.Filename, pagesStr, meta.PageCount, pageWord)
 			}
-			return fmt.Sprintf("📄 %s%s (%d %s)", meta.Filename, pagesStr, meta.PageCount, pageWord)
+			return fmt.Sprintf("📄 %s%s", meta.Filename, pagesStr)
 		}
 		return "📄 Document: " + msg.Content
 	}

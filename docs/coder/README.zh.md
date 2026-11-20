@@ -85,6 +85,8 @@ coder --config -g         # 在 $EDITOR 中编辑全局配置 (~/.config/coder/c
 配置文件位于全局 `~/.config/coder/config.yaml` 或项目根目录 `.coder/config.yaml`：
 
 ```yaml
+pdf_mode: native # "native"（默认，原生文档直传）或 "image"（渲染为分页图片）
+
 coder:
   modelcode: aisrp/gemini-flash-latest
   reasoningeffort: high

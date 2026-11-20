@@ -225,6 +225,9 @@ func (s *Session) Submit(ctx context.Context, input string) (<-chan types.Sessio
 func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, error) {
 	runCtx, cancel := context.WithCancel(ctx)
 	runCtx = pdf.WithSessionID(runCtx, s.ID)
+	if s.Config != nil {
+		runCtx = pdf.WithMode(runCtx, s.Config.PDFMode)
+	}
 	s.cancelFunc = cancel
 	s.isStreaming = true
 
@@ -459,6 +462,7 @@ func (s *Session) ReloadConfig() error {
 	s.Runtime.Config = cfg.Agent.ModelConfig()
 	s.Runtime.Generator.Config = cfg.Agent.ModelConfig()
 	s.Runtime.SecondaryConfig = cfg.Agent.SecondaryModelConfig()
+	s.Runtime.PDFMode = cfg.PDFMode
 	s.Runtime.Generator.TitleModel = cfg.Title.ModelCode
 	s.Runtime.Generator.BaseURL = cfg.Server.URL
 	s.Runtime.Generator.Protocol = cfg.Server.Protocol
