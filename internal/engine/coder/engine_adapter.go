@@ -14,6 +14,7 @@ import (
 var _ engine.EngineSession = (*Session)(nil)
 var _ engine.ContextController = (*Session)(nil)
 var _ engine.ChangeApplier = (*Session)(nil)
+var _ engine.SideQuestioner = (*Session)(nil)
 
 func (s *Session) GetID() string {
 	return s.ID
@@ -119,6 +120,30 @@ func (s *Session) Submit(ctx context.Context, input string) (<-chan types.Sessio
 func (s *Session) Regenerate(messageIndex int) (<-chan types.SessionEvent, error) {
 	ev := s.RegenerateFrom(messageIndex)
 	return s.bridgeStreamEvent(context.Background(), ev), nil
+}
+
+func (s *Session) SnapshotMessages() ([]types.Message, error) {
+	if err := s.LoadContext(); err != nil {
+		return nil, err
+	}
+	messages := s.GetPrompt()
+	loadMessageImages(messages)
+	return messages, nil
+}
+
+func (s *Session) AskSideQuestion(ctx context.Context, messages []types.Message) (<-chan types.StreamChunk, error) {
+	if s.Runtime == nil || s.Runtime.Generator == nil {
+		return nil, fmt.Errorf("runtime not initialized")
+	}
+	pdfMode := ""
+	if s.config != nil {
+		pdfMode = s.config.PDFMode
+	}
+	instruction, chatMsgs := types.AssemblePrompt(messages, "", pdfMode)
+	streamChan := make(chan types.StreamChunk, 100)
+	cfg := s.config.Coder.ModelConfig()
+	go s.Runtime.Generator.GenerateTask(ctx, instruction, chatMsgs, nil, streamChan, &cfg)
+	return streamChan, nil
 }
 
 func (s *Session) bridgeStreamEvent(ctx context.Context, ev types.Event) <-chan types.SessionEvent {

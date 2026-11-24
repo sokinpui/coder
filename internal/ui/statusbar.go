@@ -94,6 +94,8 @@ func (m Model) StatusView() string {
 
 	if m.ActiveOverlay == overlayConfirm {
 		items = append(items, StatusStyle.Render("-- CONFIRM TOOL --"))
+	} else if m.ActiveOverlay == overlayBtw {
+		items = append(items, StatusStyle.Render("-- BTW --"))
 	} else if m.ActiveOverlay == overlaySelector && m.Selector.Title != "" && !m.Selector.ShowSearch {
 		items = append(items, StatusStyle.Render("-- ATOMIC MSG --"))
 	}

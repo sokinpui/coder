@@ -23,6 +23,7 @@ const (
 	overlaySelector
 	overlayQuickView
 	overlayConfirm
+	overlayBtw
 )
 
 type modelsFetchedMsg struct {
@@ -111,5 +112,16 @@ type (
 		Lines int
 		X     int
 		Y     int
+	}
+	btwStreamChunkMsg struct {
+		sub   <-chan types.StreamChunk
+		chunk types.StreamChunk
+	}
+	btwStreamFinishedMsg struct {
+		sub <-chan types.StreamChunk
+	}
+	btwPasteResultMsg struct {
+		content string
+		err     error
 	}
 )

@@ -77,6 +77,11 @@ type AgentFileReader interface {
 	ReadAgentFiles(input string, paths []string) (CommandOutput, bool)
 }
 
+type SideQuestioner interface {
+	SnapshotMessages() ([]types.Message, error)
+	AskSideQuestion(ctx context.Context, messages []types.Message) (<-chan types.StreamChunk, error)
+}
+
 type EngineSession interface {
 	GetID() string
 	GetMode() string

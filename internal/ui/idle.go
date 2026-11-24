@@ -307,6 +307,13 @@ func (m Model) handleUICommand(input string, resetInput bool) (tea.Model, tea.Cm
 		newModel := m.toggleKittyImage(args)
 		return newModel, clearStatusBarCmd(), true
 
+	case "btw":
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
+		newModel, cmd, _ := m.openBtwOverlay(args)
+		return newModel, cmd, true
+
 	case "queue":
 		if !m.Session.Capabilities().Has(engine.CapToolLoop) {
 			return m, nil, false

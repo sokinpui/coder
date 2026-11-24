@@ -135,13 +135,18 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				if !m.canInputWhileStreaming() {
 					m.Chat.TextArea.Reset()
 				}
-				m.Chat.TextArea.Focus()
+				if m.shouldFocusTextArea() {
+					m.Chat.TextArea.Focus()
+				}
 			}
 			return m, saveConversationCmd(targetSess), true
 		}
 
 		if msg.event.Kind == types.EventToolConfirm && isActive {
 			m.ConfirmRequest = msg.event.Confirm
+			if m.ActiveOverlay == overlayBtw {
+				m.Btw.RestoreAfterConfirm = true
+			}
 			m.ActiveOverlay = overlayConfirm
 			m.Chat.TextArea.Blur()
 			m.Chat.Viewport.SetContent(m.renderConversation())
@@ -548,6 +553,68 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 		return m, nil, false
 
+	case btwStreamChunkMsg:
+		if !m.Btw.Active || msg.sub != m.Btw.StreamSub {
+			return m, nil, true
+		}
+		if msg.chunk.Error != nil {
+			if m.Btw.CancelFunc != nil {
+				m.Btw.CancelFunc()
+				m.Btw.CancelFunc = nil
+			}
+			m.Btw.StreamSub = nil
+			m.Btw.IsStreaming = false
+			m.Btw.StatusText = ""
+			m.Btw.Messages = append(m.Btw.Messages, types.Message{
+				Type:    types.CommandErrorResultMessage,
+				Content: fmt.Sprintf("Error: %v", msg.chunk.Error),
+			})
+			m.Btw.refreshViewport(m.Chat.Spinner.View())
+			return m, nil, true
+		}
+		if msg.chunk.ReasoningContent != "" {
+			m.Btw.StatusText = "Thinking"
+		}
+		if msg.chunk.Content != "" {
+			m.Btw.StatusText = "Generating"
+			if n := len(m.Btw.Messages); n > 0 && m.Btw.Messages[n-1].Type == types.AIMessage {
+				m.Btw.Messages[n-1].Content += msg.chunk.Content
+			} else {
+				m.Btw.Messages = append(m.Btw.Messages, types.Message{
+					Type:    types.AIMessage,
+					Content: msg.chunk.Content,
+				})
+			}
+			m.Btw.refreshViewport(m.Chat.Spinner.View())
+		}
+		return m, listenForBtwChunks(msg.sub), true
+
+	case btwStreamFinishedMsg:
+		if !m.Btw.Active || msg.sub != m.Btw.StreamSub {
+			return m, nil, true
+		}
+		if m.Btw.CancelFunc != nil {
+			m.Btw.CancelFunc()
+			m.Btw.CancelFunc = nil
+		}
+		m.Btw.StreamSub = nil
+		m.Btw.IsStreaming = false
+		m.Btw.StatusText = ""
+		m.Btw.refreshViewport(m.Chat.Spinner.View())
+		return m, nil, true
+
+	case btwPasteResultMsg:
+		if !m.Btw.Active || m.ActiveOverlay != overlayBtw {
+			return m, nil, true
+		}
+		if msg.err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.err)
+			return m, clearStatusBarCmd(), true
+		}
+		m.Btw.Input.InsertString(msg.content)
+		m.Btw.layout(m.Width, m.Height)
+		return m, nil, true
+
 	case animateTitleTickMsg:
 		if !m.Chat.AnimatingTitle {
 			return m, nil, true
@@ -623,7 +690,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			if !m.canInputWhileStreaming() {
 				m.Chat.TextArea.Reset()
 			}
-			m.Chat.TextArea.Focus()
+			if m.shouldFocusTextArea() {
+				m.Chat.TextArea.Focus()
+			}
 		}
 		return m, saveConversationCmd(targetSess), true
 
@@ -643,6 +712,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.CursorEnd()
 
 		m.Chat.CtrlCPressed = false
+
+		if m.Btw.Active {
+			if widthChanged {
+				m.Btw.RenderCache = make(map[int]markdown.CachedRender)
+			}
+			m.Btw.layout(m.Width, m.Height)
+		}
 
 		if widthChanged {
 			m.ClearCache()

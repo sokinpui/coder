@@ -27,6 +27,7 @@ type Model struct {
 	Chat      ChatModel
 	Selector  SelectorModel
 	QuickView *QuickViewModel
+	Btw       BtwModel
 
 	ActiveSessions      []engine.EngineSession
 	Session             engine.EngineSession
@@ -71,6 +72,7 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 		Chat:                NewChat(initialInput),
 		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
+		Btw:                 NewBtwModel(),
 		Session:             sess,
 		SessionQueues:       make(map[string][]string),
 		ActiveOverlay:       overlayNone,
@@ -250,6 +252,9 @@ func (m Model) needsSpinner() bool {
 		return true
 	}
 	if m.Chat.IsPastingImage {
+		return true
+	}
+	if m.Btw.IsStreaming {
 		return true
 	}
 	if m.ActiveOverlay == overlaySelector && m.Selector.IsLoading {

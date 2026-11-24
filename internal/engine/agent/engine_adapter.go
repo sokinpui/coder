@@ -23,6 +23,7 @@ import (
 var _ engine.EngineSession = (*Session)(nil)
 var _ engine.ToolApprover = (*Session)(nil)
 var _ engine.AgentFileReader = (*Session)(nil)
+var _ engine.SideQuestioner = (*Session)(nil)
 
 func (s *Session) GetMode() string {
 	return engine.ModeAgent
@@ -477,20 +478,60 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 	return eventChan, nil
 }
 
+func (s *Session) SnapshotMessages() ([]types.Message, error) {
+	prepared := s.PrepareMessages()
+	return sealOpenToolCalls(prepared, "Tool call still running in main session."), nil
+}
+
+func (s *Session) AskSideQuestion(ctx context.Context, messages []types.Message) (<-chan types.StreamChunk, error) {
+	if s.Runtime == nil || s.Runtime.Generator == nil {
+		return nil, fmt.Errorf("runtime not initialized")
+	}
+
+	pdfMode := ""
+	if s.Config != nil {
+		pdfMode = s.Config.PDFMode
+	}
+	instr := s.getEffectiveInstruction()
+	instruction, chatMsgs := types.AssemblePrompt(messages, instr, pdfMode)
+
+	streamChan := make(chan types.StreamChunk, 100)
+	cfg := s.Runtime.Config
+	go s.Runtime.Generator.GenerateTask(ctx, instruction, chatMsgs, nil, streamChan, &cfg)
+	return streamChan, nil
+}
+
 func (s *Session) sealOpenToolCallsLocked(reason string) {
-	if len(s.Messages) == 0 {
-		return
+	s.Messages = sealOpenToolCalls(s.Messages, reason)
+}
+
+func sealOpenToolCalls(msgs []types.Message, reason string) []types.Message {
+	if len(msgs) == 0 {
+		return nil
+	}
+
+	out := make([]types.Message, len(msgs))
+	copy(out, msgs)
+	for i := range out {
+		if len(out[i].ToolCalls) > 0 {
+			tcCopy := make([]types.ToolCall, len(out[i].ToolCalls))
+			copy(tcCopy, out[i].ToolCalls)
+			out[i].ToolCalls = tcCopy
+		}
 	}
 
 	answered := make(map[string]struct{})
-	for _, msg := range s.Messages {
+	for _, msg := range out {
 		if msg.Type == types.ToolResultMessage && msg.ToolCallID != "" {
 			answered[msg.ToolCallID] = struct{}{}
 		}
 	}
 
-	for i := len(s.Messages) - 1; i >= 0; i-- {
-		msg := s.Messages[i]
+	for i := len(out) - 1; i >= 0; i-- {
+		if i >= len(out) {
+			continue
+		}
+		msg := out[i]
 		if msg.Type == types.UserMessage || msg.Type == types.InterruptedMessage {
 			break
 		}
@@ -521,26 +562,26 @@ func (s *Session) sealOpenToolCallsLocked(reason string) {
 		if !hasAnyResult && hasIncompleteCall {
 			groupID := msg.GroupID
 			var filtered []types.Message
-			for j, m := range s.Messages {
+			for j, m := range out {
 				if j == i || (groupID != "" && m.GroupID == groupID && m.Type == types.ToolCallMessage) {
 					continue
 				}
 				filtered = append(filtered, m)
 			}
-			s.Messages = filtered
+			out = filtered
 			continue
 		}
 
 		groupID := msg.GroupID
 		for _, idx := range unansweredIndices {
-			tc := &s.Messages[i].ToolCalls[idx]
+			tc := &out[i].ToolCalls[idx]
 			if strings.TrimSpace(tc.ID) == "" {
 				tc.ID = fmt.Sprintf("call_interrupted_%d_%d", time.Now().UnixNano(), idx)
 			}
 			if !json.Valid([]byte(tc.Arguments)) {
 				tc.Arguments = "{}"
 			}
-			s.Messages = appendToolResultInGroup(s.Messages, groupID, types.Message{
+			out = appendToolResultInGroup(out, groupID, types.Message{
 				GroupID:    groupID,
 				Type:       types.ToolResultMessage,
 				Content:    reason,
@@ -549,6 +590,8 @@ func (s *Session) sealOpenToolCallsLocked(reason string) {
 			answered[tc.ID] = struct{}{}
 		}
 	}
+
+	return out
 }
 
 func appendToolResultInGroup(msgs []types.Message, groupID string, resMsg types.Message) []types.Message {

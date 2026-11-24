@@ -24,18 +24,8 @@ func (s *Session) GetPrompt() []types.Message {
 	return s.BuildPrompt(s.messages)
 }
 
-func (s *Session) StartGeneration() types.Event {
-	if err := s.LoadContext(); err != nil {
-		s.AddMessages(types.Message{
-			Type:    types.CommandErrorResultMessage,
-			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
-		})
-		return types.Event{Type: types.MessagesUpdated}
-	}
-
-	messages := s.GetPrompt()
+func loadMessageImages(messages []types.Message) {
 	repoRoot := project.Root()
-
 	for i := range messages {
 		if messages[i].Type == types.ImageMessage && messages[i].Data == nil {
 			absPath := messages[i].Content
@@ -49,6 +39,19 @@ func (s *Session) StartGeneration() types.Event {
 			messages[i].Data = data
 		}
 	}
+}
+
+func (s *Session) StartGeneration() types.Event {
+	if err := s.LoadContext(); err != nil {
+		s.AddMessages(types.Message{
+			Type:    types.CommandErrorResultMessage,
+			Content: fmt.Sprintf("Failed to reload context before generation:\n%v", err),
+		})
+		return types.Event{Type: types.MessagesUpdated}
+	}
+
+	messages := s.GetPrompt()
+	loadMessageImages(messages)
 
 	instruction, chatMsgs := types.AssemblePrompt(messages, "", s.config.PDFMode)
 

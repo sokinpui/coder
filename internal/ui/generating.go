@@ -56,6 +56,9 @@ func (m Model) cancelGeneration() (Model, tea.Cmd) {
 		}
 		m.ConfirmRequest = nil
 	}
+	if m.Btw.Active {
+		m.Btw.reset()
+	}
 	m.ActiveOverlay = overlayNone
 	m.Session.Cancel()
 	m.Chat.IsStreaming = false
@@ -107,10 +110,16 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 	if m.canInputWhileStreaming() && msg.Type == tea.KeyEnter {
 		input := m.Chat.TextArea.Value()
 		if commands.IsCommand(input) {
-			if cmdName, _, isCmd := commands.ParseCommand(input); isCmd && cmdName == "queue" {
+			if cmdName, args, isCmd := commands.ParseCommand(input); isCmd && cmdName == "queue" {
+				_ = args
 				m.Chat.TextArea.Reset()
 				m = m.updateLayout()
 				newModel, cmd := m.openQueueSelector()
+				return newModel, cmd, true
+			} else if isCmd && cmdName == "btw" {
+				m.Chat.TextArea.Reset()
+				m = m.updateLayout()
+				newModel, cmd, _ := m.openBtwOverlay(args)
 				return newModel, cmd, true
 			}
 			m.enqueuePrompt(input)
@@ -146,10 +155,15 @@ func (m Model) handleKeyPressGenerating(msg tea.KeyMsg) (tea.Model, tea.Cmd, boo
 			if strings.TrimSpace(input) == "" {
 				return m, nil, true
 			}
-			if cmdName, _, isCmd := commands.ParseCommand(input); isCmd && cmdName == "queue" {
+			if cmdName, args, isCmd := commands.ParseCommand(input); isCmd && cmdName == "queue" {
 				m.Chat.TextArea.Reset()
 				m = m.updateLayout()
 				newModel, cmd := m.openQueueSelector()
+				return newModel, cmd, true
+			} else if isCmd && cmdName == "btw" {
+				m.Chat.TextArea.Reset()
+				m = m.updateLayout()
+				newModel, cmd, _ := m.openBtwOverlay(args)
 				return newModel, cmd, true
 			}
 			m.enqueuePrompt(input)

@@ -46,6 +46,22 @@ func (m Model) handleWheelScroll(lines int) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.ActiveOverlay == overlayBtw {
+		if lines < 0 && m.Btw.Viewport.YOffset > 0 {
+			m.Btw.AutoScroll = false
+			m.Btw.Viewport.LineUp(-lines)
+			return m, nil
+		}
+		if lines > 0 && !m.Btw.Viewport.AtBottom() {
+			m.Btw.Viewport.LineDown(lines)
+			if m.Btw.Viewport.AtBottom() {
+				m.Btw.AutoScroll = true
+			}
+			return m, nil
+		}
+		return m, nil
+	}
+
 	if m.ActiveOverlay == overlayQuickView {
 		if m.QuickView == nil {
 			return m, nil

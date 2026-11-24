@@ -247,6 +247,12 @@ func canScrollMouse(tm tea.Model, msg tea.MouseMsg) bool {
 		}
 		return !main.QuickView.Viewport.AtBottom()
 
+	case overlayBtw:
+		if msg.Button == tea.MouseButtonWheelUp {
+			return main.Btw.Viewport.YOffset > 0
+		}
+		return !main.Btw.Viewport.AtBottom()
+
 	default:
 		return false
 	}

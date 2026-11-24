@@ -26,6 +26,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressSelector(msg)
 	case overlayConfirm:
 		return m.handleKeyPressConfirm(msg)
+	case overlayBtw:
+		return m.handleKeyPressBtw(msg)
 	}
 
 	keyStr := msg.String()
@@ -410,58 +412,45 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		return newModel, cmd, true
 	case tea.KeyEsc:
 		respond(types.ToolConfirmResponse{Approved: false})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.shouldFocusTextArea() {
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
+		newModel, cmd := m.closeConfirmOverlay()
+		return newModel, cmd, true
 	case tea.KeyEnter:
 		respond(types.ToolConfirmResponse{Approved: true})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.shouldFocusTextArea() {
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
+		newModel, cmd := m.closeConfirmOverlay()
+		return newModel, cmd, true
 	}
 
 	switch msg.String() {
 	case "y", "Y":
 		respond(types.ToolConfirmResponse{Approved: true})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.shouldFocusTextArea() {
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
+		newModel, cmd := m.closeConfirmOverlay()
+		return newModel, cmd, true
 	case "n", "N":
 		respond(types.ToolConfirmResponse{Approved: false})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.shouldFocusTextArea() {
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
+		newModel, cmd := m.closeConfirmOverlay()
+		return newModel, cmd, true
 	case "a", "A":
 		respond(types.ToolConfirmResponse{Approved: true, AlwaysAllow: true})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		if m.shouldFocusTextArea() {
-			m.Chat.TextArea.Focus()
-			return m, textarea.Blink, true
-		}
-		return m, nil, true
+		newModel, cmd := m.closeConfirmOverlay()
+		return newModel, cmd, true
 	}
 
 	return m, nil, true
+}
+
+func (m Model) closeConfirmOverlay() (Model, tea.Cmd) {
+	m.ConfirmRequest = nil
+	if m.Btw.Active && m.Btw.RestoreAfterConfirm {
+		m.Btw.RestoreAfterConfirm = false
+		m.ActiveOverlay = overlayBtw
+		m.Btw.Input.Focus()
+		return m, textarea.Blink
+	}
+	m.ActiveOverlay = overlayNone
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	if m.shouldFocusTextArea() {
+		m.Chat.TextArea.Focus()
+		return m, textarea.Blink
+	}
+	return m, nil
 }
