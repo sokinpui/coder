@@ -3,8 +3,8 @@ package ui
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -224,7 +224,7 @@ func renderFromCachedImage(img *cachedImage, title string, viewportWidth int) (s
 
 	var sb strings.Builder
 	sb.WriteString(ToolMutedStyle.Render(headerText))
-	for r := 0; r < rows; r++ {
+	for r := range rows {
 		sb.WriteByte('\n')
 		sb.WriteString(renderPlaceholderRow(img.imageID, r, cols))
 	}
@@ -260,7 +260,7 @@ func transmitKittyPlacement(imageID int, pngData []byte, cols, rows int) {
 func renderPlaceholderRow(imageID, r, cols int) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("\x1b[38;5;%dm", imageID))
-	for c := 0; c < cols; c++ {
+	for c := range cols {
 		sb.WriteString(placeholderRune)
 		sb.WriteRune(diacritic(r))
 		sb.WriteRune(diacritic(c))
