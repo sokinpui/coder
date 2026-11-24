@@ -102,6 +102,11 @@ func buildTranscript(span []types.Message) string {
 			sb.WriteString(msg.Content)
 			sb.WriteString("\n\n")
 
+		case types.InterruptedMessage:
+			sb.WriteString("User:\n")
+			sb.WriteString(msg.Content)
+			sb.WriteString("\n\n")
+
 		case types.CommandMessage, types.ShellCmdMessage:
 			sb.WriteString(fmt.Sprintf("Command:\n%s\n\n", msg.Content))
 

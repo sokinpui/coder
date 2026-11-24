@@ -144,7 +144,7 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.Y >= m.Chat.Viewport.Height {
-			if !m.Chat.TextArea.Focused() {
+			if !m.Chat.TextArea.Focused() && m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			m.Chat.Selection.Active = false

@@ -51,6 +51,10 @@ func (m Model) StatusView() string {
 		items = append(items, ToolCallStyle.Render(m.ToolMode.Icon()))
 	}
 
+	if len(m.Chat.QueuedPrompts) > 0 {
+		items = append(items, StatusStyle.Render(fmt.Sprintf("Queued: %d", len(m.Chat.QueuedPrompts))))
+	}
+
 	switch m.State {
 	case stateAsking, stateThinking, stateGenerating:
 		var (

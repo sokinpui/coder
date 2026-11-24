@@ -30,6 +30,7 @@ type Model struct {
 
 	ActiveSessions      []engine.EngineSession
 	Session             engine.EngineSession
+	SessionQueues       map[string][]string
 	State               state
 	ActiveOverlay       overlayMode
 	Quitting            bool
@@ -71,6 +72,7 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
 		Session:             sess,
+		SessionQueues:       make(map[string][]string),
 		ActiveOverlay:       overlayNone,
 		State:               stateIdle,
 		GlamourRenderer:     renderer,
@@ -196,6 +198,51 @@ func (m Model) Keymap() config.Keymap {
 		return m.Session.GetConfig().Coder.Keymap
 	}
 	return config.DefaultKeymap()
+}
+
+func (m Model) canInputWhileStreaming() bool {
+	return m.Session != nil && m.Session.Capabilities().Has(engine.CapToolLoop)
+}
+
+func (m Model) shouldFocusTextArea() bool {
+	if m.ActiveOverlay != overlayNone {
+		return false
+	}
+	return m.State == stateIdle || m.canInputWhileStreaming()
+}
+
+func (m Model) currentQueuedPrompts() []string {
+	if m.Session == nil {
+		return m.Chat.QueuedPrompts
+	}
+	if m.SessionQueues != nil {
+		if q, ok := m.SessionQueues[m.Session.GetID()]; ok {
+			return q
+		}
+	}
+	return m.Chat.QueuedPrompts
+}
+
+func (m *Model) setQueuedPrompts(prompts []string) {
+	if m.Session != nil {
+		if m.SessionQueues == nil {
+			m.SessionQueues = make(map[string][]string)
+		}
+		if len(prompts) == 0 {
+			delete(m.SessionQueues, m.Session.GetID())
+		} else {
+			m.SessionQueues[m.Session.GetID()] = prompts
+		}
+	}
+	m.Chat.QueuedPrompts = prompts
+}
+
+func (m *Model) enqueuePrompt(prompt string) {
+	m.setQueuedPrompts(append(append([]string(nil), m.currentQueuedPrompts()...), prompt))
+}
+
+func (m *Model) syncActiveQueue() {
+	m.Chat.QueuedPrompts = m.currentQueuedPrompts()
 }
 
 func (m Model) needsSpinner() bool {

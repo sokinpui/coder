@@ -90,7 +90,7 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 		OnCancel: func(mod Model) (tea.Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			mod.Selector.IsSelecting = false
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 				return mod, textarea.Blink
 			}
@@ -164,7 +164,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if aiResponseToApply == "" {
 			m.StatusBarMessage = "No AI response found to apply."
 			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
+			if m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -184,7 +184,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.ActiveOverlay = overlayNone
-		if m.State == stateIdle {
+		if m.shouldFocusTextArea() {
 			m.Chat.TextArea.Focus()
 		}
 		m.Chat.Viewport.SetContent(m.renderConversation())
@@ -212,7 +212,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			}
 			m.ActiveOverlay = overlayNone
 			m.Selector.IsSelecting = false
-			if m.State == stateIdle {
+			if m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -232,7 +232,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.ActiveOverlay = overlayNone
 		m.Selector.IsSelecting = false
-		if m.State == stateIdle {
+		if m.shouldFocusTextArea() {
 			m.Chat.TextArea.Focus()
 		}
 		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -243,7 +243,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if !targetMsg.Type.IsEditable() {
 			m.StatusBarMessage = "Only user messages can be edited."
 			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
+			if m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -259,7 +259,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if !targetMsg.Type.IsRegeneratable() || !m.Session.Capabilities().Has(engine.CapRegenerate) {
 			m.StatusBarMessage = "Selected message cannot be regenerated."
 			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
+			if m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
@@ -311,7 +311,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		m.ActiveOverlay = overlayNone
 		m.Selector.IsSelecting = false
-		if m.State == stateIdle {
+		if m.shouldFocusTextArea() {
 			m.Chat.TextArea.Focus()
 		}
 		m.Chat.Viewport.SetContent(m.renderConversation())
@@ -333,7 +333,7 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if err != nil {
 			m.StatusBarMessage = fmt.Sprintf("Error branching: %v", err)
 			m.ActiveOverlay = overlayNone
-			if m.State == stateIdle {
+			if m.shouldFocusTextArea() {
 				m.Chat.TextArea.Focus()
 			}
 			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true

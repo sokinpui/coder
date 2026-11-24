@@ -24,6 +24,7 @@ type SelectorItem struct {
 }
 
 type SelectorModel struct {
+	Tag                string
 	Title              string
 	Items              []SelectorItem
 	FilteredItems      []SelectorItem

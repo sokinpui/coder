@@ -50,6 +50,7 @@ var commandGroup = helpGroup{
 	{key: "new", desc: "Start a new session (e.g., /new [mode])."},
 	{key: "q", desc: "Quit the application."},
 	{key: "quit", desc: "Quit the application."},
+	{key: "queue", desc: "View and manage queued prompts.", cap: engine.CapToolLoop},
 	{key: "rename", desc: "Rename the current session title."},
 	{key: "shell", desc: "Run interactive terminal command or open subshell (alias: !).", cap: engine.CapShell},
 	{key: "skills", desc: "View and preview available skills."},

@@ -105,7 +105,7 @@ func (m Model) handleKeyPressQuickView(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 	switch msg.Type {
 	case tea.KeyEsc, tea.KeyCtrlC, tea.KeyEnter:
 		m.ActiveOverlay = overlayNone
-		if m.State == stateIdle {
+		if m.shouldFocusTextArea() {
 			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true
 		}
@@ -114,7 +114,7 @@ func (m Model) handleKeyPressQuickView(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool
 
 	if msg.Type == tea.KeyRunes && msg.String() == "q" {
 		m.ActiveOverlay = overlayNone
-		if m.State == stateIdle {
+		if m.shouldFocusTextArea() {
 			m.Chat.TextArea.Focus()
 			return m, textarea.Blink, true
 		}
@@ -325,7 +325,7 @@ func (m Model) cancelSelector() (tea.Model, tea.Cmd, bool) {
 		return newModel, cmd, true
 	}
 	m.ActiveOverlay = overlayNone
-	if m.State == stateIdle {
+	if m.shouldFocusTextArea() {
 		m.Chat.TextArea.Focus()
 		return m, textarea.Blink, true
 	}
@@ -406,33 +406,27 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 	}
 	switch msg.Type {
 	case tea.KeyCtrlC:
-		respond(types.ToolConfirmResponse{Approved: false})
-		m.ConfirmRequest = nil
-		m.ActiveOverlay = overlayNone
-		m.Session.Cancel()
-		m.Chat.IsStreaming = false
-		m.Chat.IsAIRendering = false
-		m.Chat.PendingAIRender = false
-		m.Chat.EventSub = nil
-		m.Chat.LastInteractionFailed = true
-		m.StatusText = ""
-		m.State = stateIdle
-		m.Chat.TextArea.Focus()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		m = m.updateLayout()
-		return m, textarea.Blink, true
+		newModel, cmd := m.cancelGeneration()
+		return newModel, cmd, true
 	case tea.KeyEsc:
 		respond(types.ToolConfirmResponse{Approved: false})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
 		return m, nil, true
 	case tea.KeyEnter:
 		respond(types.ToolConfirmResponse{Approved: true})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
 		return m, nil, true
 	}
 
@@ -442,18 +436,30 @@ func (m Model) handleKeyPressConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) 
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
 		return m, nil, true
 	case "n", "N":
 		respond(types.ToolConfirmResponse{Approved: false})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
 		return m, nil, true
 	case "a", "A":
 		respond(types.ToolConfirmResponse{Approved: true, AlwaysAllow: true})
 		m.ConfirmRequest = nil
 		m.ActiveOverlay = overlayNone
 		m.Chat.Viewport.SetContent(m.renderConversation())
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, textarea.Blink, true
+		}
 		return m, nil, true
 	}
 

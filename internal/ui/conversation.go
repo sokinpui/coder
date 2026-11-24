@@ -217,7 +217,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		processBoxMiddleLines(boxRun, metas, msgIdx, true)
 
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
-		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
+		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage, types.InterruptedMessage:
 		colStart := 2
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)

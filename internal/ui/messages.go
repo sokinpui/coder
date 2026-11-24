@@ -132,7 +132,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 					m.Chat.Viewport.GotoBottom()
 				}
 				m.Chat.EventSub = nil
-				m.Chat.TextArea.Reset()
+				if !m.canInputWhileStreaming() {
+					m.Chat.TextArea.Reset()
+				}
 				m.Chat.TextArea.Focus()
 			}
 			return m, saveConversationCmd(targetSess), true
@@ -141,6 +143,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if msg.event.Kind == types.EventToolConfirm && isActive {
 			m.ConfirmRequest = msg.event.Confirm
 			m.ActiveOverlay = overlayConfirm
+			m.Chat.TextArea.Blur()
 			m.Chat.Viewport.SetContent(m.renderConversation())
 			if m.Chat.AutoScroll {
 				m.Chat.Viewport.GotoBottom()
@@ -270,14 +273,30 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.Chat.EventSub = nil
-		m.Chat.TextArea.Reset()
+		if !m.canInputWhileStreaming() {
+			m.Chat.TextArea.Reset()
+		}
 		m.StatusText = ""
 		m = m.updateLayout()
+
+		if q := m.currentQueuedPrompts(); !m.Chat.LastInteractionFailed && len(q) > 0 {
+			nextInput := q[0]
+			m.setQueuedPrompts(q[1:])
+			nextModel, nextCmd := m.submitInput(nextInput, false)
+			if updated, ok := nextModel.(Model); ok && updated.ActiveOverlay == overlaySelector && updated.Selector.Tag == queueSelectorTag {
+				updated = updated.refreshQueueSelector()
+				nextModel = updated
+			}
+			return nextModel, tea.Batch(saveConversationCmd(targetSess), nextCmd, m.renderUncachedCmd()), true
+		}
 
 		var cmds []tea.Cmd
 		cmds = append(cmds, saveConversationCmd(targetSess), m.Chat.Spinner.Tick, m.renderUncachedCmd())
 		if !m.Chat.LastInteractionFailed {
 			cmds = append(cmds, m.updateTokenCountCmd())
+		}
+		if m.ActiveOverlay == overlayNone && m.shouldFocusTextArea() {
+			cmds = append(cmds, textarea.Blink)
 		}
 
 		newModel, renderCmd := m.finalizeAIMessageRender(msg.sessID)
@@ -375,8 +394,13 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			}
 
 			oldSess := m.Session
+			var oldQueue []string
+			if oldSess != nil && m.SessionQueues != nil {
+				oldQueue = m.SessionQueues[oldSess.GetID()]
+			}
 			m.Session = msg.newSess
 			m.ClearCache()
+			m.setQueuedPrompts(oldQueue)
 			m.addActiveSession(msg.newSess)
 			m.AvailableCommands = msg.newSess.GetSupportedCommands()
 			m.CommandDescriptions = msg.newSess.GetCommandDescriptions()
@@ -405,6 +429,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
 		m.ClearCache()
+		m.syncActiveQueue()
 		m.addActiveSession(msg.sess)
 		m.AvailableCommands = msg.sess.GetSupportedCommands()
 		m.CommandDescriptions = msg.sess.GetCommandDescriptions()
@@ -422,7 +447,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.State = stateAsking
 			}
 			m.Chat.IsStreaming = true
-			m.Chat.TextArea.Blur()
+			if m.shouldFocusTextArea() {
+				m.Chat.TextArea.Focus()
+			} else {
+				m.Chat.TextArea.Blur()
+			}
 		} else {
 			m.State = stateIdle
 			m.Chat.IsStreaming = false
@@ -447,6 +476,7 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		oldSess := m.Session
 		m.ActiveOverlay = overlayNone
 		m.Session = msg.sess
+		m.syncActiveQueue()
 		m.ClearCache()
 		m.AvailableCommands = msg.sess.GetSupportedCommands()
 		m.CommandDescriptions = msg.sess.GetCommandDescriptions()
@@ -459,7 +489,11 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.State = stateAsking
 			}
 			m.Chat.IsStreaming = true
-			m.Chat.TextArea.Blur()
+			if m.shouldFocusTextArea() {
+				m.Chat.TextArea.Focus()
+			} else {
+				m.Chat.TextArea.Blur()
+			}
 		} else {
 			m.State = stateIdle
 			m.Chat.IsStreaming = false
@@ -497,6 +531,10 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if msg.IsImage {
+			if m.Chat.IsStreaming {
+				m.StatusBarMessage = "Cannot attach image while agent is running."
+				return m, clearStatusBarCmd(), true
+			}
 			m.Session.AddMessages(types.Message{
 				Type:    types.ImageMessage,
 				Content: msg.Content,
@@ -582,7 +620,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				m.Chat.Viewport.GotoBottom()
 			}
 			m.Chat.EventSub = nil
-			m.Chat.TextArea.Reset()
+			if !m.canInputWhileStreaming() {
+				m.Chat.TextArea.Reset()
+			}
 			m.Chat.TextArea.Focus()
 		}
 		return m, saveConversationCmd(targetSess), true

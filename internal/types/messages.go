@@ -32,6 +32,7 @@ const (
 	ToolResultMessage
 	CompactedSummaryMessage
 	PDFMessage
+	InterruptedMessage
 )
 
 type PDFMetadata struct {
@@ -178,6 +179,8 @@ func (t MessageType) String() string {
 		return "Compacted Summary"
 	case PDFMessage:
 		return "PDF Document"
+	case InterruptedMessage:
+		return "Interrupted"
 	default:
 		return "Unknown"
 	}
@@ -248,7 +251,7 @@ func (t MessageType) IsHistory() bool {
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
 		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
 		ToolCallMessage, ToolResultMessage,
-		CompactedSummaryMessage, PDFMessage:
+		CompactedSummaryMessage, PDFMessage, InterruptedMessage:
 		return true
 	default:
 		return false
@@ -278,7 +281,7 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 		ContextCmdMessage, ContextCmdResultMessage,
 		FileApplyCmdMessage, FileApplyCmdResultMessage, FileApplyCmdErrorMessage,
 		FileApplyUndoCmdMessage, FileApplyUndoCmdResultMessage, FileApplyUndoCmdErrorMessage,
-		CompactedSummaryMessage:
+		CompactedSummaryMessage, InterruptedMessage:
 		return RoleUser, true
 	default:
 		return "", false

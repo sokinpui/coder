@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -50,6 +51,15 @@ func (m Model) handleProcessMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		if msg.content != msg.originalContent {
+			if m.Chat.IsStreaming {
+				if m.canInputWhileStreaming() && strings.TrimSpace(msg.content) != "" {
+					m.enqueuePrompt(msg.content)
+					m.Chat.TextArea.Reset()
+					m = m.updateLayout()
+				}
+				m.Chat.TextArea.Focus()
+				return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
+			}
 			m.Chat.TextArea.SetValue(msg.content)
 			m.Chat.TextArea.CursorEnd()
 			model, cmd := m.handleSubmit()
@@ -57,7 +67,9 @@ func (m Model) handleProcessMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		}
 
 		m.Chat.TextArea.SetValue(msg.originalContent)
-		m.Chat.TextArea.Focus()
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+		}
 		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion), true
 
 	case fileEditorFinishedMsg:

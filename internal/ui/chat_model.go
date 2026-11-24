@@ -58,6 +58,7 @@ type ChatModel struct {
 	LineMetas                []LineMeta
 	Selection                TextSelection
 	AutoScroll               bool
+	QueuedPrompts            []string
 }
 
 func NewChat(initialInput string) ChatModel {

@@ -19,6 +19,7 @@ import (
 )
 
 type SelectorConfig struct {
+	Tag                string
 	Title              string
 	Placeholder        string
 	Items              []SelectorItem
@@ -46,6 +47,7 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	m.Chat.TextArea.Blur()
 
 	m.Selector = NewSelector()
+	m.Selector.Tag = cfg.Tag
 	m.Selector.Title = cfg.Title
 	m.Selector.MultiSelect = cfg.MultiSelect
 	m.Selector.ShowSearch = cfg.ShowSearch
@@ -69,7 +71,7 @@ func (m Model) openGenericSelector(cfg SelectorConfig) (Model, tea.Cmd) {
 	if onCancel == nil {
 		onCancel = func(mod Model) (tea.Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 				return mod, textarea.Blink
 			}
@@ -118,7 +120,7 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			if primary == nil {
 				mod.ActiveOverlay = overlayNone
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -133,7 +135,7 @@ func (m Model) openModelSelector(initialQuery string) (Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			mod.Chat.Viewport.SetContent(mod.renderConversation())
 			mod.Chat.Viewport.GotoBottom()
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 			}
 			return mod, textarea.Blink
@@ -175,7 +177,7 @@ func (m Model) openReasoningSelector() (Model, tea.Cmd) {
 		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			if primary == nil {
 				mod.ActiveOverlay = overlayNone
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -190,7 +192,7 @@ func (m Model) openReasoningSelector() (Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			mod.Chat.Viewport.SetContent(mod.renderConversation())
 			mod.Chat.Viewport.GotoBottom()
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 			}
 			return mod, textarea.Blink
@@ -236,7 +238,7 @@ func (m Model) openModeSelector() (Model, tea.Cmd) {
 		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			if primary == nil || primary.ID == mod.Session.GetMode() {
 				mod.ActiveOverlay = overlayNone
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -273,7 +275,7 @@ func (m Model) openFileListSelector(title, placeholder string, paths []string, o
 			}
 			mod.ActiveOverlay = overlayNone
 			if len(picked) == 0 {
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -327,7 +329,7 @@ func (m Model) openHistorySelector(initialTab int) (Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			mod.Selector.IsSearching = false
 			mod.Selector.SearchInput.Blur()
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 				return mod, textarea.Blink
 			}
@@ -418,7 +420,7 @@ func (m Model) openTemplateSelector() (Model, tea.Cmd) {
 		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			if primary == nil {
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -429,7 +431,7 @@ func (m Model) openTemplateSelector() (Model, tea.Cmd) {
 					return mod.submitPrompt(cmdOut.SubmitPrompt)
 				}
 			}
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 			}
 			return mod, textarea.Blink
@@ -490,7 +492,7 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
 			mod.ActiveOverlay = overlayNone
 			if primary == nil {
-				if mod.State == stateIdle {
+				if mod.shouldFocusTextArea() {
 					mod.Chat.TextArea.Focus()
 				}
 				return mod, textarea.Blink
@@ -499,7 +501,7 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 				mod.Chat.TextArea.SetValue("@ " + commands.FormatArg(sk.Path) + " ")
 				mod.Chat.TextArea.CursorEnd()
 			}
-			if mod.State == stateIdle {
+			if mod.shouldFocusTextArea() {
 				mod.Chat.TextArea.Focus()
 			}
 			return mod, textarea.Blink

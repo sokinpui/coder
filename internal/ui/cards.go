@@ -65,7 +65,7 @@ func RenderMessage(msg types.Message, viewportWidth int, renderer *markdown.Rend
 	case types.CompactedSummaryMessage:
 		return RenderCompactedSummaryMessage(msg, viewportWidth)
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
-		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage:
+		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage, types.InterruptedMessage:
 		return CommandResultStyle.Width(viewportWidth - CommandResultStyle.GetHorizontalFrameSize()).Render(content)
 	case types.CommandErrorResultMessage,
 		types.FileApplyCmdErrorMessage, types.FileApplyUndoCmdErrorMessage:

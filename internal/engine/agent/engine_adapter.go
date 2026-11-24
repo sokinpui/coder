@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sokinpui/coder/internal/config"
@@ -122,10 +123,13 @@ func (s *Session) TokenCount() int {
 }
 
 func (s *Session) Cancel() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.cancelFunc != nil {
 		s.cancelFunc()
 	}
 	s.isStreaming = false
+	s.sealOpenToolCallsLocked("Interrupted by user.")
 }
 
 func (s *Session) IsStreaming() bool {
@@ -263,6 +267,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 
 				if len(chunk.Messages) > 0 {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					s.Messages = chunk.Messages
 					s.mu.Unlock()
 				}
@@ -281,6 +289,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 				if chunk.ToolCallDelta != nil {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					delta := chunk.ToolCallDelta
 					msgs := s.Messages
 					var targetMsg *types.Message
@@ -319,6 +331,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 				if chunk.ToolCall != nil {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					msgs := s.Messages
 					var found bool
 					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.ToolCallMessage {
@@ -367,6 +383,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 				if chunk.ToolOutputChunk != "" && chunk.ToolCall != nil {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					msgs := s.Messages
 					var found bool
 					for i := len(msgs) - 1; i >= 0; i-- {
@@ -394,6 +414,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 				if chunk.ToolResult != nil {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					msgs := s.Messages
 					var found bool
 					for i := len(msgs) - 1; i >= 0; i-- {
@@ -427,6 +451,10 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 				}
 				if chunk.Content != "" {
 					s.mu.Lock()
+					if runCtx.Err() != nil {
+						s.mu.Unlock()
+						return
+					}
 					msgs := s.Messages
 					if len(msgs) > 0 && msgs[len(msgs)-1].Type == types.AIMessage {
 						s.Messages[len(msgs)-1].Content += chunk.Content
@@ -447,6 +475,80 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 	}()
 
 	return eventChan, nil
+}
+
+func (s *Session) sealOpenToolCallsLocked(reason string) {
+	if len(s.Messages) == 0 {
+		return
+	}
+
+	answered := make(map[string]struct{})
+	for _, msg := range s.Messages {
+		if msg.Type == types.ToolResultMessage && msg.ToolCallID != "" {
+			answered[msg.ToolCallID] = struct{}{}
+		}
+	}
+
+	for i := len(s.Messages) - 1; i >= 0; i-- {
+		msg := s.Messages[i]
+		if msg.Type == types.UserMessage || msg.Type == types.InterruptedMessage {
+			break
+		}
+		if msg.Type != types.ToolCallMessage {
+			continue
+		}
+
+		var unansweredIndices []int
+		hasAnyResult := false
+		hasIncompleteCall := false
+		for idx, tc := range msg.ToolCalls {
+			if tc.ID != "" {
+				if _, ok := answered[tc.ID]; ok {
+					hasAnyResult = true
+					continue
+				}
+			}
+			unansweredIndices = append(unansweredIndices, idx)
+			if strings.TrimSpace(tc.Name) == "" || strings.TrimSpace(tc.ID) == "" || !json.Valid([]byte(tc.Arguments)) {
+				hasIncompleteCall = true
+			}
+		}
+
+		if len(unansweredIndices) == 0 {
+			continue
+		}
+
+		if !hasAnyResult && hasIncompleteCall {
+			groupID := msg.GroupID
+			var filtered []types.Message
+			for j, m := range s.Messages {
+				if j == i || (groupID != "" && m.GroupID == groupID && m.Type == types.ToolCallMessage) {
+					continue
+				}
+				filtered = append(filtered, m)
+			}
+			s.Messages = filtered
+			continue
+		}
+
+		groupID := msg.GroupID
+		for _, idx := range unansweredIndices {
+			tc := &s.Messages[i].ToolCalls[idx]
+			if strings.TrimSpace(tc.ID) == "" {
+				tc.ID = fmt.Sprintf("call_interrupted_%d_%d", time.Now().UnixNano(), idx)
+			}
+			if !json.Valid([]byte(tc.Arguments)) {
+				tc.Arguments = "{}"
+			}
+			s.Messages = appendToolResultInGroup(s.Messages, groupID, types.Message{
+				GroupID:    groupID,
+				Type:       types.ToolResultMessage,
+				Content:    reason,
+				ToolCallID: tc.ID,
+			})
+			answered[tc.ID] = struct{}{}
+		}
+	}
 }
 
 func appendToolResultInGroup(msgs []types.Message, groupID string, resMsg types.Message) []types.Message {

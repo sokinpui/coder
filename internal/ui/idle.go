@@ -69,6 +69,7 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 	m.Chat.IsAIRendering = false
 	m.Chat.PendingAIRender = false
 	m.Chat.LastInteractionFailed = false
+	m.syncActiveQueue()
 	m.Chat.TextArea.Reset()
 	m.Chat.ShowPalette = false
 	m.Chat.PaletteFilteredCommands = nil
@@ -86,19 +87,25 @@ func (m Model) newSession(mode string) (Model, tea.Cmd) {
 
 func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	input := m.Chat.TextArea.Value()
+	return m.submitInput(input, true)
+}
 
+func (m Model) submitInput(input string, resetTextArea bool) (tea.Model, tea.Cmd) {
 	// don't send if the input is empty
 	if strings.TrimSpace(input) == "" {
 		return m, nil
 	}
 
 	if !commands.IsCommand(input) {
+		if resetTextArea {
+			m.Chat.TextArea.Reset()
+		}
 		return m.submitPrompt(input)
 	}
 
 	m.Chat.ShowPalette = false
 
-	if model, cmd, handled := m.handleUICommand(input); handled {
+	if model, cmd, handled := m.handleUICommand(input, resetTextArea); handled {
 		return model, cmd
 	}
 
@@ -124,7 +131,7 @@ func (m Model) handleSubmit() (tea.Model, tea.Cmd) {
 	m.Chat.Viewport.SetContent(m.renderConversation())
 	m.Chat.Viewport.GotoBottom()
 	m = m.updateLayout()
-	if !shouldPreserve {
+	if resetTextArea && !shouldPreserve {
 		m.Chat.TextArea.Reset()
 	}
 
@@ -158,7 +165,7 @@ func (m Model) submitPrompt(prompt string) (tea.Model, tea.Cmd) {
 	return newModel, tea.Batch(cmds...)
 }
 
-func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
+func (m Model) handleUICommand(input string, resetInput bool) (tea.Model, tea.Cmd, bool) {
 	cmdName, args, isCmd := commands.ParseCommand(input)
 	if !isCmd || cmdName == "" {
 		return m, nil, false
@@ -166,28 +173,38 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 
 	switch cmdName {
 	case "msg", "cards", "gen", "edit", "branch":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.openAtomicMsgMode()
 		return newModel, cmd, true
 
 	case "history":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.openHistorySelector(0)
 		return newModel, cmd, true
 
 	case "active":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.openHistorySelector(1)
 		return newModel, cmd, true
 
 	case "skills":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.openSkillsSelector()
 		return newModel, cmd, true
 
 	case "template":
 		if strings.TrimSpace(args) == "" {
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			newModel, cmd := m.openTemplateSelector()
 			return newModel, cmd, true
 		}
@@ -199,7 +216,9 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 				m.StatusBarMessage = "Cannot switch mode in a non-empty session. Use /new [mode]."
 				return m, clearStatusBarCmd(), true
 			}
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			newModel, cmd := m.openModeSelector()
 			return newModel, cmd, true
 		}
@@ -207,7 +226,9 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 
 	case "model":
 		if strings.TrimSpace(args) == "" {
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			newModel, cmd := m.openModelSelector("")
 			return newModel, cmd, true
 		}
@@ -218,7 +239,9 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 			return m, nil, false
 		}
 		if strings.TrimSpace(args) == "" {
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			newModel, cmd := m.openReasoningSelector()
 			return newModel, cmd, true
 		}
@@ -233,7 +256,9 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 			return m, nil, false
 		}
 		if strings.TrimSpace(args) == "" {
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			files := ctxCtrl.GetContextFiles()
 			if len(files) == 0 {
 				m.StatusBarMessage = "No project source files in context."
@@ -252,33 +277,53 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
 			return m, nil, false
 		}
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.showQuickView("/list")
 		return newModel, cmd, true
 
 	case "help":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel, cmd := m.showQuickView("/" + cmdName)
 		return newModel, cmd, true
 
 	case "config":
 		if strings.TrimSpace(args) != "reload" {
-			m.Chat.TextArea.Reset()
+			if resetInput {
+				m.Chat.TextArea.Reset()
+			}
 			newModel, cmd := m.showQuickView("/config")
 			return newModel, cmd, true
 		}
 		return m, nil, false
 
 	case "image":
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		newModel := m.toggleKittyImage(args)
 		return newModel, clearStatusBarCmd(), true
+
+	case "queue":
+		if !m.Session.Capabilities().Has(engine.CapToolLoop) {
+			return m, nil, false
+		}
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
+		newModel, cmd := m.openQueueSelector()
+		return newModel, cmd, true
 
 	case "compact":
 		if !m.Session.Capabilities().Has(engine.CapCompact) {
 			return m, nil, false
 		}
-		m.Chat.TextArea.Reset()
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
 		m.State = stateThinking
 		m.StatusText = "Compacting conversation"
 		m.Chat.StateStartTime = time.Now()

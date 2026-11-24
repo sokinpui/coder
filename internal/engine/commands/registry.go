@@ -69,6 +69,8 @@ func isCommandAllowed(cmdName string, caps engine.Capability) bool {
 		return caps.Has(engine.CapShell)
 	case "compact":
 		return caps.Has(engine.CapCompact)
+	case "queue":
+		return caps.Has(engine.CapToolLoop)
 	case "branch":
 		return caps.Has(engine.CapBranch)
 	case "gen":
