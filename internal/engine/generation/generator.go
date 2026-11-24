@@ -3,6 +3,7 @@ package generation
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"strings"
 
 	"github.com/sokinpui/coder/internal/config"
@@ -101,8 +102,12 @@ func isPDFChatMessage(msg types.ChatMessage) bool {
 }
 
 func detectImageMimeType(data []byte) string {
-	if len(data) > 4 && bytes.Equal(data[:4], []byte{0xFF, 0xD8, 0xFF, 0xE0}) {
-		return "image/jpeg"
+	if len(data) == 0 {
+		return "image/png"
+	}
+	mimeType := http.DetectContentType(data)
+	if strings.HasPrefix(mimeType, "image/") {
+		return mimeType
 	}
 	return "image/png"
 }

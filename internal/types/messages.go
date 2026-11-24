@@ -288,6 +288,24 @@ func (t MessageType) ChatRole() (ChatRole, bool) {
 func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...string) (string, []ChatMessage) {
 	var instructions []string
 	var chatMessages []ChatMessage
+	var deferredMedia []ChatMessage
+	pendingToolCalls := make(map[string]struct{})
+
+	flushDeferredMedia := func() {
+		if len(deferredMedia) > 0 {
+			chatMessages = append(chatMessages, deferredMedia...)
+			deferredMedia = nil
+		}
+		clear(pendingToolCalls)
+	}
+
+	appendMedia := func(media ...ChatMessage) {
+		if len(pendingToolCalls) > 0 {
+			deferredMedia = append(deferredMedia, media...)
+			return
+		}
+		chatMessages = append(chatMessages, media...)
+	}
 
 	hasInstructionMessage := false
 	for _, msg := range messages {
@@ -297,6 +315,7 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 		}
 
 		if msg.Type == CompactedSummaryMessage {
+			flushDeferredMedia()
 			chatMessages = append(chatMessages,
 				ChatMessage{
 					Role:    RoleUser,
@@ -325,7 +344,7 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 					docName = resolved.Filename
 				}
 				if len(resolved.RawData) > 0 {
-					chatMessages = append(chatMessages, ChatMessage{
+					appendMedia(ChatMessage{
 						Role:     RoleUser,
 						Data:     resolved.RawData,
 						MimeType: "application/pdf",
@@ -334,17 +353,19 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 					continue
 				}
 				if len(resolved.Pages) > 0 {
+					pages := make([]ChatMessage, 0, len(resolved.Pages))
 					for _, page := range resolved.Pages {
-						chatMessages = append(chatMessages, ChatMessage{
+						pages = append(pages, ChatMessage{
 							Role:    RoleUser,
 							Content: fmt.Sprintf("%s page %d:", docName, page.Index),
 							Data:    page.Data,
 						})
 					}
+					appendMedia(pages...)
 					continue
 				}
 			}
-			chatMessages = append(chatMessages, ChatMessage{
+			appendMedia(ChatMessage{
 				Role:    RoleUser,
 				Content: "[Attached Document: " + docName + "]",
 			})
@@ -365,10 +386,25 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 			if len(msg.Data) == 0 {
 				continue
 			}
-			chatMessages = append(chatMessages, ChatMessage{
+			appendMedia(ChatMessage{
 				Role: RoleUser,
 				Data: msg.Data,
 			})
+			continue
+		}
+
+		if role == RoleTool {
+			delete(pendingToolCalls, msg.ToolCallID)
+			chatMessages = append(chatMessages, ChatMessage{
+				Role:       role,
+				Content:    msg.Content,
+				Data:       msg.Data,
+				ToolCalls:  msg.ToolCalls,
+				ToolCallID: msg.ToolCallID,
+			})
+			if len(pendingToolCalls) == 0 {
+				flushDeferredMedia()
+			}
 			continue
 		}
 
@@ -383,8 +419,23 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 			}
 			if len(msg.ToolCalls) > 0 {
 				last.ToolCalls = append(last.ToolCalls, msg.ToolCalls...)
+				for _, tc := range msg.ToolCalls {
+					if tc.ID != "" {
+						pendingToolCalls[tc.ID] = struct{}{}
+					}
+				}
 			}
 			continue
+		}
+
+		flushDeferredMedia()
+
+		if role == RoleAssistant {
+			for _, tc := range msg.ToolCalls {
+				if tc.ID != "" {
+					pendingToolCalls[tc.ID] = struct{}{}
+				}
+			}
 		}
 
 		chatMessages = append(chatMessages, ChatMessage{
@@ -395,6 +446,8 @@ func AssemblePrompt(messages []Message, defaultInstruction string, pdfMode ...st
 			ToolCallID: msg.ToolCallID,
 		})
 	}
+
+	flushDeferredMedia()
 
 	if !hasInstructionMessage && strings.TrimSpace(defaultInstruction) != "" {
 		instructions = append([]string{strings.TrimSpace(defaultInstruction)}, instructions...)

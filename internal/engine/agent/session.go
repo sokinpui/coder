@@ -143,6 +143,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 	rf := &tools.ReadFileTool{}
 	var toolCalls []types.ToolCall
 	var toolResults []types.Message
+	var mediaMessages []types.Message
 	ctx := pdf.WithSessionID(context.Background(), s.ID)
 	if s.Config != nil {
 		ctx = pdf.WithMode(ctx, s.Config.PDFMode)
@@ -156,7 +157,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 			Arguments: fmt.Sprintf(`{"path":%q}`, filepath.ToSlash(project.ShortenPath(p))),
 		})
 
-		out, imgs, err := rf.ExecuteWithImages(ctx, p)
+		out, imgs, err := rf.ExecuteWithImages(ctx, fmt.Sprintf(`{"path":%q}`, p))
 		resultContent := out
 		if err != nil {
 			resultContent = fmt.Sprintf("Error: %v", err)
@@ -167,11 +168,9 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 			Content:    resultContent,
 			ToolCallID: callID,
 		})
-		if len(imgs) > 0 {
-			for _, img := range imgs {
-				img.GroupID = readGroupID
-				toolResults = append(toolResults, img)
-			}
+		for _, img := range imgs {
+			img.GroupID = readGroupID
+			mediaMessages = append(mediaMessages, img)
 		}
 	}
 
@@ -187,6 +186,7 @@ func (s *Session) ReadAgentFiles(input string, rawPaths []string) (commands.Comm
 		ToolCalls: toolCalls,
 	})
 	s.Messages = append(s.Messages, toolResults...)
+	s.Messages = append(s.Messages, mediaMessages...)
 	s.mu.Unlock()
 
 	return commands.CommandOutput{
@@ -290,10 +290,14 @@ func (s *Session) PrepareMessages() []types.Message {
 	for i := range prepared {
 		if prepared[i].Type == types.ImageMessage && len(prepared[i].Data) == 0 && prepared[i].Content != "" {
 			absPath := prepared[i].Content
-			if !filepath.IsAbs(absPath) {
+			if !filepath.IsAbs(absPath) && repoRoot != "" {
 				absPath = filepath.Join(repoRoot, absPath)
 			}
-			if data, err := os.ReadFile(absPath); err == nil {
+			data, err := os.ReadFile(absPath)
+			if err != nil && !filepath.IsAbs(prepared[i].Content) {
+				data, err = os.ReadFile(prepared[i].Content)
+			}
+			if err == nil && len(data) > 0 {
 				prepared[i].Data = data
 			}
 		}

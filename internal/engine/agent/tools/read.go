@@ -120,22 +120,29 @@ func (t *ReadFileTool) readImage(path string) (string, []types.Message, error) {
 		return "", nil, fmt.Errorf("image file %s is empty", path)
 	}
 
-	relPath := path
-	if repoRoot := project.Root(); repoRoot != "" {
-		if rel, err := filepath.Rel(repoRoot, path); err == nil {
-			relPath = rel
-		}
-	}
-
 	DefaultTracker.MarkRead(path)
 
 	imgMsg := types.Message{
 		Type:    types.ImageMessage,
-		Content: filepath.ToSlash(relPath),
+		Content: storeImagePath(path),
 		Data:    data,
 	}
 
 	return fmt.Sprintf("Successfully read image %s (%d bytes)", path, len(data)), []types.Message{imgMsg}, nil
+}
+
+func storeImagePath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return filepath.ToSlash(path)
+	}
+	absPath = filepath.Clean(absPath)
+	if repoRoot := project.Root(); repoRoot != "" {
+		if rel, err := filepath.Rel(repoRoot, absPath); err == nil && !strings.HasPrefix(rel, "..") {
+			return filepath.ToSlash(rel)
+		}
+	}
+	return filepath.ToSlash(absPath)
 }
 
 func (t *ReadFileTool) readText(path string) (string, []types.Message, error) {

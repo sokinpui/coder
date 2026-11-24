@@ -205,6 +205,7 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 			return
 		}
 
+		var deferredMedia []types.Message
 		for _, tc := range toolCalls {
 			if ctx.Err() != nil {
 				return
@@ -336,12 +337,13 @@ func (ar *AgentRuntime) AgentLoop(ctx context.Context, systemInstruction string,
 				Content:    output,
 				ToolCallID: tc.ID,
 			})
-			if len(images) > 0 {
-				for _, img := range images {
-					img.GroupID = toolGroupID
-					currentMessages = append(currentMessages, img)
-				}
+			for _, img := range images {
+				img.GroupID = toolGroupID
+				deferredMedia = append(deferredMedia, img)
 			}
+		}
+		if len(deferredMedia) > 0 {
+			currentMessages = append(currentMessages, deferredMedia...)
 		}
 
 		select {

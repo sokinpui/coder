@@ -377,7 +377,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						}
 					}
 					if !found {
-						s.Messages = append(s.Messages, types.Message{
+						s.Messages = appendToolResultInGroup(s.Messages, currentToolGroupID, types.Message{
 							GroupID:    currentToolGroupID,
 							Type:       types.ToolResultMessage,
 							Content:    chunk.ToolOutputChunk,
@@ -404,7 +404,7 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 						}
 					}
 					if !found {
-						s.Messages = append(s.Messages, types.Message{
+						s.Messages = appendToolResultInGroup(s.Messages, currentToolGroupID, types.Message{
 							GroupID:    currentToolGroupID,
 							Type:       types.ToolResultMessage,
 							Content:    chunk.ToolResult.Output,
@@ -447,6 +447,30 @@ func (s *Session) runAgentLoop(ctx context.Context) (<-chan types.SessionEvent, 
 	}()
 
 	return eventChan, nil
+}
+
+func appendToolResultInGroup(msgs []types.Message, groupID string, resMsg types.Message) []types.Message {
+	if groupID == "" {
+		return append(msgs, resMsg)
+	}
+	insertAt := len(msgs)
+	for insertAt > 0 {
+		prev := msgs[insertAt-1]
+		if prev.GroupID != groupID {
+			break
+		}
+		if prev.Type != types.ImageMessage && prev.Type != types.PDFMessage {
+			break
+		}
+		insertAt--
+	}
+	if insertAt == len(msgs) {
+		return append(msgs, resMsg)
+	}
+	msgs = append(msgs, types.Message{})
+	copy(msgs[insertAt+1:], msgs[insertAt:])
+	msgs[insertAt] = resMsg
+	return msgs
 }
 
 func (s *Session) GetHistoryManager() *history.Manager {
