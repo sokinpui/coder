@@ -240,7 +240,7 @@ func (m Model) handleUICommand(input string) (tea.Model, tea.Cmd, bool) {
 				return m, clearStatusBarCmd(), true
 			}
 			newModel, cmd := m.openFileListSelector("Exclude Files", "Filter files to exclude...", files, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
-				cmdStr := "/exclude " + strings.Join(selected, " ")
+				cmdStr := "/exclude " + commands.FormatArgs(selected)
 				cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
 				return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
 			})
@@ -397,23 +397,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 				isArgument = true
 			}
 
-			if isArgument {
-				val := m.Chat.TextArea.Value()
-				parts := strings.Fields(val)
-				var prefixParts []string
-				if len(parts) > 0 && !strings.HasSuffix(val, " ") {
-					prefixParts = parts[:len(parts)-1]
-					if len(prefixParts) == 0 {
-						prefixParts = determinePrefix(parts[0])
-					}
-				} else {
-					prefixParts = parts
-				}
-				itemToInsert := strings.TrimSuffix(selectedItem, "/")
-				m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
-			} else {
-				m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
-			}
+			m.Chat.TextArea.SetValue(insertPaletteItem(m.Chat.TextArea.Value(), selectedItem, isArgument))
 			m.Chat.TextArea.CursorEnd()
 			m.Chat.ShowPalette = false
 			model, cmd := m.handleSubmit()
@@ -485,7 +469,7 @@ func (m Model) handleKeyPressIdle(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		}
 		cfg := m.Session.GetConfig()
 		newModel, cmd := m.openFileListSelector("Add Files to Context", "Search files/directories to add...", nil, func(mod Model, selected []string) (tea.Model, tea.Cmd) {
-			cmdStr := "/file " + strings.Join(selected, " ")
+			cmdStr := "/file " + commands.FormatArgs(selected)
 			cmdOut, _ := mod.Session.ExecuteCommand(cmdStr)
 			return mod.handleEvent(types.Event{Type: cmdOut.Type, Data: cmdOut.Payload})
 		})
@@ -552,41 +536,19 @@ func (m Model) applyPaletteSelection() Model {
 		isArgument = true
 	}
 
-	val := m.Chat.TextArea.Value()
-	parts := strings.Fields(val)
-
-	if isArgument {
-		var prefixParts []string
-		if len(parts) > 0 && !strings.HasSuffix(val, " ") {
-			prefixParts = parts[:len(parts)-1]
-			if len(prefixParts) == 0 {
-				prefixParts = determinePrefix(parts[0])
-			}
-		} else {
-			prefixParts = parts
-		}
-		itemToInsert := strings.TrimSuffix(selectedItem, "/")
-		m.Chat.TextArea.SetValue(strings.Join(append(prefixParts, itemToInsert), " "))
-	} else {
-		m.Chat.TextArea.SetValue(strings.TrimSuffix(selectedItem, "/"))
-	}
+	m.Chat.TextArea.SetValue(insertPaletteItem(m.Chat.TextArea.Value(), selectedItem, isArgument))
 	m = m.updateLayout()
 	m.Chat.TextArea.CursorEnd()
 	return m
 }
 
-func determinePrefix(part string) []string {
-	if strings.HasPrefix(part, "/@") {
-		return []string{"/@"}
+func insertPaletteItem(val string, selectedItem string, isArgument bool) string {
+	itemToInsert := strings.TrimSuffix(selectedItem, "/")
+	if !isArgument {
+		return itemToInsert
 	}
-	if strings.HasPrefix(part, "/!") {
-		return []string{"/!"}
+	if _, _, replacePrefix, ok := commands.ActiveCommandArg(val); ok {
+		return replacePrefix + commands.FormatArg(itemToInsert)
 	}
-	if strings.HasPrefix(part, "@") {
-		return []string{"@"}
-	}
-	if strings.HasPrefix(part, "!") {
-		return []string{"!"}
-	}
-	return nil
+	return commands.FormatArg(itemToInsert)
 }

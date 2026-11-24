@@ -59,71 +59,18 @@ func (m Model) updatePalette() Model {
 	m.Chat.PaletteFilteredArguments = []string{}
 
 	if m.State == stateIdle && (commands.IsCommand(val) || strings.HasPrefix(val, "@") || strings.HasPrefix(val, "/@") || strings.HasPrefix(val, "!") || strings.HasPrefix(val, "/!") || strings.HasPrefix(val, "/")) {
-		hasTrailingSpace := strings.HasSuffix(val, " ")
-
-		if strings.HasPrefix(val, "@") || strings.HasPrefix(val, "/@") {
-			argPrefix := ""
-			parts := strings.Fields(val)
-			prefixLen := 1
-			if strings.HasPrefix(val, "/@") {
-				prefixLen = 2
-			}
-			if len(parts) == 1 && !hasTrailingSpace {
-				argPrefix = strings.TrimPrefix(parts[0], parts[0][:prefixLen])
-			} else if len(parts) > 1 && !hasTrailingSpace {
-				argPrefix = parts[len(parts)-1]
-			}
-
-			suggestions := m.Session.GetCommandSuggestions("file", argPrefix)
-			for _, s := range suggestions {
-				if strings.HasPrefix(strings.ToLower(s), strings.ToLower(argPrefix)) {
-					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
-				}
-			}
-		} else if strings.HasPrefix(val, "!") || strings.HasPrefix(val, "/!") {
-			argPrefix := ""
-			parts := strings.Fields(val)
-			prefixLen := 1
-			if strings.HasPrefix(val, "/!") {
-				prefixLen = 2
-			}
-			if len(parts) == 1 && !hasTrailingSpace {
-				argPrefix = strings.TrimPrefix(parts[0], parts[0][:prefixLen])
-			} else if len(parts) > 1 && !hasTrailingSpace {
-				argPrefix = parts[len(parts)-1]
-			}
-
-			suggestions := m.Session.GetCommandSuggestions("shell", argPrefix)
+		if cmdName, argPrefix, _, isArg := commands.ActiveCommandArg(val); isArg {
+			suggestions := m.Session.GetCommandSuggestions(cmdName, argPrefix)
 			for _, s := range suggestions {
 				if strings.HasPrefix(strings.ToLower(s), strings.ToLower(argPrefix)) {
 					m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
 				}
 			}
 		} else if strings.HasPrefix(val, "/") {
-			parts := strings.Fields(val)
-			if len(parts) == 0 { // Just "/"
-				parts = []string{"/"}
-			}
-
-			if len(parts) == 1 && !hasTrailingSpace {
-				prefix := strings.TrimPrefix(parts[0], "/")
-				for _, c := range m.AvailableCommands {
-					if strings.HasPrefix(strings.ToLower(c), strings.ToLower(prefix)) {
-						m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, "/"+c)
-					}
-				}
-			} else if len(parts) >= 1 {
-				cmdName := strings.TrimPrefix(parts[0], "/")
-				var argPrefix string
-				if len(parts) > 1 && !hasTrailingSpace {
-					argPrefix = parts[len(parts)-1]
-				}
-
-				suggestions := m.Session.GetCommandSuggestions(cmdName, argPrefix)
-				for _, s := range suggestions {
-					if strings.HasPrefix(strings.ToLower(s), strings.ToLower(argPrefix)) {
-						m.Chat.PaletteFilteredArguments = append(m.Chat.PaletteFilteredArguments, s)
-					}
+			prefix := strings.TrimPrefix(strings.TrimSpace(val), "/")
+			for _, c := range m.AvailableCommands {
+				if strings.HasPrefix(strings.ToLower(c), strings.ToLower(prefix)) {
+					m.Chat.PaletteFilteredCommands = append(m.Chat.PaletteFilteredCommands, "/"+c)
 				}
 			}
 		}

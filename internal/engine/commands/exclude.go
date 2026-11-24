@@ -5,7 +5,6 @@ import (
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/types"
-	"strings"
 )
 
 func init() {
@@ -28,7 +27,7 @@ func excludeCmd(args string, s SessionController) (CommandOutput, bool) {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Unknown command: exclude"}, false
 	}
 
-	paths := strings.Fields(args)
+	paths := SplitArgs(args)
 
 	if len(paths) == 0 {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /exclude <paths...>"}, false

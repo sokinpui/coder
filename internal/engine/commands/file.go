@@ -59,7 +59,7 @@ func atCmd(args string, s SessionController) (CommandOutput, bool) {
 		if !ok {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Agent file reading not supported"}, false
 		}
-		paths := strings.Fields(args)
+		paths := SplitArgs(args)
 		if len(paths) == 0 {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: @ <paths...>"}, false
 		}
@@ -78,7 +78,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 		if !ok {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Agent file reading not supported"}, false
 		}
-		paths := strings.Fields(args)
+		paths := SplitArgs(args)
 		if len(paths) == 0 {
 			return CommandOutput{Type: types.MessagesUpdated, Payload: "Usage: /file <paths...>"}, false
 		}
@@ -88,7 +88,7 @@ func fileCmd(args string, s SessionController) (CommandOutput, bool) {
 }
 
 func addFileToContext(args string, cmdPrefix string, s SessionController) (CommandOutput, bool) {
-	paths := strings.Fields(args)
+	paths := SplitArgs(args)
 	if len(paths) == 0 {
 		return CommandOutput{Type: types.MessagesUpdated, Payload: fmt.Sprintf("Usage: %s <paths...>", cmdPrefix)}, false
 	}

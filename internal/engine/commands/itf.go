@@ -20,7 +20,7 @@ type ItfResult struct {
 
 // Use itf to apply file operations
 func ExecuteItf(content string, args string) ItfResult {
-	fields := strings.Fields(args)
+	fields := SplitArgs(args)
 	config := itf.Config{}
 
 	for _, arg := range fields {

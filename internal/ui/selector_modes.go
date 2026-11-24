@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sokinpui/coder/internal/engine"
 	"github.com/sokinpui/coder/internal/engine/agent/skills"
+	"github.com/sokinpui/coder/internal/engine/commands"
 	"github.com/sokinpui/coder/internal/engine/source"
 	"github.com/sokinpui/coder/internal/project"
 	"github.com/sokinpui/coder/internal/templates"
@@ -495,7 +496,7 @@ func (m Model) openSkillsSelector() (Model, tea.Cmd) {
 				return mod, textarea.Blink
 			}
 			if sk, ok := primary.Data.(skills.Skill); ok {
-				mod.Chat.TextArea.SetValue("@ " + sk.Path + " ")
+				mod.Chat.TextArea.SetValue("@ " + commands.FormatArg(sk.Path) + " ")
 				mod.Chat.TextArea.CursorEnd()
 			}
 			if mod.State == stateIdle {
