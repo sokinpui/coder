@@ -37,7 +37,7 @@ func GetCommandsForSession(s engine.EngineSession) []string {
 	}
 	commandNames := make([]string, 0, len(commands))
 	for name := range commands {
-		if !isCommandAllowed(name, caps) {
+		if isShortcutAlias(name) || !isCommandAllowed(name, caps) {
 			continue
 		}
 		commandNames = append(commandNames, name)
@@ -48,9 +48,16 @@ func GetCommandsForSession(s engine.EngineSession) []string {
 func GetCommands() []string {
 	commandNames := make([]string, 0, len(commands))
 	for name := range commands {
+		if isShortcutAlias(name) {
+			continue
+		}
 		commandNames = append(commandNames, name)
 	}
 	return commandNames
+}
+
+func isShortcutAlias(cmdName string) bool {
+	return cmdName == "@" || cmdName == "!"
 }
 
 func isCommandAllowed(cmdName string, caps engine.Capability) bool {

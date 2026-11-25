@@ -39,7 +39,7 @@ func (s *Session) Cancel() {
 }
 
 func (s *Session) GetSupportedCommands() []string {
-	return commands.GetCommands()
+	return commands.GetCommandsForSession(s)
 }
 
 func (s *Session) GetCommandDescriptions() map[string]string {
