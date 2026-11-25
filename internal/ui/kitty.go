@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
@@ -20,7 +21,11 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
-const placeholderRune = "\U0010EEEE"
+const (
+	placeholderRune  = "\U0010EEEE"
+	maxPreviewPixels = 800
+	maxPreviewBytes  = 512 * 1024
+)
 
 var kittyDiacritics = []rune{
 	0x0305, 0x030D, 0x030E, 0x0310, 0x0312, 0x033D, 0x033E, 0x033F,
@@ -237,7 +242,6 @@ func transmitKittyPlacement(imageID int, pngData []byte, cols, rows int) {
 	const chunkSize = 4096
 	total := len(payload)
 
-	var sb strings.Builder
 	for offset := 0; offset < total; offset += chunkSize {
 		end := min(offset+chunkSize, total)
 		more := 1
@@ -252,9 +256,8 @@ func transmitKittyPlacement(imageID int, pngData []byte, cols, rows int) {
 		} else {
 			seq = fmt.Sprintf("\x1b_Gm=%d,q=2;%s\x1b\\", more, chunk)
 		}
-		sb.WriteString(wrapTmux(seq))
+		_, _ = os.Stderr.WriteString(wrapTmux(seq))
 	}
-	_, _ = os.Stderr.WriteString(sb.String())
 }
 
 func renderPlaceholderRow(imageID, r, cols int) string {
@@ -321,10 +324,9 @@ func ensurePNG(data []byte) ([]byte, int, int, error) {
 
 	if bytes.HasPrefix(data, []byte("\x89PNG\r\n\x1a\n")) {
 		cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
-		if err == nil && cfg.Width > 0 && cfg.Height > 0 {
+		if err == nil && cfg.Width > 0 && cfg.Height > 0 && cfg.Width <= maxPreviewPixels && cfg.Height <= maxPreviewPixels && len(data) <= maxPreviewBytes {
 			return data, cfg.Width, cfg.Height, nil
 		}
-		return data, 400, 300, nil
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(data))
@@ -335,13 +337,85 @@ func ensurePNG(data []byte) ([]byte, int, int, error) {
 	bounds := img.Bounds()
 	width := bounds.Dx()
 	height := bounds.Dy()
+	if width <= 0 || height <= 0 {
+		return nil, 0, 0, fmt.Errorf("invalid image dimensions: %dx%d", width, height)
+	}
+
+	previewImg := img
+	if width > maxPreviewPixels || height > maxPreviewPixels {
+		previewImg = downscaleImage(img, maxPreviewPixels)
+	}
 
 	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	encoder := png.Encoder{CompressionLevel: png.DefaultCompression}
+	if err := encoder.Encode(&buf, previewImg); err != nil {
 		return nil, 0, 0, err
 	}
 
 	return buf.Bytes(), width, height, nil
+}
+
+func downscaleImage(src image.Image, maxDim int) image.Image {
+	bounds := src.Bounds()
+	srcW := bounds.Dx()
+	srcH := bounds.Dy()
+	if srcW <= maxDim && srcH <= maxDim {
+		return src
+	}
+
+	dstW, dstH := srcW, srcH
+	if srcW >= srcH {
+		dstW = maxDim
+		dstH = max(1, (srcH*maxDim)/srcW)
+	} else {
+		dstH = maxDim
+		dstW = max(1, (srcW*maxDim)/srcH)
+	}
+
+	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
+	for dy := range dstH {
+		sy0 := bounds.Min.Y + (dy*srcH)/dstH
+		sy1 := max(sy0+1, bounds.Min.Y+((dy+1)*srcH)/dstH)
+		sy1 = min(sy1, bounds.Max.Y)
+
+		for dx := range dstW {
+			sx0 := bounds.Min.X + (dx*srcW)/dstW
+			sx1 := max(sx0+1, bounds.Min.X+((dx+1)*srcW)/dstW)
+			sx1 = min(sx1, bounds.Max.X)
+
+			var rSum, gSum, bSum, aSum, count uint64
+			for sy := sy0; sy < sy1; sy++ {
+				for sx := sx0; sx < sx1; sx++ {
+					r, g, b, a := readNRGBAPixel(src.At(sx, sy))
+					rSum += uint64(r)
+					gSum += uint64(g)
+					bSum += uint64(b)
+					aSum += uint64(a)
+					count++
+				}
+			}
+
+			if count == 0 {
+				continue
+			}
+			dst.SetNRGBA(dx, dy, color.NRGBA{
+				R: uint8(rSum / count),
+				G: uint8(gSum / count),
+				B: uint8(bSum / count),
+				A: uint8(aSum / count),
+			})
+		}
+	}
+
+	return dst
+}
+
+func readNRGBAPixel(c color.Color) (uint8, uint8, uint8, uint8) {
+	if nrgba, ok := c.(color.NRGBA); ok {
+		return nrgba.R, nrgba.G, nrgba.B, nrgba.A
+	}
+	nrgba := color.NRGBAModel.Convert(c).(color.NRGBA)
+	return nrgba.R, nrgba.G, nrgba.B, nrgba.A
 }
 
 func getImageBytes(msg types.Message) ([]byte, error) {
