@@ -24,6 +24,7 @@ const (
 	overlayQuickView
 	overlayConfirm
 	overlayBtw
+	overlayCommandPalette
 )
 
 type modelsFetchedMsg struct {
@@ -121,6 +122,10 @@ type (
 		sub <-chan types.StreamChunk
 	}
 	btwPasteResultMsg struct {
+		content string
+		err     error
+	}
+	commandPalettePasteResultMsg struct {
 		content string
 		err     error
 	}

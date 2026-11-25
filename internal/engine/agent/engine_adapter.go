@@ -199,7 +199,7 @@ func (s *Session) Branch(endMessageIndex int) (engine.EngineSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	newSess.Messages = append([]types.Message(nil), s.Messages[:endMessageIndex+1]...)
+	newSess.Messages = sealOpenToolCalls(s.Messages[:endMessageIndex+1], "Interrupted by user.")
 	newSess.Title = fmt.Sprintf("branch of %s", s.Title)
 	newSess.TitleGenerated = true
 	newSess.Instruction = s.Instruction

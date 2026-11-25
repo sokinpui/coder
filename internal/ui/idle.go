@@ -123,6 +123,9 @@ func (m Model) submitInput(input string, resetTextArea bool) (tea.Model, tea.Cmd
 	case types.ShellExecutionStarted:
 		m.ActiveOverlay = overlayNone
 		m.Chat.TextArea.Blur()
+		if resetTextArea {
+			m.Chat.TextArea.Reset()
+		}
 		return m, execShellCmd(cmdOut.Payload)
 	case types.NoOp:
 		return m, nil
@@ -172,11 +175,32 @@ func (m Model) handleUICommand(input string, resetInput bool) (tea.Model, tea.Cm
 	}
 
 	switch cmdName {
-	case "msg", "cards", "gen", "edit", "branch":
+	case "msg", "cards":
 		if resetInput {
 			m.Chat.TextArea.Reset()
 		}
 		newModel, cmd := m.openAtomicMsgMode()
+		return newModel, cmd, true
+
+	case "branch":
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
+		newModel, cmd := m.openAtomicMsgModeWithAction(atomicActionBranch)
+		return newModel, cmd, true
+
+	case "edit":
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
+		newModel, cmd := m.openAtomicMsgModeWithAction(atomicActionEdit)
+		return newModel, cmd, true
+
+	case "gen":
+		if resetInput {
+			m.Chat.TextArea.Reset()
+		}
+		newModel, cmd := m.openAtomicMsgModeWithAction(atomicActionRegenerate)
 		return newModel, cmd, true
 
 	case "history":

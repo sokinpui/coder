@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -14,13 +15,39 @@ import (
 	"github.com/sokinpui/coder/internal/types"
 )
 
+type atomicMsgAction int
+
+const (
+	atomicActionBrowse atomicMsgAction = iota
+	atomicActionBranch
+	atomicActionEdit
+	atomicActionRegenerate
+)
+
 func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
+	return m.openAtomicMsgModeWithAction(atomicActionBrowse)
+}
+
+func (m Model) openAtomicMsgModeWithAction(action atomicMsgAction) (Model, tea.Cmd) {
+	if action == atomicActionBranch && !m.Session.Capabilities().Has(engine.CapBranch) {
+		m.StatusBarMessage = "Branching is not supported in this session."
+		return m, clearStatusBarCmd()
+	}
+	if action == atomicActionRegenerate && !m.Session.Capabilities().Has(engine.CapRegenerate) {
+		m.StatusBarMessage = "Regeneration is not supported in this session."
+		return m, clearStatusBarCmd()
+	}
+
 	if len(m.Chat.MessageLineOffsets) == 0 || len(m.Chat.RenderedLines) == 0 {
 		_ = (&m).renderConversation()
 	}
 
 	messages := m.Session.GetMessages()
 	selectable := getSelectableIndices(messages)
+	if len(selectable) == 0 {
+		m.StatusBarMessage = "No messages available."
+		return m, clearStatusBarCmd()
+	}
 
 	var items []SelectorItem
 	for _, idx := range selectable {
@@ -36,19 +63,6 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 			Data:       idx,
 		})
 	}
-
-	var actions []string
-	if m.Session.Capabilities().Has(engine.CapITF) {
-		actions = append(actions, "a")
-	}
-	actions = append(actions, "e")
-	if m.Session.Capabilities().Has(engine.CapRegenerate) {
-		actions = append(actions, "r")
-	}
-	if m.Session.Capabilities().Has(engine.CapBranch) {
-		actions = append(actions, "b")
-	}
-	actionList := strings.Join(actions, "/")
 
 	initialCursor := 0
 	if len(items) > 0 {
@@ -74,11 +88,55 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 			initialCursor = bestIdx
 		}
 	}
+	if action == atomicActionEdit {
+		for i := len(items) - 1; i >= 0; i-- {
+			if msgIdx, ok := items[i].Data.(int); ok && messages[msgIdx].Type.IsEditable() {
+				initialCursor = i
+				break
+			}
+		}
+	} else if action == atomicActionRegenerate {
+		for i := len(items) - 1; i >= 0; i-- {
+			if msgIdx, ok := items[i].Data.(int); ok && messages[msgIdx].Type.IsRegeneratable() {
+				initialCursor = i
+				break
+			}
+		}
+	}
+
+	title := buildAtomicModeTitle(action, m.Session.Capabilities())
 
 	newModel, cmd := m.openGenericSelector(SelectorConfig{
-		Title:         fmt.Sprintf("Atomic Messages [Esc/Ctrl+C: exit | v: select | o: swap | y/d: copy/del | %s]", actionList),
+		Title:         title,
 		Items:         items,
 		InitialCursor: initialCursor,
+		OnConfirm: func(mod Model, selected []SelectorItem, primary *SelectorItem) (tea.Model, tea.Cmd) {
+			mod.Selector.IsSelecting = false
+			if primary == nil {
+				mod.ActiveOverlay = overlayNone
+				if mod.shouldFocusTextArea() {
+					mod.Chat.TextArea.Focus()
+					return mod, textarea.Blink
+				}
+				return mod, nil
+			}
+			idx := primary.Data.(int)
+			switch action {
+			case atomicActionBranch:
+				return mod.branchFromMessage(idx)
+			case atomicActionEdit:
+				return mod.editMessageAt(idx)
+			case atomicActionRegenerate:
+				return mod.regenerateFromMessage(idx)
+			default:
+				mod.ActiveOverlay = overlayNone
+				if mod.shouldFocusTextArea() {
+					mod.Chat.TextArea.Focus()
+					return mod, textarea.Blink
+				}
+				return mod, nil
+			}
+		},
 		OnCursorChange: func(mod Model, current *SelectorItem) Model {
 			if current != nil {
 				if idx, ok := current.Data.(int); ok {
@@ -103,6 +161,30 @@ func (m Model) openAtomicMsgMode() (Model, tea.Cmd) {
 
 	newModel = newModel.updateLayout()
 	return newModel, cmd
+}
+
+func buildAtomicModeTitle(action atomicMsgAction, caps engine.Capability) string {
+	switch action {
+	case atomicActionBranch:
+		return "Branch from Message [Enter/b: branch | Esc/Ctrl+C: cancel]"
+	case atomicActionEdit:
+		return "Edit Message [Enter/e: edit | Esc/Ctrl+C: cancel]"
+	case atomicActionRegenerate:
+		return "Regenerate from Message [Enter/r: regenerate | Esc/Ctrl+C: cancel]"
+	default:
+		var actions []string
+		if caps.Has(engine.CapITF) {
+			actions = append(actions, "a")
+		}
+		actions = append(actions, "e")
+		if caps.Has(engine.CapRegenerate) {
+			actions = append(actions, "r")
+		}
+		if caps.Has(engine.CapBranch) {
+			actions = append(actions, "b")
+		}
+		return fmt.Sprintf("Atomic Messages [Esc/Ctrl+C: exit | v: select | o: swap | y/d: copy/del | %s]", strings.Join(actions, "/"))
+	}
 }
 
 func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
@@ -238,49 +320,12 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
 
 	case "e":
-		m.Selector.IsSelecting = false
-		targetMsg := messages[currIdx]
-		if !targetMsg.Type.IsEditable() {
-			m.StatusBarMessage = "Only user messages can be edited."
-			m.ActiveOverlay = overlayNone
-			if m.shouldFocusTextArea() {
-				m.Chat.TextArea.Focus()
-			}
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
-		}
-
-		m.ActiveOverlay = overlayNone
-		m.Chat.EditingMessageIndex = currIdx
-		return m, editInEditorCmd(targetMsg.Content), true
+		newMod, cmd := m.editMessageAt(currIdx)
+		return newMod, cmd, true
 
 	case "r":
-		m.Selector.IsSelecting = false
-		targetMsg := messages[currIdx]
-		if !targetMsg.Type.IsRegeneratable() || !m.Session.Capabilities().Has(engine.CapRegenerate) {
-			m.StatusBarMessage = "Selected message cannot be regenerated."
-			m.ActiveOverlay = overlayNone
-			if m.shouldFocusTextArea() {
-				m.Chat.TextArea.Focus()
-			}
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
-		}
-
-		if m.Chat.IsStreaming {
-			m.Session.Cancel()
-			m.Chat.IsStreaming = false
-			m.Chat.EventSub = nil
-		}
-
-		m.ActiveOverlay = overlayNone
-		m.Chat.TextArea.Focus()
-		m.ClearCache()
-		eventChan, err := m.Session.Regenerate(currIdx)
-		if err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Error regenerating: %v", err)
-			return m, clearStatusBarCmd(), true
-		}
-		model, cmd := m.startGenerationEvents(eventChan)
-		return model, cmd, true
+		newMod, cmd := m.regenerateFromMessage(currIdx)
+		return newMod, cmd, true
 
 	case "d":
 		var targetIndices []int
@@ -321,38 +366,121 @@ func (m Model) handleAtomicMsgKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		if !m.Session.Capabilities().Has(engine.CapBranch) {
 			return m, nil, false
 		}
-		m.Selector.IsSelecting = false
-		if m.Chat.IsStreaming {
-			m.Session.Cancel()
-			m.Chat.IsStreaming = false
-			m.Chat.EventSub = nil
-		}
-
-		oldSess := m.Session
-		newSess, err := m.Session.Branch(currIdx)
-		if err != nil {
-			m.StatusBarMessage = fmt.Sprintf("Error branching: %v", err)
-			m.ActiveOverlay = overlayNone
-			if m.shouldFocusTextArea() {
-				m.Chat.TextArea.Focus()
-			}
-			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink), true
-		}
-
-		m.ActiveOverlay = overlayNone
-		m.Session = newSess
-		m.addActiveSession(newSess)
-		m.StatusBarMessage = "Branched to a new session."
-		m.Chat.LastInteractionFailed = false
-		m.Chat.TextArea.Reset()
-		m.Chat.TextArea.SetHeight(1)
-		m.Chat.TextArea.Focus()
-		m.Chat.Viewport.SetContent(m.renderConversation())
-		m.Chat.Viewport.GotoBottom()
-		return m, tea.Batch(clearStatusBarCmd(), textarea.Blink, m.updateTokenCountCmd(), saveConversationCmd(oldSess)), true
+		newMod, cmd := m.branchFromMessage(currIdx)
+		return newMod, cmd, true
 	}
 
 	return m, nil, false
+}
+
+func (m Model) editMessageAt(currIdx int) (tea.Model, tea.Cmd) {
+	m.Selector.IsSelecting = false
+	messages := m.Session.GetMessages()
+	if currIdx < 0 || currIdx >= len(messages) || !messages[currIdx].Type.IsEditable() {
+		m.StatusBarMessage = "Only user messages can be edited."
+		m.ActiveOverlay = overlayNone
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink)
+		}
+		return m, clearStatusBarCmd()
+	}
+
+	m.ActiveOverlay = overlayNone
+	m.Chat.EditingMessageIndex = currIdx
+	return m, editInEditorCmd(messages[currIdx].Content)
+}
+
+func (m Model) regenerateFromMessage(currIdx int) (tea.Model, tea.Cmd) {
+	m.Selector.IsSelecting = false
+	messages := m.Session.GetMessages()
+	if currIdx < 0 || currIdx >= len(messages) || !messages[currIdx].Type.IsRegeneratable() || !m.Session.Capabilities().Has(engine.CapRegenerate) {
+		m.StatusBarMessage = "Selected message cannot be regenerated."
+		m.ActiveOverlay = overlayNone
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink)
+		}
+		return m, clearStatusBarCmd()
+	}
+
+	if m.Chat.IsStreaming {
+		m.Session.Cancel()
+		m.Chat.IsStreaming = false
+		m.Chat.EventSub = nil
+	}
+
+	m.ActiveOverlay = overlayNone
+	m.Chat.TextArea.Focus()
+	m.ClearCache()
+	eventChan, err := m.Session.Regenerate(currIdx)
+	if err != nil {
+		m.StatusBarMessage = fmt.Sprintf("Error regenerating: %v", err)
+		return m, clearStatusBarCmd()
+	}
+	return m.startGenerationEvents(eventChan)
+}
+
+func (m Model) branchFromMessage(currIdx int) (tea.Model, tea.Cmd) {
+	m.Selector.IsSelecting = false
+	if !m.Session.Capabilities().Has(engine.CapBranch) {
+		return m, nil
+	}
+	if m.Chat.IsStreaming {
+		m.Session.Cancel()
+		m.Chat.IsStreaming = false
+		m.Chat.IsAIRendering = false
+		m.Chat.PendingAIRender = false
+		m.Chat.EventSub = nil
+		m.StatusText = ""
+		m.State = stateIdle
+	}
+
+	messages := m.Session.GetMessages()
+	endIdx := currIdx
+	if endIdx >= 0 && endIdx < len(messages) && messages[endIdx].GroupID != "" {
+		gid := messages[endIdx].GroupID
+		for endIdx+1 < len(messages) && messages[endIdx+1].GroupID == gid {
+			endIdx++
+		}
+	}
+
+	oldSess := m.Session
+	newSess, err := m.Session.Branch(endIdx)
+	if err != nil {
+		m.StatusBarMessage = fmt.Sprintf("Error branching: %v", err)
+		m.ActiveOverlay = overlayNone
+		if m.shouldFocusTextArea() {
+			m.Chat.TextArea.Focus()
+			return m, tea.Batch(clearStatusBarCmd(), textarea.Blink)
+		}
+		return m, clearStatusBarCmd()
+	}
+
+	m.ActiveOverlay = overlayNone
+	m.Session = newSess
+	m.ClearCache()
+	m.syncActiveQueue()
+	m.addActiveSession(newSess)
+	m.AvailableCommands = newSess.GetSupportedCommands()
+	m.CommandDescriptions = newSess.GetCommandDescriptions()
+	sort.Strings(m.AvailableCommands)
+	m.StatusBarMessage = "Branched to a new session."
+	m.Chat.LastInteractionFailed = false
+	m.Chat.Viewport.SetContent(m.renderConversation())
+	m.Chat.Viewport.GotoBottom()
+	m = m.updateLayout()
+	if m.shouldFocusTextArea() {
+		m.Chat.TextArea.Focus()
+	}
+	return m, tea.Batch(
+		clearStatusBarCmd(),
+		textarea.Blink,
+		m.updateTokenCountCmd(),
+		m.renderUncachedCmd(),
+		saveConversationCmd(oldSess),
+		saveConversationCmd(newSess),
+	)
 }
 
 func (m Model) syncViewportToMessage(msgIdx int) Model {

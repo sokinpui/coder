@@ -417,7 +417,7 @@ func execShellCmd(cmdStr string) tea.Cmd {
 	trimmed := strings.TrimSpace(cmdStr)
 	if trimmed == "" {
 		c := exec.Command(shell)
-		return tea.ExecProcess(c, func(err error) tea.Msg {
+		return tea.Exec(wrapInteractiveShellCmd(c), func(err error) tea.Msg {
 			return shellFinishedMsg{cmdStr: "", err: err}
 		})
 	}

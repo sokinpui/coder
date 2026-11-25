@@ -28,12 +28,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return m.handleKeyPressConfirm(msg)
 	case overlayBtw:
 		return m.handleKeyPressBtw(msg)
+	case overlayCommandPalette:
+		return m.handleKeyPressCommandPalette(msg)
 	}
 
 	keyStr := msg.String()
 	km := m.Keymap()
 
 	// Handle global keybindings first
+	if km.Palette != "" && keyStr == km.Palette {
+		newModel, cmd := m.openCommandPalette()
+		return newModel, cmd, true
+	}
 	switch keyStr {
 	case km.ContextList:
 		if !m.Session.Capabilities().Has(engine.CapContextFiles) {
@@ -318,6 +324,10 @@ func (m Model) confirmSelector() (tea.Model, tea.Cmd, bool) {
 		return newModel, cmd, true
 	}
 	m.ActiveOverlay = overlayNone
+	if m.shouldFocusTextArea() {
+		m.Chat.TextArea.Focus()
+		return m, textarea.Blink, true
+	}
 	return m, nil, true
 }
 

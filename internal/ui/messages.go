@@ -615,6 +615,27 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Btw.layout(m.Width, m.Height)
 		return m, nil, true
 
+	case commandPalettePasteResultMsg:
+		if m.ActiveOverlay != overlayCommandPalette {
+			return m, nil, true
+		}
+		if msg.err != nil {
+			m.StatusBarMessage = fmt.Sprintf("Paste error: %v", msg.err)
+			return m, clearStatusBarCmd(), true
+		}
+		pasted := strings.ReplaceAll(strings.ReplaceAll(msg.content, "\r\n", " "), "\n", " ")
+		pasted = strings.ReplaceAll(pasted, "\r", " ")
+		var cmd tea.Cmd
+		m.CommandPalette.Input, cmd = m.CommandPalette.Input.Update(tea.KeyMsg{
+			Type:  tea.KeyRunes,
+			Runes: []rune(pasted),
+		})
+		if cleaned := CleanSGRLeakedText(m.CommandPalette.Input.Value()); cleaned != m.CommandPalette.Input.Value() {
+			m.CommandPalette.Input.SetValue(cleaned)
+		}
+		m.CommandPalette.updateSuggestions(m)
+		return m, cmd, true
+
 	case animateTitleTickMsg:
 		if !m.Chat.AnimatingTitle {
 			return m, nil, true

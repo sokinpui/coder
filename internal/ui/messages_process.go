@@ -111,7 +111,6 @@ func (m Model) handleProcessMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		m.Chat.TextArea.Focus()
 		m.Chat.Viewport.SetContent(m.renderConversation())
 		m.Chat.Viewport.GotoBottom()
-		m.Chat.TextArea.Reset()
 		return m, tea.Batch(textarea.Blink, tea.EnableMouseCellMotion, m.updateTokenCountCmd()), true
 	}
 

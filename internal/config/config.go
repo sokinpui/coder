@@ -99,6 +99,7 @@ type Keymap struct {
 	Submit      string `mapstructure:"submit"`
 	Editor      string `mapstructure:"editor"`
 	Paste       string `mapstructure:"paste"`
+	Palette     string `mapstructure:"palette"`
 	History     string `mapstructure:"history"`
 	New         string `mapstructure:"new"`
 	Branch      string `mapstructure:"branch"`
@@ -130,6 +131,7 @@ func DefaultKeymap() Keymap {
 		Submit:      "ctrl+j",
 		Editor:      "ctrl+e",
 		Paste:       "ctrl+v",
+		Palette:     "ctrl+p",
 		History:     "ctrl+h",
 		New:         "ctrl+n",
 		Branch:      "ctrl+b",

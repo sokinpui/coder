@@ -19,6 +19,7 @@ func Start(sess engine.EngineSession, prompt string) error {
 		&QuickViewOverlay{},
 		&SelectorOverlay{},
 		&BtwOverlay{},
+		&CommandPaletteOverlay{},
 		&PaletteOverlay{},
 	}
 

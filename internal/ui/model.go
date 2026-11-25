@@ -24,10 +24,11 @@ const welcomeMessage = `Welcome to Coder!
 `
 
 type Model struct {
-	Chat      ChatModel
-	Selector  SelectorModel
-	QuickView *QuickViewModel
-	Btw       BtwModel
+	Chat           ChatModel
+	Selector       SelectorModel
+	QuickView      *QuickViewModel
+	Btw            BtwModel
+	CommandPalette CommandPaletteModel
 
 	ActiveSessions      []engine.EngineSession
 	Session             engine.EngineSession
@@ -73,6 +74,7 @@ func NewModel(sess engine.EngineSession, initialInput string) (Model, error) {
 		Selector:            NewSelector(),
 		QuickView:           NewQuickView(),
 		Btw:                 NewBtwModel(),
+		CommandPalette:      NewCommandPalette(),
 		Session:             sess,
 		SessionQueues:       make(map[string][]string),
 		ActiveOverlay:       overlayNone,

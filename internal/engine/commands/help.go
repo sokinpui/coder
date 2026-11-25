@@ -63,6 +63,7 @@ var globalGroup = helpGroup{
 	{key: "Ctrl+J", desc: "Send message."},
 	{key: "Ctrl+E", desc: "Edit prompt in external editor ($EDITOR)."},
 	{key: "Ctrl+V", desc: "Paste from clipboard (supports images)."},
+	{key: "Ctrl+P", desc: "Open command palette."},
 	{key: "Ctrl+H", desc: "View conversation history."},
 	{key: "Ctrl+N", desc: "Start a new chat session."},
 	{key: "Ctrl+B", desc: "Enter branch mode.", cap: engine.CapBranch},
