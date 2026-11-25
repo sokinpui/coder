@@ -247,6 +247,9 @@ func (m Model) handleMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		if isActive && (msg.event.Kind == types.EventToolCall || msg.event.Kind == types.EventToolResult) {
 			extraCmds = append(extraCmds, m.updateTokenCountCmd())
 		}
+		if isActive && msg.event.Kind == types.EventToolResult && m.KittyImage {
+			extraCmds = append(extraCmds, m.renderUncachedMediaCmd())
+		}
 
 		return m, tea.Batch(extraCmds...), true
 

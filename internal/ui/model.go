@@ -140,7 +140,24 @@ func (m Model) renderUncachedCmd() tea.Cmd {
 		m.ToolMode,
 		width,
 	)
-	return tea.Batch(mdCmd, toolCmd)
+	mediaCmd := m.renderUncachedMediaCmd()
+	return tea.Batch(mdCmd, toolCmd, mediaCmd)
+}
+
+func (m Model) renderUncachedMediaCmd() tea.Cmd {
+	if !m.KittyImage || m.Session == nil {
+		return nil
+	}
+	return renderUncachedMediaCmd(
+		m.Session.GetID(),
+		m.Session.GetMessages(),
+		m.Chat.Viewport.Width,
+		m.Chat.MessageLineOffsets,
+		len(m.Chat.RenderedLines),
+		m.Chat.Viewport.YOffset,
+		m.Chat.Viewport.Height,
+		m.Chat.AutoScroll,
+	)
 }
 
 func (m Model) updateTokenCountCmd() tea.Cmd {

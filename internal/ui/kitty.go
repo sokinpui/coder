@@ -85,27 +85,175 @@ func diacritic(n int) rune {
 }
 
 type cachedImage struct {
-	pngData []byte
-	width   int
-	height  int
-	imageID int
+	cacheKey string
+	pngData  []byte
+	width    int
+	height   int
+	imageID  int
+	failed   bool
 }
 
 var (
 	imgCacheMu         sync.RWMutex
 	imgCache           = make(map[string]*cachedImage)
 	placementMu        sync.Mutex
-	uploadedPlacements = make(map[string]bool)
+	uploadedPlacements = make(map[int]string)
 )
 
+func ImageMessageCacheKey(msg types.Message) string {
+	if msg.Content != "" {
+		return msg.Content
+	}
+	if len(msg.Data) == 0 {
+		return ""
+	}
+	h := sha256.Sum256(msg.Data)
+	return hex.EncodeToString(h[:])
+}
+
+func PDFMessageCacheKey(msg types.Message) string {
+	meta, ok := types.ParsePDFMetadata(msg.Content)
+	if !ok || len(meta.Files) == 0 {
+		return ""
+	}
+	firstPage := meta.Files[0]
+	if !filepath.IsAbs(firstPage) {
+		if root := project.Root(); root != "" {
+			firstPage = filepath.Join(root, firstPage)
+		}
+	}
+	return firstPage
+}
+
+func IsKittyImageCached(cacheKey string) bool {
+	if cacheKey == "" {
+		return false
+	}
+	imgCacheMu.RLock()
+	_, ok := imgCache[cacheKey]
+	imgCacheMu.RUnlock()
+	return ok
+}
+
+func ProcessKittyImageMessage(msg types.Message) bool {
+	cacheKey := ImageMessageCacheKey(msg)
+	if cacheKey == "" {
+		return false
+	}
+	if IsKittyImageCached(cacheKey) {
+		return true
+	}
+	data, err := getImageBytes(msg)
+	if err != nil || len(data) == 0 {
+		imgCacheMu.Lock()
+		imgCache[cacheKey] = &cachedImage{cacheKey: cacheKey, failed: true}
+		imgCacheMu.Unlock()
+		return false
+	}
+	if _, err := getOrProcessImage(data, cacheKey); err != nil {
+		imgCacheMu.Lock()
+		imgCache[cacheKey] = &cachedImage{cacheKey: cacheKey, failed: true}
+		imgCacheMu.Unlock()
+		return false
+	}
+	return true
+}
+
+func ProcessKittyImageFile(filePath string) bool {
+	if filePath == "" {
+		return false
+	}
+	if IsKittyImageCached(filePath) {
+		return true
+	}
+	data, err := os.ReadFile(filePath)
+	if err != nil || len(data) == 0 {
+		imgCacheMu.Lock()
+		imgCache[filePath] = &cachedImage{cacheKey: filePath, failed: true}
+		imgCacheMu.Unlock()
+		return false
+	}
+	if _, err := getOrProcessImage(data, filePath); err != nil {
+		imgCacheMu.Lock()
+		imgCache[filePath] = &cachedImage{cacheKey: filePath, failed: true}
+		imgCacheMu.Unlock()
+		return false
+	}
+	return true
+}
+
+func RenderKittyImageMessageCached(msg types.Message, viewportWidth int) (string, bool) {
+	cacheKey := ImageMessageCacheKey(msg)
+	if cacheKey == "" {
+		return "", false
+	}
+	imgCacheMu.RLock()
+	cached, ok := imgCache[cacheKey]
+	imgCacheMu.RUnlock()
+	if !ok || cached.failed {
+		return "", false
+	}
+	title := msg.Content
+	if title == "" {
+		title = "Image"
+	}
+	return renderFromCachedImage(cached, title, viewportWidth, false)
+}
+
+func RenderKittyPDFCached(msg types.Message, viewportWidth int) (string, bool) {
+	cacheKey := PDFMessageCacheKey(msg)
+	if cacheKey == "" {
+		return "", false
+	}
+	imgCacheMu.RLock()
+	cached, ok := imgCache[cacheKey]
+	imgCacheMu.RUnlock()
+	if !ok || cached.failed {
+		return "", false
+	}
+	meta, ok := types.ParsePDFMetadata(msg.Content)
+	if !ok {
+		return "", false
+	}
+	return renderFromCachedImage(cached, formatPDFHeader(meta), viewportWidth, false)
+}
+
+func EnsureKittyImageUploaded(cacheKey string, viewportWidth int) {
+	if cacheKey == "" {
+		return
+	}
+	imgCacheMu.RLock()
+	img, ok := imgCache[cacheKey]
+	imgCacheMu.RUnlock()
+	if !ok || img.failed || len(img.pngData) == 0 {
+		return
+	}
+	cols, rows := kittyCellDimensions(img, viewportWidth)
+	placementKey := fmt.Sprintf("%s:%d:%d", img.cacheKey, cols, rows)
+
+	placementMu.Lock()
+	if uploadedPlacements[img.imageID] != placementKey {
+		transmitKittyPlacement(img.imageID, img.pngData, cols, rows)
+		uploadedPlacements[img.imageID] = placementKey
+	}
+	placementMu.Unlock()
+}
+
 func RenderKittyImageMessage(msg types.Message, viewportWidth int) (string, bool) {
-	cacheKey := msg.Content
+	cacheKey := ImageMessageCacheKey(msg)
 	if cacheKey != "" {
 		imgCacheMu.RLock()
 		cached, ok := imgCache[cacheKey]
 		imgCacheMu.RUnlock()
 		if ok {
-			return renderFromCachedImage(cached, cacheKey, viewportWidth)
+			if cached.failed {
+				return "", false
+			}
+			title := msg.Content
+			if title == "" {
+				title = "Image"
+			}
+			return renderFromCachedImage(cached, title, viewportWidth, true)
 		}
 	}
 
@@ -125,7 +273,10 @@ func RenderKittyImageFile(filePath, title string, viewportWidth int) (string, bo
 	cached, ok := imgCache[filePath]
 	imgCacheMu.RUnlock()
 	if ok {
-		return renderFromCachedImage(cached, title, viewportWidth)
+		if cached.failed {
+			return "", false
+		}
+		return renderFromCachedImage(cached, title, viewportWidth, true)
 	}
 
 	data, err := os.ReadFile(filePath)
@@ -144,22 +295,13 @@ func PreprocessKittyImage(data []byte, cacheKey string, viewportWidth int) {
 		return
 	}
 
-	width := 80
-	if viewportWidth > 0 {
-		width = viewportWidth
-	}
-	cardWidth := max(24, min(width-4, 80))
-	contentWidth := max(10, cardWidth-ImageMessageStyle.GetHorizontalFrameSize())
-	maxCols := min(contentWidth, 50)
-	maxRows := 18
-
-	cols, rows := calculateCellDimensions(img.width, img.height, maxCols, maxRows)
-	placementKey := fmt.Sprintf("%d:%d:%d", img.imageID, cols, rows)
+	cols, rows := kittyCellDimensions(img, viewportWidth)
+	placementKey := fmt.Sprintf("%s:%d:%d", img.cacheKey, cols, rows)
 
 	placementMu.Lock()
-	if !uploadedPlacements[placementKey] {
+	if uploadedPlacements[img.imageID] != placementKey {
 		transmitKittyPlacement(img.imageID, img.pngData, cols, rows)
-		uploadedPlacements[placementKey] = true
+		uploadedPlacements[img.imageID] = placementKey
 	}
 	placementMu.Unlock()
 }
@@ -169,7 +311,7 @@ func RenderKittyImageData(data []byte, title string, viewportWidth int, cacheKey
 	if err != nil {
 		return "", false
 	}
-	return renderFromCachedImage(img, title, viewportWidth)
+	return renderFromCachedImage(img, title, viewportWidth, true)
 }
 
 func getOrProcessImage(data []byte, cacheKey ...string) (*cachedImage, error) {
@@ -182,7 +324,7 @@ func getOrProcessImage(data []byte, cacheKey ...string) (*cachedImage, error) {
 	}
 
 	imgCacheMu.RLock()
-	if cached, ok := imgCache[key]; ok {
+	if cached, ok := imgCache[key]; ok && !cached.failed {
 		imgCacheMu.RUnlock()
 		return cached, nil
 	}
@@ -194,10 +336,11 @@ func getOrProcessImage(data []byte, cacheKey ...string) (*cachedImage, error) {
 	}
 
 	img := &cachedImage{
-		pngData: pngData,
-		width:   width,
-		height:  height,
-		imageID: computeImageID(pngData),
+		cacheKey: key,
+		pngData:  pngData,
+		width:    width,
+		height:   height,
+		imageID:  computeImageID(pngData),
 	}
 
 	imgCacheMu.Lock()
@@ -206,21 +349,31 @@ func getOrProcessImage(data []byte, cacheKey ...string) (*cachedImage, error) {
 	return img, nil
 }
 
-func renderFromCachedImage(img *cachedImage, title string, viewportWidth int) (string, bool) {
-	cardWidth := max(24, min(viewportWidth-4, 80))
+func kittyCellDimensions(img *cachedImage, viewportWidth int) (int, int) {
+	width := 80
+	if viewportWidth > 0 {
+		width = viewportWidth
+	}
+	cardWidth := max(24, min(width-4, 80))
 	contentWidth := max(10, cardWidth-ImageMessageStyle.GetHorizontalFrameSize())
 	maxCols := min(contentWidth, 50)
 	maxRows := 18
+	return calculateCellDimensions(img.width, img.height, maxCols, maxRows)
+}
 
-	cols, rows := calculateCellDimensions(img.width, img.height, maxCols, maxRows)
-	placementKey := fmt.Sprintf("%d:%d:%d", img.imageID, cols, rows)
-
-	placementMu.Lock()
-	if !uploadedPlacements[placementKey] {
-		transmitKittyPlacement(img.imageID, img.pngData, cols, rows)
-		uploadedPlacements[placementKey] = true
+func renderFromCachedImage(img *cachedImage, title string, viewportWidth int, transmit bool) (string, bool) {
+	cardWidth := max(24, min(viewportWidth-4, 80))
+	contentWidth := max(10, cardWidth-ImageMessageStyle.GetHorizontalFrameSize())
+	cols, rows := kittyCellDimensions(img, viewportWidth)
+	if transmit {
+		placementKey := fmt.Sprintf("%s:%d:%d", img.cacheKey, cols, rows)
+		placementMu.Lock()
+		if uploadedPlacements[img.imageID] != placementKey {
+			transmitKittyPlacement(img.imageID, img.pngData, cols, rows)
+			uploadedPlacements[img.imageID] = placementKey
+		}
+		placementMu.Unlock()
 	}
-	placementMu.Unlock()
 
 	headerText := fmt.Sprintf("%s (%dx%d)", project.ShortenPath(title), img.width, img.height)
 	if ansi.StringWidth(headerText) > contentWidth {
@@ -347,7 +500,7 @@ func ensurePNG(data []byte) ([]byte, int, int, error) {
 	}
 
 	var buf bytes.Buffer
-	encoder := png.Encoder{CompressionLevel: png.DefaultCompression}
+	encoder := png.Encoder{CompressionLevel: png.BestSpeed}
 	if err := encoder.Encode(&buf, previewImg); err != nil {
 		return nil, 0, 0, err
 	}
@@ -373,6 +526,18 @@ func downscaleImage(src image.Image, maxDim int) image.Image {
 	}
 
 	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
+	switch s := src.(type) {
+	case *image.NRGBA:
+		downscaleNRGBA(dst, s, bounds, srcW, srcH, dstW, dstH)
+		return dst
+	case *image.RGBA:
+		downscaleRGBA(dst, s, bounds, srcW, srcH, dstW, dstH)
+		return dst
+	case *image.YCbCr:
+		downscaleYCbCr(dst, s, bounds, srcW, srcH, dstW, dstH)
+		return dst
+	}
+
 	for dy := range dstH {
 		sy0 := bounds.Min.Y + (dy*srcH)/dstH
 		sy1 := max(sy0+1, bounds.Min.Y+((dy+1)*srcH)/dstH)
@@ -408,6 +573,117 @@ func downscaleImage(src image.Image, maxDim int) image.Image {
 	}
 
 	return dst
+}
+
+func downscaleNRGBA(dst, src *image.NRGBA, bounds image.Rectangle, srcW, srcH, dstW, dstH int) {
+	for dy := range dstH {
+		sy0 := bounds.Min.Y + (dy*srcH)/dstH
+		sy1 := min(bounds.Max.Y, max(sy0+1, bounds.Min.Y+((dy+1)*srcH)/dstH))
+		dstRowOff := dy * dst.Stride
+
+		for dx := range dstW {
+			sx0 := bounds.Min.X + (dx*srcW)/dstW
+			sx1 := min(bounds.Max.X, max(sx0+1, bounds.Min.X+((dx+1)*srcW)/dstW))
+
+			var rSum, gSum, bSum, aSum, count uint64
+			for sy := sy0; sy < sy1; sy++ {
+				rowStart := (sy-src.Rect.Min.Y)*src.Stride + (sx0-src.Rect.Min.X)*4
+				for sx := sx0; sx < sx1; sx++ {
+					rSum += uint64(src.Pix[rowStart])
+					gSum += uint64(src.Pix[rowStart+1])
+					bSum += uint64(src.Pix[rowStart+2])
+					aSum += uint64(src.Pix[rowStart+3])
+					rowStart += 4
+					count++
+				}
+			}
+			if count == 0 {
+				continue
+			}
+			dstOff := dstRowOff + dx*4
+			dst.Pix[dstOff] = uint8(rSum / count)
+			dst.Pix[dstOff+1] = uint8(gSum / count)
+			dst.Pix[dstOff+2] = uint8(bSum / count)
+			dst.Pix[dstOff+3] = uint8(aSum / count)
+		}
+	}
+}
+
+func downscaleRGBA(dst *image.NRGBA, src *image.RGBA, bounds image.Rectangle, srcW, srcH, dstW, dstH int) {
+	for dy := range dstH {
+		sy0 := bounds.Min.Y + (dy*srcH)/dstH
+		sy1 := min(bounds.Max.Y, max(sy0+1, bounds.Min.Y+((dy+1)*srcH)/dstH))
+		dstRowOff := dy * dst.Stride
+
+		for dx := range dstW {
+			sx0 := bounds.Min.X + (dx*srcW)/dstW
+			sx1 := min(bounds.Max.X, max(sx0+1, bounds.Min.X+((dx+1)*srcW)/dstW))
+
+			var rSum, gSum, bSum, aSum, count uint64
+			for sy := sy0; sy < sy1; sy++ {
+				rowStart := (sy-src.Rect.Min.Y)*src.Stride + (sx0-src.Rect.Min.X)*4
+				for sx := sx0; sx < sx1; sx++ {
+					r := uint64(src.Pix[rowStart])
+					g := uint64(src.Pix[rowStart+1])
+					b := uint64(src.Pix[rowStart+2])
+					a := uint64(src.Pix[rowStart+3])
+					if a > 0 && a < 255 {
+						r = (r * 255) / a
+						g = (g * 255) / a
+						b = (b * 255) / a
+					}
+					rSum += r
+					gSum += g
+					bSum += b
+					aSum += a
+					rowStart += 4
+					count++
+				}
+			}
+			if count == 0 {
+				continue
+			}
+			dstOff := dstRowOff + dx*4
+			dst.Pix[dstOff] = uint8(rSum / count)
+			dst.Pix[dstOff+1] = uint8(gSum / count)
+			dst.Pix[dstOff+2] = uint8(bSum / count)
+			dst.Pix[dstOff+3] = uint8(aSum / count)
+		}
+	}
+}
+
+func downscaleYCbCr(dst *image.NRGBA, src *image.YCbCr, bounds image.Rectangle, srcW, srcH, dstW, dstH int) {
+	for dy := range dstH {
+		sy0 := bounds.Min.Y + (dy*srcH)/dstH
+		sy1 := min(bounds.Max.Y, max(sy0+1, bounds.Min.Y+((dy+1)*srcH)/dstH))
+		dstRowOff := dy * dst.Stride
+
+		for dx := range dstW {
+			sx0 := bounds.Min.X + (dx*srcW)/dstW
+			sx1 := min(bounds.Max.X, max(sx0+1, bounds.Min.X+((dx+1)*srcW)/dstW))
+
+			var rSum, gSum, bSum, count uint64
+			for sy := sy0; sy < sy1; sy++ {
+				for sx := sx0; sx < sx1; sx++ {
+					yi := src.YOffset(sx, sy)
+					ci := src.COffset(sx, sy)
+					r, g, b := color.YCbCrToRGB(src.Y[yi], src.Cb[ci], src.Cr[ci])
+					rSum += uint64(r)
+					gSum += uint64(g)
+					bSum += uint64(b)
+					count++
+				}
+			}
+			if count == 0 {
+				continue
+			}
+			dstOff := dstRowOff + dx*4
+			dst.Pix[dstOff] = uint8(rSum / count)
+			dst.Pix[dstOff+1] = uint8(gSum / count)
+			dst.Pix[dstOff+2] = uint8(bSum / count)
+			dst.Pix[dstOff+3] = 255
+		}
+	}
 }
 
 func readNRGBAPixel(c color.Color) (uint8, uint8, uint8, uint8) {
@@ -455,7 +731,7 @@ func wrapTmux(seq string) string {
 
 func ClearKittyGraphics() {
 	placementMu.Lock()
-	uploadedPlacements = make(map[string]bool)
+	uploadedPlacements = make(map[int]string)
 	placementMu.Unlock()
 
 	seq := wrapTmux("\x1b_Ga=d,d=A\x1b\\")

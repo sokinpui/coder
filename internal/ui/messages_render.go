@@ -69,6 +69,46 @@ func (m Model) handleRenderMessage(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 			m.Chat.Viewport.GotoBottom()
 		}
 		return m, nil, true
+
+	case mediaBatchRenderedMsg:
+		if m.Session == nil || m.Session.GetID() != msg.sessID {
+			return m, nil, true
+		}
+
+		for _, idx := range msg.indices {
+			delete(m.Chat.RenderCache, idx)
+		}
+
+		wasAtBottom := m.Chat.AutoScroll || m.Chat.Viewport.AtBottom()
+		oldY := m.Chat.Viewport.YOffset
+		anchorMsgIdx := -1
+		offsetInMsg := 0
+		if !wasAtBottom {
+			messages := m.Session.GetMessages()
+			for i := len(messages) - 1; i >= 0; i-- {
+				if offset, ok := m.Chat.MessageLineOffsets[i]; ok && offset <= oldY {
+					anchorMsgIdx = i
+					offsetInMsg = oldY - offset
+					break
+				}
+			}
+		}
+
+		m.Chat.Viewport.SetContent(m.renderConversation())
+		if wasAtBottom {
+			m.Chat.Viewport.GotoBottom()
+			m.Chat.AutoScroll = true
+		} else if anchorMsgIdx != -1 {
+			if newOffset, ok := m.Chat.MessageLineOffsets[anchorMsgIdx]; ok {
+				maxOffset := max(0, len(m.Chat.RenderedLines)-m.Chat.Viewport.Height)
+				m.Chat.Viewport.SetYOffset(clamp(newOffset+offsetInMsg, 0, maxOffset))
+			}
+		}
+
+		if msg.hasMore {
+			return m, m.renderUncachedMediaCmd(), true
+		}
+		return m, nil, true
 	}
 
 	return m, nil, false

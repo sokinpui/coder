@@ -80,20 +80,7 @@ func RenderPDFMessage(msg types.Message, viewportWidth int, kittyImage ...bool) 
 	if !ok {
 		return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render("Document: " + msg.Content)
 	}
-	desc := meta.Filename
-	if meta.Pages != "" {
-		desc += fmt.Sprintf(" (pages: %s)", meta.Pages)
-	}
-	if meta.PageCount > 0 {
-		pageWord := "pages"
-		if meta.PageCount == 1 {
-			pageWord = "page"
-		}
-		desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
-	} else if meta.Size > 0 {
-		desc += fmt.Sprintf(" [%s]", formatFileSize(meta.Size))
-	}
-	header := "📄 Document: " + desc
+	header := formatPDFHeader(meta)
 
 	if len(kittyImage) > 0 && kittyImage[0] && len(meta.Files) > 0 {
 		firstPage := meta.Files[0]
@@ -108,6 +95,23 @@ func RenderPDFMessage(msg types.Message, viewportWidth int, kittyImage ...bool) 
 	}
 
 	return ImageMessageStyle.Width(viewportWidth - ImageMessageStyle.GetHorizontalFrameSize()).Render(header)
+}
+
+func formatPDFHeader(meta types.PDFMetadata) string {
+	desc := meta.Filename
+	if meta.Pages != "" {
+		desc += fmt.Sprintf(" (pages: %s)", meta.Pages)
+	}
+	if meta.PageCount > 0 {
+		pageWord := "pages"
+		if meta.PageCount == 1 {
+			pageWord = "page"
+		}
+		desc += fmt.Sprintf(" [%d %s]", meta.PageCount, pageWord)
+	} else if meta.Size > 0 {
+		desc += fmt.Sprintf(" [%s]", formatFileSize(meta.Size))
+	}
+	return "📄 Document: " + desc
 }
 
 func formatFileSize(size int64) string {

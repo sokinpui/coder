@@ -70,6 +70,11 @@ type (
 		results []toolRenderResult
 		width   int
 	}
+	mediaBatchRenderedMsg struct {
+		sessID  string
+		indices []int
+		hasMore bool
+	}
 	ctrlCTimeoutMsg         struct{}
 	initialContextLoadedMsg struct{ err error }
 	editorFinishedMsg       struct {

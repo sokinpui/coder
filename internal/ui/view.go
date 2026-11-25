@@ -9,6 +9,8 @@ func (m Model) View() string {
 		return ""
 	}
 
+	m.ensureVisibleKittyImages()
+
 	var b strings.Builder
 	b.WriteString(m.Chat.Viewport.View())
 	b.WriteString("\n")

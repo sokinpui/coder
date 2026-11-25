@@ -212,6 +212,130 @@ func batchRenderTools(items []toolWorkItem, width int) []toolRenderResult {
 	return output
 }
 
+const mediaBackgroundBatchSize = 12
+
+type mediaWorkItem struct {
+	msgIndex int
+	msg      types.Message
+	pdfPath  string
+}
+
+func renderUncachedMediaCmd(sessID string, messages []types.Message, width int, offsets map[int]int, totalLines, yOffset, vpHeight int, autoScroll bool) tea.Cmd {
+	if len(messages) == 0 || width <= 0 {
+		return nil
+	}
+
+	visStart := max(0, yOffset-20)
+	visEnd := yOffset + vpHeight + 20
+	if autoScroll && totalLines > 0 {
+		visStart = max(0, totalLines-vpHeight-20)
+		visEnd = totalLines
+	}
+
+	var priorityItems []mediaWorkItem
+	var backgroundItems []mediaWorkItem
+
+	for i, msg := range messages {
+		if msg.Type != types.ImageMessage && msg.Type != types.PDFMessage {
+			continue
+		}
+		key := mediaMessageCacheKey(msg)
+		if key == "" || IsKittyImageCached(key) {
+			continue
+		}
+		item := mediaWorkItem{msgIndex: i, msg: msg}
+		if msg.Type == types.PDFMessage {
+			item.pdfPath = key
+		}
+
+		isPriority := false
+		if len(offsets) == 0 || totalLines == 0 {
+			isPriority = i >= len(messages)-6
+		} else if start, ok := offsets[i]; ok {
+			end := totalLines
+			for j := i + 1; j < len(messages); j++ {
+				if nextStart, exists := offsets[j]; exists && nextStart > start {
+					end = nextStart
+					break
+				}
+			}
+			isPriority = end > visStart && start < visEnd
+		}
+
+		if isPriority {
+			priorityItems = append(priorityItems, item)
+		} else {
+			backgroundItems = append(backgroundItems, item)
+		}
+	}
+
+	if len(priorityItems) > 0 {
+		hasMore := len(backgroundItems) > 0
+		return func() tea.Msg {
+			indices := batchProcessMedia(priorityItems)
+			return mediaBatchRenderedMsg{
+				sessID:  sessID,
+				indices: indices,
+				hasMore: hasMore,
+			}
+		}
+	}
+
+	if len(backgroundItems) == 0 {
+		return nil
+	}
+
+	for left, right := 0, len(backgroundItems)-1; left < right; left, right = left+1, right-1 {
+		backgroundItems[left], backgroundItems[right] = backgroundItems[right], backgroundItems[left]
+	}
+	hasMore := len(backgroundItems) > mediaBackgroundBatchSize
+	batch := backgroundItems
+	if hasMore {
+		batch = backgroundItems[:mediaBackgroundBatchSize]
+	}
+
+	return func() tea.Msg {
+		indices := batchProcessMedia(batch)
+		return mediaBatchRenderedMsg{
+			sessID:  sessID,
+			indices: indices,
+			hasMore: hasMore,
+		}
+	}
+}
+
+func batchProcessMedia(items []mediaWorkItem) []int {
+	if len(items) == 0 {
+		return nil
+	}
+	workerCount := max(min(len(items), runtime.NumCPU()), 1)
+	jobs := make(chan mediaWorkItem, len(items))
+	for _, it := range items {
+		jobs <- it
+	}
+	close(jobs)
+
+	var wg sync.WaitGroup
+	for range workerCount {
+		wg.Go(func() {
+			for job := range jobs {
+				if job.pdfPath != "" {
+					ProcessKittyImageFile(job.pdfPath)
+				} else {
+					ProcessKittyImageMessage(job.msg)
+				}
+			}
+		})
+	}
+	wg.Wait()
+
+	indices := make([]int, len(items))
+	for i, it := range items {
+		indices[i] = it.msgIndex
+	}
+	return indices
+}
+
 func fetchModelsCmd(cfg *config.Config) tea.Cmd {
 	return func() tea.Msg {
 		endpoint := strings.TrimSuffix(cfg.Server.URL, "/") + "/models"

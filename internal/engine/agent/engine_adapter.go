@@ -106,7 +106,11 @@ func (s *Session) EditMessage(index int, newContent string) error {
 }
 
 func (s *Session) TokenCount() int {
-	count := token.CountTokens(s.GetPrompt())
+	msgs := s.GetMessages()
+	prompt := make([]types.Message, 0, 1+len(msgs))
+	prompt = append(prompt, types.Message{Type: types.InstructionMessage, Content: s.getEffectiveInstruction()})
+	prompt = append(prompt, msgs...)
+	count := token.CountTokens(prompt)
 	if s.Runtime != nil && s.Runtime.Registry != nil {
 		decls := s.Runtime.Registry.Declarations()
 		for _, decl := range decls {

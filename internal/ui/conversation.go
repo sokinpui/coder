@@ -66,6 +66,17 @@ func (m Model) getMessageLines(msg types.Message, idx, total, viewportWidth int)
 		return strings.Split(normalized, "\n")
 	}
 
+	if m.KittyImage && (msg.Type == types.ImageMessage || msg.Type == types.PDFMessage) {
+		key := mediaMessageCacheKey(msg)
+		if key != "" && !IsKittyImageCached(key) {
+			rendered := RenderMessage(msg, viewportWidth, nil, false)
+			if rendered == "" {
+				return nil
+			}
+			return strings.Split(strings.ReplaceAll(rendered, "\r\n", "\n"), "\n")
+		}
+	}
+
 	if cache, ok := m.Chat.RenderCache[idx]; ok && cache.Content == msg.Content && cache.Width == viewportWidth {
 		return cache.Lines
 	}
@@ -635,6 +646,18 @@ func (m Model) renderMessage(msg types.Message, viewportWidth int) string {
 	if msg.Type == types.ToolResultMessage {
 		return m.getOrRenderToolResult(msg, viewportWidth)
 	}
+	if m.KittyImage && msg.Type == types.ImageMessage {
+		if rendered, ok := RenderKittyImageMessageCached(msg, viewportWidth); ok {
+			return rendered
+		}
+		return RenderMessage(msg, viewportWidth, nil, false)
+	}
+	if m.KittyImage && msg.Type == types.PDFMessage {
+		if rendered, ok := RenderKittyPDFCached(msg, viewportWidth); ok {
+			return rendered
+		}
+		return RenderMessage(msg, viewportWidth, nil, false)
+	}
 	return RenderMessage(msg, viewportWidth, nil, m.KittyImage)
 }
 
@@ -705,4 +728,47 @@ func (m *Model) renderConversation() string {
 		return m.applySelectionToLines(lines)
 	}
 	return content
+}
+
+func mediaMessageCacheKey(msg types.Message) string {
+	switch msg.Type {
+	case types.ImageMessage:
+		return ImageMessageCacheKey(msg)
+	case types.PDFMessage:
+		return PDFMessageCacheKey(msg)
+	default:
+		return ""
+	}
+}
+
+func (m Model) ensureVisibleKittyImages() {
+	if !m.KittyImage || m.Session == nil || len(m.Chat.RenderedLines) == 0 {
+		return
+	}
+
+	messages := m.Session.GetMessages()
+	totalLines := len(m.Chat.RenderedLines)
+	visStart := max(0, m.Chat.Viewport.YOffset-10)
+	visEnd := min(totalLines, m.Chat.Viewport.YOffset+m.Chat.Viewport.Height+10)
+
+	for i, msg := range messages {
+		if msg.Type != types.ImageMessage && msg.Type != types.PDFMessage {
+			continue
+		}
+		start, ok := m.Chat.MessageLineOffsets[i]
+		if !ok {
+			continue
+		}
+		end := totalLines
+		for j := i + 1; j < len(messages); j++ {
+			if nextStart, exists := m.Chat.MessageLineOffsets[j]; exists && nextStart > start {
+				end = nextStart
+				break
+			}
+		}
+		if end <= visStart || start >= visEnd {
+			continue
+		}
+		EnsureKittyImageUploaded(mediaMessageCacheKey(msg), m.Chat.Viewport.Width)
+	}
 }
