@@ -309,15 +309,18 @@ func (m Model) extractSelectedText() string {
 	firstRow := max(0, start.Row)
 	lastRow := min(len(m.Chat.RenderedLines)-1, end.Row)
 
-	var extracted []string
+	var sb strings.Builder
+	hasOutput := false
+	lastOutputRow := -1
+	pendingBlankLines := 0
 
 	for r := firstRow; r <= lastRow; r++ {
 		line := m.Chat.RenderedLines[r]
 		plain := ansi.Strip(line)
 		trimmed := strings.TrimRight(plain, " \r\n")
 		if len(trimmed) == 0 {
-			if r > firstRow && r < lastRow {
-				extracted = append(extracted, "")
+			if hasOutput && r < lastRow {
+				pendingBlankLines++
 			}
 			continue
 		}
@@ -347,10 +350,34 @@ func (m Model) extractSelectedText() string {
 
 		selectedPart := ansi.Cut(plain, sc, ec)
 		selectedPart = strings.TrimRight(selectedPart, "\r\n")
-		extracted = append(extracted, selectedPart)
+
+		if !hasOutput {
+			sb.WriteString(selectedPart)
+			hasOutput = true
+			lastOutputRow = r
+			pendingBlankLines = 0
+			continue
+		}
+
+		if pendingBlankLines == 0 && lastOutputRow == r-1 && meta.IsContinuation && sc == meta.ContentColStart {
+			trimmedPart := strings.TrimLeft(selectedPart, " ")
+			if meta.WrapJoinSpace && !strings.HasSuffix(sb.String(), " ") && trimmedPart != "" {
+				sb.WriteByte(' ')
+			}
+			sb.WriteString(trimmedPart)
+			lastOutputRow = r
+			continue
+		}
+
+		for range pendingBlankLines + 1 {
+			sb.WriteByte('\n')
+		}
+		pendingBlankLines = 0
+		sb.WriteString(selectedPart)
+		lastOutputRow = r
 	}
 
-	return cleanPlaceholders(strings.Join(extracted, "\n"))
+	return cleanPlaceholders(sb.String())
 }
 
 func cleanPlaceholders(text string) string {

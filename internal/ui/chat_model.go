@@ -17,6 +17,7 @@ type LineMeta struct {
 	ContentColEnd   int
 	Text            string
 	IsContinuation  bool
+	WrapJoinSpace   bool
 	IsDecoration    bool
 }
 

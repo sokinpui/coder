@@ -139,13 +139,13 @@ type boxRunItem struct {
 	plain string
 }
 
-func processBoxMiddleLines(items []boxRunItem, metas []LineMeta, msgIdx int, isContinuation bool) {
+func processBoxMiddleLines(items []boxRunItem, metas []LineMeta, msgIdx int) {
 	if len(items) == 0 {
 		return
 	}
 	minIndent := -1
 	for _, it := range items {
-		content := it.plain[it.sc:it.ec]
+		content := ansi.Cut(it.plain, it.sc, it.ec)
 		trimmed := strings.TrimRight(content, " ")
 		if len(trimmed) == 0 {
 			continue
@@ -166,12 +166,12 @@ func processBoxMiddleLines(items []boxRunItem, metas []LineMeta, msgIdx int, isC
 			ContentColStart: sc,
 			ContentColEnd:   it.ec,
 			Text:            rawText,
-			IsContinuation:  isContinuation,
+			IsContinuation:  false,
 		}
 	}
 }
 
-func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []string) []LineMeta {
+func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []string, viewportWidth int, isMarkdownRendered bool) []LineMeta {
 	if len(renderedLines) == 0 {
 		return nil
 	}
@@ -188,7 +188,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
 			if i == 0 || i == len(renderedLines)-1 || isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
-				processBoxMiddleLines(boxRun, metas, msgIdx, true)
+				processBoxMiddleLines(boxRun, metas, msgIdx)
 				boxRun = nil
 				metas[i] = LineMeta{
 					MsgIndex:     msgIdx,
@@ -200,7 +200,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
 				continue
 			}
-			processBoxMiddleLines(boxRun, metas, msgIdx, true)
+			processBoxMiddleLines(boxRun, metas, msgIdx)
 			boxRun = nil
 			contentTrimmed := strings.TrimRight(strings.TrimSuffix(plain, "│"), " ")
 			contentEnd := max(colStart, ansi.StringWidth(contentTrimmed))
@@ -211,10 +211,22 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				ContentColStart: colStart,
 				ContentColEnd:   contentEnd,
 				Text:            rawText,
-				IsContinuation:  i > 1,
+				IsContinuation:  false,
 			}
 		}
-		processBoxMiddleLines(boxRun, metas, msgIdx, true)
+		processBoxMiddleLines(boxRun, metas, msgIdx)
+
+		switch msg.Type {
+		case types.ImageMessage, types.PDFMessage:
+		case types.ShellCmdMessage:
+			annotateWrappedLinesFromSource(metas, "Shell: "+msg.Content)
+		case types.CompactedSummaryMessage:
+			cardWidth := max(30, viewportWidth-4)
+			contentWidth := max(20, cardWidth-PreviewBoxStyle.GetHorizontalFrameSize())
+			annotateMarkdownWrappedLines(metas, renderedLines, msg.Content, contentWidth, true)
+		default:
+			annotateWrappedLinesFromSource(metas, msg.Content)
+		}
 
 	case types.CommandResultMessage, types.ShellCmdResultMessage, types.ContextCmdResultMessage,
 		types.FileApplyCmdResultMessage, types.FileApplyUndoCmdResultMessage, types.InterruptedMessage:
@@ -232,13 +244,14 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				IsContinuation:  false,
 			}
 		}
+		annotateWrappedLinesFromSource(metas, msg.Content)
 
 	default:
 		var boxRun []boxRunItem
 		for i, line := range renderedLines {
 			plain := ansi.Strip(line)
 			if isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
-				processBoxMiddleLines(boxRun, metas, msgIdx, false)
+				processBoxMiddleLines(boxRun, metas, msgIdx)
 				boxRun = nil
 				metas[i] = LineMeta{
 					MsgIndex:     msgIdx,
@@ -250,7 +263,7 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
 				continue
 			}
-			processBoxMiddleLines(boxRun, metas, msgIdx, false)
+			processBoxMiddleLines(boxRun, metas, msgIdx)
 			boxRun = nil
 			contentTrimmed := strings.TrimRight(plain, " \r\n")
 			if len(contentTrimmed) == 0 {
@@ -277,10 +290,238 @@ func buildLineMetasForMessage(msg types.Message, msgIdx int, renderedLines []str
 				IsContinuation:  false,
 			}
 		}
-		processBoxMiddleLines(boxRun, metas, msgIdx, false)
+		processBoxMiddleLines(boxRun, metas, msgIdx)
+
+		switch msg.Type {
+		case types.InitMessage, types.DirectoryMessage:
+			annotateWrappedLinesFromSource(metas, msg.Content)
+		case types.AIMessage:
+			if isMarkdownRendered {
+				annotateMarkdownWrappedLines(metas, renderedLines, msg.Content, viewportWidth, false)
+			}
+		}
 	}
 
 	return metas
+}
+
+func annotateWrappedLinesFromSource(metas []LineMeta, src string) {
+	if len(metas) == 0 || src == "" {
+		return
+	}
+	src = strings.ReplaceAll(src, "\r\n", "\n")
+	pos := 0
+	seenContent := false
+
+	for i := range metas {
+		if metas[i].IsDecoration {
+			continue
+		}
+		trimmed := strings.TrimSpace(metas[i].Text)
+
+		if !seenContent {
+			seenContent = true
+			if trimmed != "" {
+				if idx := strings.Index(src[pos:], trimmed); idx != -1 {
+					pos += idx + len(trimmed)
+				}
+			}
+			continue
+		}
+
+		sawNewline := false
+		sawSpace := false
+		scanPos := pos
+		for scanPos < len(src) {
+			b := src[scanPos]
+			if b == '\n' {
+				sawNewline = true
+				scanPos++
+				if trimmed == "" {
+					break
+				}
+				continue
+			}
+			if b == ' ' || b == '\t' {
+				sawSpace = true
+				scanPos++
+				continue
+			}
+			break
+		}
+
+		if trimmed == "" {
+			if sawNewline {
+				pos = scanPos
+			}
+			metas[i].IsContinuation = false
+			continue
+		}
+
+		if idx := strings.Index(src[scanPos:], trimmed); idx != -1 {
+			if !sawNewline {
+				metas[i].IsContinuation = true
+				metas[i].WrapJoinSpace = sawSpace || idx > 0
+			}
+			pos = scanPos + idx + len(trimmed)
+		}
+	}
+}
+
+func annotateMarkdownWrappedLines(metas []LineMeta, renderedLines []string, rawContent string, wrapWidth int, boxed bool) {
+	if len(metas) <= 1 || wrapWidth <= 0 {
+		return
+	}
+
+	maxInnerWidth := max(10, wrapWidth-4)
+	docMargin := 2
+	if boxed {
+		docMargin = 0
+	}
+
+	for i := 1; i < len(metas); i++ {
+		prev := metas[i-1]
+		curr := metas[i]
+		if prev.IsDecoration || curr.IsDecoration {
+			continue
+		}
+
+		prevTrimmed := strings.TrimSpace(prev.Text)
+		currTrimmed := strings.TrimSpace(curr.Text)
+		if prevTrimmed == "" || currTrimmed == "" {
+			continue
+		}
+
+		if isMarkdownCodeBlockPair(renderedLines, prevTrimmed, currTrimmed, i) {
+			continue
+		}
+		if isMarkdownBlockStart(currTrimmed) || isMarkdownHorizontalRule(prevTrimmed) || isMarkdownHeadingLine(prevTrimmed) {
+			continue
+		}
+
+		firstWord := currTrimmed
+		if sp := strings.IndexAny(currTrimmed, " \t"); sp != -1 {
+			firstWord = currTrimmed[:sp]
+		}
+		firstWordWidth := ansi.StringWidth(firstWord)
+
+		usedWidth := prev.ContentColEnd - docMargin
+		if boxed {
+			usedWidth = prev.ContentColEnd - prev.ContentColStart
+		}
+		if usedWidth+1+firstWordWidth < maxInnerWidth-2 {
+			continue
+		}
+
+		metas[i].IsContinuation = true
+		metas[i].WrapJoinSpace = shouldJoinWithSpace(prevTrimmed, firstWord, rawContent)
+	}
+}
+
+func isMarkdownCodeBlockPair(renderedLines []string, prevTrimmed, currTrimmed string, idx int) bool {
+	if idx <= 0 || idx >= len(renderedLines) {
+		return false
+	}
+	prevRaw := renderedLines[idx-1]
+	currRaw := renderedLines[idx]
+	if hasIndentedBackgroundSGR(prevRaw) && hasIndentedBackgroundSGR(currRaw) {
+		return true
+	}
+	if isMarkdownBlockStart(prevTrimmed) {
+		return false
+	}
+	return hasIndentedBackgroundSGR(currRaw) && hasIndentedBackgroundSGR(prevRaw)
+}
+
+func hasIndentedBackgroundSGR(rawLine string) bool {
+	i := 0
+	for i < len(rawLine) && rawLine[i] == ' ' {
+		i++
+	}
+	if i < 4 || i >= len(rawLine) || rawLine[i] != '\x1b' {
+		return false
+	}
+	for i < len(rawLine) && rawLine[i] == '\x1b' {
+		if i+1 >= len(rawLine) || rawLine[i+1] != '[' {
+			break
+		}
+		end := i + 2
+		for end < len(rawLine) && !(rawLine[end] >= 0x40 && rawLine[end] <= 0x7E) {
+			end++
+		}
+		if end >= len(rawLine) {
+			break
+		}
+		seq := rawLine[i+2 : end]
+		if rawLine[end] == 'm' && (strings.HasPrefix(seq, "48;") || strings.Contains(seq, ";48;")) {
+			return true
+		}
+		i = end + 1
+	}
+	return false
+}
+
+func isMarkdownBlockStart(trimmed string) bool {
+	if trimmed == "" {
+		return false
+	}
+	for _, prefix := range []string{
+		"• ", "- ", "* ", "+ ", "[ ] ", "[✓] ", "[x] ", "[X] ",
+		"# ", "## ", "### ", "#### ", "##### ", "###### ",
+		"│", "┌", "├", "└", "╭", "╰", "┃", "║", "╔", "╚", "┏", "┗",
+		"🠶 ", "⚡ ", "↳ ",
+	} {
+		if strings.HasPrefix(trimmed, prefix) {
+			return true
+		}
+	}
+	if isMarkdownHorizontalRule(trimmed) {
+		return true
+	}
+	i := 0
+	for i < len(trimmed) && trimmed[i] >= '0' && trimmed[i] <= '9' {
+		i++
+	}
+	return i > 0 && i+1 < len(trimmed) && trimmed[i] == '.' && trimmed[i+1] == ' '
+}
+
+func isMarkdownHorizontalRule(trimmed string) bool {
+	count := 0
+	for _, r := range trimmed {
+		if r != '-' && r != '─' && r != '━' {
+			return false
+		}
+		count++
+	}
+	return count >= 3
+}
+
+func isMarkdownHeadingLine(trimmed string) bool {
+	for _, prefix := range []string{"# ", "## ", "### ", "#### ", "##### ", "###### "} {
+		if strings.HasPrefix(trimmed, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldJoinWithSpace(prevTrimmed, firstWord, rawContent string) bool {
+	if prevTrimmed == "" || firstWord == "" {
+		return true
+	}
+	lastWord := prevTrimmed
+	if sp := strings.LastIndexAny(prevTrimmed, " \t"); sp != -1 {
+		lastWord = prevTrimmed[sp+1:]
+	}
+	if lastWord == "" || rawContent == "" {
+		return true
+	}
+	if !strings.Contains(rawContent, lastWord+" "+firstWord) &&
+		!strings.Contains(rawContent, lastWord+"\n"+firstWord) &&
+		strings.Contains(rawContent, lastWord+firstWord) {
+		return false
+	}
+	return true
 }
 
 func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, []LineMeta) {
@@ -306,7 +547,13 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 			}
 		}
 
-		metas := buildLineMetasForMessage(msg, i, lines)
+		isAIRendered := false
+		if msg.Type == types.AIMessage && msg.Content != "" {
+			if cache, ok := m.Chat.RenderCache[i]; ok && cache.Width == viewportWidth {
+				isAIRendered = true
+			}
+		}
+		metas := buildLineMetasForMessage(msg, i, lines, viewportWidth, isAIRendered)
 
 		allLines = append(allLines, lines...)
 		allMetas = append(allMetas, metas...)
@@ -333,7 +580,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 		for i := len(allMetas); i < len(allLines); i++ {
 			plain := ansi.Strip(allLines[i])
 			if isBoxTopBorder(plain) || isBoxBottomBorder(plain) {
-				processBoxMiddleLines(boxRun, allMetas, -1, false)
+				processBoxMiddleLines(boxRun, allMetas, -1)
 				boxRun = nil
 				allMetas = append(allMetas, LineMeta{
 					MsgIndex:     -1,
@@ -346,7 +593,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 				boxRun = append(boxRun, boxRunItem{index: i, sc: sc, ec: ec, plain: plain})
 				continue
 			}
-			processBoxMiddleLines(boxRun, allMetas, -1, false)
+			processBoxMiddleLines(boxRun, allMetas, -1)
 			boxRun = nil
 			contentTrimmed := strings.TrimRight(plain, " \r\n")
 			colStart := 0
@@ -362,7 +609,7 @@ func (m Model) renderConversationWithOffsets() (string, map[int]int, []string, [
 				Text:            ansi.Cut(plain, colStart, contentEnd),
 			})
 		}
-		processBoxMiddleLines(boxRun, allMetas, -1, false)
+		processBoxMiddleLines(boxRun, allMetas, -1)
 		_ = startIdx
 	}
 	return strings.Join(allLines, "\n"), messageLineOffsets, allLines, allMetas
